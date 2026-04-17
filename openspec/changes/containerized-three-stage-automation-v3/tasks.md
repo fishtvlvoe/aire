@@ -30,7 +30,7 @@
 ### 5. Phase 1 驗收
 
 - [ ] 5.1 [Tool: codex] e2e：啟動容器 → 登入 Codex → codex exec "hello" 成功 — 實作 Requirement: Codex CLI is installed inside container；對應 Design: goals
-- [ ] 5.2 [Tool: kimi] CR：Dockerfile + compose.yaml + 啟動腳本一致性、安全性（無硬編 token、無 0.0.0.0 綁定）— 實作 Requirement: Container exposes only localhost；對應 Design: 資料安全（客戶資料不能外流）
+- [x] 5.2 [Tool: kimi] CR：Dockerfile + compose.yaml + 啟動腳本一致性、安全性（無硬編 token、無 0.0.0.0 綁定）— 實作 Requirement: Container exposes only localhost；對應 Design: 資料安全（客戶資料不能外流）
 
 ---
 
