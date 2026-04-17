@@ -2,7 +2,7 @@
 
 - [x] 0.1 [Tool: copilot-codex] Create Dockerfile: Node.js 20 LTS base image, install Puppeteer + Chromium, copy app, expose port 3000; per Docker Container 封裝：跨平台執行環境 decision
 - [x] 0.2 [Tool: copilot-codex] Create docker-compose.yml: app service + SQLite volume mount (/output for PDFs); environment variables via .env file
-- [ ] 0.3 [Tool: codex] Test Docker build on Mac: `docker compose up` → localhost:3000 reachable; Puppeteer generates test PDF inside container
+- [x] 0.3 [Tool: codex] Test Docker build on Mac: `docker compose up` → localhost:3000 reachable; Puppeteer generates test PDF inside container
 - [ ] 0.4 [Tool: cursor] Write client installation guide (Traditional Chinese, ≤5 steps): install Docker Desktop → download docker-compose.yml → run docker compose up → open browser
 
 ## 1. Database Schema & Record Model
