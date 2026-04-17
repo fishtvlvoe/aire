@@ -11,6 +11,8 @@ type Listing = {
   property_type: PropertyType;
   address: string;
   status: ListingStatus;
+  field_visit_data?: string | null;
+  created_at?: string;
 };
 import { getPropertyType } from '@/lib/property-types';
 
@@ -59,7 +61,7 @@ const parseFieldVisitData = (rawData: string | null): Record<string, unknown> | 
 };
 
 const getAddressFromListing = (listing: Listing): string => {
-  const fieldVisitData = parseFieldVisitData(listing.field_visit_data);
+  const fieldVisitData = parseFieldVisitData(listing.field_visit_data ?? null);
   const address = fieldVisitData?.address;
   if (typeof address === 'string' && address.trim() !== '') {
     return address;
@@ -67,7 +69,7 @@ const getAddressFromListing = (listing: Listing): string => {
   return '地址尚未填寫';
 };
 
-const formatDate = (isoDate: string): string => {
+const formatDate = (isoDate: string | undefined): string => {
   if (!isoDate) {
     return '-';
   }

@@ -64,7 +64,7 @@ const getAddressFromListing = (listing: Listing | null): string => {
   if (!listing) {
     return '-';
   }
-  const fieldVisitData = parseFieldVisitData(listing.field_visit_data);
+  const fieldVisitData = parseFieldVisitData(listing.field_visit_data ?? null);
   const address = fieldVisitData?.address;
   if (typeof address === 'string' && address.trim() !== '') {
     return address;

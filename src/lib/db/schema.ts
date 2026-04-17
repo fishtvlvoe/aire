@@ -28,6 +28,10 @@ export function initDb(db: Database.Database): void {
   // SQLite does not support ADD COLUMN IF NOT EXISTS; check pragma_table_info first
   const columns = (db.pragma('table_info(listings)') as Array<{ name: string }>).map((c) => c.name);
   if (!columns.includes('pre_commission_data')) {
-    db.exec('ALTER TABLE listings ADD COLUMN pre_commission_data TEXT');
+    try {
+      db.exec('ALTER TABLE listings ADD COLUMN pre_commission_data TEXT');
+    } catch {
+      // column was added by a concurrent process; safe to ignore
+    }
   }
 }

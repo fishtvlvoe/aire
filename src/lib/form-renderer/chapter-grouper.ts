@@ -8,11 +8,11 @@ export type DisplayMode = 'fixed' | 'estimate' | 'blank'
 export type FieldSchema = {
   key: string
   label: string
-  type: 'text' | 'number' | 'textarea' | 'select' | 'checkbox' | 'file'
+  type: string
   required: boolean
   options?: string[]
-  sourceType?: SourceType
-  displayMode?: DisplayMode
+  sourceType?: string
+  displayMode?: string
 }
 
 export type FullSchema = {
