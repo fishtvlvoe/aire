@@ -1,0 +1,210 @@
+/* dossier.css — 不動產說明書列印樣式 */
+
+/* ── 頁面設定 ── */
+@page {
+  size: A4;
+  margin: 15mm 12mm 20mm 12mm;
+
+  @top-left {
+    content: element(page-header-logo);
+  }
+  @top-center {
+    content: element(page-header-title);
+  }
+  @top-right {
+    content: element(page-header-page);
+  }
+  @bottom-left {
+    content: element(page-footer-date);
+  }
+  @bottom-right {
+    content: element(page-footer-note);
+  }
+}
+
+/* ── 字型與基礎 ── */
+* {
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Noto Serif TC", serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #000;
+  background: #fff;
+}
+
+/* ── 頁眉（running element） ── */
+.page-header {
+  position: running(page-header-logo);
+  font-family: "Noto Serif TC", serif;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.page-header-title {
+  position: running(page-header-title);
+  font-family: "Noto Serif TC", serif;
+  font-size: 12px;
+  text-align: center;
+}
+
+.page-header-page {
+  position: running(page-header-page);
+  font-family: "Noto Serif TC", serif;
+  font-size: 11px;
+  text-align: right;
+}
+
+.page-header-page::after {
+  content: "第 " counter(page) " 頁 / 共 " counter(pages) " 頁";
+}
+
+/* ── 頁腳（running element） ── */
+.page-footer-date {
+  position: running(page-footer-date);
+  font-family: "Noto Serif TC", serif;
+  font-size: 10px;
+  color: #444;
+}
+
+.page-footer-note {
+  position: running(page-footer-note);
+  font-family: "Noto Serif TC", serif;
+  font-size: 10px;
+  color: #444;
+  text-align: right;
+}
+
+/* ── 主文件容器 ── */
+#content {
+  width: 100%;
+}
+
+/* ── 標題 ── */
+h1 {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  margin: 0 0 12px 0;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #000;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 18px 0 6px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #000;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 12px 0 4px 0;
+  page-break-after: avoid;
+}
+
+/* ── 段落 ── */
+p {
+  margin: 4px 0 8px 0;
+}
+
+/* ── 章節分隔線 ── */
+.chapter-divider {
+  border: none;
+  border-top: 1px solid #bbb;
+  margin: 16px 0;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #bbb;
+  margin: 16px 0;
+}
+
+/* ── 表格 ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 12px 0;
+  font-size: 13px;
+}
+
+th,
+td {
+  border: 1px solid #666;
+  padding: 4px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f0f0f0;
+  font-weight: bold;
+}
+
+/* ── 待補標記 ── */
+.pending,
+[data-pending],
+*:has(> .pending) {
+  color: #c00;
+}
+
+/* 純文字「待補」標紅 */
+p:has-text("待補"),
+td:has-text("待補"),
+li:has-text("待補") {
+  color: #c00;
+}
+
+/* Markdown 渲染後「待補」可能是純文字，用偽元素無法補捉；
+   改在 dossier.ts 轉換時加 <span class="pending">待補</span> */
+span.pending {
+  color: #c00;
+  font-weight: bold;
+}
+
+/* ── 列表 ── */
+ul,
+ol {
+  margin: 4px 0 8px 0;
+  padding-left: 20px;
+}
+
+li {
+  margin-bottom: 2px;
+}
+
+/* ── 列印媒體查詢（補強） ── */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  /* 避免孤行 */
+  p,
+  li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* 章節標題不斷頁 */
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+
+  /* 表格不斷行 */
+  tr {
+    page-break-inside: avoid;
+  }
+}

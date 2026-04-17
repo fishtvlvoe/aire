@@ -59,11 +59,11 @@
 
 ### 9. 5 份文件產出器（MD）
 
-- [ ] 9.1 [Tool: copilot-codex] 砍掉 src/lib/document-generator/types.ts 的 7+ 文件，改為 5 份 — 實作 Requirement: System generates exactly five document types per listing；對應 Design: 其他 4 份文件全部 md（物調表、591、dm、fb 貼文）、小幅修改可用
-- [ ] 9.2 [Tool: copilot-codex] 建立 document-generator/md/survey.ts：物調表 MD prompt + Codex 呼叫 — 實作 Requirement: Secondary documents are Markdown format、System generates exactly five document types per listing
-- [ ] 9.3 [Tool: copilot-codex] 建立 md/listing591.ts：591 PO 文 MD prompt — 實作 Requirement: Secondary documents are Markdown format
-- [ ] 9.4 [Tool: copilot-codex] 建立 md/dm.ts：銷售 DM 文案 MD prompt — 實作 Requirement: Secondary documents are Markdown format
-- [ ] 9.5 [Tool: copilot-codex] 建立 md/social.ts：FB 5 平台貼文 + 圖片提示詞 MD prompt — 實作 Requirement: Secondary documents are Markdown format
+- [x] 9.1 [Tool: copilot-codex] 砍掉 src/lib/document-generator/types.ts 的 7+ 文件，改為 5 份 — 實作 Requirement: System generates exactly five document types per listing；對應 Design: 其他 4 份文件全部 md（物調表、591、dm、fb 貼文）、小幅修改可用
+- [x] 9.2 [Tool: copilot-codex] 建立 document-generator/md/survey.ts：物調表 MD prompt + Codex 呼叫 — 實作 Requirement: Secondary documents are Markdown format、System generates exactly five document types per listing
+- [x] 9.3 [Tool: copilot-codex] 建立 md/listing591.ts：591 PO 文 MD prompt — 實作 Requirement: Secondary documents are Markdown format
+- [x] 9.4 [Tool: copilot-codex] 建立 md/dm.ts：銷售 DM 文案 MD prompt — 實作 Requirement: Secondary documents are Markdown format
+- [x] 9.5 [Tool: copilot-codex] 建立 md/social.ts：FB 5 平台貼文 + 圖片提示詞 MD prompt — 實作 Requirement: Secondary documents are Markdown format
 - [ ] 9.6 [Tool: codex] 每份文件 integration 測試 — 實作 Requirement: System generates exactly five document types per listing、Secondary documents are Markdown format
 
 ### 10. 不動產說明書 PDF（16 章）
