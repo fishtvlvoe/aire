@@ -69,10 +69,10 @@
 ### 10. 不動產說明書 PDF（16 章）
 
 - [ ] 10.1 [Tool: kimi] 分析 docs/extracted-dossier-schema.md，確認建物/土地章節結構 — 對應 Design: 不動產說明書：合併 16 頁附件為單一模板 + puppeteer pdf、16 章模板結構還沒完全萃取（copilot 任務待完成）
-- [ ] 10.2 [Tool: copilot-codex] 建立 document-generator/pdf/dossier-building.ts：建物版 16 章 prompt — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format；對應 Design: 不動產說明書：合併 16 頁附件為單一模板 + puppeteer pdf
-- [ ] 10.3 [Tool: copilot-codex] 建立 pdf/dossier-land.ts：土地版 16 章 prompt — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format；對應 Design: 不動產說明書：合併 16 頁附件為單一模板 + puppeteer pdf
-- [ ] 10.4 [Tool: cursor] 建立 pdf-generator/templates/dossier.html + dossier.css：16 章排版、建安 LOGO、頁眉頁腳 — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format
-- [ ] 10.5 [Tool: copilot-codex] 更新 pdf-generator/dossier.ts：接收 16 章 Markdown → 合併 HTML → Puppeteer PDF — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format；對應 Design: 100% 可直接搬用（lib 核心層）
+- [x] 10.2 [Tool: copilot-codex] 建立 document-generator/pdf/dossier-building.ts：建物版 16 章 prompt — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format；對應 Design: 不動產說明書：合併 16 頁附件為單一模板 + puppeteer pdf
+- [x] 10.3 [Tool: copilot-codex] 建立 pdf/dossier-land.ts：土地版 16 章 prompt — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format；對應 Design: 不動產說明書：合併 16 頁附件為單一模板 + puppeteer pdf
+- [x] 10.4 [Tool: cursor] 建立 pdf-generator/templates/dossier.html + dossier.css：16 章排版、建安 LOGO、頁眉頁腳 — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format
+- [x] 10.5 [Tool: copilot-codex] 更新 pdf-generator/dossier.ts：接收 16 章 Markdown → 合併 HTML → Puppeteer PDF — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format；對應 Design: 100% 可直接搬用（lib 核心層）
 - [ ] 10.6 [Tool: codex] 測試：建物與土地各一 fixture listing 產 PDF，驗證 16 章 + LOGO — 實作 Requirement: Real estate brochure is PDF with fixed 16-chapter format
 
 ### 11. 產文件協調與 API
