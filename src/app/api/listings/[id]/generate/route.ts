@@ -50,7 +50,7 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ id: s
     // 4. 呼叫 updateDocuments(numId, result)
     await updateDocuments(numId, result);
     // 5. 回傳結果
-    return NextResponse.json({ ok: true, documents: result });
+    return NextResponse.json({ ok: true, documents: result, downloadUrls: { disclosure: `/api/listings/${numId}/pdf?type=disclosure`, survey: `/api/listings/${numId}/pdf?type=survey`, salesDm: `/api/listings/${numId}/pdf?type=sales-dm` } });
   } catch (error: any) {
     // 錯誤處理
     console.error('文件產生失敗', error);
