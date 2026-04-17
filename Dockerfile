@@ -42,32 +42,33 @@ FROM --platform=linux/amd64 node:22-slim AS runner
 
 WORKDIR /app
 
-# Install Chromium, Chinese fonts, and Node.js global tooling prerequisites
+# Install Chromium, Chinese fonts, curl (for healthcheck), and build prerequisites
 RUN apt-get update && apt-get install -y \
   chromium \
   fonts-noto-cjk \
   ca-certificates \
+  curl \
   --no-install-recommends && \
   rm -rf /var/lib/apt/lists/*
 
-# Install Codex CLI globally inside the container
-RUN npm install -g @openai/codex
-
-# Verify Codex CLI is executable (build-time smoke test)
-RUN codex --version
+# Install pinned Codex CLI version
+RUN npm install -g @openai/codex@0.121.0
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Copy built artifacts from builder
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
+# Create non-root user for runtime
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 --ingroup nodejs nextjs
 
-# Copy node_modules for native modules (better-sqlite3 needs the .node binary)
-COPY --from=builder /app/node_modules ./node_modules
+# Copy built artifacts from builder
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+USER nextjs
 
 EXPOSE 3000
 

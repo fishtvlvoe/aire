@@ -40,6 +40,12 @@ if not exist "%DATA_DIR%" (
     echo       資料目錄已存在：%DATA_DIR%
 )
 
+:: 建立 SQLite 資料庫子目錄（避免首次啟動寫入失敗）
+if not exist "%DATA_DIR%\db" (
+    mkdir "%DATA_DIR%\db"
+    echo       已建立資料庫目錄：%DATA_DIR%\db
+)
+
 :: 建立 Codex 憑證目錄
 echo.
 echo [3/5] 建立 Codex 憑證目錄...

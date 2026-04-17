@@ -15,7 +15,7 @@ services:
         target: /app/data
       - type: bind
         source: ${USERPROFILE:-~}/建安AI/.codex
-        target: /root/.codex
+        target: /home/nextjs/.codex
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
