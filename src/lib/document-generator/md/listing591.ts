@@ -1,0 +1,21 @@
+import { runCodex } from '../../codex-client';
+import type { DocumentGeneratorInput } from '../types';
+
+export async function generateListing591(input: DocumentGeneratorInput): Promise<string> {
+  const prompt = `你是台灣房仲行銷專家。根據以下物件資料，產出適合張貼於「591 房屋網」的物件貼文，格式為 Markdown。
+物件類型：${input.property_type}
+物件資料：${JSON.stringify(input.field_visit_data)}
+秘書補充：${JSON.stringify(input.supplementary_data)}
+
+貼文應包含：
+- 吸睛標題（20 字以內）
+- 物件特色（3-5 個重點）
+- 交通與生活機能
+- 售價（若無資料請寫「請洽業務」）
+- 聯絡方式（請留 [姓名] / [電話] placeholder）
+
+請以繁體中文輸出，全文 500 字以內，語氣親切專業。`;
+  const result = await runCodex(prompt);
+  if (!result.success) throw new Error(result.error);
+  return result.output ?? '';
+}
