@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { PropertyType, PROPERTY_TYPES, getPropertyType } from '@/lib/property-types';
 
@@ -20,6 +21,7 @@ interface Listing {
 }
 
 export default function NewListingPage() {
+  const router = useRouter();
   const [selectedType, setSelectedType] = useState<PropertyType | null>(null);
   const nextStatus: ListingStatus = 'draft';
 
@@ -45,11 +47,15 @@ export default function NewListingPage() {
 
   // TODO: API call for creating listing in Wave 2.
   const handleNextStep = async () => {
-    if (!selectedType) {
-      return;
-    }
-
-    await Promise.resolve(selectedType);
+    if (!selectedType) return;
+    const res = await fetch('/api/listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ propertyType: selectedType }),
+    });
+    if (!res.ok) return;
+    const { listing } = await res.json();
+    router.push(`/listings/${listing.id}/fill`);
   };
 
   return (

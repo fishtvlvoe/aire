@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import FieldVisitForm from '@/components/forms/FieldVisitForm';
@@ -83,6 +83,10 @@ export default function ListingFillPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isComplete, setIsComplete] = useState(false);
+  const handleFormChange = useCallback((nextFormData: Record<string, unknown>, nextIsComplete: boolean) => {
+    setFormData(nextFormData);
+    setIsComplete(nextIsComplete);
+  }, []);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -204,10 +208,7 @@ export default function ListingFillPage() {
               <>
                 <FieldVisitForm
                   propertyType={propertyType}
-                  onSave={(nextFormData, nextIsComplete) => {
-                    setFormData(nextFormData);
-                    setIsComplete(nextIsComplete);
-                  }}
+                  onSave={handleFormChange}
                 />
 
                 <div className="mt-6 flex items-center justify-end gap-3">

@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
-# Platform: linux/amd64
-FROM --platform=linux/amd64 node:22-slim AS deps
+FROM node:22-slim AS deps
 
 WORKDIR /app
 
@@ -16,7 +15,7 @@ COPY package*.json ./
 RUN npm ci
 
 # -------------------------------------------------------------------
-FROM --platform=linux/amd64 node:22-slim AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -38,7 +37,7 @@ RUN npm rebuild better-sqlite3
 RUN npm run build
 
 # -------------------------------------------------------------------
-FROM --platform=linux/amd64 node:22-slim AS runner
+FROM node:22-slim AS runner
 
 WORKDIR /app
 

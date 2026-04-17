@@ -167,6 +167,24 @@ export default function ListingDocumentsPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
+                      {card.entry.content && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const blob = new Blob([card.entry.content ?? ''], { type: 'text/markdown' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${card.key}-${listingId}.md`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="rounded-md border border-slate-400 px-3 py-1.5 text-sm font-semibold text-slate-600"
+                        >
+                          下載 .md
+                        </button>
+                      )}
+
                       {card.key === 'disclosure_document' && (
                         <a
                           href={card.entry.pdfUrl ?? `/api/listings/${listingId}/pdf`}

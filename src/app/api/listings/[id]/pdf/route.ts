@@ -23,7 +23,11 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   const fieldVisitData = listing.field_visit_data ? JSON.parse(listing.field_visit_data) as Record<string, unknown> : {};
   const address = String(fieldVisitData.address || '未知地址');
 
-  const html = `<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:sans-serif;padding:2rem;font-size:14px;}h1{font-size:1.2rem;}pre{white-space:pre-wrap;word-break:break-all;}</style></head><body><h1>${type === 'disclosure' ? '不動產說明書' : type === 'survey' ? '物調表' : '銷售DM'}</h1><p>物件地址：${address}</p><pre>${content}</pre></body></html>`;
+  const title = type === 'disclosure' ? '不動產說明書' : type === 'survey' ? '物調表' : '銷售DM';
+  const bodyContent = content
+    ? `<pre style="white-space:pre-wrap;word-break:break-all;">${content}</pre>`
+    : `<p style="color:#888;">尚未產生內容</p>`;
+  const html = `<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:'Noto Sans TC',sans-serif;padding:2rem;font-size:14px;line-height:1.8;}h1{font-size:1.4rem;color:#1B3A6B;}pre{white-space:pre-wrap;word-break:break-all;}</style></head><body><h1>${title}</h1><p style="color:#666;margin-bottom:1.5rem;">物件地址：${address}</p>${bodyContent}</body></html>`;
 
   let puppeteer: typeof import('puppeteer');
   try {
