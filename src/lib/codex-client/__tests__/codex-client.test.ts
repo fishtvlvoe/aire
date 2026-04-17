@@ -1,72 +1,83 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock('child_process', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('child_process')>();
-  return {
-    ...actual,
-    exec: vi.fn(),
-  };
-});
+const codexAdapter = {
+  run: vi.fn().mockResolvedValue({ success: true, output: "codex", status: "ready" }),
+  check: vi.fn().mockResolvedValue("ready"),
+};
 
-import { exec } from 'child_process';
-import { checkCodexStatus, runCodex } from '../index';
+const claudeCodeAdapter = {
+  run: vi.fn().mockResolvedValue({ success: true, output: "claude", status: "ready" }),
+  check: vi.fn().mockResolvedValue("ready"),
+};
 
-type ExecCallback = (error: Error | null, result: { stdout: string; stderr: string }) => void;
+const geminiAdapter = {
+  run: vi.fn().mockResolvedValue({ success: true, output: "gemini", status: "ready" }),
+  check: vi.fn().mockResolvedValue("ready"),
+};
 
-function mockExecSuccess(stdout: string, stderr = '') {
-  vi.mocked(exec).mockImplementationOnce((_cmd: string, _opts: unknown, cb?: unknown) => {
-    const callback = (cb ?? _opts) as ExecCallback;
-    callback(null, { stdout, stderr });
-    return {} as ReturnType<typeof exec>;
-  });
-}
+const ollamaAdapter = {
+  run: vi.fn().mockResolvedValue({ success: true, output: "ollama", status: "ready" }),
+  check: vi.fn().mockResolvedValue("ready"),
+};
 
-function mockExecError(message: string, stderr = '') {
-  vi.mocked(exec).mockImplementationOnce((_cmd: string, _opts: unknown, cb?: unknown) => {
-    const callback = (cb ?? _opts) as ExecCallback;
-    const err = Object.assign(new Error(message), { stderr });
-    callback(err, { stdout: '', stderr });
-    return {} as ReturnType<typeof exec>;
-  });
-}
+vi.mock("../adapters/codex", () => ({ codexAdapter }));
+vi.mock("../adapters/claude-code", () => ({ claudeCodeAdapter }));
+vi.mock("../adapters/gemini", () => ({ geminiAdapter }));
+vi.mock("../adapters/ollama", () => ({ ollamaAdapter }));
 
 afterEach(() => {
+  delete process.env.LLM_BACKEND;
   vi.clearAllMocks();
+  vi.resetModules();
 });
 
-describe('checkCodexStatus', () => {
-  it('已登入時回傳 ready（兩次 exec 都成功）', async () => {
-    mockExecSuccess('codex 1.0.0');  // --version
-    mockExecSuccess('__health_check__');  // exec
-    const status = await checkCodexStatus();
-    expect(status).toBe('ready');
+async function loadClient(backend?: string) {
+  if (backend) {
+    process.env.LLM_BACKEND = backend;
+  } else {
+    delete process.env.LLM_BACKEND;
+  }
+  return import("../index");
+}
+
+describe("LLM_BACKEND dispatcher", () => {
+  it("LLM_BACKEND=codex 時委派給 codex adapter", async () => {
+    const { runCodex, checkCodexStatus } = await loadClient("codex");
+    await runCodex("prompt", 1234);
+    await checkCodexStatus();
+    expect(codexAdapter.run).toHaveBeenCalledWith("prompt", 1234);
+    expect(codexAdapter.check).toHaveBeenCalled();
   });
 
-  it('--version 失敗時回傳 error', async () => {
-    mockExecError('command not found');
-    const status = await checkCodexStatus();
-    expect(status).toBe('error');
+  it("LLM_BACKEND=claude-code 時委派給 claude-code adapter", async () => {
+    const { runCodex, checkCodexStatus } = await loadClient("claude-code");
+    await runCodex("prompt", 1234);
+    await checkCodexStatus();
+    expect(claudeCodeAdapter.run).toHaveBeenCalledWith("prompt", 1234);
+    expect(claudeCodeAdapter.check).toHaveBeenCalled();
   });
 
-  it('未登入時回傳 not-logged-in', async () => {
-    mockExecSuccess('codex 1.0.0');  // --version ok
-    mockExecError('not logged in', 'not logged in');  // exec fails
-    const status = await checkCodexStatus();
-    expect(status).toBe('not-logged-in');
-  });
-});
-
-describe('runCodex', () => {
-  it('成功執行回傳 success: true', async () => {
-    mockExecSuccess('{"key":"val"}');
-    const result = await runCodex('test prompt', 5000);
-    expect(result.success).toBe(true);
-    expect(result.output).toBe('{"key":"val"}');
+  it("LLM_BACKEND=gemini 時委派給 gemini adapter", async () => {
+    const { runCodex, checkCodexStatus } = await loadClient("gemini");
+    await runCodex("prompt", 1234);
+    await checkCodexStatus();
+    expect(geminiAdapter.run).toHaveBeenCalledWith("prompt", 1234);
+    expect(geminiAdapter.check).toHaveBeenCalled();
   });
 
-  it('執行失敗回傳 success: false', async () => {
-    mockExecError('exec failed', 'some error');
-    const result = await runCodex('test prompt', 5000);
-    expect(result.success).toBe(false);
+  it("LLM_BACKEND=ollama 時委派給 ollama adapter", async () => {
+    const { runCodex, checkCodexStatus } = await loadClient("ollama");
+    await runCodex("prompt", 1234);
+    await checkCodexStatus();
+    expect(ollamaAdapter.run).toHaveBeenCalledWith("prompt", 1234);
+    expect(ollamaAdapter.check).toHaveBeenCalled();
+  });
+
+  it("未知 LLM_BACKEND 時 fallback 到 codex adapter", async () => {
+    const { runCodex, checkCodexStatus } = await loadClient("unknown");
+    await runCodex("prompt", 1234);
+    await checkCodexStatus();
+    expect(codexAdapter.run).toHaveBeenCalledWith("prompt", 1234);
+    expect(codexAdapter.check).toHaveBeenCalled();
   });
 });

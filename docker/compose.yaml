@@ -9,6 +9,8 @@ services:
     environment:
       - DATABASE_PATH=/app/data/db/app.sqlite
       - NODE_ENV=production
+      # 可選值：codex / claude-code / gemini / ollama
+      - LLM_BACKEND=codex
     volumes:
       - type: bind
         source: ${USERPROFILE:-~}/建安AI/data
