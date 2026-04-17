@@ -2,29 +2,29 @@
 
 ### 1. Docker Image 基礎建置
 
-- [ ] 1.1 [Tool: copilot-codex] 建立 Dockerfile：基於 node:22-slim，裝 Next.js 相依、Puppeteer + Chromium、中文字型（Noto Sans TC + Noto Serif TC），多階段 build — 實作 Requirement: Docker image builds successfully for linux/amd64；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）
-- [ ] 1.2 [Tool: codex] 建立 docker/compose.yaml：定義 app service、volume mount、port 綁 127.0.0.1:3000 — 實作 Requirement: Container exposes only localhost、Data persists on host volume；對應 Design: 容器內資料持久化用 volume mount，不是 named volume
-- [ ] 1.3 [Tool: copilot-codex] 容器內安裝 Codex CLI 並驗證版本 — 實作 Requirement: Codex CLI is installed inside container；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）
+- [x] 1.1 [Tool: copilot-codex] 建立 Dockerfile：基於 node:22-slim，裝 Next.js 相依、Puppeteer + Chromium、中文字型（Noto Sans TC + Noto Serif TC），多階段 build — 實作 Requirement: Docker image builds successfully for linux/amd64；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）
+- [x] 1.2 [Tool: codex] 建立 docker/compose.yaml：定義 app service、volume mount、port 綁 127.0.0.1:3000 — 實作 Requirement: Container exposes only localhost、Data persists on host volume；對應 Design: 容器內資料持久化用 volume mount，不是 named volume
+- [x] 1.3 [Tool: copilot-codex] 容器內安裝 Codex CLI 並驗證版本 — 實作 Requirement: Codex CLI is installed inside container；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）
 - [ ] 1.4 [Tool: codex] e2e 驗證：docker build && docker compose up -d，容器 < 60s 啟動，/api/health 回 200 — 實作 Requirement: Container health check reports readiness、Docker image builds successfully for linux/amd64；對應 Design: goals
 
 ### 2. Codex CLI 容器內登入機制
 
-- [ ] 2.1 [Tool: copilot-codex] 建立 src/lib/codex-client/：wrapper 呼叫 codex exec，錯誤處理（未登入/超時/額度超限）— 實作 Requirement: Codex CLI is installed inside container；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）、codex cli 容器內在 windows docker desktop + wsl2 能不能跑
-- [ ] 2.2 [Tool: copilot-codex] 建立 /api/health endpoint — 實作 Requirement: Container health check reports readiness
+- [x] 2.1 [Tool: copilot-codex] 建立 src/lib/codex-client/：wrapper 呼叫 codex exec，錯誤處理（未登入/超時/額度超限）— 實作 Requirement: Codex CLI is installed inside container；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）、codex cli 容器內在 windows docker desktop + wsl2 能不能跑
+- [x] 2.2 [Tool: copilot-codex] 建立 /api/health endpoint — 實作 Requirement: Container health check reports readiness
 - [ ] 2.3 [Tool: codex] 撰寫 codex-client 測試：模擬已登入/未登入/回應/錯誤四個情境 — 實作 Requirement: Codex CLI is installed inside container
-- [ ] 2.4 [Tool: gemini] 研究 Codex CLI OAuth 在容器內的登入限制（interactive TTY、Windows 瀏覽器 callback）— 對應 Design: codex cli 容器內在 windows docker desktop + wsl2 能不能跑
+- [x] 2.4 [Tool: gemini] 研究 Codex CLI OAuth 在容器內的登入限制（interactive TTY、Windows 瀏覽器 callback）— 對應 Design: codex cli 容器內在 windows docker desktop + wsl2 能不能跑
 
 ### 3. Windows 啟動腳本
 
-- [ ] 3.1 [Tool: copilot-gen] 建立 docker/start.bat：檢查 Docker Desktop、docker compose up、輪詢 health、開瀏覽器 — 實作 Requirement: Windows launcher provides one-click startup；對應 Design: windows 啟動腳本：批次檔 + powershell
-- [ ] 3.2 [Tool: copilot-gen] 建立 docker/first-login.bat：建立 %USERPROFILE%\建安AI\data\ 目錄、拉 image、執行 codex login — 實作 Requirement: Windows launcher provides one-click startup、Codex CLI is installed inside container
-- [ ] 3.3 [Tool: copilot-gen] 建立 docker/安裝說明.md：繁體中文安裝步驟、系統需求 — 對應 Design: 客戶電腦規格不確定
+- [x] 3.1 [Tool: copilot-gen] 建立 docker/start.bat：檢查 Docker Desktop、docker compose up、輪詢 health、開瀏覽器 — 實作 Requirement: Windows launcher provides one-click startup；對應 Design: windows 啟動腳本：批次檔 + powershell
+- [x] 3.2 [Tool: copilot-gen] 建立 docker/first-login.bat：建立 %USERPROFILE%\建安AI\data\ 目錄、拉 image、執行 codex login — 實作 Requirement: Windows launcher provides one-click startup、Codex CLI is installed inside container
+- [x] 3.3 [Tool: copilot-gen] 建立 docker/安裝說明.md：繁體中文安裝步驟、系統需求 — 對應 Design: 客戶電腦規格不確定
 - [ ] 3.4 [Tool: codex] Mac 端模擬 Windows 流程驗證腳本邏輯 — 對應 Design: goals
 
 ### 4. 資料持久化
 
-- [ ] 4.1 [Tool: copilot-codex] 更新 src/lib/db/ 讀 env DATABASE_PATH=/app/data/db/app.sqlite — 實作 Requirement: Data persists on host volume
-- [ ] 4.2 [Tool: copilot-codex] 建立 uploads 與 outputs 目錄結構輔助函式，依 listing-id 分資料夾 — 實作 Requirement: Data persists on host volume
+- [x] 4.1 [Tool: copilot-codex] 更新 src/lib/db/ 讀 env DATABASE_PATH=/app/data/db/app.sqlite — 實作 Requirement: Data persists on host volume
+- [x] 4.2 [Tool: copilot-codex] 建立 uploads 與 outputs 目錄結構輔助函式，依 listing-id 分資料夾 — 實作 Requirement: Data persists on host volume
 - [ ] 4.3 [Tool: codex] 測試：容器 down/up 後資料完整保留 — 實作 Requirement: Data persists on host volume；對應 Design: 資料安全（客戶資料不能外流）
 
 ### 5. Phase 1 驗收
@@ -38,24 +38,24 @@
 
 ### 6. 物件類型 13 種補完
 
-- [ ] 6.1 [Tool: cursor] 把 src/lib/property-types/index.ts 所有 available 改為 true — 實作 Requirement: Registry supports all 13 property types as available；對應 Design: 13 種類型全開，schema 差異化但共用 ui 元件
+- [x] 6.1 [Tool: cursor] 把 src/lib/property-types/index.ts 所有 available 改為 true — 實作 Requirement: Registry supports all 13 property types as available；對應 Design: 13 種類型全開，schema 差異化但共用 ui 元件
 - [ ] 6.2 [Tool: cursor] 為剩餘 7 種類型建立 schema 檔（套房/店面/廠房/商業地/工業地/鄉村區建地/其他土地）— 實作 Requirement: Registry supports all 13 property types as available；對應 Design: 13 種類型全開，schema 差異化但共用 ui 元件
-- [ ] 6.3 [Tool: cursor] 所有欄位補 sourceType + displayMode 屬性 — 實作 Requirement: Each field has sourceType and displayMode metadata；對應 Design: 欄位總表 metadata：sourcetype + displaymode
+- [x] 6.3 [Tool: cursor] 所有欄位補 sourceType + displayMode 屬性 — 實作 Requirement: Each field has sourceType and displayMode metadata；對應 Design: 欄位總表 metadata：sourcetype + displaymode
 - [ ] 6.4 [Tool: codex] 撰寫 property-types 測試：13 類 getFieldSchema 非空、metadata 完整 — 實作 Requirement: Registry supports all 13 property types as available、Each field has sourceType and displayMode metadata
 
 ### 7. Form Renderer 修補
 
 - [ ] 7.1 [Tool: copilot-codex] 修 src/lib/form-renderer/index.ts：schema key 支援 -、type 定義補 file — 實作 Requirement: Field visit form supports all 13 property types；對應 Design: 100% 可直接搬用（lib 核心層）、小幅修改可用
-- [ ] 7.2 [Tool: cursor] 重寫 FieldVisitForm.tsx 支援 13 類動態 schema — 實作 Requirement: Field visit form supports all 13 property types；對應 Design: 小幅修改可用
-- [ ] 7.3 [Tool: cursor] 重寫 SupplementaryForm.tsx 對齊 v3 秘書後補欄位 — 實作 Requirement: Supplementary form renders secretary fields for all 13 types；對應 Design: 小幅修改可用
+- [x] 7.2 [Tool: cursor] 重寫 FieldVisitForm.tsx 支援 13 類動態 schema — 實作 Requirement: Field visit form supports all 13 property types；對應 Design: 小幅修改可用
+- [x] 7.3 [Tool: cursor] 重寫 SupplementaryForm.tsx 對齊 v3 秘書後補欄位 — 實作 Requirement: Supplementary form renders secretary fields for all 13 types；對應 Design: 小幅修改可用
 - [ ] 7.4 [Tool: codex] 測試：13 類在 FieldVisitForm 下正確渲染 — 實作 Requirement: Field visit form supports all 13 property types
 
 ### 8. UI 按章節分群
 
-- [ ] 8.1 [Tool: cursor] 建立 src/lib/form-renderer/chapter-grouper.ts：三層 schema 合併重排為 9 章節 — 實作 Requirement: Form groups fields by chapter, not by layer
-- [ ] 8.2 [Tool: cursor] FieldVisitForm 改為章節 Tab — 實作 Requirement: Form groups fields by chapter, not by layer
-- [ ] 8.3 [Tool: cursor] 每個 Tab 加完成度 badge — 實作 Requirement: Form groups fields by chapter, not by layer
-- [ ] 8.4 [Tool: cursor] 欄位依 displayMode 顯示不同樣式（fixed/estimate/blank）— 實作 Requirement: Field visual style reflects displayMode；對應 Design: 欄位總表 metadata：sourcetype + displaymode
+- [x] 8.1 [Tool: cursor] 建立 src/lib/form-renderer/chapter-grouper.ts：三層 schema 合併重排為 9 章節 — 實作 Requirement: Form groups fields by chapter, not by layer
+- [x] 8.2 [Tool: cursor] FieldVisitForm 改為章節 Tab — 實作 Requirement: Form groups fields by chapter, not by layer
+- [x] 8.3 [Tool: cursor] 每個 Tab 加完成度 badge — 實作 Requirement: Form groups fields by chapter, not by layer
+- [x] 8.4 [Tool: cursor] 欄位依 displayMode 顯示不同樣式（fixed/estimate/blank）— 實作 Requirement: Field visual style reflects displayMode；對應 Design: 欄位總表 metadata：sourcetype + displaymode
 
 ### 9. 5 份文件產出器（MD）
 
