@@ -3,39 +3,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import FieldVisitForm from '@/components/forms/FieldVisitForm';
-import { type Listing, type ListingStatus, PROPERTY_TYPES } from '@/lib/db';
+import SupplementaryForm from '@/components/forms/SupplementaryForm';
+import { type Listing, PROPERTY_TYPES } from '@/lib/db';
 import { getPropertyType } from '@/lib/property-types';
 
 type ListingResponse = {
   listing: Listing;
 };
 
-type ListingStatusOption = {
-  label: string;
-  className: string;
-};
-
-const statusOptions: Record<ListingStatus, ListingStatusOption> = {
-  draft: {
-    label: '草稿',
-    className: 'bg-slate-100 text-slate-700',
-  },
-  'field-visit-complete': {
-    label: '場勘完成',
-    className: 'bg-blue-100 text-blue-700',
-  },
-  'ready-for-generation': {
-    label: '可產生文件',
-    className: 'bg-yellow-100 text-yellow-700',
-  },
-  'documents-ready': {
-    label: '文件已產出',
-    className: 'bg-emerald-100 text-emerald-700',
-  },
-};
-
-const parseFieldVisitData = (rawData: string | null): Record<string, unknown> | null => {
+const parseJsonObject = (rawData: string | null): Record<string, unknown> | null => {
   if (!rawData) {
     return null;
   }
@@ -55,7 +31,7 @@ const getAddressFromListing = (listing: Listing | null): string => {
   if (!listing) {
     return '-';
   }
-  const fieldVisitData = parseFieldVisitData(listing.field_visit_data);
+  const fieldVisitData = parseJsonObject(listing.field_visit_data);
   const address = fieldVisitData?.address;
   if (typeof address === 'string' && address.trim() !== '') {
     return address;
@@ -63,7 +39,7 @@ const getAddressFromListing = (listing: Listing | null): string => {
   return '地址尚未填寫';
 };
 
-export default function ListingFillPage() {
+export default function ListingSupplementaryPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const listingId = Number(params.id ?? '0');
@@ -72,8 +48,6 @@ export default function ListingFillPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const [isComplete, setIsComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -117,43 +91,35 @@ export default function ListingFillPage() {
     };
   }, [listingId]);
 
-  const propertyType = listing?.property_type;
-
   const propertyTypeLabel = useMemo(() => {
-    if (!propertyType) {
+    if (!listing) {
       return '-';
     }
-    return getPropertyType(propertyType)?.displayName ?? PROPERTY_TYPES[propertyType].displayName;
-  }, [propertyType]);
+    return getPropertyType(listing.property_type)?.displayName ?? PROPERTY_TYPES[listing.property_type].displayName;
+  }, [listing]);
 
-  const handleSave = async () => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
     if (!listing) {
       return;
     }
-    if (!isComplete) {
-      setSubmitError('欄位尚未填完整，請先完成必填欄位');
-      return;
-    }
+
     setSubmitting(true);
     setSubmitError(null);
 
     try {
-      const response = await fetch(`/api/listings/${listing.id}/field-visit`, {
+      const response = await fetch(`/api/listings/${listing.id}/supplementary`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          data: formData,
-          isComplete,
-        }),
+        body: JSON.stringify({ data }),
       });
 
       if (!response.ok) {
         throw new Error('儲存失敗，請稍後再試');
       }
 
-      router.push(`/listings/${listing.id}/supplementary`);
+      router.push(`/listings/${listing.id}/generating`);
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : '儲存失敗，請稍後再試';
       setSubmitError(message);
@@ -161,8 +127,6 @@ export default function ListingFillPage() {
       setSubmitting(false);
     }
   };
-
-  const statusBadge = listing ? statusOptions[listing.status] : null;
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] font-['Manrope'] text-[#2D3142]">
@@ -172,16 +136,11 @@ export default function ListingFillPage() {
         <main className="flex-1 p-8">
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <h1 className="text-2xl font-bold text-[#1B3A6B]">資料填寫</h1>
+              <h1 className="text-2xl font-bold text-[#1B3A6B]">補件資料</h1>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-700">
                 <span className="rounded-full bg-white px-3 py-1">物件編號：#{listing?.id ?? '-'}</span>
                 <span className="rounded-full bg-white px-3 py-1">物件地址：{getAddressFromListing(listing)}</span>
                 <span className="rounded-full bg-white px-3 py-1">類型：{propertyTypeLabel}</span>
-                {statusBadge && (
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge.className}`}>
-                    狀態：{statusBadge.label}
-                  </span>
-                )}
               </div>
             </div>
 
@@ -191,29 +150,19 @@ export default function ListingFillPage() {
               <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{loadError}</p>
             )}
 
-            {!loading && !loadError && propertyType && (
+            {!loading && !loadError && listing && (
               <>
-                <FieldVisitForm
-                  propertyType={propertyType}
-                  onSave={(nextFormData, nextIsComplete) => {
-                    setFormData(nextFormData);
-                    setIsComplete(nextIsComplete);
+                <SupplementaryForm
+                  propertyType={listing.property_type}
+                  onSubmit={(data) => {
+                    void handleSubmit(data);
                   }}
+                  onGenerateDocuments={() => {}}
                 />
 
-                <div className="mt-6 flex items-center justify-end gap-3">
+                <div className="mt-4 flex items-center justify-end gap-3">
                   {submitError && <span className="text-sm text-red-600">{submitError}</span>}
-                  <span className={`text-sm ${isComplete ? 'text-emerald-600' : 'text-slate-500'}`}>
-                    {isComplete ? '必填欄位已完成，可送出' : '還有必填欄位未完成'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleSave()}
-                    disabled={submitting || !isComplete}
-                    className="rounded-md bg-[#1B3A6B] px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {submitting ? '儲存中...' : '儲存並前往補件'}
-                  </button>
+                  {submitting && <span className="text-sm text-slate-500">儲存中...</span>}
                 </div>
               </>
             )}

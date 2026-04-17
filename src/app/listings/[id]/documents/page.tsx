@@ -1,95 +1,141 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { getListing, Listing, ListingStatus, PropertyType, PROPERTY_TYPES } from '@/lib/db';
-import { getPropertyType } from '@/lib/property-types';
 
-type DocumentId =
-  | 'property_dossier'
-  | 'listing_591'
-  | 'sales_dm'
-  | 'social_posts'
-  | 'short_video_script'
-  | 'placeholder_one'
-  | 'placeholder_two';
+type DocumentKey = 'property_survey' | 'listing_591' | 'sales_dm' | 'social_posts' | 'disclosure_document';
+type ApiStatus = 'ready' | 'not-generated';
+
+type DocumentEntry = {
+  status: ApiStatus;
+  content?: string;
+  pdfUrl?: string;
+};
+
+type DocumentsResponse = {
+  documents: Record<DocumentKey, DocumentEntry>;
+};
+
+type RegenerateState = {
+  loading: boolean;
+  error: string | null;
+};
 
 type DocumentMeta = {
-  id: DocumentId;
-  title: string;
-  description: string;
-  hasPdf: boolean;
+  key: DocumentKey;
+  name: string;
 };
 
-type DocumentCard = DocumentMeta & {
-  preview: string | null;
-};
-
-const listingStatusLabels: Record<ListingStatus, string> = {
-  draft: '草稿',
-  'field-visit-complete': '場勘完成',
-  'ready-for-generation': '可產生文件',
-  'documents-ready': '文件已產出',
-};
-
-const documentCatalog: DocumentMeta[] = [
-  { id: 'property_dossier', title: '物件調查表', description: '完整物件資料與現場勘查記錄', hasPdf: true },
-  { id: 'listing_591', title: '591刊登文案', description: '主平台刊登文案摘要', hasPdf: false },
-  { id: 'sales_dm', title: '銷售DM', description: '平面與數位宣傳素材', hasPdf: false },
-  { id: 'social_posts', title: '社群貼文', description: '社群宣傳短文與 Hashtag', hasPdf: false },
-  { id: 'short_video_script', title: '短影音腳本', description: '15-30 秒短影音分鏡文案', hasPdf: false },
-  { id: 'placeholder_one', title: 'AI 話術整理', description: '占位：話術與重點整理', hasPdf: false },
-  { id: 'placeholder_two', title: '帶看重點摘要', description: '占位：帶看流程重點', hasPdf: false },
+const DOCUMENTS: DocumentMeta[] = [
+  { key: 'property_survey', name: '物調表' },
+  { key: 'listing_591', name: '591 PO 文' },
+  { key: 'sales_dm', name: '銷售 DM' },
+  { key: 'social_posts', name: '社群貼文' },
+  { key: 'disclosure_document', name: '不動產說明書' },
 ];
+
+const statusLabel: Record<ApiStatus, string> = {
+  ready: '完成',
+  'not-generated': '未產生',
+};
+
+const previewText = (content?: string): string => {
+  if (!content) {
+    return '尚未產生內容';
+  }
+  const trimmed = content.trim();
+  if (trimmed.length <= 200) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, 200)}...`;
+};
 
 export default function ListingDocumentsPage() {
   const params = useParams<{ id: string }>();
   const listingId = Number(params.id ?? '0');
-  const listingFromDb = useMemo(() => {
+
+  const [docs, setDocs] = useState<Record<DocumentKey, DocumentEntry> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [regenerateState, setRegenerateState] = useState<Record<DocumentKey, RegenerateState>>({
+    property_survey: { loading: false, error: null },
+    listing_591: { loading: false, error: null },
+    sales_dm: { loading: false, error: null },
+    social_posts: { loading: false, error: null },
+    disclosure_document: { loading: false, error: null },
+  });
+
+  const loadDocuments = useCallback(async () => {
     if (Number.isNaN(listingId)) {
-      return undefined;
+      setError('物件編號錯誤');
+      setLoading(false);
+      return;
     }
-    return getListing(listingId);
+
+    try {
+      const response = await fetch(`/api/listings/${listingId}/documents`);
+      if (!response.ok) {
+        throw new Error('讀取文件失敗');
+      }
+      const payload = (await response.json()) as DocumentsResponse;
+      setDocs(payload.documents);
+      setError(null);
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : '讀取文件失敗';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   }, [listingId]);
 
-  const fallbackType: PropertyType = listingFromDb?.property_type ?? 'farmland';
-  const listingPreview: Listing =
-    listingFromDb ?? ({
-      id: Number.isNaN(listingId) ? 0 : listingId,
-      property_type: fallbackType,
-      field_visit_status: 'field-visit-complete',
-      status: 'documents-ready',
-      field_visit_data: null,
-      supplementary_data: null,
-      generated_documents: null,
-      created_at: '',
-      updated_at: '',
-    } as Listing);
+  useEffect(() => {
+    void loadDocuments();
+  }, [loadDocuments]);
 
-  const typeName = getPropertyType(listingPreview.property_type)?.displayName ?? PROPERTY_TYPES[fallbackType].displayName;
+  const handleRegenerate = async (documentType: DocumentKey) => {
+    if (Number.isNaN(listingId)) {
+      return;
+    }
 
-  const [previewState] = useState<Record<DocumentId, string | null>>(() => ({
-    property_dossier: '地號 112-3，臨路 6 米，面寬 14 米。',
-    listing_591: '南屯精華地段農地，近交流道，交通便利。',
-    sales_dm: '主打大面寬、好規劃、置產自用皆宜。',
-    social_posts: '【精選釋出】稀有大面寬農地，投資首選。',
-    short_video_script: '開場 3 秒抓眼球，帶出地段與潛力。',
-    placeholder_one: null,
-    placeholder_two: null,
-  }));
-
-  const documentCards = useMemo<DocumentCard[]>(() => {
-    return documentCatalog.map((doc) => ({
-      ...doc,
-      preview: previewState[doc.id],
+    setRegenerateState((prev) => ({
+      ...prev,
+      [documentType]: { loading: true, error: null },
     }));
-  }, [previewState]);
 
-  const handlePlaceholderAction = async (documentId: DocumentId, action: 'download' | 'pdf' | 'regenerate') => {
-    // TODO: 下載與重新產生邏輯串接 API。
-    await Promise.resolve({ documentId, action });
+    try {
+      const response = await fetch(`/api/listings/${listingId}/regenerate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ documentType }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error ?? '重新產生失敗');
+      }
+      await loadDocuments();
+      setRegenerateState((prev) => ({
+        ...prev,
+        [documentType]: { loading: false, error: null },
+      }));
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : '重新產生失敗';
+      setRegenerateState((prev) => ({
+        ...prev,
+        [documentType]: { loading: false, error: message },
+      }));
+    }
   };
+
+  const cards = useMemo(() => {
+    return DOCUMENTS.map((meta) => ({
+      ...meta,
+      entry: docs?.[meta.key] ?? { status: 'not-generated' as ApiStatus },
+      regenerate: regenerateState[meta.key],
+    }));
+  }, [docs, regenerateState]);
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] text-[#2D3142] font-['Manrope']">
@@ -98,60 +144,59 @@ export default function ListingDocumentsPage() {
 
         <main className="flex-1 p-8">
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-[#1B3A6B]">文件輸出</h1>
-              <p className="mt-2 text-sm text-slate-600">
-                物件編號：#{listingPreview.id || '待建立'} ｜ 類型：{typeName} ｜ 狀態：
-                {listingStatusLabels[listingPreview.status]}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">共 7 份文件可下載，含 1 份 PDF 版本。</p>
-            </div>
+            <h1 className="text-2xl font-bold text-[#1B3A6B]">文件輸出</h1>
+            <p className="mt-2 text-sm text-slate-600">物件編號：#{Number.isNaN(listingId) ? '-' : listingId}</p>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {documentCards.map((card) => (
-                <article
-                  key={card.id}
-                  className="flex min-h-56 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(45,49,66,0.06)]"
-                >
-                  <header className="mb-3">
-                    <h2 className="text-base font-semibold text-[#1B3A6B]">{card.title}</h2>
-                    <p className="mt-1 text-xs text-slate-500">{card.description}</p>
-                  </header>
+            {loading && <p className="mt-6 text-sm text-slate-500">讀取中...</p>}
+            {!loading && error && <p className="mt-6 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
 
-                  <div className="flex-1 rounded-md bg-[#F9FAFB] p-3 text-sm text-slate-700">
-                    {card.preview ?? <span className="text-slate-400">尚未產生內容</span>}
-                  </div>
+            {!loading && !error && (
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {cards.map((card) => (
+                  <article
+                    key={card.key}
+                    className="flex min-h-60 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(45,49,66,0.06)]"
+                  >
+                    <header className="mb-3">
+                      <h2 className="text-base font-semibold text-[#1B3A6B]">{card.name}</h2>
+                      <p className="mt-1 text-xs text-slate-500">狀態：{statusLabel[card.entry.status]}</p>
+                    </header>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handlePlaceholderAction(card.id, 'download')}
-                      className="rounded-md border border-[#1B3A6B] px-3 py-1.5 text-sm font-semibold text-[#1B3A6B]"
-                    >
-                      下載
-                    </button>
+                    <div className="flex-1 rounded-md bg-[#F9FAFB] p-3 text-sm text-slate-700">
+                      {previewText(card.entry.content)}
+                    </div>
 
-                    {card.hasPdf && (
-                      <button
-                        type="button"
-                        onClick={() => void handlePlaceholderAction(card.id, 'pdf')}
-                        className="rounded-md border border-[#F5882B] px-3 py-1.5 text-sm font-semibold text-[#F5882B]"
-                      >
-                        下載 PDF
-                      </button>
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      {card.key === 'disclosure_document' && (
+                        <a
+                          href={card.entry.pdfUrl ?? `/api/listings/${listingId}/pdf`}
+                          className="rounded-md border border-[#F5882B] px-3 py-1.5 text-sm font-semibold text-[#F5882B]"
+                        >
+                          下載 PDF
+                        </a>
+                      )}
+
+                      {card.key !== 'disclosure_document' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void handleRegenerate(card.key);
+                          }}
+                          disabled={card.regenerate.loading}
+                          className="rounded-md bg-[#1B3A6B] px-3 py-1.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {card.regenerate.loading ? '重新產生中...' : '重新產生'}
+                        </button>
+                      )}
+                    </div>
+
+                    {card.key !== 'disclosure_document' && card.regenerate.error && (
+                      <p className="mt-2 text-xs text-red-600">{card.regenerate.error}</p>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={() => void handlePlaceholderAction(card.id, 'regenerate')}
-                      className="rounded-md bg-[#1B3A6B] px-3 py-1.5 text-sm font-semibold text-white"
-                    >
-                      重新產生
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         </main>
       </div>

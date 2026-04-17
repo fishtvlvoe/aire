@@ -1,65 +1,163 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { Listing, ListingStatus, PropertyType, PROPERTY_TYPES } from '@/lib/db';
-import { getPropertyType } from '@/lib/property-types';
 
-type DocumentStatus = 'done' | 'in-progress' | 'waiting';
+type DocumentKey = 'property_survey' | 'listing_591' | 'sales_dm' | 'social_posts' | 'disclosure_document';
+type ApiDocumentStatus = 'ready' | 'not-generated';
+type UiDocumentStatus = 'waiting' | 'in-progress' | 'done' | 'failed';
 
-type DocumentItem = {
-  id: string;
+type DocumentsResponse = {
+  documents: Record<DocumentKey, { status: ApiDocumentStatus }>;
+};
+
+type DocumentMeta = {
+  key: DocumentKey;
   label: string;
-  status: DocumentStatus;
 };
 
-const statusBadge: Record<DocumentStatus, { icon: string; text: string; className: string }> = {
-  done: { icon: '✅', text: '已完成', className: 'text-emerald-600' },
-  'in-progress': { icon: '🔄', text: '產生中...', className: 'text-[#F5882B]' },
+const DOCUMENTS: DocumentMeta[] = [
+  { key: 'property_survey', label: '物調表' },
+  { key: 'listing_591', label: '591 PO 文' },
+  { key: 'sales_dm', label: '銷售 DM' },
+  { key: 'social_posts', label: '社群貼文' },
+  { key: 'disclosure_document', label: '不動產說明書' },
+];
+
+const statusBadge: Record<UiDocumentStatus, { icon: string; text: string; className: string }> = {
   waiting: { icon: '⏳', text: '等待中', className: 'text-slate-500' },
+  'in-progress': { icon: '🔄', text: '產生中', className: 'text-[#F5882B]' },
+  done: { icon: '✅', text: '完成', className: 'text-emerald-600' },
+  failed: { icon: '❌', text: '失敗', className: 'text-red-600' },
 };
 
-const listingStatusLabels: Record<ListingStatus, string> = {
-  draft: '草稿',
-  'field-visit-complete': '場勘完成',
-  'ready-for-generation': '可產生文件',
-  'documents-ready': '文件已產出',
-};
+const POLL_INTERVAL_MS = 3000;
 
 export default function ListingGeneratingPage() {
   const params = useParams<{ id: string }>();
-  const [propertyType] = useState<PropertyType>('farmland');
+  const router = useRouter();
+  const listingId = Number(params.id ?? '0');
+  const generationStartedRef = useRef(false);
 
-  const listingPreview: Listing = {
-    id: Number(params.id ?? '0'),
-    property_type: propertyType,
-    field_visit_status: 'field-visit-complete',
-    status: 'ready-for-generation',
-    field_visit_data: null,
-    supplementary_data: null,
-    generated_documents: null,
-    created_at: '',
-    updated_at: '',
-  };
+  const [docStatuses, setDocStatuses] = useState<Record<DocumentKey, UiDocumentStatus>>({
+    property_survey: 'waiting',
+    listing_591: 'waiting',
+    sales_dm: 'waiting',
+    social_posts: 'waiting',
+    disclosure_document: 'waiting',
+  });
+  const [startError, setStartError] = useState<string | null>(null);
 
-  const documents = useMemo<DocumentItem[]>(() => {
-    return [
-      { id: 'dossier', label: '物件調查表', status: 'waiting' },
-      { id: 'listing-591', label: '591刊登文案', status: 'waiting' },
-      { id: 'sales-dm', label: '銷售DM', status: 'waiting' },
-      { id: 'social-post', label: '社群貼文', status: 'waiting' },
-      { id: 'short-video', label: '短影音腳本', status: 'waiting' },
-      { id: 'placeholder-1', label: 'AI 話術整理', status: 'waiting' },
-      { id: 'placeholder-2', label: '帶看重點摘要', status: 'waiting' },
-    ];
-  }, []);
+  const doneCount = useMemo(() => {
+    return DOCUMENTS.filter((doc) => docStatuses[doc.key] === 'done').length;
+  }, [docStatuses]);
 
-  const doneCount = documents.filter((doc) => doc.status === 'done').length;
-  const progress = Math.round((doneCount / documents.length) * 100);
-  const typeName = getPropertyType(propertyType)?.displayName ?? PROPERTY_TYPES.farmland.displayName;
+  const allDone = doneCount === DOCUMENTS.length;
+  const progress = Math.round((doneCount / DOCUMENTS.length) * 100);
 
-  // TODO: API call in Wave 2 - use async polling to update document statuses.
+  useEffect(() => {
+    if (Number.isNaN(listingId) || generationStartedRef.current) {
+      return;
+    }
+
+    generationStartedRef.current = true;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let pollingStopped = false;
+
+    const stopPolling = () => {
+      pollingStopped = true;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+
+    const pollDocuments = async () => {
+      try {
+        const response = await fetch(`/api/listings/${listingId}/documents`);
+        if (!response.ok) {
+          throw new Error('讀取文件狀態失敗');
+        }
+        const payload = (await response.json()) as DocumentsResponse;
+
+        let everyDocumentReady = true;
+        setDocStatuses((prev) => {
+          const next = { ...prev };
+          for (const doc of DOCUMENTS) {
+            const apiStatus = payload.documents[doc.key]?.status;
+            if (apiStatus === 'ready') {
+              next[doc.key] = 'done';
+            } else if (next[doc.key] !== 'failed') {
+              next[doc.key] = generationStartedRef.current ? 'in-progress' : 'waiting';
+              everyDocumentReady = false;
+            }
+          }
+          return next;
+        });
+
+        if (everyDocumentReady) {
+          stopPolling();
+        }
+      } catch {
+        setDocStatuses((prev) => {
+          const next = { ...prev };
+          for (const doc of DOCUMENTS) {
+            if (next[doc.key] !== 'done') {
+              next[doc.key] = 'failed';
+            }
+          }
+          return next;
+        });
+        stopPolling();
+      }
+    };
+
+    const startGeneration = async () => {
+      setDocStatuses({
+        property_survey: 'in-progress',
+        listing_591: 'in-progress',
+        sales_dm: 'in-progress',
+        social_posts: 'in-progress',
+        disclosure_document: 'in-progress',
+      });
+
+      try {
+        const response = await fetch(`/api/listings/${listingId}/generate`, {
+          method: 'POST',
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(payload?.message ?? '啟動產生失敗');
+        }
+
+        await pollDocuments();
+        if (!pollingStopped) {
+          intervalId = setInterval(() => {
+            void pollDocuments();
+          }, POLL_INTERVAL_MS);
+        }
+      } catch (caughtError) {
+        setStartError(caughtError instanceof Error ? caughtError.message : '啟動產生失敗');
+        setDocStatuses((prev) => {
+          const next = { ...prev };
+          for (const doc of DOCUMENTS) {
+            if (next[doc.key] !== 'done') {
+              next[doc.key] = 'failed';
+            }
+          }
+          return next;
+        });
+        stopPolling();
+      }
+    };
+
+    void startGeneration();
+
+    return () => {
+      stopPolling();
+    };
+  }, [listingId]);
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] text-[#2D3142] font-['Manrope']">
@@ -69,30 +167,30 @@ export default function ListingGeneratingPage() {
         <main className="flex-1 p-8">
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <h1 className="text-2xl font-bold text-[#1B3A6B]">AI 文件產生中</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              物件編號：#{listingPreview.id || '待建立'} ｜ 類型：{typeName} ｜ 當前狀態：
-              {listingStatusLabels[listingPreview.status]}
-            </p>
+            <p className="mt-2 text-sm text-slate-600">物件編號：#{Number.isNaN(listingId) ? '-' : listingId}</p>
+
+            {startError && (
+              <p className="mt-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{startError}</p>
+            )}
 
             <div className="mt-6 rounded-lg bg-[#F9FAFB] p-4">
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span className="font-semibold">整體進度</span>
                 <span>
-                  已完成 {doneCount}/{documents.length}
+                  已完成 {doneCount}/{DOCUMENTS.length}
                 </span>
               </div>
               <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
                 <div className="h-full bg-[#F5882B] transition-all" style={{ width: `${progress}%` }} />
               </div>
-              <p className="mt-2 text-xs text-slate-500">預估剩餘時間：大約 3 分鐘（暫定）</p>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
-              {documents.map((doc) => {
-                const badge = statusBadge[doc.status];
+              {DOCUMENTS.map((doc) => {
+                const badge = statusBadge[docStatuses[doc.key]];
                 return (
                   <div
-                    key={doc.id}
+                    key={doc.key}
                     className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3"
                   >
                     <p className="font-semibold">{doc.label}</p>
@@ -104,6 +202,18 @@ export default function ListingGeneratingPage() {
                 );
               })}
             </div>
+
+            {allDone && (
+              <div className="mt-6 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/listings/${listingId}/documents`)}
+                  className="rounded-md bg-[#1B3A6B] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#17325B]"
+                >
+                  前往查看文件
+                </button>
+              </div>
+            )}
           </section>
         </main>
       </div>
