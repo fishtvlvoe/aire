@@ -23,6 +23,7 @@ if (DB_PATH !== ':memory:') {
 }
 
 export { db };
+export { PROPERTY_TYPES } from '../property-types';
 
 export type { PropertyType };
 export type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
