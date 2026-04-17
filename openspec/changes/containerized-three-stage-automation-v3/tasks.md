@@ -141,7 +141,7 @@
 
 - [x] 19.1 [Tool: codex] docker build --platform linux/amd64 -t jianan-ai:v3.0.0 — 實作 Requirement: Docker image builds successfully for linux/amd64
 - [x] 19.2 [Tool: codex] 推 image 到私人 registry — 對應 Design: goals
-- [ ] 19.3 [Tool: copilot-gen] 寫 release note（功能摘要 + 安裝步驟）— 對應 Design: goals、客戶電腦規格不確定
+- [x] 19.3 [Tool: copilot-gen] 寫 release note（功能摘要 + 安裝步驟）— 對應 Design: goals、客戶電腦規格不確定
 - [x] 19.4 [Tool: codex] 打包 release zip（start.bat、first-login.bat、安裝說明.md、compose.yaml）— 實作 Requirement: Windows launcher provides one-click startup
 
 ### 20. 客戶驗收
