@@ -139,10 +139,8 @@ const resolveChapterId = (
     return 'facilities'
   }
 
-  if (STATUS_KEYS.has(key) || containsAnyKeyword(label, STATUS_KEYWORDS)) {
-    return 'status'
-  }
-
+  // C1 fix: key-based checks before keyword-based STATUS check
+  // prevents 'usage' (BASIC_KEYS) from being intercepted by '使用' keyword
   if (BASIC_KEYS.has(key)) {
     return 'basic'
   }
@@ -151,12 +149,22 @@ const resolveChapterId = (
     return 'property'
   }
 
+  if (STATUS_KEYS.has(key) || containsAnyKeyword(label, STATUS_KEYWORDS)) {
+    return 'status'
+  }
+
   if (layer === 'building_common' || layer === 'land_common') {
     return 'property'
   }
 
   if (layer === 'common') {
     return propertyCategory === 'building' ? 'basic' : 'property'
+  }
+
+  // C2 fix: type_specific fields that don't match any Set/keyword belong to
+  // 'property', not 'facilities' (e.g. farmland water source, office rent fields)
+  if (layer === 'type_specific') {
+    return 'property'
   }
 
   return 'facilities'
