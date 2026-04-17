@@ -26,7 +26,7 @@ export { db };
 export { PROPERTY_TYPES } from '../property-types';
 
 export type { PropertyType };
-export type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
+export type ListingStatus = 'pre-commission' | 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
 export type FieldVisitStatus = 'draft' | 'field-visit-incomplete' | 'field-visit-complete';
 
 export interface Listing {
@@ -37,8 +37,16 @@ export interface Listing {
   field_visit_data: string | null;
   supplementary_data: string | null;
   generated_documents: string | null;
+  pre_commission_data: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface PreCommissionData {
+  owner_name: string;
+  owner_phone: string;
+  parcel_number: string;
+  [key: string]: unknown;
 }
 
 export function getListing(id: number): Listing | undefined {
@@ -49,7 +57,7 @@ export function getAllListings(): Listing[] {
   return db.prepare('SELECT * FROM listings ORDER BY created_at DESC').all() as Listing[];
 }
 
-export function createListing(propertyType: string): Listing {
+export function createListing(propertyType: string, initialStatus: ListingStatus = 'draft'): Listing {
   const propertyInfo = Object.prototype.hasOwnProperty.call(PROPERTY_TYPES, propertyType)
     ? PROPERTY_TYPES[propertyType as PropertyType]
     : undefined;
@@ -66,8 +74,55 @@ export function createListing(propertyType: string): Listing {
     .prepare(
       'INSERT INTO listings (propertyType, property_type, status, field_visit_status) VALUES (?, ?, ?, ?) RETURNING *'
     )
-    .get(propertyType, propertyType, 'draft', 'draft') as Listing;
+    .get(propertyType, propertyType, initialStatus, 'draft') as Listing;
   return result;
+}
+
+export interface CreatePreCommissionInput {
+  address?: string;
+  property_type: string;
+  owner_name: string;
+  owner_phone: string;
+  parcel_number: string;
+}
+
+export function createPreCommissionListing(data: CreatePreCommissionInput): Listing {
+  const propertyInfo = Object.prototype.hasOwnProperty.call(PROPERTY_TYPES, data.property_type)
+    ? PROPERTY_TYPES[data.property_type as PropertyType]
+    : undefined;
+
+  if (!propertyInfo) {
+    throw new Error('invalid-property-type');
+  }
+
+  const preCommissionData: PreCommissionData = {
+    owner_name: data.owner_name,
+    owner_phone: data.owner_phone,
+    parcel_number: data.parcel_number,
+  };
+
+  const result = db
+    .prepare(
+      `INSERT INTO listings (propertyType, property_type, status, field_visit_status, pre_commission_data)
+       VALUES (?, ?, 'pre-commission', 'draft', ?) RETURNING *`
+    )
+    .get(
+      data.property_type,
+      data.property_type,
+      JSON.stringify(preCommissionData)
+    ) as Listing;
+  return result;
+}
+
+export function advanceToFieldVisit(id: number): void {
+  const listing = getListing(id);
+  if (!listing) {
+    throw new Error('listing-not-found');
+  }
+  if (listing.status !== 'pre-commission') {
+    throw { code: 'invalid-transition', current: listing.status, expected: 'pre-commission' };
+  }
+  db.prepare("UPDATE listings SET status = 'field-visit-complete', field_visit_status = 'field-visit-complete' WHERE id = ?").run(id);
 }
 
 export function updateListingFieldVisit(
