@@ -39,7 +39,7 @@
 ### 6. 物件類型 13 種補完
 
 - [x] 6.1 [Tool: cursor] 把 src/lib/property-types/index.ts 所有 available 改為 true — 實作 Requirement: Registry supports all 13 property types as available；對應 Design: 13 種類型全開，schema 差異化但共用 ui 元件
-- [ ] 6.2 [Tool: cursor] 為剩餘 7 種類型建立 schema 檔（套房/店面/廠房/商業地/工業地/鄉村區建地/其他土地）— 實作 Requirement: Registry supports all 13 property types as available；對應 Design: 13 種類型全開，schema 差異化但共用 ui 元件
+- [x] 6.2 [Tool: cursor] 為剩餘 7 種類型建立 schema 檔（套房/店面/廠房/商業地/工業地/鄉村區建地/其他土地）— 實作 Requirement: Registry supports all 13 property types as available；對應 Design: 13 種類型全開，schema 差異化但共用 ui 元件
 - [x] 6.3 [Tool: cursor] 所有欄位補 sourceType + displayMode 屬性 — 實作 Requirement: Each field has sourceType and displayMode metadata；對應 Design: 欄位總表 metadata：sourcetype + displaymode
 - [ ] 6.4 [Tool: codex] 撰寫 property-types 測試：13 類 getFieldSchema 非空、metadata 完整 — 實作 Requirement: Registry supports all 13 property types as available、Each field has sourceType and displayMode metadata
 
