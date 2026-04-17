@@ -187,28 +187,26 @@ export default function ListingDocumentsPage() {
 
                       {card.key === 'disclosure_document' && (
                         <a
-                          href={card.entry.pdfUrl ?? `/api/listings/${listingId}/pdf`}
+                          href={card.entry.pdfUrl ?? `/api/listings/${listingId}/pdf?type=disclosure`}
                           className="rounded-md border border-[#F5882B] px-3 py-1.5 text-sm font-semibold text-[#F5882B]"
                         >
                           下載 PDF
                         </a>
                       )}
 
-                      {card.key !== 'disclosure_document' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            void handleRegenerate(card.key);
-                          }}
-                          disabled={card.regenerate.loading}
-                          className="rounded-md bg-[#1B3A6B] px-3 py-1.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {card.regenerate.loading ? '重新產生中...' : '重新產生'}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleRegenerate(card.key);
+                        }}
+                        disabled={card.regenerate.loading}
+                        className="rounded-md bg-[#1B3A6B] px-3 py-1.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {card.regenerate.loading ? '重新產生中...' : '重新產生'}
+                      </button>
                     </div>
 
-                    {card.key !== 'disclosure_document' && card.regenerate.error && (
+                    {card.regenerate.error && (
                       <p className="mt-2 text-xs text-red-600">{card.regenerate.error}</p>
                     )}
                   </article>

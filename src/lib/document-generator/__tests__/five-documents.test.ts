@@ -15,6 +15,7 @@ import { generateSurvey } from '../md/survey';
 import { generateListing591 } from '../md/listing591';
 import { generateDm } from '../md/dm';
 import { generateSocialPosts } from '../md/social';
+import { CodexDocumentGenerator } from '../codex-provider';
 import type { DocumentGeneratorInput } from '../types';
 
 const FIXTURE: DocumentGeneratorInput = {
@@ -31,6 +32,17 @@ const FIXTURE: DocumentGeneratorInput = {
 
 const LAND_FIXTURE: DocumentGeneratorInput = {
   property_type: 'farmland',
+  field_visit_data: {
+    address: '台南市官田區隆本里',
+    total_price: 800,
+    land_area: 500,
+  },
+  supplementary_data: {},
+};
+
+// 使用中文 property_type，觸發 isLandType → generateLandDossier
+const CHINESE_LAND_FIXTURE: DocumentGeneratorInput = {
+  property_type: '農地',
   field_visit_data: {
     address: '台南市官田區隆本里',
     total_price: 800,
@@ -81,5 +93,45 @@ describe('9.6 五份文件 integration（mock Codex）', () => {
       status: 'error',
     });
     await expect(generateSurvey(FIXTURE)).rejects.toThrow();
+  });
+
+  it('disclosure_document（建物）包含結構化章節標題且不含佔位符', async () => {
+    // Arrange: mock runCodex 回傳含章節標題的結構化內容
+    const { runCodex } = await import('../../codex-client');
+    const structuredOutput =
+      '#### 章節 1：封面\n- 物件編號：待補\n\n#### 章節 2：重要告知（以謄本為準/契約一部分）\n本說明書所載內容以登記謄本為準。';
+    vi.mocked(runCodex).mockResolvedValue({
+      success: true,
+      output: structuredOutput,
+      status: 'done',
+    } satisfies CodexResult);
+
+    // Act
+    const generator = new CodexDocumentGenerator();
+    const result = await generator.generate(FIXTURE);
+
+    // Assert
+    expect(result.disclosure_document).toContain('#### 章節 1：');
+    expect(result.disclosure_document).not.toContain('[PDF 由任務 10 實作]');
+  });
+
+  it('disclosure_document（土地）包含結構化章節標題且不含佔位符', async () => {
+    // Arrange: mock runCodex 回傳含章節標題的結構化內容
+    const { runCodex } = await import('../../codex-client');
+    const structuredOutput =
+      '#### 章節 1：封面\n- 物件編號：待補\n\n#### 章節 2：重要告知（以謄本為準/契約一部分）\n本說明書所載內容以登記謄本為準。';
+    vi.mocked(runCodex).mockResolvedValue({
+      success: true,
+      output: structuredOutput,
+      status: 'done',
+    } satisfies CodexResult);
+
+    // Act: 使用中文土地類型，isLandType('農地') === true → generateLandDossier
+    const generator = new CodexDocumentGenerator();
+    const result = await generator.generate(CHINESE_LAND_FIXTURE);
+
+    // Assert
+    expect(result.disclosure_document).toContain('#### 章節 1：');
+    expect(result.disclosure_document).not.toContain('[PDF 由任務 10 實作]');
   });
 });

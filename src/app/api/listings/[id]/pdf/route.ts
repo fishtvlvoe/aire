@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getListing } from '@/lib/db';
+import { generateDossierPDF } from '@/lib/pdf-generator/dossier';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -23,7 +24,22 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   const fieldVisitData = listing.field_visit_data ? JSON.parse(listing.field_visit_data) as Record<string, unknown> : {};
   const address = String(fieldVisitData.address || '未知地址');
 
-  const title = type === 'disclosure' ? '不動產說明書' : type === 'survey' ? '物調表' : '銷售DM';
+  // disclosure type: use dedicated dossier generator with styled template
+  if (type === 'disclosure') {
+    if (!content || content === '[PDF 由任務 10 實作]') {
+      return NextResponse.json({ error: 'disclosure document not available' }, { status: 422 });
+    }
+    const pdfBytes = await generateDossierPDF(content, numId);
+    return new NextResponse(pdfBytes.buffer as ArrayBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="disclosure-${id}.pdf"`,
+      },
+    });
+  }
+
+  // survey / sales-dm: generic puppeteer rendering
+  const title = type === 'survey' ? '物調表' : '銷售DM';
   const bodyContent = content
     ? `<pre style="white-space:pre-wrap;word-break:break-all;">${content}</pre>`
     : `<p style="color:#888;">尚未產生內容</p>`;

@@ -18,118 +18,27 @@ The dossier SHALL serve as the authoritative reference for all stakeholders (bus
 - Pros and cons summary
 - Photo checklist status
 
-#### Scenario: Generate dossier for farmland listing
+The `disclosure_document` field within the property dossier SHALL be generated using the structured 16-chapter prompt defined in the `disclosure-document-generation` capability, NOT a placeholder string.
 
-- **WHEN** the system generates a dossier for a `farmland` listing with complete field_visit_data and supplementary_data
-- **THEN** the output SHALL include sections: 基本資料、土地資料、農業條件、法規資訊、市場行情、優缺點分析
-- **THEN** the output SHALL be a PDF file saved to `output/<listing-id>/dossier.pdf`
+#### Scenario: Disclosure document is generated with 16-chapter structure
 
-#### Scenario: Generate dossier for townhouse listing
-
-- **WHEN** the system generates a dossier for a `townhouse` listing
-- **THEN** the output SHALL include sections: 基本資料、建物資料、格局配置、車位資訊、社區資訊、法規資訊、優缺點分析
+- **WHEN** the system generates documents for a listing that has field_visit_data
+- **THEN** the `disclosure_document` field SHALL contain a 16-chapter Markdown string with chapter headings following `#### 章節 N：標題` format
+- **THEN** the `disclosure_document` SHALL NOT contain the placeholder text `[PDF 由任務 10 實作]`
 
 
 <!-- @trace
-source: three-stage-listing-workflow-v2
-updated: 2026-04-17
+source: disclosure-pdf-16-chapter
+updated: 2026-04-18
 code:
-  - docs/0417-old/其他土地_秘書後補清單.docx
-  - docs/0417-old/商業地_現場必問清單.docx
-  - docs/0417-old/建地_住宅地_秘書後補清單.docx
-  - docs/0417-old/不動產說明書11.pdf
-  - src/lib/property-types/schemas/commercial-land.ts
-  - src/lib/property-types/schemas/highrise.ts
-  - docs/0417-old/不動產說明書9.pdf
-  - docs/0417-old/公寓_秘書後補清單.docx
-  - src/lib/document-generator/types.ts
-  - docs/0417-old/廠房_現場必問清單.docx
-  - docs/0417-old/鄉村區建地_現場必問清單.docx
-  - src/app/listings/[id]/documents/page.tsx
-  - docs/0417-old/套房_秘書後補清單.docx
-  - src/lib/property-types/schemas/rural-land.ts
-  - docs/0417-old/農地_秘書後補清單.docx
-  - stitch_ai/_2/screen.png
-  - package.json
-  - docs/0417-old/不動產說明書6.pdf
-  - stitch_ai/ai/screen.png
-  - docs/0417-old/不動產說明書5.pdf
-  - docs/0417-old/不動產說明書2.pdf
-  - docs/0417-old/農舍_現場必問清單.docx
-  - docs/0417-old/店面_現場必問清單.docx
-  - docs/0417-old/商業地_秘書後補清單.docx
-  - docs/0417-old/周遭.pdf
-  - docs/0417-old/不動產說明書8.pdf
-  - src/app/api/listings/route.ts
-  - src/lib/property-types/schemas/farmhouse.ts
-  - docs/0417-old/不動產說明書12.pdf
-  - stitch_ai/_2/code.html
-  - docs/0417-old/不動產說明說15.pdf
-  - docs/0417-old/工業地_秘書後補清單.docx
-  - src/app/listings/new/page.tsx
-  - src/lib/property-types/schemas/shop.ts
-  - docs/0417-old/建地_住宅地_現場必問清單.docx
-  - src/lib/property-types/schemas/industrial-land.ts
-  - stitch_ai/_1/screen.png
-  - docs/0417-old/不動產說明書14.pdf
-  - src/lib/property-types/schemas/factory.ts
-  - src/lib/property-types/index.ts
-  - docs/0417-old/大樓華廈_秘書後補清單.docx
-  - docs/0417-old/不動產說明書4.pdf
-  - src/app/listings/[id]/fill/page.tsx
-  - src/components/Sidebar.tsx
-  - src/lib/db/schema.ts
-  - docs/0417-old/店面_秘書後補清單.docx
-  - docs/0417-old/大樓華廈_現場必問清單.docx
-  - src/app/listings/[id]/generating/page.tsx
-  - docs/0417-old/農地_現場必問清單.docx
-  - docs/0417-old/農舍_秘書後補清單.docx
-  - docs/0417-old/不動產說明書1.pdf
-  - src/lib/property-types/schemas/suite.ts
-  - src/lib/db/index.ts
-  - docs/0417-new/建安不動產欄位總表.md
-  - stitch_ai/_1/code.html
-  - docs/0417-new/建安不動產欄位總表_土地版.docx
-  - docs/0417-old/不動產書說明書10.pdf
-  - docs/0417-old/不動產說明書3.pdf
-  - src/lib/property-types/schemas/farmland.ts
-  - src/lib/property-types/schemas/apartment.ts
-  - src/lib/property-types/schemas/residential-land.ts
-  - docs/0417-old/廠房_秘書後補清單.docx
-  - docs/0417-old/透天別墅_現場必問清單.docx
-  - docs/0417-old/不動產說明說16.pdf
-  - docs/0417-old/透明房價一覽表成交行情.pdf
-  - docs/0417-old/不動產書說明說7.pdf
-  - stitch_ai/estate_elite/DESIGN.md
-  - src/lib/form-renderer/index.ts
-  - docs/0417-old/公寓_現場必問清單.docx
-  - src/lib/property-types/schemas/index.ts
-  - src/lib/property-types/schemas/townhouse.ts
-  - docs/0417-new/建安不動產欄位總表_建物版.docx
-  - src/lib/property-types/schemas/other-land.ts
-  - docs/0417-old/透天別墅_秘書後補清單.docx
-  - docs/0417-old/工業地_現場必問清單.docx
-  - docs/0417-old/不動產說明書13.pdf
-  - stitch_ai/estate_logic/DESIGN.md
-  - docs/0417-old/土地物調表-母版.docx
   - src/lib/pdf-generator/dossier.ts
-  - docs/0417-old/其他土地_現場必問清單.docx
-  - docs/0417-old/鄉村區建地_秘書後補清單.docx
-  - .spectra.yaml
-  - docs/0417-old/套房_現場必問清單.docx
-  - src/app/listings/page.tsx
-  - stitch_ai/ai/code.html
-  - docs/0417-old/建物物調表-母版.dot
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/pdf/route.ts
 tests:
-  - src/lib/property-types/__tests__/index.test.ts
-  - src/lib/db/__tests__/listing-workflow.test.ts
-  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
-  - src/lib/db/__tests__/regenerate.test.ts
-  - src/lib/db/__tests__/e2e-residential.test.ts
-  - src/lib/db/__tests__/index.test.ts
   - src/lib/pdf-generator/__tests__/dossier.test.ts
-  - src/app/api/__tests__/listings.test.ts
-  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
 -->
 
 ---
@@ -473,4 +382,69 @@ tests:
   - src/lib/pdf-generator/__tests__/dossier.test.ts
   - src/app/api/__tests__/listings.test.ts
   - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+-->
+
+---
+### Requirement: Disclosure document is downloadable as A4 PDF
+
+The system SHALL convert the `disclosure_document` Markdown content into a downloadable A4 PDF via the `/api/listings/[id]/pdf?type=disclosure` endpoint.
+
+The PDF SHALL include:
+- Page header: listing number + property address on every page
+- Page footer: page N of M on every page
+- 建安不動產 LOGO in the top-right corner of the first page
+- Table styling: thin borders, light grey header rows, repeated table headers across pages
+- Chinese font: Noto Serif TC (loaded via CDN, fallback to system serif)
+- Chapter separation with visible dividers and spacing
+
+#### Scenario: PDF download from documents page
+
+- **WHEN** user clicks "下載 PDF" on the disclosure document card
+- **THEN** browser SHALL download a PDF file named `disclosure-{listingId}.pdf`
+- **THEN** the PDF SHALL render all 16 chapters with proper A4 layout
+
+#### Scenario: PDF with empty supplementary data
+
+- **WHEN** the listing has field_visit_data but no supplementary_data
+- **THEN** the PDF SHALL still render all 16 chapters
+- **THEN** chapters requiring supplementary data SHALL display `待補` in their fields
+
+
+<!-- @trace
+source: disclosure-pdf-16-chapter
+updated: 2026-04-18
+code:
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+tests:
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+-->
+
+---
+### Requirement: Disclosure document is generated with 16-chapter structure
+
+The system SHALL generate a disclosure document with 16 chapters where the `disclosure_document` field contains Markdown with headings following `#### 章節 N：標題` format. The `disclosure_document` SHALL NOT contain placeholder text.
+
+#### Scenario: Disclosure document is generated with 16-chapter structure
+
+- **WHEN** the system generates documents for a listing that has field_visit_data
+- **THEN** the `disclosure_document` field SHALL contain a 16-chapter Markdown string with chapter headings following `#### 章節 N：標題` format
+- **THEN** the `disclosure_document` SHALL NOT contain the placeholder text `[PDF 由任務 10 實作]`
+
+<!-- @trace
+source: disclosure-pdf-16-chapter
+updated: 2026-04-18
+code:
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+tests:
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
 -->

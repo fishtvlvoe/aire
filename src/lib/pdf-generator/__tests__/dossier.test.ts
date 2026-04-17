@@ -7,7 +7,7 @@ vi.mock('puppeteer', () => ({
     launch: vi.fn().mockResolvedValue({
       newPage: vi.fn().mockResolvedValue({
         setContent: vi.fn().mockResolvedValue(undefined),
-        pdf: vi.fn().mockResolvedValue(undefined),
+        pdf: vi.fn().mockResolvedValue(new Uint8Array([0x25, 0x50, 0x44, 0x46])), // %PDF magic bytes
       }),
       close: vi.fn().mockResolvedValue(undefined),
     }),
@@ -29,8 +29,8 @@ describe('property-dossier PDF generation', () => {
 
     const result = await generateDossierPDF(markdown, 'test-123');
     expect(result).toBeDefined();
-    expect(typeof result).toBe('string');
-    expect(result).toContain('dossier.pdf');
+    expect(result).toBeInstanceOf(Uint8Array);
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it('should generate PDF for apartment listing', async () => {
@@ -48,19 +48,19 @@ describe('property-dossier PDF generation', () => {
 
     const result = await generateDossierPDF(markdown, 'apt-456');
     expect(result).toBeDefined();
-    expect(result).toContain('dossier.pdf');
+    expect(result).toBeInstanceOf(Uint8Array);
   });
 
-  it('should accept custom output directory', async () => {
+  it('should return Uint8Array for any listing id', async () => {
     const markdown = `# 物件調查表
 
 ## 段落 1
 內容 1
 `;
 
-    const result = await generateDossierPDF(markdown, 'test-custom', '/tmp/custom-output');
+    const result = await generateDossierPDF(markdown, 'test-custom');
     expect(result).toBeDefined();
-    expect(result).toContain('/tmp/custom-output');
+    expect(result).toBeInstanceOf(Uint8Array);
   });
 
   it('should handle markdown conversion', async () => {
@@ -76,5 +76,6 @@ describe('property-dossier PDF generation', () => {
 
     const result = await generateDossierPDF(markdown, 'test-markdown');
     expect(result).toBeDefined();
+    expect(result).toBeInstanceOf(Uint8Array);
   });
 });
