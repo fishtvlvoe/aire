@@ -13,14 +13,23 @@ type Listing = {
   status: string;
   field_visit_data?: string | null;
   supplementary_data?: string | null;
+  pre_commission_data?: string | Record<string, unknown> | null;
 };
 
 type ListingResponse = {
   listing: Listing;
 };
 
-const parseJsonObject = (rawData: string | null): Record<string, unknown> | null => {
+const parseJsonObject = (rawData: unknown): Record<string, unknown> | null => {
   if (!rawData) {
+    return null;
+  }
+
+  if (typeof rawData === 'object') {
+    return rawData as Record<string, unknown>;
+  }
+
+  if (typeof rawData !== 'string') {
     return null;
   }
 
@@ -106,6 +115,10 @@ export default function ListingSupplementaryPage() {
     return getPropertyType(listing.property_type)?.displayName ?? PROPERTY_TYPES[listing.property_type].displayName;
   }, [listing]);
 
+  const preCommissionData = useMemo(() => {
+    return parseJsonObject(listing?.pre_commission_data);
+  }, [listing?.pre_commission_data]);
+
   const handleSubmit = async (data: Record<string, unknown>) => {
     if (!listing) {
       return;
@@ -162,6 +175,7 @@ export default function ListingSupplementaryPage() {
               <>
                 <SupplementaryForm
                   propertyType={listing.property_type}
+                  preCommissionData={preCommissionData}
                   onSubmit={(data) => {
                     void handleSubmit(data);
                   }}

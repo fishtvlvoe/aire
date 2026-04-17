@@ -104,24 +104,24 @@
 
 ### 14. Pre-commission UI
 
-- [ ] 14.1 [Tool: cursor] 建立 src/app/pre-commission/new/page.tsx：屋主姓名/電話/地址/地號表單 — 實作 Requirement: Pre-commission lookup UI accepts owner + address/parcel input；對應 Design: 階段一 v3 第一版：ui + 手動貼 > 全自動爬蟲
-- [ ] 14.2 [Tool: copilot-codex] 建立 api/pre-commission/route.ts：POST 建立 pre-commission state listing — 實作 Requirement: Listing state machine supports pre-commission stage、Pre-commission lookup UI accepts owner + address/parcel input
-- [ ] 14.3 [Tool: cursor] 建立 pre-commission/[id]/page.tsx：顯示自動查詢 + 手動貼資料區 — 實作 Requirement: System auto-populates public data when available、Manual paste mode for unavailable sources
-- [ ] 14.4 [Tool: cursor] 進入現場勘查按鈕：推進 state 到 field-visit — 實作 Requirement: Pre-commission state transitions to field-visit、Workflow rejects invalid transitions
+- [x] 14.1 [Tool: cursor] 建立 src/app/pre-commission/new/page.tsx：屋主姓名/電話/地址/地號表單 — 實作 Requirement: Pre-commission lookup UI accepts owner + address/parcel input；對應 Design: 階段一 v3 第一版：ui + 手動貼 > 全自動爬蟲
+- [x] 14.2 [Tool: copilot-codex] 建立 api/pre-commission/route.ts：POST 建立 pre-commission state listing — 實作 Requirement: Listing state machine supports pre-commission stage、Pre-commission lookup UI accepts owner + address/parcel input
+- [x] 14.3 [Tool: cursor] 建立 pre-commission/[id]/page.tsx：顯示自動查詢 + 手動貼資料區 — 實作 Requirement: System auto-populates public data when available、Manual paste mode for unavailable sources
+- [x] 14.4 [Tool: cursor] 進入現場勘查按鈕：推進 state 到 field-visit — 實作 Requirement: Pre-commission state transitions to field-visit、Workflow rejects invalid transitions
 
 ### 15. Listing State 擴充
 
-- [ ] 15.1 [Tool: copilot-codex] 更新 src/lib/db/schema.ts：新增 pre-commission state、pre_commission_data JSON 欄位 — 實作 Requirement: Listing state machine supports pre-commission stage；對應 Design: 100% 可直接搬用（lib 核心層）
-- [ ] 15.2 [Tool: copilot-codex] 更新狀態機：pre-commission → field-visit — 實作 Requirement: Pre-commission state transitions to field-visit、Workflow rejects invalid transitions
+- [x] 15.1 [Tool: copilot-codex] 更新 src/lib/db/schema.ts：新增 pre-commission state、pre_commission_data JSON 欄位 — 實作 Requirement: Listing state machine supports pre-commission stage；對應 Design: 100% 可直接搬用（lib 核心層）
+- [x] 15.2 [Tool: copilot-codex] 更新狀態機：pre-commission → field-visit — 實作 Requirement: Pre-commission state transitions to field-visit、Workflow rejects invalid transitions
 - [ ] 15.3 [Tool: codex] 測試：state 轉換驗證（合法與非法）— 實作 Requirement: Workflow rejects invalid transitions
 
 ### 16. 公開資料爬蟲（繼承 v1 POC）
 
-- [ ] 16.1 [Tool: cursor] 考古 v1 POC 爬蟲 code 位置，評估可用性 — 對應 Design: 爬蟲繼承 v1 poc 可用性未知
-- [ ] 16.2 [Tool: gemini] 研究謄本、地籍圖、使用分區、實價登錄的最新 API/爬取方式 — 對應 Design: 階段一 v3 第一版：ui + 手動貼 > 全自動爬蟲
-- [ ] 16.3 [Tool: copilot-codex] 建立 src/lib/pre-commission/lookup.ts：統一介面 — 實作 Requirement: System auto-populates public data when available
-- [ ] 16.4 [Tool: copilot-codex] 實作可行站點的 scraper — 實作 Requirement: System auto-populates public data when available；對應 Design: 爬蟲繼承 v1 poc 可用性未知
-- [ ] 16.5 [Tool: copilot-codex] 手動貼上謄本的 LLM 解析 fallback：Codex 抽結構化欄位 — 實作 Requirement: Manual paste mode for unavailable sources
+- [x] 16.1 [Tool: cursor] 考古 v1 POC 爬蟲 code 位置，評估可用性 — 對應 Design: 爬蟲繼承 v1 poc 可用性未知
+- [x] 16.2 [Tool: gemini] 研究謄本、地籍圖、使用分區、實價登錄的最新 API/爬取方式 — 對應 Design: 階段一 v3 第一版：ui + 手動貼 > 全自動爬蟲
+- [x] 16.3 [Tool: copilot-codex] 建立 src/lib/pre-commission/lookup.ts：統一介面 — 實作 Requirement: System auto-populates public data when available
+- [x] 16.4 [Tool: copilot-codex] 實作可行站點的 scraper — 實作 Requirement: System auto-populates public data when available；對應 Design: 爬蟲繼承 v1 poc 可用性未知
+- [x] 16.5 [Tool: copilot-codex] 手動貼上謄本的 LLM 解析 fallback：Codex 抽結構化欄位 — 實作 Requirement: Manual paste mode for unavailable sources
 - [ ] 16.6 [Tool: codex] 測試：mock 站點 + LLM fallback 都可運作 — 實作 Requirement: System auto-populates public data when available、Manual paste mode for unavailable sources
 
 ### 17. Pre-commission Data 顯示於 supplementary

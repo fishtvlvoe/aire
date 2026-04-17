@@ -107,17 +107,35 @@ export type SupplementaryFormProps = {
   onGenerateDocuments: () => void
   /** When provided, fields are loaded from the matching schema */
   propertyType?: PropertyType
+  /** Read-only data fetched before commission */
+  preCommissionData?: Record<string, unknown> | null
 }
 
 const inputClassName =
   'mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm leading-6 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200'
 
+const PRECOMMISSION_PRIORITY_KEYS = ['owner_name', 'owner_phone', 'address', 'parcel_number'] as const
+
+const formatReadonlyValue = (value: unknown): string => {
+  if (value === null) return 'null'
+  if (value === undefined) return ''
+  if (typeof value === 'string') return value === '' ? '(空白)' : value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
 export default function SupplementaryForm({
   onSubmit,
   onGenerateDocuments,
   propertyType,
+  preCommissionData,
 }: SupplementaryFormProps) {
   const [form, setForm] = useState<Record<string, string>>({})
+  const [isExpanded, setIsExpanded] = useState(true)
 
   // Dynamic fields based on schema; fall back to built-in static fields
   const dynamicFields = useMemo<SchemaField[] | null>(() => {
@@ -143,6 +161,19 @@ export default function SupplementaryForm({
   ]
 
   const activeFields = dynamicFields ?? staticFields
+
+  const preCommissionEntries = useMemo(() => {
+    if (!preCommissionData || typeof preCommissionData !== 'object') return []
+
+    const entries = Object.entries(preCommissionData).filter(([, value]) => value !== undefined)
+    const priorityEntries = PRECOMMISSION_PRIORITY_KEYS
+      .map((key) => entries.find(([entryKey]) => entryKey === key))
+      .filter((entry): entry is [string, unknown] => entry !== undefined)
+    const priorityKeySet = new Set(priorityEntries.map(([key]) => key))
+    const otherEntries = entries.filter(([key]) => !priorityKeySet.has(key))
+
+    return [...priorityEntries, ...otherEntries]
+  }, [preCommissionData])
 
   const isComplete = useMemo(() => {
     const required = activeFields.filter((f) => f.required)
@@ -238,6 +269,37 @@ export default function SupplementaryForm({
     <section className="w-full rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-xl font-semibold text-slate-900">補件表單</h2>
       <p className="mt-1 text-sm text-slate-600">請先補齊必要資料，再產出文件。</p>
+
+      <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <button
+          type="button"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          className="w-full text-left text-sm font-medium text-slate-800"
+        >
+          {isExpanded ? '▼' : '▶'} 委託前已查資料
+        </button>
+
+        {isExpanded && (
+          <div className="mt-3">
+            {preCommissionEntries.length === 0 ? (
+              <p className="text-sm text-slate-500">無委託前資料</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-slate-200 bg-slate-100">
+                <table className="min-w-full text-sm text-slate-700">
+                  <tbody>
+                    {preCommissionEntries.map(([key, value]) => (
+                      <tr key={key} className="border-b border-slate-200 last:border-b-0">
+                        <th className="w-1/3 px-3 py-2 text-left font-medium text-slate-600">{key}</th>
+                        <td className="px-3 py-2 break-all">{formatReadonlyValue(value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
         {activeFields.length === 0 ? (

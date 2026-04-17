@@ -24,7 +24,7 @@ export function getFieldsForLayer(
   if (!typeInfo) return [];
 
   // 導入對應的 schema
-  const schemaModule = (schemas as any)[`${propertyType.replace('-', '')}Schema`];
+  const schemaModule = (schemas as any)[`${propertyType.replace(/-/g, '')}Schema`];
   if (!schemaModule) return [];
 
   return schemaModule[layer] || [];

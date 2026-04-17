@@ -18,6 +18,27 @@ type RealPriceRow = {
   floor_desc?: string;
 };
 
+type GeoJsonFeatureLike = {
+  properties?: unknown;
+};
+
+type GeoJsonResponseLike = {
+  features?: unknown;
+};
+
+const REQUEST_TIMEOUT_MS = 10_000;
+const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+function withTimeoutSignal(timeoutMs: number): { signal: AbortSignal; cleanup: () => void } {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return {
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timeoutId),
+  };
+}
+
 function toRecord(rows: RealPriceRow[]): Record<string, string> {
   const data: Record<string, string> = {};
 
@@ -42,9 +63,17 @@ async function lookupRealPrice(address: string): Promise<LookupResult | null> {
   const escapedAddress = trimmed.replace(/'/g, "''");
   const filter = `contains(addr,'${escapedAddress}')`;
   const url = `https://lvr.land.moi.gov.tw/od/table/RealPrice?$format=json&$filter=${encodeURIComponent(filter)}&$top=5`;
+  const { signal, cleanup } = withTimeoutSignal(REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, { method: "GET" });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "User-Agent": BROWSER_USER_AGENT,
+      },
+      signal,
+    });
+
     if (!response.ok) return null;
 
     const text = await response.text();
@@ -82,14 +111,81 @@ async function lookupRealPrice(address: string): Promise<LookupResult | null> {
     };
   } catch {
     return null;
+  } finally {
+    cleanup();
   }
 }
 
-async function lookupCadastral(parcelNumber: string): Promise<LookupResult | null> {
-  if (!parcelNumber.trim()) return null;
-  console.warn("地籍查詢暫未實作");
-  // TODO: Implement NLSC WFS XML parsing.
-  return null;
+async function lookupByParcel(parcelNumber: string): Promise<LookupResult | null> {
+  const trimmed = parcelNumber.trim();
+  if (!trimmed) return null;
+
+  const escapedParcel = trimmed.replace(/'/g, "''");
+  const cqlFilter = `parcelNo='${escapedParcel}'`;
+  const url =
+    `https://wfs.nlsc.gov.tw/wfs?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=Land` +
+    `&CQL_FILTER=${encodeURIComponent(cqlFilter)}&outputFormat=application/json`;
+  const { signal, cleanup } = withTimeoutSignal(REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "User-Agent": BROWSER_USER_AGENT,
+      },
+      signal,
+    });
+
+    if (!response.ok) {
+      console.warn(`[lookupByParcel] request failed with status ${response.status}`);
+      return null;
+    }
+
+    let parsedJson: unknown;
+    try {
+      parsedJson = await response.json();
+    } catch {
+      console.warn("[lookupByParcel] invalid JSON response");
+      return null;
+    }
+
+    const maybeFeatures =
+      parsedJson && typeof parsedJson === "object"
+        ? (parsedJson as GeoJsonResponseLike).features
+        : undefined;
+    const features = Array.isArray(maybeFeatures) ? maybeFeatures : [];
+
+    if (!features.length) {
+      console.warn("[lookupByParcel] no features found");
+      return null;
+    }
+
+    const firstFeature = features[0];
+    const properties =
+      firstFeature && typeof firstFeature === "object"
+        ? (firstFeature as GeoJsonFeatureLike).properties
+        : undefined;
+
+    if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
+      console.warn("[lookupByParcel] missing feature properties");
+      return null;
+    }
+
+    const data = Object.fromEntries(
+      Object.entries(properties as Record<string, unknown>).map(([key, value]) => [key, String(value ?? "")]),
+    );
+
+    return {
+      source: "NLSC WFS 地籍資料",
+      data,
+      rawText: JSON.stringify(parsedJson),
+    };
+  } catch {
+    console.warn("[lookupByParcel] lookup failed");
+    return null;
+  } finally {
+    cleanup();
+  }
 }
 
 export async function lookupPreCommissionData(params: {
@@ -98,7 +194,7 @@ export async function lookupPreCommissionData(params: {
 }): Promise<LookupReport> {
   const [realPrice, cadastral] = await Promise.all([
     lookupRealPrice(params.address),
-    params.parcelNumber ? lookupCadastral(params.parcelNumber) : Promise.resolve(null),
+    params.parcelNumber ? lookupByParcel(params.parcelNumber) : Promise.resolve(null),
   ]);
 
   return {
