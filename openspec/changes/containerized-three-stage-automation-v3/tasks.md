@@ -93,8 +93,8 @@
 
 ### 13. Phase 2 驗收
 
-- [ ] 13.1 [Tool: kimi] CR：document-generator 5 份文件 prompt 一致性 — 實作 Requirement: System generates exactly five document types per listing；對應 Design: implementation distribution strategy
-- [ ] 13.2 [Tool: kimi] CR：UI 章節分群 + 13 類動態渲染 — 實作 Requirement: Form groups fields by chapter, not by layer、Field visit form supports all 13 property types
+- [x] 13.1 [Tool: kimi] CR：document-generator 5 份文件 prompt 一致性 — 實作 Requirement: System generates exactly five document types per listing；對應 Design: implementation distribution strategy
+- [x] 13.2 [Tool: kimi] CR：UI 章節分群 + 13 類動態渲染 — 實作 Requirement: Form groups fields by chapter, not by layer、Field visit form supports all 13 property types
 - [x] 13.3 [Tool: codex] npm test 全綠 — 對應 Design: goals
 - [x] 13.4 [Tool: codex] npm run build 0 錯誤 — 對應 Design: goals
 
@@ -130,7 +130,7 @@
 
 ### 18. Phase 3 驗收
 
-- [ ] 18.1 [Tool: kimi] CR：pre-commission 整個流程 — 實作 Requirement: Pre-commission lookup UI accepts owner + address/parcel input、System auto-populates public data when available；對應 Design: implementation distribution strategy
+- [x] 18.1 [Tool: kimi] CR：pre-commission 整個流程 — 實作 Requirement: Pre-commission lookup UI accepts owner + address/parcel input、System auto-populates public data when available；對應 Design: implementation distribution strategy
 - [ ] 18.2 [Tool: codex] e2e：新 listing → 階段一 → 階段三 → 5 份文件全產出 — 實作 Requirement: Listing state machine supports pre-commission stage、Pre-commission state transitions to field-visit、System generates exactly five document types per listing；對應 Design: goals
 
 ---
