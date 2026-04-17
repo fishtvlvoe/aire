@@ -1,3 +1,5 @@
+import { PropertyType } from '../property-types';
+
 export interface GeneratedDocuments {
   disclosure_document: string;
   property_survey: string;
@@ -15,7 +17,7 @@ export interface GeneratedDocuments {
 }
 
 export interface DocumentGeneratorInput {
-  property_type: 'residential' | 'farmland';
+  property_type: PropertyType;
   field_visit_data: Record<string, unknown>;
   supplementary_data: Record<string, unknown>;
 }

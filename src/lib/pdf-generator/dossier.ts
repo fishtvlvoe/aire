@@ -37,7 +37,7 @@ export async function generateDossierPDF(markdown: string, listingId: number): P
   `;
 
   // 用 Puppeteer 產生 PDF
-  const browser = await puppeteer.launch({ headless: 'new' });
+  const browser = await puppeteer.launch({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
