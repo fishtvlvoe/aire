@@ -48,7 +48,7 @@
 - [x] 7.1 [Tool: copilot-codex] 修 src/lib/form-renderer/index.ts：schema key 支援 -、type 定義補 file — 實作 Requirement: Field visit form supports all 13 property types；對應 Design: 100% 可直接搬用（lib 核心層）、小幅修改可用
 - [x] 7.2 [Tool: cursor] 重寫 FieldVisitForm.tsx 支援 13 類動態 schema — 實作 Requirement: Field visit form supports all 13 property types；對應 Design: 小幅修改可用
 - [x] 7.3 [Tool: cursor] 重寫 SupplementaryForm.tsx 對齊 v3 秘書後補欄位 — 實作 Requirement: Supplementary form renders secretary fields for all 13 types；對應 Design: 小幅修改可用
-- [ ] 7.4 [Tool: codex] 測試：13 類在 FieldVisitForm 下正確渲染 — 實作 Requirement: Field visit form supports all 13 property types
+- [x] 7.4 [Tool: codex] 測試：13 類在 FieldVisitForm 下正確渲染 — 實作 Requirement: Field visit form supports all 13 property types
 
 ### 8. UI 按章節分群
 
@@ -64,7 +64,7 @@
 - [x] 9.3 [Tool: copilot-codex] 建立 md/listing591.ts：591 PO 文 MD prompt — 實作 Requirement: Secondary documents are Markdown format
 - [x] 9.4 [Tool: copilot-codex] 建立 md/dm.ts：銷售 DM 文案 MD prompt — 實作 Requirement: Secondary documents are Markdown format
 - [x] 9.5 [Tool: copilot-codex] 建立 md/social.ts：FB 5 平台貼文 + 圖片提示詞 MD prompt — 實作 Requirement: Secondary documents are Markdown format
-- [ ] 9.6 [Tool: codex] 每份文件 integration 測試 — 實作 Requirement: System generates exactly five document types per listing、Secondary documents are Markdown format
+- [x] 9.6 [Tool: codex] 每份文件 integration 測試 — 實作 Requirement: System generates exactly five document types per listing、Secondary documents are Markdown format
 
 ### 10. 不動產說明書 PDF（16 章）
 
@@ -80,7 +80,7 @@
 - [x] 11.1 [Tool: copilot-codex] 更新 api/listings/[id]/generate：並行觸發 5 份文件產生 — 實作 Requirement: System generates exactly five document types per listing；對應 Design: 小幅修改可用
 - [x] 11.2 [Tool: copilot-codex] 建立 api/listings/[id]/regenerate：接 {docType}，只重產單一 — 實作 Requirement: Each document can be regenerated independently
 - [x] 11.3 [Tool: copilot-codex] 更新 api/listings/[id]/documents：列 5 份狀態與下載 URL — 實作 Requirement: System generates exactly five document types per listing
-- [ ] 11.4 [Tool: codex] 測試：generate 一次產 5 份、regenerate 單獨重產不影響其他 — 實作 Requirement: Each document can be regenerated independently、System generates exactly five document types per listing
+- [x] 11.4 [Tool: codex] 測試：generate 一次產 5 份、regenerate 單獨重產不影響其他 — 實作 Requirement: Each document can be regenerated independently、System generates exactly five document types per listing
 
 ### 12. UI 重寫
 
