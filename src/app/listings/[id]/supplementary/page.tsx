@@ -4,8 +4,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import SupplementaryForm from '@/components/forms/SupplementaryForm';
-import { type Listing, PROPERTY_TYPES } from '@/lib/db';
-import { getPropertyType } from '@/lib/property-types';
+import { PROPERTY_TYPES, getPropertyType, type PropertyType } from '@/lib/property-types';
+
+type Listing = {
+  id: number;
+  property_type: PropertyType;
+  address: string;
+  status: string;
+  field_visit_data?: string | null;
+  supplementary_data?: string | null;
+};
 
 type ListingResponse = {
   listing: Listing;

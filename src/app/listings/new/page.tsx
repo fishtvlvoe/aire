@@ -2,8 +2,22 @@
 
 import { useMemo, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
-import { Listing, ListingStatus, PropertyType, PROPERTY_TYPES } from '@/lib/db';
-import { getPropertyType } from '@/lib/property-types';
+import { PropertyType, PROPERTY_TYPES, getPropertyType } from '@/lib/property-types';
+
+type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
+type FieldVisitStatus = 'draft' | 'field-visit-incomplete' | 'field-visit-complete';
+
+interface Listing {
+  id: number;
+  property_type: PropertyType;
+  field_visit_status: FieldVisitStatus;
+  status: ListingStatus;
+  field_visit_data: string | null;
+  supplementary_data: string | null;
+  generated_documents: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function NewListingPage() {
   const [selectedType, setSelectedType] = useState<PropertyType | null>(null);

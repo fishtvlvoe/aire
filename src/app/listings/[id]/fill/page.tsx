@@ -4,7 +4,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import FieldVisitForm from '@/components/forms/FieldVisitForm';
-import { type Listing, type ListingStatus, PROPERTY_TYPES } from '@/lib/db';
+import { PROPERTY_TYPES, type PropertyType } from '@/lib/property-types';
+
+type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
+type Listing = {
+  id: number;
+  property_type: PropertyType;
+  address: string;
+  status: ListingStatus;
+  field_visit_data?: string | null;
+};
 import { getPropertyType } from '@/lib/property-types';
 
 type ListingResponse = {

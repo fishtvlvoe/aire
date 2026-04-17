@@ -84,12 +84,12 @@
 
 ### 12. UI 重寫
 
-- [ ] 12.1 [Tool: cursor] 重寫 src/app/listings/page.tsx：真實 DB 資料、狀態 badge、篩選器 — 實作 Requirement: Form groups fields by chapter, not by layer；對應 Design: 砍掉重寫（不符 v3 架構）
-- [ ] 12.2 [Tool: cursor] 重寫 listings/[id]/fill：章節 Tab + FieldVisitForm — 實作 Requirement: Form groups fields by chapter, not by layer；對應 Design: 砍掉重寫（不符 v3 架構）
-- [ ] 12.3 [Tool: cursor] 重寫 listings/[id]/supplementary：秘書後補頁 — 實作 Requirement: Supplementary form renders secretary fields for all 13 types、Pre-commission data is visible as reference
-- [ ] 12.4 [Tool: cursor] 重寫 listings/[id]/generating：5 份文件實時進度 — 實作 Requirement: System generates exactly five document types per listing
-- [ ] 12.5 [Tool: cursor] 重寫 listings/[id]/documents：5 張卡片 + 重產按鈕 — 實作 Requirement: Each document can be regenerated independently、System generates exactly five document types per listing
-- [ ] 12.6 [Tool: cursor] 砍掉 SocialPostTabs.tsx、ShortVideoScript.tsx、MarketingFlowGuide.tsx — 對應 Design: 砍掉重寫（不符 v3 架構）、non-goals
+- [x] 12.1 [Tool: cursor] 重寫 src/app/listings/page.tsx：真實 DB 資料、狀態 badge、篩選器 — 實作 Requirement: Form groups fields by chapter, not by layer；對應 Design: 砍掉重寫（不符 v3 架構）
+- [x] 12.2 [Tool: cursor] 重寫 listings/[id]/fill：章節 Tab + FieldVisitForm — 實作 Requirement: Form groups fields by chapter, not by layer；對應 Design: 砍掉重寫（不符 v3 架構）
+- [x] 12.3 [Tool: cursor] 重寫 listings/[id]/supplementary：秘書後補頁 — 實作 Requirement: Supplementary form renders secretary fields for all 13 types、Pre-commission data is visible as reference
+- [x] 12.4 [Tool: cursor] 重寫 listings/[id]/generating：5 份文件實時進度 — 實作 Requirement: System generates exactly five document types per listing
+- [x] 12.5 [Tool: cursor] 重寫 listings/[id]/documents：5 張卡片 + 重產按鈕 — 實作 Requirement: Each document can be regenerated independently、System generates exactly five document types per listing
+- [x] 12.6 [Tool: cursor] 砍掉 SocialPostTabs.tsx、ShortVideoScript.tsx、MarketingFlowGuide.tsx — 對應 Design: 砍掉重寫（不符 v3 架構）、non-goals
 
 ### 13. Phase 2 驗收
 
