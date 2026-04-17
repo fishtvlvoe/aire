@@ -4,26 +4,26 @@
 - [x] 1.2 [Tool: copilot-codex] 建立 `src/lib/property-types/schemas/` 目錄，First version implements 6 priority types（farmland/townhouse/apartment/highrise/residential-land/farmhouse），各建一個 field schema 檔
 - [x] 1.3 [Tool: copilot-codex] Each type defines three-layer field schema：common / building_common 或 land_common / type_specific，欄位含 key/label/type/required；實作物件類型 Schema 設計：三層欄位結構；採用 UI 表單渲染：配置驅動（Config-driven）架構
 - [x] 1.4 [Tool: copilot-codex] 其餘 7 種類型標記 `available: false`，type_specific 回傳空物件
-- [ ] 1.5 [Tool: codex] 撰寫 property-type-registry 單元測試：驗證 retrieve display name、determine category、access unimplemented type、list available types
+- [x] 1.5 [Tool: codex] 撰寫 property-type-registry 單元測試：驗證 retrieve display name、determine category、access unimplemented type、list available types
 
 ## 2. DB Schema 與 API 更新（listing-workflow）
 
 - [x] 2.1 [Tool: codex] 更新 `src/lib/db/schema.ts`：Listing status machine supports 13 property types，property_type 改為 TEXT（物件類型 Enum 策略：字串 enum 取代數字 ID），移除 enum 限制，類型驗證在 application layer
 - [x] 2.2 [Tool: codex] 更新 `src/lib/db/index.ts`：createListing / updateListing 加入 property_type 驗證，reject unavailable type 回傳 `type-not-available`，reject unknown type 回傳 `invalid-property-type`
-- [ ] 2.3 [Tool: codex] 更新 `src/app/api/listings/route.ts` POST handler：支援 13 種類型，驗證 available 狀態；Five-page UI flow covers the complete listing lifecycle 的後端入口
-- [ ] 2.4 [Tool: codex] 撰寫 listing-workflow 整合測試：驗證 create listing with farmland type、reject unavailable type、reject unknown type
+- [x] 2.3 [Tool: codex] 更新 `src/app/api/listings/route.ts` POST handler：支援 13 種類型，驗證 available 狀態；Five-page UI flow covers the complete listing lifecycle 的後端入口
+- [x] 2.4 [Tool: codex] 撰寫 listing-workflow 整合測試：驗證 create listing with farmland type、reject unavailable type、reject unknown type
 
 ## 3. 現場勘查表單（field-visit-form）
 
 - [x] 3.1 [Tool: copilot-codex] 建立 `src/lib/form-renderer/` 模組（UI 表單渲染：配置驅動 Config-driven）：Field visit form renders dynamically based on property type，根據 property type 和 layer 回傳欄位定義陣列；Common fields are identical across all types；Building common fields apply to all building-category types；Land common fields apply to all land-category types
 - [x] 3.2 [Tool: copilot-codex] 建立 field-visit-form API endpoint `src/app/api/listings/[id]/field-visit/route.ts`：Form saves data as structured JSON，接收 JSON body 驗證結構後存入 field_visit_data，推進狀態至 field-visit-complete
-- [ ] 3.3 [Tool: codex] 撰寫 field-visit-form 測試：驗證 save farmland field visit data（含 common/land_common/type_specific keys）、building common fields for apartment
+- [x] 3.3 [Tool: codex] 撰寫 field-visit-form 測試：驗證 save farmland field visit data（含 common/land_common/type_specific keys）、building common fields for apartment
 
 ## 4. 秘書後補表單（supplementary-form）
 
 - [ ] 4.1 [Tool: copilot-codex] 擴充 `src/lib/property-types/schemas/` 每個類型加入 supplementary_specific 欄位定義（6 種優先類型）：Supplementary form renders fields for secretary to complete；Type-specific supplementary fields append after category common
 - [x] 4.2 [Tool: copilot-codex] 建立 supplementary-form API endpoint `src/app/api/listings/[id]/supplementary/route.ts`：Supplementary data saves as structured JSON，存入 supplementary_data，推進狀態至 ready-for-generation
-- [ ] 4.3 [Tool: codex] 撰寫 supplementary-form 測試：驗證 secretary opens supplementary tab for farmland（farmland type-specific fields）、save supplementary data for townhouse → status advances
+- [x] 4.3 [Tool: codex] 撰寫 supplementary-form 測試：驗證 secretary opens supplementary tab for farmland（farmland type-specific fields）、save supplementary data for townhouse → status advances
 
 ## 5. 物件調查表（property-dossier）
 
@@ -31,7 +31,7 @@
 - [ ] 5.2 [Tool: copilot-codex] 更新 `src/lib/document-generator/codex-provider.ts`：Property dossier is generated as a complete property profile；Dossier generation uses Codex CLI；物件調查表：AI 整合輸出，非模板填充，依物件類型與三層欄位資料輸出結構化 Markdown
 - [x] 5.3 [Tool: codex] 建立 `src/lib/pdf-generator/dossier.ts`：PDF 輸出：HTML → Puppeteer → PDF，接收 Markdown 字串，用 Puppeteer 產生 A4 PDF，存至 `output/<listing-id>/dossier.pdf`
 - [ ] 5.4 [Tool: codex] 更新 regenerate API：Dossier can be regenerated independently，VALID_TYPES 新增 `property_dossier`
-- [ ] 5.5 [Tool: codex] 撰寫 property-dossier 測試：驗證 generate dossier for farmland listing（含 6 sections）、dossier regeneration via API
+- [x] 5.5 [Tool: codex] 撰寫 property-dossier 測試：驗證 generate dossier for farmland listing（含 6 sections）、dossier regeneration via API
 
 ## 6. UI：物件列表頁（listing-ui-flow）
 
