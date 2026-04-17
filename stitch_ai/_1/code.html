@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-TW"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>物件資料庫 - 補充資料</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#474747",
+                        "secondary": "#9d4400",
+                        "surface-container-high": "#e8e8e8",
+                        "on-tertiary-container": "#a4a2a2",
+                        "secondary-fixed-dim": "#ffb690",
+                        "primary-container": "#1b3a5c",
+                        "on-error-container": "#93000a",
+                        "surface-variant": "#e2e2e2",
+                        "primary-fixed-dim": "#abc9f2",
+                        "surface-container-low": "#f3f3f3",
+                        "surface-tint": "#436084",
+                        "tertiary": "#232424",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#1a1c1c",
+                        "primary-fixed": "#d2e4ff",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-bright": "#f9f9f9",
+                        "inverse-surface": "#2f3131",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#87a4cc",
+                        "on-surface-variant": "#43474e",
+                        "background": "#f9f9f9",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#ff8d4a",
+                        "primary": "#002444",
+                        "tertiary-fixed-dim": "#c8c6c6",
+                        "on-tertiary-fixed": "#1b1c1c",
+                        "outline": "#73777f",
+                        "on-background": "#1a1c1c",
+                        "on-secondary-container": "#6c2c00",
+                        "inverse-on-surface": "#f1f1f1",
+                        "on-primary-fixed": "#001c38",
+                        "on-primary-fixed-variant": "#2b486b",
+                        "surface": "#f9f9f9",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-container": "#393939",
+                        "secondary-fixed": "#ffdbca",
+                        "surface-dim": "#dadada",
+                        "surface-container": "#eeeeee",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c3c6cf",
+                        "on-secondary-fixed-variant": "#783200",
+                        "inverse-primary": "#abc9f2",
+                        "on-secondary-fixed": "#331100",
+                        "tertiary-fixed": "#e4e2e1",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full flex justify-between items-center px-6 h-16 bg-slate-900 dark:bg-black font-['Manrope'] tracking-tight docked full-width top-0 z-50 tonal shift via glassmorphism backdrop-blur-xl shadow-[0px_12px_32px_rgba(27,58,92,0.06)] scale-95 active:scale-90">
+<div class="flex items-center">
+<span class="text-xl font-bold bg-gradient-to-br from-blue-900 to-slate-800 text-white px-4 py-2 rounded-lg">建安不動產 AI 文件系統</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-300 hover:text-white transition-colors hover:bg-white/10 transition-all duration-300 p-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-slate-300 hover:text-white transition-colors hover:bg-white/10 transition-all duration-300 p-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-16 h-[calc(100vh-64px)] flex flex-col py-6 bg-slate-50 dark:bg-slate-900 font-['Manrope'] text-sm font-medium uppercase tracking-wider docked left-0 h-screen w-64 border-r-0 tonal shift from surface to surface-container-low flat no-line architecture hover:translate-x-1 transition-transform duration-200 Active: opacity-80 hidden md:flex">
+<div class="px-6 mb-8 hidden">
+<!-- Brand Logo Hidden as per JSON -->
+</div>
+<div class="px-6 mb-8 flex flex-col gap-1">
+<div class="flex items-center gap-3 mb-2">
+<img alt="Manager Profile" class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="professional portrait of an asian male estate manager in a sharp blue suit against a bright modern office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhu1IbtiYXaMly1BrIAOi-EQg4Kr1i_FNBMGpp6-an9Ot8js6HGhdbe09ermqkM3-klQS1xlfdjJneNISPbepcbGOvqD2_IoXmsbOShD820TOanuzBQzzZJMW0rRVrjVRkdW3_J3nNmsddJ63cXmXQNH7ohxrfg1Ea_EthTgSChU__-uypW1U2zoB6pYtxbEJL92vXLamkiW9mtqrDlXNPfu3wDrslQPNzkQOde-UxLa1SKX-t1fHx6gRC_v5U-Iyf9o-0NnLruA"/>
+<div>
+<div class="text-on-surface font-bold">Estate Manager</div>
+<div class="text-on-surface-variant text-xs normal-case">Senior Administrator</div>
+</div>
+</div>
+<button class="w-full mt-4 bg-primary text-on-primary py-2 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-sm">add</span> New Entry
+            </button>
+</div>
+<ul class="flex-1 flex flex-col gap-1">
+<li>
+<a class="flex items-center gap-3 text-slate-900 dark:text-white font-bold border-r-4 border-orange-500 bg-slate-200/50 dark:bg-slate-800/50 px-4 py-3" href="#">
+<span class="material-symbols-outlined" data-icon="domain" data-weight="fill" style="font-variation-settings: 'FILL' 1;">domain</span>
+                    Properties
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+                    Clients
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+                    Contracts
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+                    Reports
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-slate-500 dark:text-slate-400 px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                    Settings
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content -->
+<main class="pt-24 pb-12 px-6 md:ml-64 max-w-5xl mx-auto">
+<!-- Breadcrumbs -->
+<nav aria-label="Breadcrumb" class="flex text-sm text-on-surface-variant mb-4 font-medium">
+<ol class="inline-flex items-center space-x-1 md:space-x-3">
+<li class="inline-flex items-center">
+<a class="hover:text-primary transition-colors" href="#">物件列表</a>
+</li>
+<li>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-sm mx-1">chevron_right</span>
+<span class="text-on-surface ml-1 md:ml-2">台南市中西區 永福路二段</span>
+</div>
+</li>
+</ol>
+</nav>
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-8 border-b border-outline-variant/15 pb-6">
+<div>
+<h1 class="text-3xl font-extrabold text-on-surface tracking-tight">台南市中西區 永福路二段</h1>
+</div>
+<div>
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-secondary-fixed text-on-secondary-fixed">
+                    準備產生
+                </span>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-8">
+<!-- Card 1: 現場勘查資料 -->
+<section class="bg-surface-container-lowest rounded-lg p-8 shadow-[0px_12px_32px_rgba(27,58,92,0.06)] relative group hover:shadow-[0px_16px_40px_rgba(27,58,92,0.08)] transition-all duration-300">
+<div class="absolute inset-0 border-2 border-outline-variant opacity-0 group-hover:opacity-15 rounded-lg transition-opacity duration-300 pointer-events-none"></div>
+<div class="flex justify-between items-start mb-6">
+<h2 class="text-xl font-bold text-on-surface tracking-tight">現場勘查資料</h2>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-fixed text-on-primary-fixed">
+                        已完成
+                    </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+<div class="flex flex-col border-b border-surface-container-high pb-3">
+<span class="text-xs font-bold tracking-wider text-on-surface-variant uppercase mb-1">物件類型</span>
+<span class="text-base font-medium text-on-surface">住宅</span>
+</div>
+<div class="flex flex-col border-b border-surface-container-high pb-3">
+<span class="text-xs font-bold tracking-wider text-on-surface-variant uppercase mb-1">地址</span>
+<span class="text-base font-medium text-on-surface">台南市中西區 永福路二段</span>
+</div>
+<div class="flex flex-col border-b border-surface-container-high pb-3">
+<span class="text-xs font-bold tracking-wider text-on-surface-variant uppercase mb-1">開價</span>
+<span class="text-base font-medium text-on-surface">2500萬</span>
+</div>
+<div class="flex flex-col border-b border-surface-container-high pb-3">
+<span class="text-xs font-bold tracking-wider text-on-surface-variant uppercase mb-1">建坪</span>
+<span class="text-base font-medium text-on-surface">45坪</span>
+</div>
+<div class="flex flex-col border-b border-surface-container-high pb-3">
+<span class="text-xs font-bold tracking-wider text-on-surface-variant uppercase mb-1">屋齡</span>
+<span class="text-base font-medium text-on-surface">15年</span>
+</div>
+<div class="flex flex-col border-b border-surface-container-high pb-3">
+<span class="text-xs font-bold tracking-wider text-on-surface-variant uppercase mb-1">格局</span>
+<span class="text-base font-medium text-on-surface">3房2廳</span>
+</div>
+<div class="flex flex-col border-b border-surface-container-high pb-3">
+<span class="text-xs font-bold tracking-wider text-on-surface-variant uppercase mb-1">樓層</span>
+<span class="text-base font-medium text-on-surface">8F/12F</span>
+</div>
+<div class="flex flex-col border-b border-surface-container-high pb-3">
+<span class="text-xs font-bold tracking-wider text-on-surface-variant uppercase mb-1">車位</span>
+<span class="text-base font-medium text-on-surface">坡道平面</span>
+</div>
+</div>
+<div class="mt-6 pt-4 border-t border-surface-container-high">
+<p class="text-xs text-on-surface-variant font-medium">填寫時間 2026-04-15 14:30</p>
+</div>
+</section>
+<!-- Card 2: 補充資料 -->
+<section class="bg-surface-container-lowest rounded-lg p-8 shadow-[0px_12px_32px_rgba(27,58,92,0.06)] relative group hover:shadow-[0px_16px_40px_rgba(27,58,92,0.08)] transition-all duration-300">
+<div class="absolute inset-0 border-2 border-outline-variant opacity-0 group-hover:opacity-15 rounded-lg transition-opacity duration-300 pointer-events-none"></div>
+<div class="flex justify-between items-start mb-6">
+<h2 class="text-xl font-bold text-on-surface tracking-tight">補充資料</h2>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary-fixed-dim text-on-secondary-fixed-variant">
+                        填寫中
+                    </span>
+</div>
+<form class="space-y-6">
+<div>
+<label class="block text-sm font-bold text-on-surface mb-2" for="land-summary">土地登記摘要</label>
+<textarea class="w-full bg-surface border-0 rounded-lg focus:ring-2 focus:ring-primary text-on-surface p-3" id="land-summary" name="land-summary" placeholder="請輸入土地登記相關摘要..." rows="3"></textarea>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<label class="block text-sm font-bold text-on-surface mb-2" for="cadastral-map">地籍圖參考</label>
+<input class="w-full bg-surface border-0 rounded-lg focus:ring-2 focus:ring-primary text-on-surface p-3" id="cadastral-map" name="cadastral-map" placeholder="例如: 段號/建號" type="text"/>
+</div>
+<div>
+<label class="block text-sm font-bold text-on-surface mb-2" for="land-use">土地使用分區</label>
+<input class="w-full bg-surface border-0 rounded-lg focus:ring-2 focus:ring-primary text-on-surface p-3" id="land-use" name="land-use" placeholder="例如: 住宅區/商業區" type="text"/>
+</div>
+</div>
+<div>
+<label class="block text-sm font-bold text-on-surface mb-2" for="mortgage-status">抵押設定狀態</label>
+<select class="w-full bg-surface border-0 rounded-lg focus:ring-2 focus:ring-primary text-on-surface p-3" id="mortgage-status" name="mortgage-status">
+<option value="">請選擇狀態</option>
+<option value="none">無設定</option>
+<option value="bank">銀行抵押</option>
+<option value="private">私人抵押</option>
+</select>
+</div>
+<div class="flex justify-end gap-4 mt-8 pt-6 border-t border-surface-container-high">
+<button class="px-6 py-2.5 border-2 border-outline-variant text-on-surface font-bold rounded-lg hover:bg-surface-container-low transition-colors" type="button">
+                            儲存草稿
+                        </button>
+<button class="px-6 py-2.5 bg-secondary text-on-secondary font-bold rounded-lg hover:bg-[#b04d00] transition-colors shadow-sm shadow-secondary/30" type="button">
+                            完成補充，準備產生文件
+                        </button>
+</div>
+</form>
+</section>
+</div>
+</main>
+</body></html>

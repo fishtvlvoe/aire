@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
+import { PROPERTY_TYPES, type PropertyType } from '../property-types';
+import { initDb } from './schema';
 
 const DB_PATH = process.env.DB_PATH || './data/listings.db';
 const dbDir = path.dirname(DB_PATH);
@@ -12,11 +14,7 @@ if (!fs.existsSync(dbDir)) {
 const db = new Database(DB_PATH);
 
 // Run schema on initialization
-const schema = fs.readFileSync(
-  path.join(process.cwd(), 'src/lib/db/schema.sql'),
-  'utf-8'
-);
-db.exec(schema);
+initDb(db);
 
 // Enable WAL mode for better concurrent read performance
 // (WAL is not supported for in-memory DBs used in tests)
@@ -26,7 +24,7 @@ if (DB_PATH !== ':memory:') {
 
 export { db };
 
-export type PropertyType = 'residential' | 'farmland';
+export type { PropertyType };
 export type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
 export type FieldVisitStatus = 'draft' | 'field-visit-incomplete' | 'field-visit-complete';
 
@@ -50,10 +48,22 @@ export function getAllListings(): Listing[] {
   return db.prepare('SELECT * FROM listings ORDER BY created_at DESC').all() as Listing[];
 }
 
-export function createListing(propertyType: PropertyType): Listing {
+export function createListing(propertyType: string): Listing {
+  const propertyInfo = Object.prototype.hasOwnProperty.call(PROPERTY_TYPES, propertyType)
+    ? PROPERTY_TYPES[propertyType as PropertyType]
+    : undefined;
+
+  if (!propertyInfo) {
+    throw new Error('invalid-property-type');
+  }
+
+  if (!propertyInfo.available) {
+    throw new Error('type-not-available');
+  }
+
   const result = db
-    .prepare('INSERT INTO listings (property_type) VALUES (?) RETURNING *')
-    .get(propertyType) as Listing;
+    .prepare('INSERT INTO listings (propertyType, property_type) VALUES (?, ?) RETURNING *')
+    .get(propertyType, propertyType) as Listing;
   return result;
 }
 

@@ -1,0 +1,13 @@
+export { apartmentSchema } from './apartment';
+export { commercialLandSchema } from './commercial-land';
+export { factorySchema } from './factory';
+export { farmlandSchema } from './farmland';
+export { farmhouseSchema } from './farmhouse';
+export { highriseSchema } from './highrise';
+export { industrialLandSchema } from './industrial-land';
+export { otherLandSchema } from './other-land';
+export { residentialLandSchema } from './residential-land';
+export { ruralLandSchema } from './rural-land';
+export { shopSchema } from './shop';
+export { suiteSchema } from './suite';
+export { townhouseSchema } from './townhouse';

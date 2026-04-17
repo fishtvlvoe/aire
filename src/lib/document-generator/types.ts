@@ -11,6 +11,7 @@ export interface GeneratedDocuments {
     youtube: string;
   };
   short_video_script: string;
+  property_dossier: string;
 }
 
 export interface DocumentGeneratorInput {

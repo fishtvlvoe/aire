@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>建安不動產 AI 文件系統 - 文件輸出</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed-dim": "#abc9f2",
+                        "surface-container-low": "#f3f3f3",
+                        "on-secondary-fixed": "#331100",
+                        "on-secondary-container": "#6c2c00",
+                        "inverse-on-surface": "#f1f1f1",
+                        "surface-variant": "#e2e2e2",
+                        "on-primary-fixed-variant": "#2b486b",
+                        "background": "#f9f9f9",
+                        "surface-container-highest": "#e2e2e2",
+                        "tertiary-fixed-dim": "#c8c6c6",
+                        "on-surface": "#1a1c1c",
+                        "outline": "#73777f",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#1b1c1c",
+                        "on-primary-container": "#87a4cc",
+                        "primary-fixed": "#d2e4ff",
+                        "secondary-container": "#ff8d4a",
+                        "surface-dim": "#dadada",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#ffdbca",
+                        "inverse-primary": "#abc9f2",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#1a1c1c",
+                        "surface-container": "#eeeeee",
+                        "surface-container-high": "#e8e8e8",
+                        "on-primary-fixed": "#001c38",
+                        "on-secondary-fixed-variant": "#783200",
+                        "surface-bright": "#f9f9f9",
+                        "on-tertiary-container": "#a4a2a2",
+                        "inverse-surface": "#2f3131",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#436084",
+                        "secondary-fixed-dim": "#ffb690",
+                        "on-tertiary-fixed-variant": "#474747",
+                        "primary": "#002444",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#e4e2e1",
+                        "tertiary": "#232424",
+                        "on-secondary": "#ffffff",
+                        "on-surface-variant": "#43474e",
+                        "on-primary": "#ffffff",
+                        "outline-variant": "#c3c6cf",
+                        "tertiary-container": "#393939",
+                        "surface": "#f9f9f9",
+                        "secondary": "#9d4400",
+                        "primary-container": "#1b3a5c"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface-container-low text-on-surface antialiased">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 w-full flex justify-between items-center px-6 py-3 bg-[#002444] dark:bg-slate-950 text-[#9D4400] dark:text-[#E87B3A] font-manrope tracking-tight font-bold text-base docked full-width z-50 no-line tonal-shift shadow-lg shadow-[#1B3A5C]/10 transition-colors duration-200">
+<div class="text-xl font-bold text-white tracking-wider">
+            建安不動產 AI 文件系統
+        </div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined hover:bg-white/10 p-2 rounded-full cursor-pointer transition-all active:opacity-80 scale-95" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined hover:bg-white/10 p-2 rounded-full cursor-pointer transition-all active:opacity-80 scale-95" data-icon="account_circle">account_circle</span>
+</div>
+</nav>
+<!-- SideNavBar & Main Content Wrapper -->
+<div class="flex pt-16 h-screen overflow-hidden">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-14 h-[calc(100vh-3.5rem)] flex flex-col py-6 w-64 docked border-r-0 bg-[#F3F3F3] dark:bg-slate-900 text-[#002444] dark:text-slate-100 font-manrope text-sm font-medium uppercase tracking-wider flat no-line tonal-shift background-contrast hidden md:flex z-40">
+<div class="px-6 mb-8">
+<h2 class="text-lg font-black text-[#002444] dark:text-white header_title">文件管理</h2>
+<p class="text-xs text-slate-500 header_subtext mt-1">AI 智能助理</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 py-3 px-4 text-[#1A1C1C] dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 ml-4 pl-4 hover:text-[#002444] dark:hover:text-white transition-all rounded-l-full translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="domain">domain</span>
+<span>物件列表</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 text-[#1A1C1C] dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 ml-4 pl-4 hover:text-[#002444] dark:hover:text-white transition-all rounded-l-full translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span>客戶管理</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 bg-white dark:bg-slate-800 text-[#9D4400] font-bold rounded-l-full ml-4 pl-4 transition-all translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>文件生成</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 text-[#1A1C1C] dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 ml-4 pl-4 hover:text-[#002444] dark:hover:text-white transition-all rounded-l-full translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="article">article</span>
+<span>合約範本</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 text-[#1A1C1C] dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 ml-4 pl-4 hover:text-[#002444] dark:hover:text-white transition-all rounded-l-full translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>系統設定</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 md:ml-64 p-8 overflow-y-auto bg-background">
+<!-- Breadcrumbs & Header -->
+<div class="mb-8 max-w-6xl mx-auto">
+<nav aria-label="Breadcrumb" class="flex text-sm text-on-surface-variant mb-4 font-medium">
+<ol class="inline-flex items-center space-x-1 md:space-x-2">
+<li class="inline-flex items-center">
+<a class="hover:text-primary transition-colors" href="#">物件列表</a>
+</li>
+<li>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-sm mx-1">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">台南市中西區</a>
+</div>
+</li>
+<li aria-current="page">
+<div class="flex items-center">
+<span class="material-symbols-outlined text-sm mx-1">chevron_right</span>
+<span class="text-on-surface font-semibold">文件輸出</span>
+</div>
+</li>
+</ol>
+</nav>
+<div class="flex items-center gap-4">
+<h1 class="text-3xl font-extrabold text-primary tracking-tight font-headline">AI 產出文件</h1>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E8F5E9] text-[#2E7D32]">
+<span class="material-symbols-outlined text-[14px] mr-1" data-icon="check_circle">check_circle</span>
+                        文件完成
+                    </span>
+</div>
+</div>
+<!-- Main Content Card (Bento/Glassmorphism inspired) -->
+<div class="max-w-6xl mx-auto bg-surface-container-lowest rounded-xl shadow-[0px_12px_32px_rgba(27,58,92,0.06)] flex flex-col md:flex-row overflow-hidden border border-outline-variant/15">
+<!-- Left Column: Document List (35%) -->
+<div class="w-full md:w-[35%] bg-surface border-r border-outline-variant/15 flex flex-col">
+<div class="p-6 pb-2">
+<h3 class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4 font-label">產出清單</h3>
+</div>
+<ul class="flex-1 overflow-y-auto">
+<!-- Active Item -->
+<li class="relative">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#E87B3A]"></div>
+<button class="w-full text-left px-6 py-4 bg-surface-container-low hover:bg-surface-container transition-colors flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#E87B3A]" data-icon="description">description</span>
+<span class="font-bold text-primary">591 刊登文</span>
+</div>
+</button>
+</li>
+<!-- Inactive Items -->
+<li>
+<button class="w-full text-left px-6 py-4 hover:bg-surface-container-low transition-colors flex items-center justify-between group border-b border-transparent">
+<div class="flex items-center gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="forum">forum</span>
+<span class="font-medium group-hover:text-on-surface transition-colors">社群貼文</span>
+</div>
+</button>
+</li>
+<li>
+<button class="w-full text-left px-6 py-4 hover:bg-surface-container-low transition-colors flex items-center justify-between group border-b border-transparent">
+<div class="flex items-center gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors" data-icon="movie">movie</span>
+<span class="font-medium group-hover:text-on-surface transition-colors">短影片劇本</span>
+</div>
+</button>
+</li>
+<li>
+<button class="w-full text-left px-6 py-4 hover:bg-surface-container-low transition-colors flex items-center justify-between group border-b border-transparent">
+<div class="flex items-center gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-red-500" data-icon="picture_as_pdf">picture_as_pdf</span>
+<span class="font-medium group-hover:text-on-surface transition-colors">不動產說明書 PDF</span>
+</div>
+</button>
+</li>
+<li>
+<button class="w-full text-left px-6 py-4 hover:bg-surface-container-low transition-colors flex items-center justify-between group border-b border-transparent">
+<div class="flex items-center gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-red-500" data-icon="picture_as_pdf">picture_as_pdf</span>
+<span class="font-medium group-hover:text-on-surface transition-colors">物件調查表 PDF</span>
+</div>
+</button>
+</li>
+<li>
+<button class="w-full text-left px-6 py-4 hover:bg-surface-container-low transition-colors flex items-center justify-between group border-b border-transparent">
+<div class="flex items-center gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-red-500" data-icon="picture_as_pdf">picture_as_pdf</span>
+<span class="font-medium group-hover:text-on-surface transition-colors">銷售 DM PDF</span>
+</div>
+</button>
+</li>
+</ul>
+</div>
+<!-- Right Column: Content Display (65%) -->
+<div class="w-full md:w-[65%] p-8 flex flex-col bg-surface-container-lowest">
+<!-- Header Actions -->
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-xl font-bold text-primary font-headline">591 刊登文</h2>
+<div class="flex gap-3">
+<button class="px-4 py-2 text-sm font-bold text-on-surface-variant bg-surface-container-lowest border border-outline-variant/50 rounded-lg hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="refresh">refresh</span>
+                                重新產生
+                            </button>
+<button class="px-4 py-2 text-sm font-bold text-white bg-[#E87B3A] rounded-lg hover:bg-[#d66b2a] transition-all shadow-sm flex items-center gap-2 hover:shadow-md hover:shadow-[#E87B3A]/20 active:scale-[0.98]">
+<span class="material-symbols-outlined text-[18px]" data-icon="content_copy">content_copy</span>
+                                複製
+                            </button>
+</div>
+</div>
+<!-- Content Text Area -->
+<div class="flex-1 bg-surface rounded-lg p-6 border border-outline-variant/20 mb-4 overflow-y-auto relative group">
+<div class="absolute inset-0 bg-gradient-to-b from-transparent to-surface-container-low/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-lg"></div>
+<p class="text-on-surface text-base leading-relaxed font-body whitespace-pre-wrap">台南市中西區精品住宅，三房兩廳，45坪，屋齡15年，8樓/12樓，採光良好，近永福國小，開價2500萬，誠意洽談，請電 0912-345-678</p>
+</div>
+<!-- Footer Hint -->
+<div class="flex items-center gap-2 text-xs text-on-surface-variant bg-surface-container-low p-3 rounded-md border border-outline-variant/10">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="info">info</span>
+<span>純文字格式，可直接貼至 591 發文</span>
+</div>
+</div>
+</div>
+<!-- Page Footer Action -->
+<div class="max-w-6xl mx-auto mt-8 flex justify-start">
+<button class="px-6 py-3 text-sm font-bold text-on-surface-variant bg-transparent border border-outline-variant/50 rounded-lg hover:bg-surface-container-low transition-colors flex items-center gap-2 group">
+<span class="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform" data-icon="arrow_back">arrow_back</span>
+                    返回物件列表
+                </button>
+</div>
+</main>
+</div>
+</body></html>
