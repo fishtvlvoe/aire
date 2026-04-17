@@ -1,11 +1,8 @@
 services:
   app:
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    image: jianan-ai:latest
+    image: fishandy1213/jianan-ai:v3.0.0
     ports:
-      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - DATABASE_PATH=/app/data/db/app.sqlite
       - NODE_ENV=production
