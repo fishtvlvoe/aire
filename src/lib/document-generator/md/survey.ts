@@ -10,6 +10,6 @@ export async function generateSurvey(input: DocumentGeneratorInput): Promise<str
 物調表應包含：基本資訊、建物/土地現況、法律狀態、稅費資訊、特殊備註。
 請以繁體中文輸出，格式清楚。`;
   const result = await runCodex(prompt);
-  if (!result.success) throw new Error(result.error);
+  if (!result.success) throw new Error(result.error ?? `runCodex failed (status: ${result.status})`);
   return result.output ?? '';
 }

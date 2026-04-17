@@ -16,6 +16,6 @@ export async function generateListing591(input: DocumentGeneratorInput): Promise
 
 請以繁體中文輸出，全文 500 字以內，語氣親切專業。`;
   const result = await runCodex(prompt);
-  if (!result.success) throw new Error(result.error);
+  if (!result.success) throw new Error(result.error ?? `runCodex failed (status: ${result.status})`);
   return result.output ?? '';
 }

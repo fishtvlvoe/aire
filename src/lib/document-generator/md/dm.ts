@@ -17,6 +17,6 @@ export async function generateDm(input: DocumentGeneratorInput): Promise<string>
 
 請以繁體中文輸出，全文 800 字以內，語氣熱情有感染力。`;
   const result = await runCodex(prompt);
-  if (!result.success) throw new Error(result.error);
+  if (!result.success) throw new Error(result.error ?? `runCodex failed (status: ${result.status})`);
   return result.output ?? '';
 }

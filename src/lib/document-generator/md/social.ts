@@ -36,6 +36,6 @@ export async function generateSocialPosts(input: DocumentGeneratorInput): Promis
 
 請確保各平台風格差異明顯，符合各平台使用者習慣。`;
   const result = await runCodex(prompt);
-  if (!result.success) throw new Error(result.error);
+  if (!result.success) throw new Error(result.error ?? `runCodex failed (status: ${result.status})`);
   return result.output ?? '';
 }
