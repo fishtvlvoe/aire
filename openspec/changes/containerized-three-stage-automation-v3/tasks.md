@@ -95,8 +95,8 @@
 
 - [ ] 13.1 [Tool: kimi] CR：document-generator 5 份文件 prompt 一致性 — 實作 Requirement: System generates exactly five document types per listing；對應 Design: implementation distribution strategy
 - [ ] 13.2 [Tool: kimi] CR：UI 章節分群 + 13 類動態渲染 — 實作 Requirement: Form groups fields by chapter, not by layer、Field visit form supports all 13 property types
-- [ ] 13.3 [Tool: codex] npm test 全綠 — 對應 Design: goals
-- [ ] 13.4 [Tool: codex] npm run build 0 錯誤 — 對應 Design: goals
+- [x] 13.3 [Tool: codex] npm test 全綠 — 對應 Design: goals
+- [x] 13.4 [Tool: codex] npm run build 0 錯誤 — 對應 Design: goals
 
 ---
 
