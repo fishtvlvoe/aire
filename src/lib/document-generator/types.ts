@@ -22,16 +22,3 @@ export interface DocumentGeneratorInput {
 export interface DocumentGenerator {
   generate(input: DocumentGeneratorInput): Promise<GeneratedDocuments>;
 }
-
-// --- Tri-provider interfaces ---
-export interface FormalDocumentGenerator {
-  generate(input: DocumentGeneratorInput): Promise<Pick<GeneratedDocuments, 'disclosure_document' | 'property_survey'>>;
-}
-
-export interface MarketingDocumentGenerator {
-  generate(input: DocumentGeneratorInput): Promise<Pick<GeneratedDocuments, 'listing_591' | 'sales_dm'>>;
-}
-
-export interface SocialDocumentGenerator {
-  generate(input: DocumentGeneratorInput): Promise<Pick<GeneratedDocuments, 'social_posts' | 'short_video_script'>>;
-}

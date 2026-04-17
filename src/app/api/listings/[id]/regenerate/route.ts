@@ -17,10 +17,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   if (listing.status !== 'documents-ready') {
     return NextResponse.json({ error: 'Listing status must be documents-ready' }, { status: 422 });
   }
+  const input = {
+    property_type: listing.property_type,
+    field_visit_data: listing.field_visit_data ? JSON.parse(listing.field_visit_data as string) : {},
+    supplementary_data: listing.supplementary_data ? JSON.parse(listing.supplementary_data as string) : {},
+  };
   const generator = new CodexDocumentGenerator();
   let newDocs;
   try {
-    newDocs = await generator.generate(listing);
+    newDocs = await generator.generate(input);
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Generation failed' }, { status: 422 });
   }
@@ -30,7 +35,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   } catch {
     docs = {};
   }
-  docs[documentType] = (newDocs as Record<string, unknown>)[documentType];
+  docs[documentType] = (newDocs as unknown as Record<string, unknown>)[documentType];
   updateDocuments(listing.id, docs);
   return NextResponse.json({ ok: true, documentType, updated: docs[documentType] });
 }

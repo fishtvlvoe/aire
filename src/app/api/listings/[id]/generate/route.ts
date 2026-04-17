@@ -48,7 +48,7 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ id: s
     const generator = createDefaultGenerator();
     const result = await generator.generate(input);
     // 4. 呼叫 updateDocuments(numId, result)
-    await updateDocuments(numId, result);
+    await updateDocuments(numId, result as unknown as Record<string, unknown>);
     // 5. 回傳結果
     return NextResponse.json({ ok: true, documents: result, downloadUrls: { disclosure: `/api/listings/${numId}/pdf?type=disclosure`, survey: `/api/listings/${numId}/pdf?type=survey`, salesDm: `/api/listings/${numId}/pdf?type=sales-dm` } });
   } catch (error: any) {
