@@ -45,7 +45,7 @@
 
 ### 7. Form Renderer 修補
 
-- [ ] 7.1 [Tool: copilot-codex] 修 src/lib/form-renderer/index.ts：schema key 支援 -、type 定義補 file — 實作 Requirement: Field visit form supports all 13 property types；對應 Design: 100% 可直接搬用（lib 核心層）、小幅修改可用
+- [x] 7.1 [Tool: copilot-codex] 修 src/lib/form-renderer/index.ts：schema key 支援 -、type 定義補 file — 實作 Requirement: Field visit form supports all 13 property types；對應 Design: 100% 可直接搬用（lib 核心層）、小幅修改可用
 - [x] 7.2 [Tool: cursor] 重寫 FieldVisitForm.tsx 支援 13 類動態 schema — 實作 Requirement: Field visit form supports all 13 property types；對應 Design: 小幅修改可用
 - [x] 7.3 [Tool: cursor] 重寫 SupplementaryForm.tsx 對齊 v3 秘書後補欄位 — 實作 Requirement: Supplementary form renders secretary fields for all 13 types；對應 Design: 小幅修改可用
 - [ ] 7.4 [Tool: codex] 測試：13 類在 FieldVisitForm 下正確渲染 — 實作 Requirement: Field visit form supports all 13 property types
@@ -126,7 +126,7 @@
 
 ### 17. Pre-commission Data 顯示於 supplementary
 
-- [ ] 17.1 [Tool: cursor] SupplementaryForm 新增「委託前已查資料」collapsible 唯讀區 — 實作 Requirement: Pre-commission data is visible as reference
+- [x] 17.1 [Tool: cursor] SupplementaryForm 新增「委託前已查資料」collapsible 唯讀區 — 實作 Requirement: Pre-commission data is visible as reference
 
 ### 18. Phase 3 驗收
 
