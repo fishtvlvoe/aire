@@ -3,12 +3,17 @@ import * as schemas from '../property-types/schemas';
 
 export type FieldLayer = 'common' | 'building_common' | 'land_common' | 'type_specific';
 
+export type SourceType = 'field-visit' | 'secretary' | 'computed';
+export type DisplayMode = 'fixed' | 'estimate' | 'blank';
+
 export interface FieldSchema {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'textarea' | 'select' | 'checkbox';
+  type: 'text' | 'number' | 'textarea' | 'select' | 'checkbox' | 'file';
   required: boolean;
   options?: string[];
+  sourceType?: SourceType;
+  displayMode?: DisplayMode;
 }
 
 export function getFieldsForLayer(

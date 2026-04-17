@@ -38,8 +38,8 @@ describe('listing-workflow', () => {
       expect(() => createListing('invalid-type')).toThrow('invalid-property-type');
     });
 
-    it('should throw type-not-available for unavailable type', () => {
-      expect(() => createListing('suite')).toThrow('type-not-available');
+    it('should throw invalid-property-type for another unknown type string', () => {
+      expect(() => createListing('not-a-real-type')).toThrow('invalid-property-type');
     });
 
     it('should create listing with correct initial status', () => {

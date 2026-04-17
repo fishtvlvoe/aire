@@ -20,10 +20,10 @@ describe('property-type-registry', () => {
     expect(result?.available).toBe(true);
   });
 
-  it('getPropertyType should return available=false for suite', () => {
+  it('getPropertyType should return available=true for suite', () => {
     const result = getPropertyType('suite');
     expect(result).toBeDefined();
-    expect(result?.available).toBe(false);
+    expect(result?.available).toBe(true);
   });
 
   it('getPropertyType should return undefined for invalid type', () => {
@@ -36,11 +36,11 @@ describe('property-type-registry', () => {
     expect(typeCount).toBe(13);
   });
 
-  it('should have exactly 6 available types', () => {
+  it('should have exactly 13 available types', () => {
     const availableCount = Object.values(PROPERTY_TYPES).filter(
       (type) => type.available
     ).length;
-    expect(availableCount).toBe(6);
+    expect(availableCount).toBe(13);
   });
 
   it('should have correct available types', () => {
@@ -55,6 +55,13 @@ describe('property-type-registry', () => {
       'highrise',
       'residential-land',
       'farmhouse',
+      'suite',
+      'shop',
+      'factory',
+      'industrial-land',
+      'commercial-land',
+      'rural-land',
+      'other-land',
     ];
     expect(availableTypes.sort()).toEqual(expectedTypes.sort());
   });
