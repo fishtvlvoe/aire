@@ -4,6 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import type { PropertyType } from '@/lib/property-types'
 import { PROPERTY_TYPES } from '@/lib/property-types'
 import {
+  type ChapterId,
+  type FieldSchema,
+  type FullSchema,
+  groupFieldsByChapter,
+} from '@/lib/form-renderer/chapter-grouper'
+import {
   apartmentSchema,
   commercialLandSchema,
   factorySchema,
@@ -19,26 +25,7 @@ import {
   townhouseSchema,
 } from '@/lib/property-types/schemas'
 
-// Schema field definition — sourceType may be absent in older schemas (treat as field-visit)
-type SchemaField = {
-  key: string
-  label: string
-  type: string
-  required: boolean
-  sourceType?: string
-  displayMode?: string
-  options?: string[]
-}
-
-type PropertySchema = {
-  common: SchemaField[]
-  building_common?: SchemaField[]
-  land_common?: SchemaField[]
-  type_specific: SchemaField[]
-  supplementary_specific?: SchemaField[]
-}
-
-const SCHEMA_MAP: Record<PropertyType, PropertySchema> = {
+const SCHEMA_MAP: Record<PropertyType, FullSchema> = {
   apartment: apartmentSchema,
   highrise: highriseSchema,
   townhouse: townhouseSchema,
@@ -54,18 +41,6 @@ const SCHEMA_MAP: Record<PropertyType, PropertySchema> = {
   'other-land': otherLandSchema,
 }
 
-// Return all field-visit fields from a schema (common + building/land_common + type_specific)
-const getFieldVisitFields = (schema: PropertySchema): SchemaField[] => {
-  const isFieldVisit = (f: SchemaField) =>
-    f.sourceType === 'field-visit' || f.sourceType === undefined
-
-  const common = schema.common.filter(isFieldVisit)
-  const middle = (schema.building_common ?? schema.land_common ?? []).filter(isFieldVisit)
-  const specific = schema.type_specific.filter(isFieldVisit)
-
-  return [...common, ...middle, ...specific]
-}
-
 export type FieldVisitFormProps = {
   onSave: (formData: Record<string, unknown>, isComplete: boolean) => void
   /** When provided, the property-type selector is hidden and this value is used */
@@ -75,31 +50,80 @@ export type FieldVisitFormProps = {
 const inputClassName =
   'mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-base leading-6 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200'
 
+const getDisplayModeClassName = (field: FieldSchema): string => {
+  if (field.displayMode === 'estimate') {
+    return 'border-amber-300 bg-amber-50'
+  }
+
+  if (field.displayMode === 'blank') {
+    return 'border-slate-300 bg-slate-100'
+  }
+
+  return 'bg-white'
+}
+
+const getDisplayModeHelper = (field: FieldSchema): string | null => {
+  if (field.displayMode === 'estimate') {
+    return '估算值'
+  }
+
+  return null
+}
+
+const getChapterBadgeClassName = (filled: number, total: number): string => {
+  if (total === 0 || filled === 0) {
+    return 'bg-slate-100 text-slate-600'
+  }
+
+  if (filled === total) {
+    return 'bg-emerald-100 text-emerald-700'
+  }
+
+  return 'bg-amber-100 text-amber-700'
+}
+
 export default function FieldVisitForm({ onSave, propertyType: propPropertyType }: FieldVisitFormProps) {
   const [internalType, setInternalType] = useState<PropertyType>('apartment')
   const activeType: PropertyType = propPropertyType ?? internalType
 
   const [form, setForm] = useState<Record<string, string>>({})
+  const [activeChapterId, setActiveChapterId] = useState<ChapterId>('basic')
 
   const schema = SCHEMA_MAP[activeType]
-  const fields = useMemo(() => getFieldVisitFields(schema), [schema])
+  const chapters = useMemo(() => groupFieldsByChapter(schema, activeType), [activeType, schema])
+  const allFields = useMemo(() => chapters.flatMap((chapter) => chapter.fields), [chapters])
+  const activeChapter = useMemo(
+    () => chapters.find((chapter) => chapter.id === activeChapterId) ?? chapters[0],
+    [activeChapterId, chapters]
+  )
+  const chapterCompletion = useMemo(
+    () =>
+      chapters.map((chapter) => {
+        const requiredFields = chapter.fields.filter((field) => field.required)
+        const totalRequired = requiredFields.length
+        const filledRequired = requiredFields.filter((field) => (form[field.key] ?? '').trim() !== '').length
+        return { chapterId: chapter.id, totalRequired, filledRequired }
+      }),
+    [chapters, form]
+  )
 
-  // Reset form values when property type changes
+  // Reset form values and tab when property type changes
   useEffect(() => {
     setForm({})
+    setActiveChapterId('basic')
   }, [activeType])
 
   const isComplete = useMemo(() => {
-    const required = fields.filter((f) => f.required)
+    const required = allFields.filter((f) => f.required)
     return required.every((f) => {
       const val = form[f.key] ?? ''
       return val.trim() !== ''
     })
-  }, [fields, form])
+  }, [allFields, form])
 
   useEffect(() => {
     const formData: Record<string, unknown> = { property_type: activeType }
-    for (const field of fields) {
+    for (const field of allFields) {
       const raw = form[field.key] ?? ''
       if (field.type === 'number') {
         formData[field.key] = raw === '' ? null : Number(raw)
@@ -108,15 +132,18 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
       }
     }
     onSave(formData, isComplete)
-  }, [activeType, fields, form, isComplete, onSave])
+  }, [activeType, allFields, form, isComplete, onSave])
 
   const updateField = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  const renderField = (field: SchemaField) => {
+  const renderField = (field: FieldSchema) => {
     const value = form[field.key] ?? ''
     const labelText = `${field.label}${field.required ? ' *' : ''}`
+    const modeClassName = getDisplayModeClassName(field)
+    const helperText = getDisplayModeHelper(field)
+    const placeholder = field.displayMode === 'blank' ? '秘書後補' : `請輸入${field.label}`
 
     if (field.type === 'select' && field.options) {
       return (
@@ -125,16 +152,17 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
           <select
             value={value}
             onChange={(e) => updateField(field.key, e.target.value)}
-            className={inputClassName}
+            className={`${inputClassName} ${modeClassName}`}
             required={field.required}
           >
-            <option value="">請選擇</option>
+            <option value="">{field.displayMode === 'blank' ? '秘書後補' : '請選擇'}</option>
             {field.options.map((opt) => (
               <option key={opt} value={opt}>
                 {opt}
               </option>
             ))}
           </select>
+          {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
         </label>
       )
     }
@@ -146,9 +174,29 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
           <textarea
             value={value}
             onChange={(e) => updateField(field.key, e.target.value)}
-            className={`${inputClassName} min-h-28 resize-y`}
+            className={`${inputClassName} min-h-28 resize-y ${modeClassName}`}
+            placeholder={placeholder}
             required={field.required}
           />
+          {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
+        </label>
+      )
+    }
+
+    if (field.type === 'file') {
+      return (
+        <label key={field.key} className="block text-sm font-medium text-slate-700">
+          {labelText}
+          <input
+            type="file"
+            onChange={(e) => {
+              const files = e.target.files ? Array.from(e.target.files).map((file) => file.name) : []
+              updateField(field.key, files.join(', '))
+            }}
+            className={`${inputClassName} ${modeClassName}`}
+            required={field.required}
+          />
+          {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
         </label>
       )
     }
@@ -160,10 +208,11 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
           type={field.type === 'number' ? 'number' : 'text'}
           value={value}
           onChange={(e) => updateField(field.key, e.target.value)}
-          className={inputClassName}
-          placeholder={`請輸入${field.label}`}
+          className={`${inputClassName} ${modeClassName}`}
+          placeholder={placeholder}
           required={field.required}
         />
+        {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
       </label>
     )
   }
@@ -206,11 +255,46 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
         </div>
       )}
 
+      <div className="mt-6">
+        <p className="text-sm font-medium text-slate-700">章節導覽</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {chapters.map((chapter) => {
+            const progress = chapterCompletion.find((item) => item.chapterId === chapter.id)
+            const filledRequired = progress?.filledRequired ?? 0
+            const totalRequired = progress?.totalRequired ?? 0
+            const isActive = activeChapter?.id === chapter.id
+            return (
+              <button
+                key={chapter.id}
+                type="button"
+                onClick={() => setActiveChapterId(chapter.id)}
+                className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>{chapter.title}</span>
+                <span
+                  className={`ml-2 rounded-full px-2 py-0.5 text-xs ${getChapterBadgeClassName(
+                    filledRequired,
+                    totalRequired
+                  )}`}
+                >
+                  {filledRequired}/{totalRequired}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="mt-6 space-y-4">
-        {fields.length === 0 ? (
-          <p className="text-sm text-slate-500">此物件類型尚無現勘欄位。</p>
+        <h3 className="text-base font-semibold text-slate-900">{activeChapter?.title}</h3>
+        {(activeChapter?.fields.length ?? 0) === 0 ? (
+          <p className="text-sm text-slate-500">此章節目前沒有欄位。</p>
         ) : (
-          fields.map(renderField)
+          activeChapter.fields.map(renderField)
         )}
       </div>
     </section>
