@@ -1,5 +1,5 @@
-import { PropertyType, PROPERTY_TYPES } from '@/lib/property-types';
-import * as schemas from '@/lib/property-types/schemas';
+import { PropertyType, PROPERTY_TYPES } from '../property-types';
+import * as schemas from '../property-types/schemas';
 
 export type FieldLayer = 'common' | 'building_common' | 'land_common' | 'type_specific';
 

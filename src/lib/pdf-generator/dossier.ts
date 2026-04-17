@@ -3,8 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import { marked } from 'marked';
 
-export async function generateDossierPDF(markdown: string, listingId: number): Promise<string> {
-  const outputDir = path.join(process.cwd(), 'output', String(listingId));
+export async function generateDossierPDF(
+  markdown: string,
+  listingId: number | string,
+  customOutputDir?: string
+): Promise<string> {
+  const outputDir = customOutputDir || path.join(process.cwd(), 'output', String(listingId));
 
   // 建立輸出目錄
   if (!fs.existsSync(outputDir)) {
