@@ -25,45 +25,16 @@ echo       Docker Desktop 運行正常。
 echo.
 echo [2/5] 建立資料目錄...
 set DATA_DIR=%USERPROFILE%\建安AI\data
-if not exist "%DATA_DIR%" (
-    mkdir "%DATA_DIR%"
-    if errorlevel 1 (
-        echo.
-        echo [錯誤] 無法建立資料目錄：%DATA_DIR%
-        echo 請確認您有足夠的磁碟空間與寫入權限。
-        echo.
-        pause
-        exit /b 1
-    )
-    echo       已建立資料目錄：%DATA_DIR%
-) else (
-    echo       資料目錄已存在：%DATA_DIR%
-)
+if not exist "%DATA_DIR%\db" mkdir "%DATA_DIR%\db"
+echo       資料目錄：%DATA_DIR%
 
-:: 建立 SQLite 資料庫子目錄（避免首次啟動寫入失敗）
-if not exist "%DATA_DIR%\db" (
-    mkdir "%DATA_DIR%\db"
-    echo       已建立資料庫目錄：%DATA_DIR%\db
-)
-
-:: 建立 Codex 憑證目錄
+:: 建立三個 AI 後端憑證目錄
 echo.
-echo [3/5] 建立 Codex 憑證目錄...
-set CODEX_DIR=%USERPROFILE%\建安AI\.codex
-if not exist "%CODEX_DIR%" (
-    mkdir "%CODEX_DIR%"
-    if errorlevel 1 (
-        echo.
-        echo [錯誤] 無法建立憑證目錄：%CODEX_DIR%
-        echo 請確認您有足夠的磁碟空間與寫入權限。
-        echo.
-        pause
-        exit /b 1
-    )
-    echo       已建立憑證目錄：%CODEX_DIR%
-) else (
-    echo       憑證目錄已存在：%CODEX_DIR%
-)
+echo [3/5] 建立 AI 憑證目錄...
+if not exist "%USERPROFILE%\.codex" mkdir "%USERPROFILE%\.codex"
+if not exist "%USERPROFILE%\.gemini" mkdir "%USERPROFILE%\.gemini"
+if not exist "%USERPROFILE%\.claude" mkdir "%USERPROFILE%\.claude"
+echo       憑證目錄已就緒。
 
 :: 拉取最新 image
 echo.
@@ -79,38 +50,79 @@ if errorlevel 1 (
 )
 echo       映像檔下載完成。
 
-:: 執行 Codex 裝置代碼流登入
+:: 選擇 AI 後端
 echo.
-echo [5/5] 設定 Codex AI 登入授權（裝置代碼流）...
+echo [5/5] 選擇 AI 後端並完成登入授權...
 echo.
-echo ------------------------------------------------
-echo   系統將顯示一組驗證碼與網址。
-echo   請：
-echo     1. 在瀏覽器開啟顯示的網址
-echo     2. 輸入驗證碼完成授權
-echo     3. 使用 OpenAI 訂閱帳號登入
-echo   （需要 ChatGPT Plus 或 OpenAI API 訂閱）
-echo ------------------------------------------------
+echo   請選擇要使用的 AI 後端：
+echo   [1] Gemini    （需要 Google 帳號，免費）
+echo   [2] Codex     （需要 OpenAI 訂閱）
+echo   [3] Claude    （需要 Anthropic 帳號）
+echo   [4] 略過      （稍後再設定）
 echo.
+set /p CHOICE=請輸入選項 (1/2/3/4)：
 
+if "%CHOICE%"=="1" goto LOGIN_GEMINI
+if "%CHOICE%"=="2" goto LOGIN_CODEX
+if "%CHOICE%"=="3" goto LOGIN_CLAUDE
+if "%CHOICE%"=="4" goto SKIP_LOGIN
+echo 無效選項，略過登入。
+goto SKIP_LOGIN
+
+:LOGIN_GEMINI
+echo.
+echo ------------------------------------------------
+echo   Gemini 登入（Google 帳號）
+echo   系統會顯示一組網址，請在瀏覽器中開啟並授權。
+echo ------------------------------------------------
+echo.
+:: 更新 compose.yaml 使用 gemini 後端
+powershell -Command "(Get-Content '%~dp0compose.yaml') -replace 'LLM_BACKEND=.*', 'LLM_BACKEND=gemini' | Set-Content '%~dp0compose.yaml'"
+docker compose -f "%~dp0compose.yaml" run --rm app gemini auth login
+goto LOGIN_DONE
+
+:LOGIN_CODEX
+echo.
+echo ------------------------------------------------
+echo   Codex 登入（OpenAI 帳號）
+echo   系統會顯示一組驗證碼與網址，請在瀏覽器完成授權。
+echo ------------------------------------------------
+echo.
+powershell -Command "(Get-Content '%~dp0compose.yaml') -replace 'LLM_BACKEND=.*', 'LLM_BACKEND=codex' | Set-Content '%~dp0compose.yaml'"
 docker compose -f "%~dp0compose.yaml" run --rm -it app codex login --device-auth
+goto LOGIN_DONE
+
+:LOGIN_CLAUDE
+echo.
+echo ------------------------------------------------
+echo   Claude Code 登入（Anthropic 帳號）
+echo   系統會顯示一組網址，請在瀏覽器中開啟並授權。
+echo ------------------------------------------------
+echo.
+powershell -Command "(Get-Content '%~dp0compose.yaml') -replace 'LLM_BACKEND=.*', 'LLM_BACKEND=claude-code' | Set-Content '%~dp0compose.yaml'"
+docker compose -f "%~dp0compose.yaml" run --rm -it app claude login
+goto LOGIN_DONE
+
+:SKIP_LOGIN
+echo.
+echo [略過] 登入步驟已略過。
+echo 請在安裝完成後手動執行對應的登入指令。
+goto DONE
+
+:LOGIN_DONE
 if errorlevel 1 (
     echo.
-    echo [錯誤] Codex 登入失敗！
-    echo 請確認您的 OpenAI 帳號狀態，或稍後重新執行此腳本。
+    echo [警告] 登入流程未完成，請稍後重新執行此腳本完成登入。
     echo.
-    pause
-    exit /b 1
 )
 
+:DONE
 echo.
 echo ================================================
 echo   首次安裝設定完成！
 echo.
-echo   登入憑證已儲存至：%CODEX_DIR%
-echo   後續啟動不需重新登入。
-echo.
-echo   下次使用請直接執行 start.bat 啟動系統。
+echo   後續啟動請執行 start.bat
+echo   開啟瀏覽器後前往 http://localhost:3000
 echo ================================================
 echo.
 pause

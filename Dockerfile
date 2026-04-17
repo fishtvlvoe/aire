@@ -50,8 +50,10 @@ RUN apt-get update && apt-get install -y \
   --no-install-recommends && \
   rm -rf /var/lib/apt/lists/*
 
-# Install pinned Codex CLI version
+# Install all supported AI CLI backends
 RUN npm install -g @openai/codex@0.121.0
+RUN npm install -g @google/gemini-cli
+RUN npm install -g @anthropic-ai/claude-code
 
 # Install Gemini CLI
 RUN npm install -g @google/gemini-cli

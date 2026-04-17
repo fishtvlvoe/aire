@@ -7,14 +7,21 @@ services:
       - DATABASE_PATH=/app/data/db/app.sqlite
       - NODE_ENV=production
       # 可選值：codex / claude-code / gemini / ollama
-      - LLM_BACKEND=codex
+      - LLM_BACKEND=gemini
     volumes:
       - type: bind
-        source: ${USERPROFILE:-~}/建安AI/data
+        source: ${USERPROFILE:-${HOME:-~}}/建安AI/data
         target: /app/data
+      # AI 後端 token（三選一，依 LLM_BACKEND 設定使用對應的）
       - type: bind
-        source: ${USERPROFILE:-~}/建安AI/.codex
+        source: ${USERPROFILE:-${HOME:-~}}/.codex
         target: /home/nextjs/.codex
+      - type: bind
+        source: ${HOME:-~}/.gemini
+        target: /home/nextjs/.gemini
+      - type: bind
+        source: ${HOME:-~}/.claude
+        target: /home/nextjs/.claude
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
