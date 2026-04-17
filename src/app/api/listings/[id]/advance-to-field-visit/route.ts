@@ -7,7 +7,7 @@ export async function POST(_req: Request, context: { params: Promise<{ id: strin
     const listingId = Number(id);
 
     if (Number.isNaN(listingId)) {
-      return NextResponse.json({ error: '物件不存在' }, { status: 404 });
+      return NextResponse.json({ error: '物件編號格式錯誤' }, { status: 400 });
     }
 
     advanceToFieldVisit(listingId);

@@ -5,6 +5,8 @@ interface ParsePasteBody {
   rawText: string;
 }
 
+const MAX_RAW_TEXT_LENGTH = 20_000;
+
 function parseRawText(rawText: string): Record<string, string> {
   const parsed: Record<string, string> = {};
   const lines = rawText.split(/\r?\n/);
@@ -80,8 +82,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'rawText 格式錯誤' }, { status: 400 });
     }
 
+    if (body.rawText.length > MAX_RAW_TEXT_LENGTH) {
+      return NextResponse.json({ error: 'rawText 超過長度上限' }, { status: 400 });
+    }
+
+    // Truncate before inserting into LLM prompt to prevent prompt injection via long input
+    const safeRawText = body.rawText.slice(0, MAX_RAW_TEXT_LENGTH);
+
     try {
-      const prompt = buildCodexPrompt(body.rawText);
+      const prompt = buildCodexPrompt(safeRawText);
       const result = await runCodex(prompt);
 
       if (result.success && result.output) {
@@ -94,7 +103,7 @@ export async function POST(req: Request) {
       // Codex parse failure should gracefully fallback to regex mode.
     }
 
-    const parsedByRegex = parseRawText(body.rawText);
+    const parsedByRegex = parseRawText(safeRawText);
     return NextResponse.json({ parsed: parsedByRegex, source: 'regex' as const });
   } catch {
     return NextResponse.json({ error: '操作失敗' }, { status: 500 });
