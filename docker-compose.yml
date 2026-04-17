@@ -9,4 +9,6 @@ services:
     volumes:
       - ./data:/app/data
       - ./output:/app/output
+      - ~/.superset/bin/codex:/usr/local/bin/codex:ro
+      - ~/.codex:/root/.codex:ro
     restart: unless-stopped
