@@ -5,7 +5,7 @@
 - [x] 1.1 [Tool: copilot-codex] 建立 Dockerfile：基於 node:22-slim，裝 Next.js 相依、Puppeteer + Chromium、中文字型（Noto Sans TC + Noto Serif TC），多階段 build — 實作 Requirement: Docker image builds successfully for linux/amd64；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）
 - [x] 1.2 [Tool: codex] 建立 docker/compose.yaml：定義 app service、volume mount、port 綁 127.0.0.1:3000 — 實作 Requirement: Container exposes only localhost、Data persists on host volume；對應 Design: 容器內資料持久化用 volume mount，不是 named volume
 - [x] 1.3 [Tool: copilot-codex] 容器內安裝 Codex CLI 並驗證版本 — 實作 Requirement: Codex CLI is installed inside container；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）
-- [ ] 1.4 [Tool: codex] e2e 驗證：docker build && docker compose up -d，容器 < 60s 啟動，/api/health 回 200 — 實作 Requirement: Container health check reports readiness、Docker image builds successfully for linux/amd64；對應 Design: goals
+- [x] 1.4 [Tool: codex] e2e 驗證：docker build && docker compose up -d，容器 < 60s 啟動，/api/health 回 200 — 實作 Requirement: Container health check reports readiness、Docker image builds successfully for linux/amd64；對應 Design: goals
 
 ### 2. Codex CLI 容器內登入機制
 
@@ -19,13 +19,13 @@
 - [x] 3.1 [Tool: copilot-gen] 建立 docker/start.bat：檢查 Docker Desktop、docker compose up、輪詢 health、開瀏覽器 — 實作 Requirement: Windows launcher provides one-click startup；對應 Design: windows 啟動腳本：批次檔 + powershell
 - [x] 3.2 [Tool: copilot-gen] 建立 docker/first-login.bat：建立 %USERPROFILE%\建安AI\data\ 目錄、拉 image、執行 codex login — 實作 Requirement: Windows launcher provides one-click startup、Codex CLI is installed inside container
 - [x] 3.3 [Tool: copilot-gen] 建立 docker/安裝說明.md：繁體中文安裝步驟、系統需求 — 對應 Design: 客戶電腦規格不確定
-- [ ] 3.4 [Tool: codex] Mac 端模擬 Windows 流程驗證腳本邏輯 — 對應 Design: goals
+- [x] 3.4 [Tool: codex] Mac 端模擬 Windows 流程驗證腳本邏輯 — 對應 Design: goals
 
 ### 4. 資料持久化
 
 - [x] 4.1 [Tool: copilot-codex] 更新 src/lib/db/ 讀 env DATABASE_PATH=/app/data/db/app.sqlite — 實作 Requirement: Data persists on host volume
 - [x] 4.2 [Tool: copilot-codex] 建立 uploads 與 outputs 目錄結構輔助函式，依 listing-id 分資料夾 — 實作 Requirement: Data persists on host volume
-- [ ] 4.3 [Tool: codex] 測試：容器 down/up 後資料完整保留 — 實作 Requirement: Data persists on host volume；對應 Design: 資料安全（客戶資料不能外流）
+- [x] 4.3 [Tool: codex] 測試：容器 down/up 後資料完整保留 — 實作 Requirement: Data persists on host volume；對應 Design: 資料安全（客戶資料不能外流）
 
 ### 5. Phase 1 驗收
 
@@ -131,7 +131,7 @@
 ### 18. Phase 3 驗收
 
 - [x] 18.1 [Tool: kimi] CR：pre-commission 整個流程 — 實作 Requirement: Pre-commission lookup UI accepts owner + address/parcel input、System auto-populates public data when available；對應 Design: implementation distribution strategy
-- [ ] 18.2 [Tool: codex] e2e：新 listing → 階段一 → 階段三 → 5 份文件全產出 — 實作 Requirement: Listing state machine supports pre-commission stage、Pre-commission state transitions to field-visit、System generates exactly five document types per listing；對應 Design: goals
+- [x] 18.2 [Tool: codex] e2e：新 listing → 階段一 → 階段三 → 5 份文件全產出 — 實作 Requirement: Listing state machine supports pre-commission stage、Pre-commission state transitions to field-visit、System generates exactly five document types per listing；對應 Design: goals
 
 ---
 
