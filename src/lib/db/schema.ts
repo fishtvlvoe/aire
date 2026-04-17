@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS listings (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   property_type TEXT,
-  field_visit_status TEXT,
+  field_visit_status TEXT NOT NULL DEFAULT 'draft',
   generated_documents TEXT
 );
 

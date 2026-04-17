@@ -13,4 +13,8 @@ export const townhouseSchema = {
     { key: 'structure', label: '結構', type: 'text', required: false },
   ],
   type_specific: [],
+  supplementary_specific: [
+    { key: 'parking_spaces', label: '停車位數', type: 'number', required: false },
+    { key: 'renovation_notes', label: '裝潢備註', type: 'textarea', required: false },
+  ],
 };

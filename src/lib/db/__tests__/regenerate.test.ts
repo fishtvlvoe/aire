@@ -24,7 +24,7 @@ describe('Regenerate single document', () => {
       listing_591: '初始 listing_591',
       disclosure_document: '原始 disclosure_document',
     };
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
     db.prepare('UPDATE listings SET status = ?, generated_documents = ? WHERE id = ?')
       .run('documents-ready', JSON.stringify(initialDocuments), listing.id);
 

@@ -27,8 +27,8 @@ describe('db listing status transitions', () => {
     db.close();
   });
 
-  it("createListing('residential') creates listing with status 'draft' and field_visit_status 'draft'", () => {
-    const listing = createListing('residential');
+  it("createListing('residential-land') creates listing with status 'draft' and field_visit_status 'draft'", () => {
+    const listing = createListing('residential-land');
     expect(listing.status).toBe('draft');
     expect(listing.field_visit_status).toBe('draft');
 
@@ -39,7 +39,7 @@ describe('db listing status transitions', () => {
   });
 
   it("updateListingFieldVisit(..., 'field-visit-incomplete') sets field_visit_status to 'field-visit-incomplete'", () => {
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
 
     updateListingFieldVisit(listing.id, { note: 'missing some items' }, 'field-visit-incomplete');
 
@@ -49,7 +49,7 @@ describe('db listing status transitions', () => {
   });
 
   it("updateListingFieldVisit(..., 'field-visit-complete') sets field_visit_status and status to 'field-visit-complete'", () => {
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
 
     updateListingFieldVisit(listing.id, { done: true }, 'field-visit-complete');
 
@@ -59,7 +59,7 @@ describe('db listing status transitions', () => {
   });
 
   it("updateSupplementaryData(...) sets status to 'ready-for-generation'", () => {
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
 
     updateSupplementaryData(listing.id, { zoning: 'R1' });
 
@@ -68,7 +68,7 @@ describe('db listing status transitions', () => {
   });
 
   it("updateDocuments(...) sets status to 'documents-ready'", () => {
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
 
     updateDocuments(listing.id, { pdf: 'base64...' });
 
@@ -77,7 +77,7 @@ describe('db listing status transitions', () => {
   });
   // 任務 2.4
   it('agent 儲存部分資料（isComplete=false）→ field_visit_status 變 field-visit-incomplete，field_visit_data 有值', () => {
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
     updateListingFieldVisit(listing.id, { foo: 'bar', isComplete: false }, 'field-visit-incomplete');
     const updated = getListing(listing.id)!;
     expect(updated.field_visit_status).toBe('field-visit-incomplete');
@@ -86,7 +86,7 @@ describe('db listing status transitions', () => {
   });
 
   it('agent 完成所有欄位（isComplete=true）→ field_visit_status 變 field-visit-complete，status 變 field-visit-complete', () => {
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
     updateListingFieldVisit(listing.id, { foo: 'bar', isComplete: true }, 'field-visit-complete');
     const updated = getListing(listing.id)!;
     expect(updated.field_visit_status).toBe('field-visit-complete');
@@ -96,7 +96,7 @@ describe('db listing status transitions', () => {
 
   // 任務 3.4
   it('秘書提交補充資料（field-visit 已完成）→ status 變 ready-for-generation，supplementary_data 有值', () => {
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
     updateListingFieldVisit(listing.id, { foo: 'bar', isComplete: true }, 'field-visit-complete');
     updateSupplementaryData(listing.id, { extra: 'info' });
     const updated = getListing(listing.id)!;
@@ -106,7 +106,7 @@ describe('db listing status transitions', () => {
   });
 
   it('field-visit 未完成時提交補充資料 → updateSupplementaryData 不應被呼叫（或呼叫後 status 仍非 ready-for-generation）', () => {
-    const listing = createListing('residential');
+    const listing = createListing('residential-land');
     // 不做 field-visit-complete
     updateSupplementaryData(listing.id, { extra: 'info' });
     const updated = getListing(listing.id)!;

@@ -62,8 +62,10 @@ export function createListing(propertyType: string): Listing {
   }
 
   const result = db
-    .prepare('INSERT INTO listings (propertyType, property_type) VALUES (?, ?) RETURNING *')
-    .get(propertyType, propertyType) as Listing;
+    .prepare(
+      'INSERT INTO listings (propertyType, property_type, status, field_visit_status) VALUES (?, ?, ?, ?) RETURNING *'
+    )
+    .get(propertyType, propertyType, 'draft', 'draft') as Listing;
   return result;
 }
 

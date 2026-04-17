@@ -13,4 +13,8 @@ export const farmlandSchema = {
     { key: 'road_width', label: '路寬', type: 'number', required: false },
   ],
   type_specific: [],
+  supplementary_specific: [
+    { key: 'additional_documents', label: '補充文件', type: 'file', required: false },
+    { key: 'seller_notes', label: '賣方備註', type: 'textarea', required: false },
+  ],
 };

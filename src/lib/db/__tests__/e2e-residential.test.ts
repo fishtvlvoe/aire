@@ -11,7 +11,7 @@ const generatedDocs = {
   property_survey: '物件現勘報告'
 };
 
-describe('E2E: residential listing full flow', () => {
+describe('E2E: residential-land listing full flow', () => {
   beforeAll(async () => {
     process.env.DB_PATH = ':memory:';
   });
@@ -27,8 +27,8 @@ describe('E2E: residential listing full flow', () => {
     if (db.exec) db.exec('PRAGMA foreign_keys=ON;');
   });
 
-  it('should run full residential listing flow', async () => {
-    const { id, status } = await createListing('residential');
+  it('should run full residential-land listing flow', async () => {
+    const { id, status } = await createListing('residential-land');
     expect(status).toBe('draft');
 
     updateListingFieldVisit(id, {

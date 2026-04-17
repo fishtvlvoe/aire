@@ -13,4 +13,8 @@ export const apartmentSchema = {
     { key: 'structure', label: '結構', type: 'text', required: false },
   ],
   type_specific: [],
+  supplementary_specific: [
+    { key: 'management_fee', label: '管理費', type: 'number', required: false },
+    { key: 'insurance_notes', label: '保險備註', type: 'textarea', required: false },
+  ],
 };

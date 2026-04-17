@@ -13,4 +13,8 @@ export const highriseSchema = {
     { key: 'structure', label: '結構', type: 'text', required: false },
   ],
   type_specific: [],
+  supplementary_specific: [
+    { key: 'security_system', label: '保全系統', type: 'text', required: false },
+    { key: 'amenities', label: '公設說明', type: 'textarea', required: false },
+  ],
 };

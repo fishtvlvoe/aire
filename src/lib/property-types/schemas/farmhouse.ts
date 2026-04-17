@@ -13,4 +13,8 @@ export const farmhouseSchema = {
     { key: 'structure', label: '結構', type: 'text', required: false },
   ],
   type_specific: [],
+  supplementary_specific: [
+    { key: 'farm_details', label: '農場詳細說明', type: 'textarea', required: false },
+    { key: 'irrigation_status', label: '灌溉設施', type: 'text', required: false },
+  ],
 };

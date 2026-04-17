@@ -13,4 +13,8 @@ export const residentialLandSchema = {
     { key: 'road_width', label: '路寬', type: 'number', required: false },
   ],
   type_specific: [],
+  supplementary_specific: [
+    { key: 'zoning_regulations', label: '土地使用分區規則', type: 'textarea', required: false },
+    { key: 'building_restrictions', label: '建築限制', type: 'textarea', required: false },
+  ],
 };
