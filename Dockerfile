@@ -53,6 +53,9 @@ RUN apt-get update && apt-get install -y \
 # Install pinned Codex CLI version
 RUN npm install -g @openai/codex@0.121.0
 
+# Install Gemini CLI
+RUN npm install -g @google/gemini-cli
+
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV NEXT_TELEMETRY_DISABLED=1
