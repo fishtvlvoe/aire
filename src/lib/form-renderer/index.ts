@@ -23,8 +23,9 @@ export function getFieldsForLayer(
   const typeInfo = PROPERTY_TYPES[propertyType];
   if (!typeInfo) return [];
 
-  // 導入對應的 schema
-  const schemaModule = (schemas as any)[`${propertyType.replace(/-/g, '')}Schema`];
+  // 'commercial-land' → 'commercialLandSchema'
+  const camelKey = propertyType.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+  const schemaModule = (schemas as any)[`${camelKey}Schema`];
   if (!schemaModule) return [];
 
   return schemaModule[layer] || [];
