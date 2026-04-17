@@ -9,9 +9,9 @@ describe('supplementary-form', () => {
     expect(Array.isArray(result)).toBe(true);
   });
 
-  it('should return empty for unavailable types', () => {
+  it('should return type_specific fields for suite', () => {
     const result = getFieldsForLayer('suite', 'type_specific');
-    expect(result.length).toBe(0);
+    expect(result.length).toBeGreaterThan(0);
   });
 
   it('should return fields for available types', () => {

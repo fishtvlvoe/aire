@@ -32,10 +32,10 @@ describe('field-visit-form', () => {
     expect(Array.isArray(allFields.typeSpecific)).toBe(true);
   });
 
-  it('should return empty arrays for unavailable types', () => {
+  it('should return fields for suite', () => {
     const allFields = getAllFieldsForVisit('suite');
-    expect(allFields.common.length).toBe(0);
-    expect(allFields.categoryCommon.length).toBe(0);
-    expect(allFields.typeSpecific.length).toBe(0);
+    expect(allFields.common.length).toBeGreaterThan(0);
+    expect(allFields.categoryCommon.length).toBeGreaterThan(0);
+    expect(Array.isArray(allFields.typeSpecific)).toBe(true);
   });
 });
