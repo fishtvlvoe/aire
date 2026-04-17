@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: jianan-ai:latest
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - DATABASE_PATH=/app/data/db/app.sqlite
+      - NODE_ENV=production
+    volumes:
+      - type: bind
+        source: ${USERPROFILE:-~}/建安AI/data
+        target: /app/data
+      - type: bind
+        source: ${USERPROFILE:-~}/建安AI/.codex
+        target: /root/.codex
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s

@@ -4,7 +4,7 @@ import path from 'path';
 import { PROPERTY_TYPES, type PropertyType } from '../property-types';
 import { initDb } from './schema';
 
-const DB_PATH = process.env.DB_PATH || './data/listings.db';
+const DB_PATH = process.env.DATABASE_PATH || process.env.DB_PATH || './data/listings.db';
 const dbDir = path.dirname(DB_PATH);
 
 if (!fs.existsSync(dbDir)) {
