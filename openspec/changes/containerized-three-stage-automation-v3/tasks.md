@@ -11,7 +11,7 @@
 
 - [x] 2.1 [Tool: copilot-codex] 建立 src/lib/codex-client/：wrapper 呼叫 codex exec，錯誤處理（未登入/超時/額度超限）— 實作 Requirement: Codex CLI is installed inside container；對應 Design: codex cli 放容器內（不走 bridge、不 mount 宿主 codex）、codex cli 容器內在 windows docker desktop + wsl2 能不能跑
 - [x] 2.2 [Tool: copilot-codex] 建立 /api/health endpoint — 實作 Requirement: Container health check reports readiness
-- [ ] 2.3 [Tool: codex] 撰寫 codex-client 測試：模擬已登入/未登入/回應/錯誤四個情境 — 實作 Requirement: Codex CLI is installed inside container
+- [x] 2.3 [Tool: codex] 撰寫 codex-client 測試：模擬已登入/未登入/回應/錯誤四個情境 — 實作 Requirement: Codex CLI is installed inside container
 - [x] 2.4 [Tool: gemini] 研究 Codex CLI OAuth 在容器內的登入限制（interactive TTY、Windows 瀏覽器 callback）— 對應 Design: codex cli 容器內在 windows docker desktop + wsl2 能不能跑
 
 ### 3. Windows 啟動腳本
@@ -41,7 +41,7 @@
 - [x] 6.1 [Tool: cursor] 把 src/lib/property-types/index.ts 所有 available 改為 true — 實作 Requirement: Registry supports all 13 property types as available；對應 Design: 13 種類型全開，schema 差異化但共用 ui 元件
 - [x] 6.2 [Tool: cursor] 為剩餘 7 種類型建立 schema 檔（套房/店面/廠房/商業地/工業地/鄉村區建地/其他土地）— 實作 Requirement: Registry supports all 13 property types as available；對應 Design: 13 種類型全開，schema 差異化但共用 ui 元件
 - [x] 6.3 [Tool: cursor] 所有欄位補 sourceType + displayMode 屬性 — 實作 Requirement: Each field has sourceType and displayMode metadata；對應 Design: 欄位總表 metadata：sourcetype + displaymode
-- [ ] 6.4 [Tool: codex] 撰寫 property-types 測試：13 類 getFieldSchema 非空、metadata 完整 — 實作 Requirement: Registry supports all 13 property types as available、Each field has sourceType and displayMode metadata
+- [x] 6.4 [Tool: codex] 撰寫 property-types 測試：13 類 getFieldSchema 非空、metadata 完整 — 實作 Requirement: Registry supports all 13 property types as available、Each field has sourceType and displayMode metadata
 
 ### 7. Form Renderer 修補
 
@@ -113,7 +113,7 @@
 
 - [x] 15.1 [Tool: copilot-codex] 更新 src/lib/db/schema.ts：新增 pre-commission state、pre_commission_data JSON 欄位 — 實作 Requirement: Listing state machine supports pre-commission stage；對應 Design: 100% 可直接搬用（lib 核心層）
 - [x] 15.2 [Tool: copilot-codex] 更新狀態機：pre-commission → field-visit — 實作 Requirement: Pre-commission state transitions to field-visit、Workflow rejects invalid transitions
-- [ ] 15.3 [Tool: codex] 測試：state 轉換驗證（合法與非法）— 實作 Requirement: Workflow rejects invalid transitions
+- [x] 15.3 [Tool: codex] 測試：state 轉換驗證（合法與非法）— 實作 Requirement: Workflow rejects invalid transitions
 
 ### 16. 公開資料爬蟲（繼承 v1 POC）
 
