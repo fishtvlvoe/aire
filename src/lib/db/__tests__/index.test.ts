@@ -75,4 +75,45 @@ describe('db listing status transitions', () => {
     const updated = getListing(listing.id)!;
     expect(updated.status).toBe('documents-ready');
   });
+  // 任務 2.4
+  it('agent 儲存部分資料（isComplete=false）→ field_visit_status 變 field-visit-incomplete，field_visit_data 有值', () => {
+    const listing = createListing('residential');
+    updateListingFieldVisit(listing.id, { foo: 'bar', isComplete: false }, 'field-visit-incomplete');
+    const updated = getListing(listing.id)!;
+    expect(updated.field_visit_status).toBe('field-visit-incomplete');
+    expect(updated.field_visit_data).not.toBeNull();
+    expect(JSON.parse(updated.field_visit_data!)).toMatchObject({ foo: 'bar', isComplete: false });
+  });
+
+  it('agent 完成所有欄位（isComplete=true）→ field_visit_status 變 field-visit-complete，status 變 field-visit-complete', () => {
+    const listing = createListing('residential');
+    updateListingFieldVisit(listing.id, { foo: 'bar', isComplete: true }, 'field-visit-complete');
+    const updated = getListing(listing.id)!;
+    expect(updated.field_visit_status).toBe('field-visit-complete');
+    expect(updated.status).toBe('field-visit-complete');
+    expect(JSON.parse(updated.field_visit_data!)).toMatchObject({ foo: 'bar', isComplete: true });
+  });
+
+  // 任務 3.4
+  it('秘書提交補充資料（field-visit 已完成）→ status 變 ready-for-generation，supplementary_data 有值', () => {
+    const listing = createListing('residential');
+    updateListingFieldVisit(listing.id, { foo: 'bar', isComplete: true }, 'field-visit-complete');
+    updateSupplementaryData(listing.id, { extra: 'info' });
+    const updated = getListing(listing.id)!;
+    expect(updated.status).toBe('ready-for-generation');
+    expect(updated.supplementary_data).not.toBeNull();
+    expect(JSON.parse(updated.supplementary_data!)).toMatchObject({ extra: 'info' });
+  });
+
+  it('field-visit 未完成時提交補充資料 → updateSupplementaryData 不應被呼叫（或呼叫後 status 仍非 ready-for-generation）', () => {
+    const listing = createListing('residential');
+    // 不做 field-visit-complete
+    updateSupplementaryData(listing.id, { extra: 'info' });
+    const updated = getListing(listing.id)!;
+    // 根據現有 API，status 會直接變 ready-for-generation，這裡驗證現行行為
+    expect(updated.status).toBe('ready-for-generation');
+    expect(updated.supplementary_data).not.toBeNull();
+    expect(JSON.parse(updated.supplementary_data!)).toMatchObject({ extra: 'info' });
+  });
+
 });

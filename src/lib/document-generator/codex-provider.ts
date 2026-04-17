@@ -14,8 +14,8 @@ export class CodexDocumentGenerator implements DocumentGenerator {
     let stderr: string = '';
     try {
       const { stdout: out, stderr: err } = await execFileAsync('codex', ['exec', promptString], { timeout: 120000 });
-      stdout = typeof out === 'string' ? out : out.toString();
-      stderr = typeof err === 'string' ? err : err.toString();
+      stdout = String(out);
+      stderr = String(err);
     } catch (error: any) {
       if (error.stderr) {
         throw new Error(error.stderr);
