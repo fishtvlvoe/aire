@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import FieldVisitForm from '@/components/forms/FieldVisitForm';
+import Stepper from '@/components/Stepper';
 import { PROPERTY_TYPES, type PropertyType } from '@/lib/property-types';
 
 type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
@@ -83,6 +84,8 @@ export default function ListingFillPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isComplete, setIsComplete] = useState(false);
+  const [highlightMissing, setHighlightMissing] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const handleFormChange = useCallback((nextFormData: Record<string, unknown>, nextIsComplete: boolean) => {
     setFormData(nextFormData);
     setIsComplete(nextIsComplete);
@@ -130,6 +133,13 @@ export default function ListingFillPage() {
     };
   }, [listingId]);
 
+  useEffect(() => {
+    if (isComplete) {
+      setBannerMessage(null);
+      setHighlightMissing(false);
+    }
+  }, [isComplete]);
+
   const propertyType = listing?.property_type;
 
   const propertyTypeLabel = useMemo(() => {
@@ -143,12 +153,16 @@ export default function ListingFillPage() {
     if (!listing) {
       return;
     }
+    
     if (!isComplete) {
-      setSubmitError('欄位尚未填完整，請先完成必填欄位');
+      setBannerMessage('尚有必填欄位未完成，請檢查標紅欄位');
+      setHighlightMissing(true);
       return;
     }
+    
     setSubmitting(true);
     setSubmitError(null);
+    setHighlightMissing(false);
 
     try {
       const response = await fetch(`/api/listings/${listing.id}/field-visit`, {
@@ -176,6 +190,7 @@ export default function ListingFillPage() {
   };
 
   const statusBadge = listing ? statusOptions[listing.status] : null;
+  const initialData = parseFieldVisitData(listing?.field_visit_data ?? null) ?? undefined;
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] font-['Manrope'] text-[#2D3142]">
@@ -183,6 +198,14 @@ export default function ListingFillPage() {
         <Sidebar />
 
         <main className="flex-1 p-8">
+          <div className="mb-4">
+            <Stepper
+              currentStep={2}
+              listingId={listing?.id ?? null}
+              listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null}
+            />
+          </div>
+          
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <h1 className="text-2xl font-bold text-[#1B3A6B]">資料填寫</h1>
@@ -198,6 +221,12 @@ export default function ListingFillPage() {
               </div>
             </div>
 
+            {bannerMessage && (
+              <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                {bannerMessage}
+              </div>
+            )}
+
             {loading && <p className="py-8 text-center text-sm text-slate-500">讀取中...</p>}
 
             {!loading && loadError && (
@@ -207,8 +236,11 @@ export default function ListingFillPage() {
             {!loading && !loadError && propertyType && (
               <>
                 <FieldVisitForm
+                  key={listing?.id ?? 'pending'}
                   propertyType={propertyType}
                   onSave={handleFormChange}
+                  initialData={initialData}
+                  highlightMissing={highlightMissing}
                 />
 
                 <div className="mt-6 flex items-center justify-end gap-3">
@@ -219,7 +251,7 @@ export default function ListingFillPage() {
                   <button
                     type="button"
                     onClick={() => void handleSave()}
-                    disabled={submitting || !isComplete}
+                    disabled={submitting}
                     className="rounded-md bg-[#1B3A6B] px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {submitting ? '儲存中...' : '儲存並前往補件'}

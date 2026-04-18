@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
+import Stepper from '@/components/Stepper';
 
 type DocumentKey = 'property_survey' | 'listing_591' | 'sales_dm' | 'social_posts' | 'disclosure_document';
 type ApiStatus = 'ready' | 'not-generated';
@@ -143,6 +144,10 @@ export default function ListingDocumentsPage() {
         <Sidebar />
 
         <main className="flex-1 p-8">
+          <div className="mb-4">
+            <Stepper currentStep={5} listingId={listingId || null} listingStatus={null} />
+          </div>
+          
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <h1 className="text-2xl font-bold text-[#1B3A6B]">文件輸出</h1>
             <p className="mt-2 text-sm text-slate-600">物件編號：#{Number.isNaN(listingId) ? '-' : listingId}</p>

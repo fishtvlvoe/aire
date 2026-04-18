@@ -56,13 +56,13 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     ? { executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox', '--disable-setuid-sandbox'] }
     : {};
 
-  const browser = await (puppeteer as any).launch(launchOptions);
+  const browser = await puppeteer.launch(launchOptions as Parameters<(typeof puppeteer)['launch']>[0]);
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: 'networkidle0' });
   const pdf = await page.pdf({ format: 'A4' });
   await browser.close();
 
-  return new NextResponse(pdf, {
+  return new NextResponse(pdf.buffer as ArrayBuffer, {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${type}-${id}.pdf"`,

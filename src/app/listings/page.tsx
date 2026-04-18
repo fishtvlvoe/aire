@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { PROPERTY_TYPES, type PropertyType } from '@/lib/property-types';
+import { resolveListingHref, resolveListingActionLabel } from '@/lib/listing-routes';
 
 type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
 type Listing = {
@@ -205,7 +206,13 @@ export default function ListingsPage() {
                         <tr key={listing.id} className="bg-white">
                           <td className="px-4 py-3 font-medium">#{listing.id}</td>
                           <td className="px-4 py-3">
-                            <Link href={`/listings/${listing.id}/fill`} className="hover:text-[#1B3A6B] hover:underline">
+                            <Link
+                              href={resolveListingHref({
+                                id: listing.id,
+                                status: listing.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready',
+                              })}
+                              className="hover:text-[#1B3A6B] hover:underline"
+                            >
                               {getAddressFromListing(listing)}
                             </Link>
                           </td>
@@ -218,10 +225,16 @@ export default function ListingsPage() {
                           <td className="px-4 py-3">{formatDate(listing.created_at)}</td>
                           <td className="px-4 py-3">
                             <Link
-                              href={`/listings/${listing.id}/fill`}
+                              href={resolveListingHref({
+                                id: listing.id,
+                                status: listing.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready',
+                              })}
                               className="rounded-md border border-[#1B3A6B] px-3 py-1.5 text-[#1B3A6B] transition hover:bg-[#1B3A6B] hover:text-white"
                             >
-                              進入填寫
+                              {resolveListingActionLabel({
+                                id: listing.id,
+                                status: listing.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready',
+                              })}
                             </Link>
                           </td>
                         </tr>

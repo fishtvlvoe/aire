@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PropertyType } from '@/lib/property-types'
 import { PROPERTY_TYPES } from '@/lib/property-types'
 import {
@@ -45,6 +45,12 @@ export type FieldVisitFormProps = {
   onSave: (formData: Record<string, unknown>, isComplete: boolean) => void
   /** When provided, the property-type selector is hidden and this value is used */
   propertyType?: PropertyType
+  /** Decision A: 支援回填的初始資料 */
+  initialData?: Record<string, unknown>
+  /** Decision C: 是否高亮顯示必填未填欄位 */
+  highlightMissing?: boolean
+  /** Decision C: 跳轉到指定章節的回調 */
+  onJumpTo?: (chapterId: string) => void
 }
 
 const inputClassName =
@@ -70,24 +76,72 @@ const getDisplayModeHelper = (field: FieldSchema): string | null => {
   return null
 }
 
-const getChapterBadgeClassName = (filled: number, total: number): string => {
-  if (total === 0 || filled === 0) {
-    return 'bg-slate-100 text-slate-600'
+// Decision A: 正規化初始資料，將各種值轉為字串格式
+export const normalizeInitialData = (data: Record<string, unknown> | undefined): Record<string, string> => {
+  if (!data) return {}
+  
+  const result: Record<string, string> = {}
+  for (const [key, value] of Object.entries(data)) {
+    // null 或 undefined 轉空字串
+    if (value == null) {
+      result[key] = ''
+      continue
+    }
+    
+    // object 或 array 跳過不納入
+    if (typeof value === 'object') {
+      continue
+    }
+    
+    // 其他值用 String() 轉字串
+    result[key] = String(value)
   }
-
-  if (filled === total) {
-    return 'bg-emerald-100 text-emerald-700'
-  }
-
-  return 'bg-amber-100 text-amber-700'
+  
+  return result
 }
 
-export default function FieldVisitForm({ onSave, propertyType: propPropertyType }: FieldVisitFormProps) {
+// Decision B: 新的章節 badge 樣式函數，三色系統
+export const getChapterBadgeClassName = (filledRequired: number, totalRequired: number, filledAll: number, totalAll: number): string => {
+  // 必填未完成：灰色（會加紅點）
+  if (filledRequired < totalRequired) {
+    return 'bg-slate-100 text-slate-600'
+  }
+  
+  // 必填完成但總欄位未完成：琥珀色
+  if (filledRequired === totalRequired && filledAll < totalAll) {
+    return 'bg-amber-100 text-amber-700'
+  }
+  
+  // 全部完成：綠色
+  if (filledAll === totalAll && totalAll > 0) {
+    return 'bg-emerald-100 text-emerald-700'
+  }
+  
+  // 其他情況（total=0 或 empty）：灰色
+  return 'bg-slate-100 text-slate-600'
+}
+
+// Decision B: 是否顯示必填紅點指示器
+export const shouldShowRequiredDot = (filledRequired: number, totalRequired: number): boolean => {
+  return filledRequired < totalRequired
+}
+
+export default function FieldVisitForm({ 
+  onSave, 
+  propertyType: propPropertyType,
+  initialData,
+  highlightMissing = false,
+  onJumpTo
+}: FieldVisitFormProps) {
   const [internalType, setInternalType] = useState<PropertyType>('apartment')
   const activeType: PropertyType = propPropertyType ?? internalType
 
-  const [form, setForm] = useState<Record<string, string>>({})
+  // Decision A: 使用 normalizeInitialData 初始化表單
+  const [form, setForm] = useState<Record<string, string>>(() => normalizeInitialData(initialData))
   const [activeChapterId, setActiveChapterId] = useState<ChapterId>('basic')
+  
+  // Decision A: 追蹤是否已經水合過初始資料
+  const didHydrateRef = useRef(false)
 
   const schema = SCHEMA_MAP[activeType]
   const chapters = useMemo(() => groupFieldsByChapter(schema, activeType), [activeType, schema])
@@ -96,22 +150,44 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
     () => chapters.find((chapter) => chapter.id === activeChapterId) ?? chapters[0],
     [activeChapterId, chapters]
   )
+  // Decision B: 修改完成度計算，新增 filledAll 與 totalAll 欄位
   const chapterCompletion = useMemo(
     () =>
       chapters.map((chapter) => {
         const requiredFields = chapter.fields.filter((field) => field.required)
+        const allFields = chapter.fields
         const totalRequired = requiredFields.length
+        const totalAll = allFields.length
         const filledRequired = requiredFields.filter((field) => (form[field.key] ?? '').trim() !== '').length
-        return { chapterId: chapter.id, totalRequired, filledRequired }
+        const filledAll = allFields.filter((field) => (form[field.key] ?? '').trim() !== '').length
+        return { chapterId: chapter.id, totalRequired, filledRequired, totalAll, filledAll }
       }),
     [chapters, form]
   )
 
-  // Reset form values and tab when property type changes
+  // Decision A: initialData 水合邏輯
   useEffect(() => {
-    setForm({})
-    setActiveChapterId('basic')
-  }, [activeType])
+    // 若已經水合過，直接返回
+    if (didHydrateRef.current === true) return
+    
+    // 若沒有初始資料，直接返回
+    if (initialData === undefined) return
+    
+    // 執行水合並標記已完成
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 此為 prop 變化後一次性 hydrate，無法避免 setState。
+    setForm(normalizeInitialData(initialData))
+    didHydrateRef.current = true
+  }, [initialData])
+
+  // Reset form values and tab when property type changes
+  // Decision A: 僅在 propPropertyType === undefined 時才清空表單
+  useEffect(() => {
+    if (propPropertyType === undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setForm({})
+      setActiveChapterId('basic')
+    }
+  }, [activeType, propPropertyType])
 
   const isComplete = useMemo(() => {
     const required = allFields.filter((f) => f.required)
@@ -144,6 +220,10 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
     const modeClassName = getDisplayModeClassName(field)
     const helperText = getDisplayModeHelper(field)
     const placeholder = field.displayMode === 'blank' ? '秘書後補' : `請輸入${field.label}`
+    
+    // Decision C: 檢查是否需要高亮顯示必填未填欄位
+    const isRequiredMissing = highlightMissing && field.required && value.trim() === ''
+    const highlightClassName = isRequiredMissing ? 'border-red-500 ring-1 ring-red-500' : ''
 
     if (field.type === 'select' && field.options) {
       return (
@@ -152,7 +232,7 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
           <select
             value={value}
             onChange={(e) => updateField(field.key, e.target.value)}
-            className={`${inputClassName} ${modeClassName}`}
+            className={`${inputClassName} ${modeClassName} ${highlightClassName}`}
             required={field.required}
           >
             <option value="">{field.displayMode === 'blank' ? '秘書後補' : '請選擇'}</option>
@@ -163,6 +243,8 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
             ))}
           </select>
           {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
+          {/* Decision C: 必填欄位未填時顯示錯誤提示 */}
+          {isRequiredMissing && <p className="mt-1 text-xs text-red-600">此欄位必填</p>}
         </label>
       )
     }
@@ -174,11 +256,13 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
           <textarea
             value={value}
             onChange={(e) => updateField(field.key, e.target.value)}
-            className={`${inputClassName} min-h-28 resize-y ${modeClassName}`}
+            className={`${inputClassName} min-h-28 resize-y ${modeClassName} ${highlightClassName}`}
             placeholder={placeholder}
             required={field.required}
           />
           {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
+          {/* Decision C: 必填欄位未填時顯示錯誤提示 */}
+          {isRequiredMissing && <p className="mt-1 text-xs text-red-600">此欄位必填</p>}
         </label>
       )
     }
@@ -193,10 +277,12 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
               const files = e.target.files ? Array.from(e.target.files).map((file) => file.name) : []
               updateField(field.key, files.join(', '))
             }}
-            className={`${inputClassName} ${modeClassName}`}
+            className={`${inputClassName} ${modeClassName} ${highlightClassName}`}
             required={field.required}
           />
           {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
+          {/* Decision C: 必填欄位未填時顯示錯誤提示 */}
+          {isRequiredMissing && <p className="mt-1 text-xs text-red-600">此欄位必填</p>}
         </label>
       )
     }
@@ -208,11 +294,13 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
           type={field.type === 'number' ? 'number' : 'text'}
           value={value}
           onChange={(e) => updateField(field.key, e.target.value)}
-          className={`${inputClassName} ${modeClassName}`}
+          className={`${inputClassName} ${modeClassName} ${highlightClassName}`}
           placeholder={placeholder}
           required={field.required}
         />
         {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
+        {/* Decision C: 必填欄位未填時顯示錯誤提示 */}
+        {isRequiredMissing && <p className="mt-1 text-xs text-red-600">此欄位必填</p>}
       </label>
     )
   }
@@ -262,12 +350,23 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
             const progress = chapterCompletion.find((item) => item.chapterId === chapter.id)
             const filledRequired = progress?.filledRequired ?? 0
             const totalRequired = progress?.totalRequired ?? 0
+            const filledAll = progress?.filledAll ?? 0
+            const totalAll = progress?.totalAll ?? 0
             const isActive = activeChapter?.id === chapter.id
+            
+            // Decision B: 使用新的 badge 樣式函數和紅點指示器
+            const badgeClassName = getChapterBadgeClassName(filledRequired, totalRequired, filledAll, totalAll)
+            const showRequiredDot = shouldShowRequiredDot(filledRequired, totalRequired)
+            
             return (
               <button
                 key={chapter.id}
                 type="button"
-                onClick={() => setActiveChapterId(chapter.id)}
+                onClick={() => {
+                  setActiveChapterId(chapter.id)
+                  // Decision C: 如果有 onJumpTo 回調，執行它
+                  onJumpTo?.(chapter.id)
+                }}
                 className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
                   isActive
                     ? 'border-blue-600 bg-blue-50 text-blue-700'
@@ -275,13 +374,13 @@ export default function FieldVisitForm({ onSave, propertyType: propPropertyType 
                 }`}
               >
                 <span>{chapter.title}</span>
-                <span
-                  className={`ml-2 rounded-full px-2 py-0.5 text-xs ${getChapterBadgeClassName(
-                    filledRequired,
-                    totalRequired
-                  )}`}
-                >
-                  {filledRequired}/{totalRequired}
+                {/* Decision B: Badge 改為顯示已填/總欄，並加上必填紅點 */}
+                <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${badgeClassName} ${showRequiredDot ? 'relative' : ''}`}>
+                  {filledAll}/{totalAll}
+                  {/* Decision B: 必填紅點指示器 */}
+                  {showRequiredDot && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500"></span>
+                  )}
                 </span>
               </button>
             )

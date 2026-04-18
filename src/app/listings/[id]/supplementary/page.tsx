@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import SupplementaryForm from '@/components/forms/SupplementaryForm';
+import Stepper from '@/components/Stepper';
 import { PROPERTY_TYPES, getPropertyType, type PropertyType } from '@/lib/property-types';
 
 type Listing = {
@@ -155,6 +156,14 @@ export default function ListingSupplementaryPage() {
         <Sidebar />
 
         <main className="flex-1 p-8">
+          <div className="mb-4">
+            <Stepper
+              currentStep={3}
+              listingId={listing?.id ?? null}
+              listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null}
+            />
+          </div>
+          
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <h1 className="text-2xl font-bold text-[#1B3A6B]">補件資料</h1>

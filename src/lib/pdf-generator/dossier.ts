@@ -3,7 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { marked } from 'marked';
 
-const TEMPLATES_DIR = path.join(__dirname, 'templates');
+// Next.js 16 + Turbopack 下 __dirname 會解析為 /ROOT/ 假路徑（造成 ENOENT）
+// 改用 process.cwd() 定位專案根目錄的 template（dev / start 皆為專案根，行為一致）
+const TEMPLATES_DIR = path.join(process.cwd(), 'src/lib/pdf-generator/templates');
 
 function loadTemplate(): { html: string; css: string } {
   const html = fs.readFileSync(path.join(TEMPLATES_DIR, 'dossier.html'), 'utf-8');

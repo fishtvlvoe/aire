@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPropertyType, PROPERTY_TYPES, PropertyType } from '../index';
+import { getPropertyType, PROPERTY_TYPES } from '../index';
 
 describe('property-type-registry', () => {
   it('getPropertyType should return correct info for farmland', () => {

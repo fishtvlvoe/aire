@@ -22,8 +22,9 @@ export const RegenerateButton: React.FC<RegenerateButtonProps> = ({ listingId, d
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '產生失敗');
       onSuccess(data);
-    } catch (e: any) {
-      setError(e.message || '產生失敗');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : '產生失敗';
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,26 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 // 修正：改用 updateListingFieldVisit, updateSupplementaryData 取代 updateListing
 
-let db: any, createListing: any, getListing: any, updateListingFieldVisit: any, updateSupplementaryData: any;
+type DbLike = {
+  exec?: (sql: string) => unknown;
+  prepare: (sql: string) => { run: (...args: unknown[]) => unknown };
+};
+
+type ListingLike = { status: string; generated_documents?: unknown };
+
+type DbModuleLike = {
+  db: DbLike;
+  createListing: (propertyType: string) => Promise<{ id: number; status: string }>;
+  getListing: (id: number) => Promise<ListingLike> | ListingLike;
+  updateListingFieldVisit: (id: number, data: Record<string, unknown>, status: string) => unknown;
+  updateSupplementaryData: (id: number, data: Record<string, unknown>) => unknown;
+};
+
+let db: DbLike,
+  createListing: DbModuleLike['createListing'],
+  getListing: DbModuleLike['getListing'],
+  updateListingFieldVisit: DbModuleLike['updateListingFieldVisit'],
+  updateSupplementaryData: DbModuleLike['updateSupplementaryData'];
 
 describe('E2E: farmland listing full flow', () => {
   beforeAll(async () => {
@@ -9,7 +28,7 @@ describe('E2E: farmland listing full flow', () => {
   });
 
   beforeEach(async () => {
-    const mod = await import('../index');
+    const mod = (await import('../index')) as unknown as DbModuleLike;
     db = mod.db;
     createListing = mod.createListing;
     getListing = mod.getListing;

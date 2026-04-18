@@ -25,10 +25,11 @@ export function getFieldsForLayer(
 
   // 'commercial-land' → 'commercialLandSchema'
   const camelKey = propertyType.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
-  const schemaModule = (schemas as any)[`${camelKey}Schema`];
-  if (!schemaModule) return [];
+  const schemaModule = (schemas as unknown as Record<string, unknown>)[`${camelKey}Schema`];
+  if (!schemaModule || typeof schemaModule !== 'object') return [];
 
-  return schemaModule[layer] || [];
+  const layerValue = (schemaModule as Record<string, unknown>)[layer];
+  return Array.isArray(layerValue) ? (layerValue as FieldSchema[]) : [];
 }
 
 export function getAllFieldsForVisit(propertyType: PropertyType): {

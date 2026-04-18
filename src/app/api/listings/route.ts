@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAllListings, createListing, type PropertyType } from '@/lib/db';
+import { getAllListings, createListing } from '@/lib/db';
 
 export async function GET() {
   const listings = getAllListings();

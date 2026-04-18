@@ -30,12 +30,12 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ id: s
     let supplementary_data = null;
     try {
       field_visit_data = listing.field_visit_data ? JSON.parse(listing.field_visit_data) : null;
-    } catch (e) {
+    } catch {
       field_visit_data = null;
     }
     try {
       supplementary_data = listing.supplementary_data ? JSON.parse(listing.supplementary_data) : null;
-    } catch (e) {
+    } catch {
       supplementary_data = null;
     }
     // 2. 組成 DocumentGeneratorInput
@@ -58,14 +58,17 @@ export async function POST(_req: NextRequest, context: { params: Promise<{ id: s
         documents: `/api/listings/${numId}/documents`
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // 錯誤處理
     console.error('文件產生失敗', error);
-    let provider = 'unknown';
-    let message = error?.message || String(error);
-    if (message.includes('Codex')) provider = 'Codex';
-    else if (message.includes('Haiku')) provider = 'Haiku';
-    else if (message.includes('Gemini')) provider = 'Gemini';
+    const message = error instanceof Error ? error.message : String(error);
+    const provider = message.includes('Codex')
+      ? 'Codex'
+      : message.includes('Haiku')
+        ? 'Haiku'
+        : message.includes('Gemini')
+          ? 'Gemini'
+          : 'unknown';
     return NextResponse.json({ error: 'generation-failed', provider, message }, { status: 422 });
   }
 }
