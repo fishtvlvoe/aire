@@ -74,8 +74,8 @@
 - [x] 6.5 [Tool: kimi]（kimi 滿 → fallback gemini；無 new critical，高風險 NextResponse import 誤判已確認存在） 用 `kimi_analyze`（或 fallback gemini）走 correctness 濾鏡審查本次 diff（5 檔 + 2 個新檔 + 2 個測試檔）：聚焦 `deleteListing` FK 處理、`handleDelete` 的 error flow、`handleRegenerate` 的狀態管理、`resolveListingSecondaryAction` 的邊界
 - [x] 6.6 [Tool: kimi]（gemini）security findings 皆為 proposal Non-Goals 已明列事項（不做 auth、不做軟刪、不強化 confirm），接受 走 security-lens 濾鏡：`DELETE /api/listings/{id}` 是否有授權檢查（顧問案單使用者可不做但要記錄在 audit notes）、`window.confirm` 是否足夠防誤刪
 - [x] 6.7 [Tool: codex]（DELETE 三 scenario 皆過；listings/documents/fill 三頁 200） `npm run dev` + 手動驗收五個流程：(a) 刪除空草稿列表即時消失 (b) 刪除 documents-ready 列表即時消失（若有 FK 確認處理正確） (c) documents-ready 物件點 Stepper 格 2 跳 fill 頁 (d) documents-ready 列表出現兩個按鈕、點「回去補件」跳 fill (e) documents 頁有 banner + 「重新產生文件」按鈕可觸發
-- [ ] 6.8 [Tool: codex] git add + commit（繁中 conventional：`feat(ui): 加刪除物件功能 + 修 documents-ready 回流鎖死`）
-- [ ] 6.9 [Tool: codex] git push 到當前 branch
+- [x] 6.8 [Tool: codex] git add + commit（繁中 conventional：`feat(ui): 加刪除物件功能 + 修 documents-ready 回流鎖死`）
+- [x] 6.9 [Tool: codex] git push 到當前 branch
 
 ---
 
