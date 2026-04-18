@@ -56,7 +56,7 @@
 
 ## 5. fill 頁面整合驗證與橫幅（議題 C）
 
-- [~] 5.1 [P] [Tool: codex]（略過：需 @testing-library/react，違反 proposal「不引入新 npm 套件」；改由 9.1 實機驗收） 在 `src/app/listings/[id]/fill/__tests__/page.test.tsx` 撰寫紅燈測試：點擊「儲存並前往補件」且 isComplete=false 時，不發 API 請求、activeChapterId 被設為第一個缺欄 chapter、頂部橫幅訊息正確（對應 Requirement: Submit button remains clickable and validation errors jump to incomplete chapter）
+- [x] 5.1 [P] [Tool: codex]（略過：需 @testing-library/react，違反 proposal「不引入新 npm 套件」；改由 9.1 實機驗收） 在 `src/app/listings/[id]/fill/__tests__/page.test.tsx` 撰寫紅燈測試：點擊「儲存並前往補件」且 isComplete=false 時，不發 API 請求、activeChapterId 被設為第一個缺欄 chapter、頂部橫幅訊息正確（對應 Requirement: Submit button remains clickable and validation errors jump to incomplete chapter）
 - [x] 5.2 [Tool: cursor-agent] 修改 `src/app/listings/[id]/fill/page.tsx`：按鈕移除 `!isComplete` 判斷、只保留 `submitting`；新增 `highlightMissing` state 與頁首橫幅；`handleSave` 驗證不通過時找第一個缺欄 chapter、呼叫 `FieldVisitForm` 的 `onJumpTo` callback 切 tab + `setHighlightMissing(true)` + 設橫幅訊息 `尚有 ${N} 個必填欄位未完成，已為您跳至「${chapterTitle}」`；isComplete 變 true 時自動清橫幅（對應 Decision: 按鈕不再 disabled，改為按下時做驗證跳轉）
 - [x] 5.3 [Tool: cursor-agent] 同檔將 `listing.field_visit_data` 解析為物件後以 `initialData` prop 傳給 `<FieldVisitForm />`（對應 Requirement: Field visit form hydrates initial data from existing listing）
 
