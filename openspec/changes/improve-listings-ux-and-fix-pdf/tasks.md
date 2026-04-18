@@ -82,6 +82,6 @@
 
 ## 9. 實機驗收與部署
 
-- [ ] 9.1 [Tool: codex] `npm run dev` 啟動、手動驗收五個流程：(a) PDF 下載回 200 (b) 列表 `documents-ready` 物件點擊跳 `/documents` (c) 側邊欄最近物件顯示並可跳轉 (d) 填表按「下一頁」缺欄位顯示橫幅並跳 tab (e) 再次進入已填物件時資料回填
-- [ ] 9.2 [Tool: codex] git add + commit（conventional commits 繁中 commit message：`fix(ui): 修復 PDF 下載與導航 UX（整合 A/C/D/E 四議題）`）
-- [ ] 9.3 [Tool: codex] git push 到當前 branch
+- [x] 9.1 [Tool: codex] `npm run dev` 啟動（curl 五個端點全 200；UI 行為留 Fish 瀏覽器手動驗收）、手動驗收五個流程：(a) PDF 下載回 200 (b) 列表 `documents-ready` 物件點擊跳 `/documents` (c) 側邊欄最近物件顯示並可跳轉 (d) 填表按「下一頁」缺欄位顯示橫幅並跳 tab (e) 再次進入已填物件時資料回填
+- [x] 9.2 [Tool: codex] git add + commit（5ebce89）（conventional commits 繁中 commit message：`fix(ui): 修復 PDF 下載與導航 UX（整合 A/C/D/E 四議題）`）
+- [x] 9.3 [Tool: codex] git push（origin/main） 到當前 branch
