@@ -156,3 +156,10 @@ export function updateDocuments(
 export function updateStatus(id: number, status: ListingStatus): void {
   db.prepare('UPDATE listings SET status = ? WHERE id = ?').run(status, id);
 }
+
+export function deleteListing(id: number): boolean {
+  // 硬刪除。listings 表無 FK 引用（已確認），直接 DELETE 即可。
+  // changes > 0 表示有找到並刪除該筆；false 表示 id 不存在。
+  const result = db.prepare('DELETE FROM listings WHERE id = ?').run(id);
+  return result.changes > 0;
+}

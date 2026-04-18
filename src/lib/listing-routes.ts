@@ -23,3 +23,12 @@ export function resolveListingActionLabel(listing: Listing): string {
   }
   return '進入填寫'
 }
+
+// Decision: 列表次要按鈕用純函式 resolveListingSecondaryAction
+// documents-ready 列出主按鈕（查看文件）+ 次要按鈕（回去補件）；其他狀態無次要按鈕
+export function resolveListingSecondaryAction(listing: Listing): { href: string; label: string } | null {
+  if (listing.status === 'documents-ready') {
+    return { href: `/listings/${listing.id}/fill`, label: '回去補件' }
+  }
+  return null
+}

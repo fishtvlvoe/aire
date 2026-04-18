@@ -41,6 +41,7 @@ export default function ListingGeneratingPage() {
   const listingId = Number(params.id ?? '0');
   const generationStartedRef = useRef(false);
 
+  const [listing, setListing] = useState<{id: number, status: string} | null>(null);
   const [docStatuses, setDocStatuses] = useState<Record<DocumentKey, UiDocumentStatus>>({
     property_survey: 'waiting',
     listing_591: 'waiting',
@@ -56,6 +57,26 @@ export default function ListingGeneratingPage() {
 
   const allDone = doneCount === DOCUMENTS.length;
   const progress = Math.round((doneCount / DOCUMENTS.length) * 100);
+
+  useEffect(() => {
+    if (Number.isNaN(listingId)) {
+      return;
+    }
+
+    const fetchListing = async () => {
+      try {
+        const response = await fetch(`/api/listings/${listingId}`);
+        if (response.ok) {
+          const listingData = await response.json();
+          setListing(listingData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch listing:', error);
+      }
+    };
+
+    void fetchListing();
+  }, [listingId]);
 
   useEffect(() => {
     if (Number.isNaN(listingId) || generationStartedRef.current) {
@@ -167,7 +188,7 @@ export default function ListingGeneratingPage() {
 
         <main className="flex-1 p-8">
           <div className="mb-4">
-            <Stepper currentStep={4} listingId={null} listingStatus={null} />
+            <Stepper currentStep={4} listingId={listing?.id ?? null} listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null} />
           </div>
           
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">

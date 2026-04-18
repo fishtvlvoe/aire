@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   resolveListingActionLabel,
   resolveListingHref,
+  resolveListingSecondaryAction,
 } from '@/lib/listing-routes'
 
 // 注意：此型別需與實作一致（此處僅為測試可讀性）。
@@ -52,5 +53,24 @@ describe('listing-routes（TDD 紅燈）', () => {
       expect(resolveListingHref(listing)).toBe(tc.expectedHref)
       expect(resolveListingActionLabel(listing)).toBe(tc.expectedLabel)
     }
+  })
+})
+
+describe('resolveListingSecondaryAction（Decision: 列表次要按鈕用純函式）', () => {
+  it('documents-ready 回 { href: /listings/10/fill, label: 回去補件 }', () => {
+    expect(resolveListingSecondaryAction({ id: 10, status: 'documents-ready' }))
+      .toEqual({ href: '/listings/10/fill', label: '回去補件' })
+  })
+
+  it('draft 回 null', () => {
+    expect(resolveListingSecondaryAction({ id: 10, status: 'draft' })).toBeNull()
+  })
+
+  it('field-visit-complete 回 null', () => {
+    expect(resolveListingSecondaryAction({ id: 10, status: 'field-visit-complete' })).toBeNull()
+  })
+
+  it('ready-for-generation 回 null', () => {
+    expect(resolveListingSecondaryAction({ id: 10, status: 'ready-for-generation' })).toBeNull()
   })
 })

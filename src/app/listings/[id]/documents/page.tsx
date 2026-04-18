@@ -7,6 +7,11 @@ import Stepper from '@/components/Stepper';
 
 type DocumentKey = 'property_survey' | 'listing_591' | 'sales_dm' | 'social_posts' | 'disclosure_document';
 type ApiStatus = 'ready' | 'not-generated';
+type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
+type Listing = {
+  id: number;
+  status: ListingStatus;
+};
 
 type DocumentEntry = {
   status: ApiStatus;
@@ -57,6 +62,8 @@ export default function ListingDocumentsPage() {
   const listingId = Number(params.id ?? '0');
 
   const [docs, setDocs] = useState<Record<DocumentKey, DocumentEntry> | null>(null);
+  const [listing, setListing] = useState<{id: number, status: ListingStatus} | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [regenerateState, setRegenerateState] = useState<Record<DocumentKey, RegenerateState>>({
@@ -66,6 +73,23 @@ export default function ListingDocumentsPage() {
     social_posts: { loading: false, error: null },
     disclosure_document: { loading: false, error: null },
   });
+
+  const loadListing = useCallback(async () => {
+    if (Number.isNaN(listingId)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/listings/${listingId}`);
+      if (!response.ok) {
+        throw new Error('讀取物件資料失敗');
+      }
+      const payload = (await response.json()) as { listing: Listing };
+      setListing({ id: payload.listing.id, status: payload.listing.status });
+    } catch (caughtError) {
+      console.error('載入物件資料失敗:', caughtError);
+    }
+  }, [listingId]);
 
   const loadDocuments = useCallback(async () => {
     if (Number.isNaN(listingId)) {
@@ -91,8 +115,9 @@ export default function ListingDocumentsPage() {
   }, [listingId]);
 
   useEffect(() => {
+    void loadListing();
     void loadDocuments();
-  }, [loadDocuments]);
+  }, [loadListing, loadDocuments]);
 
   const handleRegenerate = async (documentType: DocumentKey) => {
     if (Number.isNaN(listingId)) {
@@ -130,6 +155,25 @@ export default function ListingDocumentsPage() {
     }
   };
 
+  const handleRegenerateAll = async () => {
+    if (!window.confirm('重新產生會覆蓋現有 5 份文件，確定？')) return;
+    setRegenerating(true);
+    try {
+      const res = await fetch(`/api/listings/${listingId}/regenerate`, { method: 'POST' });
+      if (!res.ok) throw new Error(await res.text() || '重新產生失敗');
+      // 重 fetch documents
+      const r2 = await fetch(`/api/listings/${listingId}/documents`);
+      if (r2.ok) {
+        const payload = (await r2.json()) as DocumentsResponse;
+        setDocs(payload.documents);
+      }
+    } catch (e) {
+      alert('重新產生失敗：' + (e as Error).message);
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
   const cards = useMemo(() => {
     return DOCUMENTS.map((meta) => ({
       ...meta,
@@ -145,12 +189,31 @@ export default function ListingDocumentsPage() {
 
         <main className="flex-1 p-8">
           <div className="mb-4">
-            <Stepper currentStep={5} listingId={listingId || null} listingStatus={null} />
+            <Stepper 
+              currentStep={5} 
+              listingId={listingId || null} 
+              listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null} 
+            />
           </div>
           
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <h1 className="text-2xl font-bold text-[#1B3A6B]">文件輸出</h1>
             <p className="mt-2 text-sm text-slate-600">物件編號：#{Number.isNaN(listingId) ? '-' : listingId}</p>
+
+            <div className="mt-6 mb-4 rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+              若修改過現勘/補件欄位，請點『重新產生文件』讓內容反映最新輸入
+            </div>
+
+            <div className="mb-6 flex justify-end">
+              <button 
+                type="button" 
+                onClick={handleRegenerateAll} 
+                disabled={regenerating} 
+                className="rounded-md bg-[#1B3A6B] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {regenerating ? '產生中...' : '重新產生文件'}
+              </button>
+            </div>
 
             {loading && <p className="mt-6 text-sm text-slate-500">讀取中...</p>}
             {!loading && error && <p className="mt-6 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
