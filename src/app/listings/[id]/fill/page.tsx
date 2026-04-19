@@ -1,13 +1,20 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Sidebar from '@/components/Sidebar';
-import FieldVisitForm, { type NavigationState, type FieldVisitFormHandle } from '@/components/forms/FieldVisitForm';
-import Stepper from '@/components/Stepper';
-import { PROPERTY_TYPES, type PropertyType } from '@/lib/property-types';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Sidebar from "@/components/Sidebar";
+import FieldVisitForm, {
+  type NavigationState,
+  type FieldVisitFormHandle,
+} from "@/components/forms/FieldVisitForm";
+import Stepper from "@/components/Stepper";
+import { PROPERTY_TYPES, type PropertyType } from "@/lib/property-types";
 
-type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
+type ListingStatus =
+  | "draft"
+  | "field-visit-complete"
+  | "ready-for-generation"
+  | "documents-ready";
 type Listing = {
   id: number;
   property_type: PropertyType;
@@ -15,7 +22,7 @@ type Listing = {
   status: ListingStatus;
   field_visit_data?: string | null;
 };
-import { getPropertyType } from '@/lib/property-types';
+import { getPropertyType } from "@/lib/property-types";
 
 type ListingResponse = {
   listing: Listing;
@@ -28,31 +35,33 @@ type ListingStatusOption = {
 
 const statusOptions: Record<ListingStatus, ListingStatusOption> = {
   draft: {
-    label: '草稿',
-    className: 'bg-slate-100 text-slate-700',
+    label: "草稿",
+    className: "bg-slate-100 text-slate-700",
   },
-  'field-visit-complete': {
-    label: '場勘完成',
-    className: 'bg-blue-100 text-blue-700',
+  "field-visit-complete": {
+    label: "場勘完成",
+    className: "bg-blue-100 text-blue-700",
   },
-  'ready-for-generation': {
-    label: '可產生文件',
-    className: 'bg-yellow-100 text-yellow-700',
+  "ready-for-generation": {
+    label: "可產生文件",
+    className: "bg-yellow-100 text-yellow-700",
   },
-  'documents-ready': {
-    label: '文件已產出',
-    className: 'bg-emerald-100 text-emerald-700',
+  "documents-ready": {
+    label: "文件已產出",
+    className: "bg-emerald-100 text-emerald-700",
   },
 };
 
-const parseFieldVisitData = (rawData: string | null): Record<string, unknown> | null => {
+const parseFieldVisitData = (
+  rawData: string | null,
+): Record<string, unknown> | null => {
   if (!rawData) {
     return null;
   }
 
   try {
     const parsed = JSON.parse(rawData) as unknown;
-    if (parsed && typeof parsed === 'object') {
+    if (parsed && typeof parsed === "object") {
       return parsed as Record<string, unknown>;
     }
     return null;
@@ -63,20 +72,20 @@ const parseFieldVisitData = (rawData: string | null): Record<string, unknown> | 
 
 const getAddressFromListing = (listing: Listing | null): string => {
   if (!listing) {
-    return '-';
+    return "-";
   }
   const fieldVisitData = parseFieldVisitData(listing.field_visit_data ?? null);
   const address = fieldVisitData?.address;
-  if (typeof address === 'string' && address.trim() !== '') {
+  if (typeof address === "string" && address.trim() !== "") {
     return address;
   }
-  return '地址尚未填寫';
+  return "地址尚未填寫";
 };
 
 export default function ListingFillPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const listingId = Number(params.id ?? '0');
+  const listingId = Number(params.id ?? "0");
   const formRef = useRef<FieldVisitFormHandle>(null);
 
   const [listing, setListing] = useState<Listing | null>(null);
@@ -88,15 +97,18 @@ export default function ListingFillPage() {
   const [isComplete, setIsComplete] = useState(false);
   const [highlightMissing, setHighlightMissing] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
-  const handleFormChange = useCallback((nextFormData: Record<string, unknown>, nextIsComplete: boolean) => {
-    setFormData(nextFormData);
-    setIsComplete(nextIsComplete);
-  }, []);
+  const handleFormChange = useCallback(
+    (nextFormData: Record<string, unknown>, nextIsComplete: boolean) => {
+      setFormData(nextFormData);
+      setIsComplete(nextIsComplete);
+    },
+    [],
+  );
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (Number.isNaN(listingId)) {
-      setLoadError('物件編號錯誤');
+      setLoadError("物件編號錯誤");
       setLoading(false);
       return;
     }
@@ -107,7 +119,7 @@ export default function ListingFillPage() {
       try {
         const response = await fetch(`/api/listings/${listingId}`);
         if (!response.ok) {
-          throw new Error('讀取物件資料失敗');
+          throw new Error("讀取物件資料失敗");
         }
         const payload = (await response.json()) as ListingResponse;
         if (!isMounted) {
@@ -119,7 +131,9 @@ export default function ListingFillPage() {
           return;
         }
         const message =
-          caughtError instanceof Error ? caughtError.message : '讀取物件資料失敗，請稍後再試';
+          caughtError instanceof Error
+            ? caughtError.message
+            : "讀取物件資料失敗，請稍後再試";
         setLoadError(message);
       } finally {
         if (isMounted) {
@@ -146,9 +160,12 @@ export default function ListingFillPage() {
 
   const propertyTypeLabel = useMemo(() => {
     if (!propertyType) {
-      return '-';
+      return "-";
     }
-    return getPropertyType(propertyType)?.displayName ?? PROPERTY_TYPES[propertyType].displayName;
+    return (
+      getPropertyType(propertyType)?.displayName ??
+      PROPERTY_TYPES[propertyType].displayName
+    );
   }, [propertyType]);
 
   const submitFieldVisit = async (isComplete: boolean) => {
@@ -158,9 +175,9 @@ export default function ListingFillPage() {
 
     // 防呆：isComplete=true 但實際 navState 顯示未完成時，拒絕送出並高亮缺欄
     if (isComplete && navState && !navState.isComplete) {
-      setBannerMessage('尚有必填欄位未完成，請檢查標紅欄位');
+      setBannerMessage("尚有必填欄位未完成，請檢查標紅欄位");
       setHighlightMissing(true);
-      throw new Error('incomplete');
+      throw new Error("incomplete");
     }
 
     setSubmitting(true);
@@ -169,9 +186,9 @@ export default function ListingFillPage() {
 
     try {
       const response = await fetch(`/api/listings/${listing.id}/field-visit`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           data: formData,
@@ -180,10 +197,13 @@ export default function ListingFillPage() {
       });
 
       if (!response.ok) {
-        throw new Error('儲存失敗，請稍後再試');
+        throw new Error("儲存失敗，請稍後再試");
       }
     } catch (caughtError) {
-      const message = caughtError instanceof Error ? caughtError.message : '儲存失敗，請稍後再試';
+      const message =
+        caughtError instanceof Error
+          ? caughtError.message
+          : "儲存失敗，請稍後再試";
       setSubmitError(message);
       throw caughtError;
     } finally {
@@ -192,7 +212,8 @@ export default function ListingFillPage() {
   };
 
   const statusBadge = listing ? statusOptions[listing.status] : null;
-  const initialData = parseFieldVisitData(listing?.field_visit_data ?? null) ?? undefined;
+  const initialData =
+    parseFieldVisitData(listing?.field_visit_data ?? null) ?? undefined;
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] font-['Manrope'] text-[#2D3142]">
@@ -204,19 +225,34 @@ export default function ListingFillPage() {
             <Stepper
               currentStep={2}
               listingId={listing?.id ?? null}
-              listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null}
+              listingStatus={
+                (listing?.status as
+                  | "draft"
+                  | "field-visit-complete"
+                  | "ready-for-generation"
+                  | "documents-ready"
+                  | undefined) ?? null
+              }
             />
           </div>
-          
-          <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
+
+          <section className="relative rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <h1 className="text-2xl font-bold text-[#1B3A6B]">資料填寫</h1>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-700">
-                <span className="rounded-full bg-white px-3 py-1">物件編號：#{listing?.id ?? '-'}</span>
-                <span className="rounded-full bg-white px-3 py-1">物件地址：{getAddressFromListing(listing)}</span>
-                <span className="rounded-full bg-white px-3 py-1">類型：{propertyTypeLabel}</span>
+                <span className="rounded-full bg-white px-3 py-1">
+                  物件編號：#{listing?.id ?? "-"}
+                </span>
+                <span className="rounded-full bg-white px-3 py-1">
+                  物件地址：{getAddressFromListing(listing)}
+                </span>
+                <span className="rounded-full bg-white px-3 py-1">
+                  類型：{propertyTypeLabel}
+                </span>
                 {statusBadge && (
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge.className}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge.className}`}
+                  >
                     狀態：{statusBadge.label}
                   </span>
                 )}
@@ -229,16 +265,22 @@ export default function ListingFillPage() {
               </div>
             )}
 
-            {loading && <p className="py-8 text-center text-sm text-slate-500">讀取中...</p>}
+            {loading && (
+              <p className="py-8 text-center text-sm text-slate-500">
+                讀取中...
+              </p>
+            )}
 
             {!loading && loadError && (
-              <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">{loadError}</p>
+              <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+                {loadError}
+              </p>
             )}
 
             {!loading && !loadError && propertyType && (
               <>
                 <FieldVisitForm
-                  key={listing?.id ?? 'pending'}
+                  key={listing?.id ?? "pending"}
                   propertyType={propertyType}
                   onSave={handleFormChange}
                   initialData={initialData}
@@ -249,112 +291,181 @@ export default function ListingFillPage() {
                 />
 
                 {submitError && (
-                  <div className='text-sm text-red-600 mt-6 px-4 py-3 bg-red-50 rounded-md'>
+                  <div className="text-sm text-red-600 mt-6 px-4 py-3 bg-red-50 rounded-md">
                     {submitError}
                   </div>
                 )}
               </>
             )}
+
+            {/* 白框內右上角按鈕群 */}
+            {navState && (
+              <div className="absolute top-4 right-4 z-10 flex gap-3">
+                {/* 情境 1：hasNextChapter */}
+                {navState.hasNextChapter && (
+                  <>
+                    <button
+                      type="button"
+                      title="暫存草稿"
+                      onClick={async () => {
+                        try {
+                          await submitFieldVisit(false);
+                          router.push("/listings");
+                        } catch {}
+                      }}
+                      disabled={submitting}
+                      aria-label="暫存草稿"
+                      className="w-14 h-14 rounded-full bg-gray-500 hover:bg-gray-600 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15M9 12l3 3m0 0 3-3m-3 3V2.25"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      title={
+                        navState.isCurrentChapterComplete
+                          ? "下一章節"
+                          : "本章節還有必填未完成"
+                      }
+                      onClick={() => formRef.current?.goToNextChapter()}
+                      disabled={
+                        !navState.isCurrentChapterComplete || submitting
+                      }
+                      aria-label="下一章節"
+                      className="w-14 h-14 rounded-full bg-[#1B3A6B] hover:bg-[#15294d] text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+                        />
+                      </svg>
+                    </button>
+                  </>
+                )}
+
+                {/* 情境 2：最後一章 */}
+                {!navState.hasNextChapter && (
+                  <>
+                    <button
+                      type="button"
+                      title="暫存草稿"
+                      onClick={async () => {
+                        try {
+                          await submitFieldVisit(false);
+                          router.push("/listings");
+                        } catch {}
+                      }}
+                      disabled={submitting}
+                      aria-label="暫存草稿"
+                      className="w-14 h-14 rounded-full bg-gray-500 hover:bg-gray-600 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15M9 12l3 3m0 0 3-3m-3 3V2.25"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      title={
+                        navState.isComplete
+                          ? "去秘書後補"
+                          : "還有必填欄位未完成"
+                      }
+                      onClick={async () => {
+                        try {
+                          await submitFieldVisit(true);
+                          router.push(`/listings/${listing!.id}/supplementary`);
+                        } catch {}
+                      }}
+                      disabled={!navState.isComplete || submitting}
+                      aria-label="去秘書後補"
+                      className="w-14 h-14 rounded-full bg-[#1B3A6B] hover:bg-[#15294d] text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      title={
+                        navState.isComplete
+                          ? "直接產出文件"
+                          : "還有必填欄位未完成"
+                      }
+                      onClick={async () => {
+                        try {
+                          await submitFieldVisit(true);
+                          router.push(`/listings/${listing!.id}/generating`);
+                        } catch {}
+                      }}
+                      disabled={!navState.isComplete || submitting}
+                      aria-label="直接產出文件"
+                      className="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="w-6 h-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"
+                        />
+                      </svg>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </section>
         </main>
       </div>
-
-      {/* 右下角浮動按鈕群 */}
-      {navState && (
-        <div className='fixed bottom-6 right-6 z-50 flex gap-3'>
-          {/* 情境 1：hasNextChapter */}
-          {navState.hasNextChapter && (
-            <>
-              <button
-                type='button'
-                title='暫存草稿'
-                onClick={async () => { 
-                  try { 
-                    await submitFieldVisit(false); 
-                    router.push('/listings'); 
-                  } catch {} 
-                }}
-                disabled={submitting}
-                aria-label='暫存草稿'
-                className='w-14 h-14 rounded-full bg-gray-500 hover:bg-gray-600 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
-              >
-                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
-                  <path strokeLinecap='round' strokeLinejoin='round' d='M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15M9 12l3 3m0 0 3-3m-3 3V2.25' />
-                </svg>
-              </button>
-              <button
-                type='button'
-                title={navState.isCurrentChapterComplete ? '下一章節' : '本章節還有必填未完成'}
-                onClick={() => formRef.current?.goToNextChapter()}
-                disabled={!navState.isCurrentChapterComplete || submitting}
-                aria-label='下一章節'
-                className='w-14 h-14 rounded-full bg-[#1B3A6B] hover:bg-[#15294d] text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
-              >
-                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
-                  <path strokeLinecap='round' strokeLinejoin='round' d='M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3' />
-                </svg>
-              </button>
-            </>
-          )}
-
-          {/* 情境 2：最後一章 */}
-          {!navState.hasNextChapter && (
-            <>
-              <button
-                type='button'
-                title='暫存草稿'
-                onClick={async () => { 
-                  try { 
-                    await submitFieldVisit(false); 
-                    router.push('/listings'); 
-                  } catch {} 
-                }}
-                disabled={submitting}
-                aria-label='暫存草稿'
-                className='w-14 h-14 rounded-full bg-gray-500 hover:bg-gray-600 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
-              >
-                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
-                  <path strokeLinecap='round' strokeLinejoin='round' d='M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15M9 12l3 3m0 0 3-3m-3 3V2.25' />
-                </svg>
-              </button>
-              <button
-                type='button'
-                title={navState.isComplete ? '去秘書後補' : '還有必填欄位未完成'}
-                onClick={async () => { 
-                  try { 
-                    await submitFieldVisit(true); 
-                    router.push(`/listings/${listing!.id}/supplementary`); 
-                  } catch {} 
-                }}
-                disabled={!navState.isComplete || submitting}
-                aria-label='去秘書後補'
-                className='w-14 h-14 rounded-full bg-[#1B3A6B] hover:bg-[#15294d] text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
-              >
-                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
-                  <path strokeLinecap='round' strokeLinejoin='round' d='M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z' />
-                </svg>
-              </button>
-              <button
-                type='button'
-                title={navState.isComplete ? '直接產出文件' : '還有必填欄位未完成'}
-                onClick={async () => { 
-                  try { 
-                    await submitFieldVisit(true); 
-                    router.push(`/listings/${listing!.id}/generating`); 
-                  } catch {} 
-                }}
-                disabled={!navState.isComplete || submitting}
-                aria-label='直接產出文件'
-                className='w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
-              >
-                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
-                  <path strokeLinecap='round' strokeLinejoin='round' d='m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z' />
-                </svg>
-              </button>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }
