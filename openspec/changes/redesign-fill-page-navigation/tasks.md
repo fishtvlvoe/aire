@@ -117,6 +117,14 @@
 - [x] 7.4 [主對話] Kimi MCP（fallback gemini）correctness CR：檢查 sticky 父層是否有 overflow 陷阱、z-index stacking context 是否正確
 - [x] 7.5 [主對話] git add + commit `style(fill): 按鈕收進表單白框內 sticky 定位 + 雙框等寬`、push
 
+## 8. UX 迭代 3：按鈕改文字+icon 樣式，移至表單最下方（Wave 8，已完成）
+
+**背景**：使用者回饋圓形 icon-only 按鈕客戶看不懂功能，且位置在表單右上角不直覺；應仿 Google Forms 放在表單最下方，並顯示文字標籤。
+
+- [x] 8.1 [Tool: cursor-agent] 修改 `src/components/forms/FieldVisitForm.tsx`：新增 `actionButtons?: React.ReactNode` prop，在 section 最底部（border-t 分隔線後）render；移除 max-w-md 改 w-full。
+- [x] 8.2 [Tool: cursor-agent] 修改 `src/app/listings/[id]/fill/page.tsx`：將 actionButtons 從 icon-only 圓形改為文字+icon 排版；左側「暫存草稿」outlined、右側「下一章節 →」filled navy、最後一章右側「去秘書後補」outlined blue + 「產出文件」filled green；「下一章節」onClick 新增 `window.scrollTo({ top: 0, behavior: 'smooth' })`。
+- [x] 8.3 [主對話] git commit + push（commit: feat(fill-page): replace icon-only buttons with text+icon style, scroll-to-top on chapter nav）
+
 ---
 
 ## 偵察結果（Wave 1 完成後填入此區）
