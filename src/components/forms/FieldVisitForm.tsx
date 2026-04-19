@@ -301,6 +301,12 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
 
       setActiveChapterId(nextChapterId as ChapterId);
       onJumpTo?.(nextChapterId);
+      // 等 React re-render 完再捲，避免新章節內容撐開頁面後位置又跑掉
+      setTimeout(() => {
+        document
+          .getElementById("field-visit-form-section")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
     };
 
     useImperativeHandle(ref, () => ({
@@ -585,7 +591,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
     };
 
     return (
-      <section className="w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <section id="field-visit-form-section" className="w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">現勘表單</h2>
           <p className="mt-1 text-sm text-slate-600">

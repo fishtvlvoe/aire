@@ -327,10 +327,6 @@ export default function ListingFillPage() {
                               type="button"
                               onClick={() => {
                                 formRef.current?.goToNextChapter();
-                                window.scrollTo({
-                                  top: 0,
-                                  behavior: "smooth",
-                                });
                               }}
                               disabled={
                                 !navState.isCurrentChapterComplete || submitting
