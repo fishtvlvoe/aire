@@ -51,6 +51,8 @@ export type FieldVisitFormProps = {
   highlightMissing?: boolean
   /** Decision C: 跳轉到指定章節的回調 */
   onJumpTo?: (chapterId: string) => void
+  /** 可選的 listing ID，用於照片上傳 */
+  listingId?: number
 }
 
 const inputClassName =
@@ -131,7 +133,8 @@ export default function FieldVisitForm({
   propertyType: propPropertyType,
   initialData,
   highlightMissing = false,
-  onJumpTo
+  onJumpTo,
+  listingId
 }: FieldVisitFormProps) {
   const [internalType, setInternalType] = useState<PropertyType>('apartment')
   const activeType: PropertyType = propPropertyType ?? internalType
@@ -142,6 +145,9 @@ export default function FieldVisitForm({
   
   // Decision A: 追蹤是否已經水合過初始資料
   const didHydrateRef = useRef(false)
+
+  // 照片上傳狀態
+  const [uploading, setUploading] = useState(false)
 
   const schema = SCHEMA_MAP[activeType]
   const chapters = useMemo(() => groupFieldsByChapter(schema, activeType), [activeType, schema])
@@ -224,6 +230,118 @@ export default function FieldVisitForm({
     // Decision C: 檢查是否需要高亮顯示必填未填欄位
     const isRequiredMissing = highlightMissing && field.required && value.trim() === ''
     const highlightClassName = isRequiredMissing ? 'border-red-500 ring-1 ring-red-500' : ''
+
+    // 特殊處理照片欄位
+    if (field.key === 'photos') {
+      const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? [])
+        if (files.length === 0 || listingId === undefined) return
+
+        setUploading(true)
+        try {
+          const formData = new FormData()
+          files.forEach(f => formData.append('photo', f))
+
+          const res = await fetch(`/api/listings/${listingId}/photos`, {
+            method: 'POST',
+            body: formData
+          })
+          const { filenames } = await res.json()
+
+          // 解析當前 photos 狀態
+          let existing: string[] = []
+          try {
+            if (form.photos && form.photos.trim() !== '') {
+              existing = JSON.parse(form.photos)
+              if (!Array.isArray(existing)) {
+                existing = []
+              }
+            }
+          } catch {
+            existing = []
+          }
+
+          const merged = [...existing, ...filenames]
+          setForm(prev => ({ ...prev, photos: JSON.stringify(merged) }))
+        } catch (error) {
+          console.error('上傳失敗:', error)
+        } finally {
+          setUploading(false)
+        }
+      }
+
+      const removePhoto = (filenameToRemove: string) => {
+        let existing: string[] = []
+        try {
+          if (form.photos && form.photos.trim() !== '') {
+            existing = JSON.parse(form.photos)
+            if (!Array.isArray(existing)) {
+              existing = []
+            }
+          }
+        } catch {
+          existing = []
+        }
+
+        const filtered = existing.filter(filename => filename !== filenameToRemove)
+        setForm(prev => ({ ...prev, photos: JSON.stringify(filtered) }))
+      }
+
+      // 取得現有照片列表
+      let existingPhotos: string[] = []
+      try {
+        if (form.photos && form.photos.trim() !== '') {
+          existingPhotos = JSON.parse(form.photos)
+          if (!Array.isArray(existingPhotos)) {
+            existingPhotos = []
+          }
+        }
+      } catch {
+        existingPhotos = []
+      }
+
+      return (
+        <div key={field.key} className="block text-sm font-medium text-slate-700">
+          <label>{labelText}</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handlePhotoUpload}
+            disabled={uploading || listingId === undefined}
+            className={`${inputClassName} ${modeClassName} ${highlightClassName} disabled:opacity-50`}
+          />
+          {uploading && (
+            <p className="mt-1 text-xs text-blue-600">上傳中...</p>
+          )}
+          {listingId === undefined && (
+            <p className="mt-1 text-xs text-slate-500">需要 listing ID 才能上傳照片</p>
+          )}
+          {helperText ? <p className="mt-1 text-xs text-amber-700">{helperText}</p> : null}
+          {isRequiredMissing && <p className="mt-1 text-xs text-red-600">此欄位必填</p>}
+          
+          {/* 顯示現有照片 */}
+          {existingPhotos.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-slate-600">已上傳的照片：</p>
+              {existingPhotos.map((filename, index) => (
+                <div key={index} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs">
+                  <span className="text-slate-700">{filename}</span>
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(filename)}
+                    className="ml-2 text-red-500 hover:text-red-700"
+                    disabled={uploading}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    }
 
     if (field.type === 'select' && field.options) {
       return (

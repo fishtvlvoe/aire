@@ -241,6 +241,7 @@ export default function ListingFillPage() {
                   onSave={handleFormChange}
                   initialData={initialData}
                   highlightMissing={highlightMissing}
+                  listingId={listing?.id}
                 />
 
                 <div className="mt-6 flex items-center justify-end gap-3">

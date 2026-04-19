@@ -21,6 +21,7 @@ export type FullSchema = {
   land_common?: FieldSchema[]
   type_specific: FieldSchema[]
   supplementary_specific?: FieldSchema[]
+  media?: FieldSchema[]
 }
 
 export type ChapterId =
@@ -40,7 +41,7 @@ export type Chapter = {
   fields: FieldSchema[]
 }
 
-type LayerName = 'common' | 'building_common' | 'land_common' | 'type_specific' | 'supplementary_specific'
+type LayerName = 'common' | 'building_common' | 'land_common' | 'type_specific' | 'supplementary_specific' | 'media'
 
 const LEGAL_KEYWORDS = ['抵押', '查封', '地役', '權利', '法律']
 
@@ -219,6 +220,7 @@ export function groupFieldsByChapter(schema: FullSchema, propertyType: PropertyT
   pushLayer(schema.land_common, 'land_common')
   pushLayer(schema.type_specific, 'type_specific')
   pushLayer(schema.supplementary_specific, 'supplementary_specific')
+  pushLayer(schema.media, 'media')
 
   return chapters
 }
