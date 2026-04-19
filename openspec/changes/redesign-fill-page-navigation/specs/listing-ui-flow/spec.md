@@ -78,3 +78,60 @@ Technical identifiers (API endpoint paths, variable names, file names, error cod
 - **WHEN** a scan is performed across `src/components/**/*.tsx` and `src/app/**/*.tsx`
 - **THEN** no label string SHALL contain both Latin words of 3+ letters AND Chinese characters in the same string
 - **AND** exception: proper nouns (PDF, AI, URL, API) are permitted
+
+### Requirement: Fill page navigation buttons use icon-only circular floating group
+
+The navigation buttons on `/listings/[id]/fill` SHALL be rendered as a group of 56×56 pixel circular buttons with an icon and no text label. A hover tooltip implemented via the HTML `title` attribute SHALL provide the full text description (e.g., `暫存草稿`, `下一章節`, `去秘書後補`, `直接產出文件`).
+
+Icons SHALL be inline SVG following Heroicons Outline v2 style (24×24, strokeWidth=2), consistent with `src/app/listings/page.tsx` patterns. External icon packages (lucide-react, @heroicons/react) SHALL NOT be added as dependencies.
+
+Button color assignments:
+- `暫存草稿`: gray (`bg-gray-500`)
+- `下一章節` / `去秘書後補`: primary navy (`#1B3A6B`)
+- `直接產出文件`: emerald green (`bg-emerald-600`)
+
+Disabled state SHALL use `opacity-40` and `cursor-not-allowed`. Hover state SHALL apply a `scale-105` transform.
+
+#### Scenario: Button renders as circular icon with tooltip
+
+- **WHEN** the fill page renders the `下一章節` button
+- **THEN** the button SHALL be 56×56 pixels, circular (`rounded-full`)
+- **AND** SHALL contain an inline SVG icon (no text child)
+- **AND** the `title` attribute SHALL be `下一章節` (or `本章節還有必填未完成` when disabled)
+
+#### Scenario: Disabled button styling
+
+- **WHEN** a navigation button is in disabled state
+- **THEN** `opacity-40` SHALL be applied
+- **AND** the `cursor-not-allowed` class SHALL be applied
+
+### Requirement: Fill page layout aligns header and form cards and anchors action buttons inside the form card
+
+The fill page SHALL render the header card (`資料填寫` with metadata chips) and the form card (`現勘表單` with chapter navigation and fields) at the same width, inside a shared max-width container so that the two cards visually form a single vertical group.
+
+The navigation button group (the icon-only buttons from the preceding requirement) SHALL be positioned inside the form card's internal right-top area using CSS `sticky top-4` (or equivalent) so that:
+
+1. The buttons SHALL visually belong to the form card (not float outside any card).
+2. When the user scrolls down a long form, the buttons SHALL remain visible at the top-right of the viewport, anchored within the form card's boundaries.
+3. The buttons SHALL NOT overflow outside the form card's white background.
+
+The previous `fixed bottom-6 right-6` viewport-anchored positioning SHALL be removed.
+
+#### Scenario: Cards share container width
+
+- **WHEN** the fill page renders with a completed listing
+- **THEN** the header card and the form card SHALL have the same rendered width
+- **AND** both SHALL be children of the same max-width container
+
+#### Scenario: Buttons stay inside form card while scrolling
+
+- **WHEN** the form card has sufficient content to require vertical scrolling (e.g., 2000px height)
+- **AND** the user scrolls down past the top of the form card
+- **THEN** the navigation button group SHALL remain visible at the top-right of the form card's viewport-visible area
+- **AND** the buttons SHALL NOT appear outside the form card's white background
+
+#### Scenario: No viewport-fixed positioning
+
+- **WHEN** the fill page is rendered
+- **THEN** the navigation button group SHALL NOT use `position: fixed` relative to the viewport
+- **AND** SHALL use `position: sticky` or `position: absolute` relative to the form card container

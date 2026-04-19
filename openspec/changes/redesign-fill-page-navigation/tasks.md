@@ -90,6 +90,33 @@
 - [x] 6.9 git commit ✓
 - [x] 6.10 git push ✓
 
+## 6.5 UX 迭代 1：按鈕改圓形 icon-only 浮動（回溯紀錄，已完成並 push）
+
+- [x] 6.11 [Tool: cursor-agent] 修改 `src/app/listings/[id]/fill/page.tsx`（對應 Requirement: Fill page navigation buttons use icon-only circular floating group；實作 Decision: 按鈕採 icon-only 圓形設計，不使用文字標籤（UX 迭代 1））：將「下一章節 / 暫存草稿 / 去秘書後補 / 直接產出文件」按鈕群改為 56×56 rounded-full，移除文字 label，改用 Heroicons Outline v2 inline SVG（24×24），hover tooltip 用 title attribute；配色：暫存灰 / 下一章節與秘書後補深藍 / 直接產出綠；disabled 用 opacity-40。commit d086eac 之後的 UX 追加 commit（已 push）。
+
+## 7. UX 迭代 2：按鈕收進白框 + 雙框等寬（Wave 7，待實作）
+
+**背景**：迭代 1 把按鈕改為 `fixed bottom-6 right-6` 浮動，使用者回饋按鈕視覺孤立（跑到白框外面看起來像別的 app 的元件）。迭代 2 修正按鈕歸屬感與雙框寬度一致性。
+
+- [ ] 7.1 [Tool: cursor-agent] 修改 `src/app/listings/[id]/fill/page.tsx`（對應 Requirement: Fill page layout aligns header and form cards and anchors action buttons inside the form card；實作 Decision: 按鈕用 sticky top-4 定位於白框內部右上角，而非 fixed 視窗右下（UX 迭代 2））：
+  - 將「資料填寫」卡與「現勘表單」卡包進同一個 `max-w-[960px] mx-auto w-full` container（或現有 main 的合適寬度），確保 render 寬度一致
+  - 確認父層無 `overflow: hidden`（會破壞 sticky）
+  - 把既有 `fixed bottom-6 right-6 z-50` 按鈕容器從視窗邊移除，改置於「現勘表單」白框 JSX 內部（建議放在章節導覽上方或 form 容器內第一個 child）
+  - 按鈕容器 class 改為 `sticky top-4 z-10 ml-auto flex gap-3 w-fit`（或 `absolute top-4 right-4` 配合父層 `relative`，以實際效果為準）
+  - 保留迭代 1 的 56×56 圓形 icon-only 設計、配色、hover tooltip（不動視覺樣式）
+  - 驗證：滾動表單時按鈕黏在白框內右上角 top-4 可見，不跑出白框、不被內容蓋住
+
+- [ ] 7.2 [Tool: cursor-agent] 實機驗收（由 cursor-agent 用 `playwright-cli` 或直接截圖回報）：
+  - 在 `npm run dev` 啟動的 http://localhost:3000/listings/{某個 listing id}/fill 測試
+  - 情境 1：非最後章節 → 右上角看到兩顆圓按鈕（暫存草稿灰 + 下一章節藍）
+  - 情境 2：最後章節 → 右上角看到三顆圓按鈕（暫存 + 去秘書後補藍 + 直接產出綠）
+  - 情境 3：捲動表單至頁面中段 → 按鈕仍固定在白框內右上角
+  - 截圖儲存到 `/tmp/redesign-wave7-*.png` 以便回報
+
+- [ ] 7.3 [主對話/copilot] `npm run build` 通過，`npm test` 172+ 測試全綠（本 Wave 純 UI 調整，不改測試）
+- [ ] 7.4 [主對話] Kimi MCP（fallback gemini）correctness CR：檢查 sticky 父層是否有 overflow 陷阱、z-index stacking context 是否正確
+- [ ] 7.5 [主對話] git add + commit `style(fill): 按鈕收進表單白框內 sticky 定位 + 雙框等寬`、push
+
 ---
 
 ## 偵察結果（Wave 1 完成後填入此區）
