@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { PROPERTY_TYPES, type PropertyType } from '../property-types';
+import { executeListRecentListings } from './list-recent-helper';
 import { initDb } from './schema';
 
 const DB_PATH = process.env.DATABASE_PATH || process.env.DB_PATH || './data/listings.db';
@@ -55,6 +56,14 @@ export function getListing(id: number): Listing | undefined {
 
 export function getAllListings(): Listing[] {
   return db.prepare('SELECT * FROM listings ORDER BY created_at DESC').all() as Listing[];
+}
+
+/**
+ * 側邊欄最近物件清單，排除純空 draft 以避免 UI 被測試殘留淹沒
+ * listRecentListings
+ */
+export function listRecentListings(limit: number = 10): Listing[] {
+  return executeListRecentListings<Listing>(db, limit);
 }
 
 export function createListing(propertyType: string, initialStatus: ListingStatus = 'draft'): Listing {

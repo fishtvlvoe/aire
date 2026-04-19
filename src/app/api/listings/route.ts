@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getAllListings, createListing } from '@/lib/db';
+import { createListing, listRecentListings } from '@/lib/db';
 
 export async function GET() {
-  const listings = getAllListings();
+  const listings = listRecentListings(10);
   return NextResponse.json({ listings });
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import type { PropertyType } from '@/lib/property-types'
 import { PROPERTY_TYPES } from '@/lib/property-types'
 import {
@@ -24,6 +24,7 @@ import {
   suiteSchema,
   townhouseSchema,
 } from '@/lib/property-types/schemas'
+import { findNextNonEmptyChapterId, hasNextNonEmptyChapter } from './navigation-helpers'
 
 const SCHEMA_MAP: Record<PropertyType, FullSchema> = {
   apartment: apartmentSchema,
@@ -41,6 +42,17 @@ const SCHEMA_MAP: Record<PropertyType, FullSchema> = {
   'other-land': otherLandSchema,
 }
 
+export type NavigationState = {
+  currentChapterId: string
+  hasNextChapter: boolean
+  isCurrentChapterComplete: boolean
+  isComplete: boolean
+}
+
+export type FieldVisitFormHandle = {
+  goToNextChapter: () => void
+}
+
 export type FieldVisitFormProps = {
   onSave: (formData: Record<string, unknown>, isComplete: boolean) => void
   /** When provided, the property-type selector is hidden and this value is used */
@@ -53,6 +65,8 @@ export type FieldVisitFormProps = {
   onJumpTo?: (chapterId: string) => void
   /** 可選的 listing ID，用於照片上傳 */
   listingId?: number
+  /** 導航狀態變更回調 */
+  onNavigationStateChange?: (state: NavigationState) => void
 }
 
 const inputClassName =
@@ -128,14 +142,15 @@ export const shouldShowRequiredDot = (filledRequired: number, totalRequired: num
   return filledRequired < totalRequired
 }
 
-export default function FieldVisitForm({ 
+const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(function FieldVisitForm({ 
   onSave, 
   propertyType: propPropertyType,
   initialData,
   highlightMissing = false,
   onJumpTo,
-  listingId
-}: FieldVisitFormProps) {
+  listingId,
+  onNavigationStateChange
+}, ref) {
   const [internalType, setInternalType] = useState<PropertyType>('apartment')
   const activeType: PropertyType = propPropertyType ?? internalType
 
@@ -151,6 +166,7 @@ export default function FieldVisitForm({
 
   const schema = SCHEMA_MAP[activeType]
   const chapters = useMemo(() => groupFieldsByChapter(schema, activeType), [activeType, schema])
+  const nonEmptyChapters = useMemo(() => chapters.filter(c => c.fields.length > 0), [chapters])
   const allFields = useMemo(() => chapters.flatMap((chapter) => chapter.fields), [chapters])
   const activeChapter = useMemo(
     () => chapters.find((chapter) => chapter.id === activeChapterId) ?? chapters[0],
@@ -202,6 +218,44 @@ export default function FieldVisitForm({
       return val.trim() !== ''
     })
   }, [allFields, form])
+
+  // Navigation state calculation
+  const navigationState = useMemo(() => {
+    const hasNextChapter = hasNextNonEmptyChapter(chapters, activeChapterId)
+
+    // Check if current chapter is complete
+    const currentChapter = chapters.find((c) => c.id === activeChapterId)
+    const isCurrentChapterComplete = currentChapter
+      ? currentChapter.fields
+          .filter((f) => f.required)
+          .every((f) => (form[f.key] ?? '').trim() !== '')
+      : false
+
+    return {
+      currentChapterId: activeChapterId,
+      hasNextChapter,
+      isCurrentChapterComplete,
+      isComplete,
+    }
+  }, [chapters, activeChapterId, form, isComplete])
+
+  // goToNextChapter function
+  const goToNextChapter = () => {
+    const nextChapterId = findNextNonEmptyChapterId(chapters, activeChapterId)
+    if (!nextChapterId) return
+
+    setActiveChapterId(nextChapterId as ChapterId)
+    onJumpTo?.(nextChapterId)
+  }
+
+  useImperativeHandle(ref, () => ({
+    goToNextChapter
+  }))
+
+  // Notify parent about navigation state changes
+  useEffect(() => {
+    onNavigationStateChange?.(navigationState)
+  }, [onNavigationStateChange, navigationState])
 
   useEffect(() => {
     const formData: Record<string, unknown> = { property_type: activeType }
@@ -516,4 +570,6 @@ export default function FieldVisitForm({
       </div>
     </section>
   )
-}
+})
+
+export default FieldVisitForm

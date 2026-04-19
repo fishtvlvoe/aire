@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import FieldVisitForm from '@/components/forms/FieldVisitForm';
+import FieldVisitForm, { type NavigationState, type FieldVisitFormHandle } from '@/components/forms/FieldVisitForm';
 import Stepper from '@/components/Stepper';
 import { PROPERTY_TYPES, type PropertyType } from '@/lib/property-types';
 
@@ -77,8 +77,10 @@ export default function ListingFillPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const listingId = Number(params.id ?? '0');
+  const formRef = useRef<FieldVisitFormHandle>(null);
 
   const [listing, setListing] = useState<Listing | null>(null);
+  const [navState, setNavState] = useState<NavigationState | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -149,17 +151,18 @@ export default function ListingFillPage() {
     return getPropertyType(propertyType)?.displayName ?? PROPERTY_TYPES[propertyType].displayName;
   }, [propertyType]);
 
-  const handleSave = async () => {
+  const submitFieldVisit = async (isComplete: boolean) => {
     if (!listing) {
       return;
     }
-    
-    if (!isComplete) {
+
+    // 防呆：isComplete=true 但實際 navState 顯示未完成時，拒絕送出並高亮缺欄
+    if (isComplete && navState && !navState.isComplete) {
       setBannerMessage('尚有必填欄位未完成，請檢查標紅欄位');
       setHighlightMissing(true);
-      return;
+      throw new Error('incomplete');
     }
-    
+
     setSubmitting(true);
     setSubmitError(null);
     setHighlightMissing(false);
@@ -179,11 +182,10 @@ export default function ListingFillPage() {
       if (!response.ok) {
         throw new Error('儲存失敗，請稍後再試');
       }
-
-      router.push(`/listings/${listing.id}/supplementary`);
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : '儲存失敗，請稍後再試';
       setSubmitError(message);
+      throw caughtError;
     } finally {
       setSubmitting(false);
     }
@@ -242,22 +244,68 @@ export default function ListingFillPage() {
                   initialData={initialData}
                   highlightMissing={highlightMissing}
                   listingId={listing?.id}
+                  ref={formRef}
+                  onNavigationStateChange={setNavState}
                 />
 
-                <div className="mt-6 flex items-center justify-end gap-3">
-                  {submitError && <span className="text-sm text-red-600">{submitError}</span>}
-                  <span className={`text-sm ${isComplete ? 'text-emerald-600' : 'text-slate-500'}`}>
-                    {isComplete ? '必填欄位已完成，可送出' : '還有必填欄位未完成'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleSave()}
-                    disabled={submitting}
-                    className="rounded-md bg-[#1B3A6B] px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {submitting ? '儲存中...' : '儲存並前往補件'}
-                  </button>
-                </div>
+                {navState && (
+                  <div className='flex flex-col gap-3 pt-6 border-t mt-6'>
+                    {navState.hasNextChapter ? (
+                      <button
+                        type='button'
+                        onClick={() => formRef.current?.goToNextChapter()}
+                        disabled={!navState.isCurrentChapterComplete || submitting}
+                        className='px-6 py-3 bg-[#1B3A6B] text-white rounded-md font-medium disabled:bg-gray-300 disabled:cursor-not-allowed'
+                      >
+                        下一章節
+                      </button>
+                    ) : (
+                      <>
+                        <div className='flex gap-3'>
+                          <button
+                            type='button'
+                            onClick={async () => { await submitFieldVisit(true); router.push(`/listings/${listing.id}/supplementary`); }}
+                            disabled={!navState.isComplete || submitting}
+                            className='px-6 py-3 bg-[#1B3A6B] text-white rounded-md font-medium disabled:bg-gray-300 disabled:cursor-not-allowed'
+                          >
+                            去秘書後補
+                          </button>
+                          <button
+                            type='button'
+                            onClick={async () => { await submitFieldVisit(true); router.push(`/listings/${listing.id}/generating`); }}
+                            disabled={!navState.isComplete || submitting}
+                            className='px-6 py-3 bg-emerald-600 text-white rounded-md font-medium disabled:bg-gray-300 disabled:cursor-not-allowed'
+                          >
+                            直接產出文件
+                          </button>
+                        </div>
+                        <p className='text-sm text-gray-500'>選「去秘書後補」讓秘書補齊法律/行情資料後產出完整文件；選「直接產出」立即產出，秘書欄位將留空。</p>
+                      </>
+                    )}
+
+                    {!navState.isCurrentChapterComplete && navState.hasNextChapter && (
+                      <p className='text-sm text-amber-600'>本章節還有必填未完成</p>
+                    )}
+                    {!navState.isComplete && !navState.hasNextChapter && (
+                      <p className='text-sm text-amber-600'>還有必填欄位未完成，無法產出</p>
+                    )}
+
+                    <button
+                      type='button'
+                      onClick={async () => { await submitFieldVisit(false); router.push('/listings'); }}
+                      disabled={submitting}
+                      className='px-6 py-3 bg-gray-200 text-gray-700 rounded-md font-medium disabled:cursor-not-allowed self-start'
+                    >
+                      暫存草稿
+                    </button>
+
+                    {submitError && (
+                      <div className='text-sm text-red-600 mt-2'>
+                        {submitError}
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </section>

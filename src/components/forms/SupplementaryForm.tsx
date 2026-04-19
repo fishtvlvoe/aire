@@ -317,7 +317,7 @@ export default function SupplementaryForm({
               isComplete ? 'bg-green-600 hover:bg-green-700' : 'cursor-not-allowed bg-slate-400'
             }`}
           >
-            Generate Documents 產出文件
+            產出文件
           </button>
         </div>
       </div>
