@@ -248,62 +248,9 @@ export default function ListingFillPage() {
                   onNavigationStateChange={setNavState}
                 />
 
-                {navState && (
-                  <div className='flex flex-col gap-3 pt-6 border-t mt-6'>
-                    {navState.hasNextChapter ? (
-                      <button
-                        type='button'
-                        onClick={() => formRef.current?.goToNextChapter()}
-                        disabled={!navState.isCurrentChapterComplete || submitting}
-                        className='px-6 py-3 bg-[#1B3A6B] text-white rounded-md font-medium disabled:bg-gray-300 disabled:cursor-not-allowed'
-                      >
-                        下一章節
-                      </button>
-                    ) : (
-                      <>
-                        <div className='flex gap-3'>
-                          <button
-                            type='button'
-                            onClick={async () => { await submitFieldVisit(true); router.push(`/listings/${listing.id}/supplementary`); }}
-                            disabled={!navState.isComplete || submitting}
-                            className='px-6 py-3 bg-[#1B3A6B] text-white rounded-md font-medium disabled:bg-gray-300 disabled:cursor-not-allowed'
-                          >
-                            去秘書後補
-                          </button>
-                          <button
-                            type='button'
-                            onClick={async () => { await submitFieldVisit(true); router.push(`/listings/${listing.id}/generating`); }}
-                            disabled={!navState.isComplete || submitting}
-                            className='px-6 py-3 bg-emerald-600 text-white rounded-md font-medium disabled:bg-gray-300 disabled:cursor-not-allowed'
-                          >
-                            直接產出文件
-                          </button>
-                        </div>
-                        <p className='text-sm text-gray-500'>選「去秘書後補」讓秘書補齊法律/行情資料後產出完整文件；選「直接產出」立即產出，秘書欄位將留空。</p>
-                      </>
-                    )}
-
-                    {!navState.isCurrentChapterComplete && navState.hasNextChapter && (
-                      <p className='text-sm text-amber-600'>本章節還有必填未完成</p>
-                    )}
-                    {!navState.isComplete && !navState.hasNextChapter && (
-                      <p className='text-sm text-amber-600'>還有必填欄位未完成，無法產出</p>
-                    )}
-
-                    <button
-                      type='button'
-                      onClick={async () => { await submitFieldVisit(false); router.push('/listings'); }}
-                      disabled={submitting}
-                      className='px-6 py-3 bg-gray-200 text-gray-700 rounded-md font-medium disabled:cursor-not-allowed self-start'
-                    >
-                      暫存草稿
-                    </button>
-
-                    {submitError && (
-                      <div className='text-sm text-red-600 mt-2'>
-                        {submitError}
-                      </div>
-                    )}
+                {submitError && (
+                  <div className='text-sm text-red-600 mt-6 px-4 py-3 bg-red-50 rounded-md'>
+                    {submitError}
                   </div>
                 )}
               </>
@@ -311,6 +258,103 @@ export default function ListingFillPage() {
           </section>
         </main>
       </div>
+
+      {/* 右下角浮動按鈕群 */}
+      {navState && (
+        <div className='fixed bottom-6 right-6 z-50 flex gap-3'>
+          {/* 情境 1：hasNextChapter */}
+          {navState.hasNextChapter && (
+            <>
+              <button
+                type='button'
+                title='暫存草稿'
+                onClick={async () => { 
+                  try { 
+                    await submitFieldVisit(false); 
+                    router.push('/listings'); 
+                  } catch {} 
+                }}
+                disabled={submitting}
+                aria-label='暫存草稿'
+                className='w-14 h-14 rounded-full bg-gray-500 hover:bg-gray-600 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
+              >
+                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
+                  <path strokeLinecap='round' strokeLinejoin='round' d='M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15M9 12l3 3m0 0 3-3m-3 3V2.25' />
+                </svg>
+              </button>
+              <button
+                type='button'
+                title={navState.isCurrentChapterComplete ? '下一章節' : '本章節還有必填未完成'}
+                onClick={() => formRef.current?.goToNextChapter()}
+                disabled={!navState.isCurrentChapterComplete || submitting}
+                aria-label='下一章節'
+                className='w-14 h-14 rounded-full bg-[#1B3A6B] hover:bg-[#15294d] text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
+              >
+                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
+                  <path strokeLinecap='round' strokeLinejoin='round' d='M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3' />
+                </svg>
+              </button>
+            </>
+          )}
+
+          {/* 情境 2：最後一章 */}
+          {!navState.hasNextChapter && (
+            <>
+              <button
+                type='button'
+                title='暫存草稿'
+                onClick={async () => { 
+                  try { 
+                    await submitFieldVisit(false); 
+                    router.push('/listings'); 
+                  } catch {} 
+                }}
+                disabled={submitting}
+                aria-label='暫存草稿'
+                className='w-14 h-14 rounded-full bg-gray-500 hover:bg-gray-600 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
+              >
+                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
+                  <path strokeLinecap='round' strokeLinejoin='round' d='M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15M9 12l3 3m0 0 3-3m-3 3V2.25' />
+                </svg>
+              </button>
+              <button
+                type='button'
+                title={navState.isComplete ? '去秘書後補' : '還有必填欄位未完成'}
+                onClick={async () => { 
+                  try { 
+                    await submitFieldVisit(true); 
+                    router.push(`/listings/${listing!.id}/supplementary`); 
+                  } catch {} 
+                }}
+                disabled={!navState.isComplete || submitting}
+                aria-label='去秘書後補'
+                className='w-14 h-14 rounded-full bg-[#1B3A6B] hover:bg-[#15294d] text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
+              >
+                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
+                  <path strokeLinecap='round' strokeLinejoin='round' d='M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z' />
+                </svg>
+              </button>
+              <button
+                type='button'
+                title={navState.isComplete ? '直接產出文件' : '還有必填欄位未完成'}
+                onClick={async () => { 
+                  try { 
+                    await submitFieldVisit(true); 
+                    router.push(`/listings/${listing!.id}/generating`); 
+                  } catch {} 
+                }}
+                disabled={!navState.isComplete || submitting}
+                aria-label='直接產出文件'
+                className='w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg flex items-center justify-center transition hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed'
+              >
+                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-6 h-6'>
+                  <path strokeLinecap='round' strokeLinejoin='round' d='m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z' />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
