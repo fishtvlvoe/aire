@@ -346,7 +346,7 @@ export default function FieldVisitForm({
       <div className="mt-6">
         <p className="text-sm font-medium text-slate-700">章節導覽</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {chapters.map((chapter) => {
+          {chapters.filter((chapter) => chapter.fields.length > 0).map((chapter) => {
             const progress = chapterCompletion.find((item) => item.chapterId === chapter.id)
             const filledRequired = progress?.filledRequired ?? 0
             const totalRequired = progress?.totalRequired ?? 0
