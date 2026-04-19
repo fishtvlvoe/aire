@@ -79,14 +79,14 @@
 
 ## 6. 驗收（Wave 6）
 
-- [ ] 6.1 [Tool: codex] `npx tsc --noEmit` 確認本 change 新增檔案 0 TS 錯誤（既有 NextResponse.data 測試錯誤屬 noise，可忽略）
-- [ ] 6.2 [Tool: codex] `npm run lint` 0 errors
-- [ ] 6.3 [Tool: codex] `npm run build` 成功
-- [ ] 6.4 [Tool: codex] `npm test` 全綠（含 3 個新測試檔）
+- [x] 6.1 [Tool: codex] `npx tsc --noEmit` 確認本 change 新增檔案 0 TS 錯誤（既有 NextResponse.data 測試錯誤屬 noise，可忽略）
+- [x] 6.2 [Tool: codex] `npm run lint` 0 errors
+- [x] 6.3 [Tool: codex] `npm run build` 成功
+- [x] 6.4 [Tool: codex] `npm test` 全綠（含 3 個新測試檔）
 - [x] 6.5 [gemini fallback] `kimi_analyze`（fallback gemini）correctness 濾鏡審 diff：聚焦 FieldVisitForm forwardRef + onNavigationStateChange 是否會造成 infinite re-render、useEffect 依賴陣列是否正確、fill page 按鈕條件分支是否窮舉
 - [x] 6.6 [gemini fallback] `kimi_analyze`（fallback gemini）i18n 掃描濾鏡：針對 1.4 + 4.4 的修正結果，二次 grep 確認無遺漏中英混雜 string literals；排除白名單
-- [ ] 6.7 [Tool: codex] 手動試跑清理腳本：`cp listings.db listings.db.bak.preview && npx tsx scripts/cleanup-empty-drafts.ts` → 確認刪除 count 合理（不會大於 sidebar 目測空 draft 數量 +/- 2）；若 count 異常大則停止並回報
-- [ ] 6.8 [Tool: codex] `npm run dev` 手動驗收：(a) 新 listing 走到中段看到「下一章節」 (b) 必填未完成時「下一章節」disabled 有提示 (c) 最後一章未完成看到「儲存並產出」disabled 有提示 (d) 全填完點「儲存並產出」跳 /generating (e) 任何時候點「暫存草稿」跳回 /listings (f) 側邊欄不再有空草稿 (g) documents 頁按鈕是「產出文件」純中文
+- [x] 6.7 [Tool: codex] 手動試跑清理腳本：刪除 10 筆空 draft，剩 3 筆有效物件，count 合理
+- [x] 6.8 [Tool: codex] `npm run dev` 手動驗收：使用者確認流程順暢（章節切換後自動捲回表單頂端）
 - [x] 6.9 git commit ✓
 - [x] 6.10 git push ✓
 

@@ -1,0 +1,1435 @@
+# document-generation Specification
+
+## Purpose
+
+TBD - created by archiving change 'three-stage-listing-workflow'. Update Purpose after archive.
+
+## Requirements
+
+### Requirement: Trigger document generation
+
+The system SHALL generate all five documents in a single API call when the secretary clicks "Generate Documents" and the record status is "ready-for-generation". The system SHALL call Claude API with all field-visit and supplementary data as structured input.
+
+#### Scenario: Successful document generation
+
+- **WHEN** a secretary clicks "Generate Documents" on a record with status "ready-for-generation"
+- **THEN** the system SHALL call Claude API once with the complete listing data
+- **AND** the system SHALL generate all five document contents in the response
+- **AND** the system SHALL update record status to "documents-ready"
+- **AND** the system SHALL display a success message with links to each document
+
+#### Scenario: Document generation fails due to API error
+
+- **WHEN** the Claude API call fails or times out
+- **THEN** the system SHALL display an error message with the failure reason
+- **AND** the system SHALL keep record status as "ready-for-generation"
+- **AND** the system SHALL allow the secretary to retry
+
+
+<!-- @trace
+source: three-stage-listing-workflow
+updated: 2026-04-19
+code:
+  - stitch_ai/estate_logic/DESIGN.md
+  - .opencode/commands/spectra-archive.md
+  - docs/0417-old/不動產說明書14.pdf
+  - docker/first-login.sh
+  - docs/0417-old/不動產說明書6.pdf
+  - src/app/api/health/route.ts
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - .spectra.yaml
+  - .github/prompts/spectra-ingest.prompt.md
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - docker/start.bat
+  - src/app/listings/new/page.tsx
+  - docs/0417-old/店面_秘書後補清單.docx
+  - src/components/Sidebar.tsx
+  - src/lib/db/index.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/route.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書13.pdf
+  - docs/0417-old/不動產說明說16.pdf
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/codex-client/index.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/index.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - stitch_ai/ai/code.html
+  - src/lib/property-types/schemas/residential-land.ts
+  - vitest.config.ts
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - .opencode/skills/spectra-debug/SKILL.md
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - docs/0417-old/不動產說明書4.pdf
+  - scripts/cleanup-empty-drafts.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - stitch_ai/estate_elite/DESIGN.md
+  - .github/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - docs/0417-old/土地物調表-母版.docx
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - src/app/page.tsx
+  - src/lib/document-generator/md/dm.ts
+  - docker-compose.yml
+  - .github/skills/spectra-apply/SKILL.md
+  - docs/0417-old/建物物調表-母版.dot
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/components/Stepper.tsx
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - stitch_ai/_2/screen.png
+  - .opencode/commands/spectra-ingest.md
+  - .opencode/commands/spectra-apply.md
+  - docker/first-login.bat
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - .opencode/commands/spectra-propose.md
+  - docs/client-questions.md
+  - .github/skills/spectra-discuss/SKILL.md
+  - docs/0417-old/不動產說明書8.pdf
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - AGENTS.md
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - .opencode/commands/spectra-debug.md
+  - next.config.ts
+  - src/lib/property-types/schemas/index.ts
+  - .cursorrules
+  - docs/0417-old/農地_現場必問清單.docx
+  - docker/start.sh
+  - src/lib/codex-client/types.ts
+  - docs/0417-old/周遭.pdf
+  - src/lib/codex-client/adapters/ollama.ts
+  - .opencode/commands/spectra-ask.md
+  - docs/0417-old/不動產書說明說7.pdf
+  - docs/release-note-v3.md
+  - src/lib/codex-client/adapters/codex.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/release-note-v3.0.0.md
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/pre-commission/new/page.tsx
+  - src/components/outputs/index.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/lib/storage/index.ts
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/components/outputs/Listing591Output.tsx
+  - src/lib/document-generator/md/listing591.ts
+  - .github/skills/spectra-audit/SKILL.md
+  - .github/prompts/spectra-discuss.prompt.md
+  - docs/0417-old/不動產說明書9.pdf
+  - .github/prompts/spectra-archive.prompt.md
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/installation-guide.md
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/db/schema.ts
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - src/lib/document-generator/types.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-audit.prompt.md
+  - src/lib/document-generator/index.ts
+  - docs/0417-old/套房_秘書後補清單.docx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/property-types/schemas/farmland.ts
+  - docs/0417-old/不動產說明書12.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/dossier-chapter-structure.md
+  - src/components/forms/navigation-helpers.ts
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/app/api/pre-commission/route.ts
+  - stitch_ai/_1/screen.png
+  - .github/skills/spectra-propose/SKILL.md
+  - src/lib/document-generator/md/survey.ts
+  - src/components/outputs/RegenerateButton.tsx
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - package.json
+  - .github/prompts/spectra-ask.prompt.md
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - .github/prompts/spectra-debug.prompt.md
+  - docs/0417-old/不動產說明書3.pdf
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/pdf-generator/templates/dossier.css
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/suite.ts
+  - Dockerfile
+  - docs/0417-old/不動產說明說15.pdf
+  - src/app/listings/[id]/fill/page.tsx
+  - docker/安裝說明.md
+  - src/lib/form-renderer/chapter-grouper.ts
+  - stitch_ai/ai/screen.png
+  - src/app/api/listings/route.ts
+  - src/lib/pre-commission/lookup.ts
+  - stitch_ai/_2/code.html
+  - docs/0417-old/公寓_現場必問清單.docx
+  - GEMINI.md
+  - .opencode/skills/spectra-apply/SKILL.md
+  - src/app/api/listings/[id]/photos/route.ts
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/lib/property-types/schemas/shop.ts
+  - .github/skills/spectra-ask/SKILL.md
+  - docker/compose.yaml
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/不動產說明書5.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - .github/skills/spectra-debug/SKILL.md
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - CLAUDE.md
+  - docs/0417-old/不動產說明書2.pdf
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/店面_現場必問清單.docx
+  - docs/0417-new/建安不動產欄位總表.md
+  - .github/prompts/spectra-propose.prompt.md
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/lib/document-generator/md/social.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/factory.ts
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/不動產說明書1.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - stitch_ai/_1/code.html
+  - src/lib/codex-client/adapters/claude-code.ts
+  - src/lib/form-renderer/index.ts
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/listings/page.tsx
+  - .opencode/commands/spectra-audit.md
+  - docs/dossier-implementation-spec.md
+tests:
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/outputs/__tests__/social-post-limits.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/db/__tests__/regenerate.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/document-generator/__tests__/script-validation.test.ts
+-->
+
+---
+### Requirement: Real estate disclosure document (PDF)
+
+The system SHALL generate a real estate disclosure document in PDF format using the company's standard template. The PDF SHALL include property basic information, land registration summary, mortgage/lien status, land use zoning, and agent contact details.
+
+#### Scenario: PDF is generated and available for download
+
+- **WHEN** document generation completes successfully
+- **THEN** the system SHALL make the real estate disclosure PDF available for download via a download button
+- **AND** the PDF SHALL render correctly when printed on A4 paper
+
+#### Scenario: PDF includes all required fields
+
+- **WHEN** the PDF is generated
+- **THEN** the PDF SHALL include: property address, land area or floor area, asking price, land registration transcript summary, mortgage/lien status, land use zoning, and agent name and contact
+
+
+<!-- @trace
+source: three-stage-listing-workflow
+updated: 2026-04-19
+code:
+  - stitch_ai/estate_logic/DESIGN.md
+  - .opencode/commands/spectra-archive.md
+  - docs/0417-old/不動產說明書14.pdf
+  - docker/first-login.sh
+  - docs/0417-old/不動產說明書6.pdf
+  - src/app/api/health/route.ts
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - .spectra.yaml
+  - .github/prompts/spectra-ingest.prompt.md
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - docker/start.bat
+  - src/app/listings/new/page.tsx
+  - docs/0417-old/店面_秘書後補清單.docx
+  - src/components/Sidebar.tsx
+  - src/lib/db/index.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/route.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書13.pdf
+  - docs/0417-old/不動產說明說16.pdf
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/codex-client/index.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/index.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - stitch_ai/ai/code.html
+  - src/lib/property-types/schemas/residential-land.ts
+  - vitest.config.ts
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - .opencode/skills/spectra-debug/SKILL.md
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - docs/0417-old/不動產說明書4.pdf
+  - scripts/cleanup-empty-drafts.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - stitch_ai/estate_elite/DESIGN.md
+  - .github/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - docs/0417-old/土地物調表-母版.docx
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - src/app/page.tsx
+  - src/lib/document-generator/md/dm.ts
+  - docker-compose.yml
+  - .github/skills/spectra-apply/SKILL.md
+  - docs/0417-old/建物物調表-母版.dot
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/components/Stepper.tsx
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - stitch_ai/_2/screen.png
+  - .opencode/commands/spectra-ingest.md
+  - .opencode/commands/spectra-apply.md
+  - docker/first-login.bat
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - .opencode/commands/spectra-propose.md
+  - docs/client-questions.md
+  - .github/skills/spectra-discuss/SKILL.md
+  - docs/0417-old/不動產說明書8.pdf
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - AGENTS.md
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - .opencode/commands/spectra-debug.md
+  - next.config.ts
+  - src/lib/property-types/schemas/index.ts
+  - .cursorrules
+  - docs/0417-old/農地_現場必問清單.docx
+  - docker/start.sh
+  - src/lib/codex-client/types.ts
+  - docs/0417-old/周遭.pdf
+  - src/lib/codex-client/adapters/ollama.ts
+  - .opencode/commands/spectra-ask.md
+  - docs/0417-old/不動產書說明說7.pdf
+  - docs/release-note-v3.md
+  - src/lib/codex-client/adapters/codex.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/release-note-v3.0.0.md
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/pre-commission/new/page.tsx
+  - src/components/outputs/index.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/lib/storage/index.ts
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/components/outputs/Listing591Output.tsx
+  - src/lib/document-generator/md/listing591.ts
+  - .github/skills/spectra-audit/SKILL.md
+  - .github/prompts/spectra-discuss.prompt.md
+  - docs/0417-old/不動產說明書9.pdf
+  - .github/prompts/spectra-archive.prompt.md
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/installation-guide.md
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/db/schema.ts
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - src/lib/document-generator/types.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-audit.prompt.md
+  - src/lib/document-generator/index.ts
+  - docs/0417-old/套房_秘書後補清單.docx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/property-types/schemas/farmland.ts
+  - docs/0417-old/不動產說明書12.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/dossier-chapter-structure.md
+  - src/components/forms/navigation-helpers.ts
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/app/api/pre-commission/route.ts
+  - stitch_ai/_1/screen.png
+  - .github/skills/spectra-propose/SKILL.md
+  - src/lib/document-generator/md/survey.ts
+  - src/components/outputs/RegenerateButton.tsx
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - package.json
+  - .github/prompts/spectra-ask.prompt.md
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - .github/prompts/spectra-debug.prompt.md
+  - docs/0417-old/不動產說明書3.pdf
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/pdf-generator/templates/dossier.css
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/suite.ts
+  - Dockerfile
+  - docs/0417-old/不動產說明說15.pdf
+  - src/app/listings/[id]/fill/page.tsx
+  - docker/安裝說明.md
+  - src/lib/form-renderer/chapter-grouper.ts
+  - stitch_ai/ai/screen.png
+  - src/app/api/listings/route.ts
+  - src/lib/pre-commission/lookup.ts
+  - stitch_ai/_2/code.html
+  - docs/0417-old/公寓_現場必問清單.docx
+  - GEMINI.md
+  - .opencode/skills/spectra-apply/SKILL.md
+  - src/app/api/listings/[id]/photos/route.ts
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/lib/property-types/schemas/shop.ts
+  - .github/skills/spectra-ask/SKILL.md
+  - docker/compose.yaml
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/不動產說明書5.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - .github/skills/spectra-debug/SKILL.md
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - CLAUDE.md
+  - docs/0417-old/不動產說明書2.pdf
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/店面_現場必問清單.docx
+  - docs/0417-new/建安不動產欄位總表.md
+  - .github/prompts/spectra-propose.prompt.md
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/lib/document-generator/md/social.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/factory.ts
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/不動產說明書1.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - stitch_ai/_1/code.html
+  - src/lib/codex-client/adapters/claude-code.ts
+  - src/lib/form-renderer/index.ts
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/listings/page.tsx
+  - .opencode/commands/spectra-audit.md
+  - docs/dossier-implementation-spec.md
+tests:
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/outputs/__tests__/social-post-limits.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/db/__tests__/regenerate.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/document-generator/__tests__/script-validation.test.ts
+-->
+
+---
+### Requirement: Property condition survey form (PDF)
+
+The system SHALL generate a property condition survey form in PDF format using the company's standard template. This document is intended to be printed and given to prospective buyers during property viewings.
+
+#### Scenario: Survey form is generated and available for download
+
+- **WHEN** document generation completes successfully
+- **THEN** the system SHALL make the property condition survey PDF available for download
+- **AND** the PDF SHALL be formatted for A4 single-page printing
+
+
+<!-- @trace
+source: three-stage-listing-workflow
+updated: 2026-04-19
+code:
+  - stitch_ai/estate_logic/DESIGN.md
+  - .opencode/commands/spectra-archive.md
+  - docs/0417-old/不動產說明書14.pdf
+  - docker/first-login.sh
+  - docs/0417-old/不動產說明書6.pdf
+  - src/app/api/health/route.ts
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - .spectra.yaml
+  - .github/prompts/spectra-ingest.prompt.md
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - docker/start.bat
+  - src/app/listings/new/page.tsx
+  - docs/0417-old/店面_秘書後補清單.docx
+  - src/components/Sidebar.tsx
+  - src/lib/db/index.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/route.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書13.pdf
+  - docs/0417-old/不動產說明說16.pdf
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/codex-client/index.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/index.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - stitch_ai/ai/code.html
+  - src/lib/property-types/schemas/residential-land.ts
+  - vitest.config.ts
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - .opencode/skills/spectra-debug/SKILL.md
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - docs/0417-old/不動產說明書4.pdf
+  - scripts/cleanup-empty-drafts.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - stitch_ai/estate_elite/DESIGN.md
+  - .github/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - docs/0417-old/土地物調表-母版.docx
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - src/app/page.tsx
+  - src/lib/document-generator/md/dm.ts
+  - docker-compose.yml
+  - .github/skills/spectra-apply/SKILL.md
+  - docs/0417-old/建物物調表-母版.dot
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/components/Stepper.tsx
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - stitch_ai/_2/screen.png
+  - .opencode/commands/spectra-ingest.md
+  - .opencode/commands/spectra-apply.md
+  - docker/first-login.bat
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - .opencode/commands/spectra-propose.md
+  - docs/client-questions.md
+  - .github/skills/spectra-discuss/SKILL.md
+  - docs/0417-old/不動產說明書8.pdf
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - AGENTS.md
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - .opencode/commands/spectra-debug.md
+  - next.config.ts
+  - src/lib/property-types/schemas/index.ts
+  - .cursorrules
+  - docs/0417-old/農地_現場必問清單.docx
+  - docker/start.sh
+  - src/lib/codex-client/types.ts
+  - docs/0417-old/周遭.pdf
+  - src/lib/codex-client/adapters/ollama.ts
+  - .opencode/commands/spectra-ask.md
+  - docs/0417-old/不動產書說明說7.pdf
+  - docs/release-note-v3.md
+  - src/lib/codex-client/adapters/codex.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/release-note-v3.0.0.md
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/pre-commission/new/page.tsx
+  - src/components/outputs/index.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/lib/storage/index.ts
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/components/outputs/Listing591Output.tsx
+  - src/lib/document-generator/md/listing591.ts
+  - .github/skills/spectra-audit/SKILL.md
+  - .github/prompts/spectra-discuss.prompt.md
+  - docs/0417-old/不動產說明書9.pdf
+  - .github/prompts/spectra-archive.prompt.md
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/installation-guide.md
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/db/schema.ts
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - src/lib/document-generator/types.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-audit.prompt.md
+  - src/lib/document-generator/index.ts
+  - docs/0417-old/套房_秘書後補清單.docx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/property-types/schemas/farmland.ts
+  - docs/0417-old/不動產說明書12.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/dossier-chapter-structure.md
+  - src/components/forms/navigation-helpers.ts
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/app/api/pre-commission/route.ts
+  - stitch_ai/_1/screen.png
+  - .github/skills/spectra-propose/SKILL.md
+  - src/lib/document-generator/md/survey.ts
+  - src/components/outputs/RegenerateButton.tsx
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - package.json
+  - .github/prompts/spectra-ask.prompt.md
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - .github/prompts/spectra-debug.prompt.md
+  - docs/0417-old/不動產說明書3.pdf
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/pdf-generator/templates/dossier.css
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/suite.ts
+  - Dockerfile
+  - docs/0417-old/不動產說明說15.pdf
+  - src/app/listings/[id]/fill/page.tsx
+  - docker/安裝說明.md
+  - src/lib/form-renderer/chapter-grouper.ts
+  - stitch_ai/ai/screen.png
+  - src/app/api/listings/route.ts
+  - src/lib/pre-commission/lookup.ts
+  - stitch_ai/_2/code.html
+  - docs/0417-old/公寓_現場必問清單.docx
+  - GEMINI.md
+  - .opencode/skills/spectra-apply/SKILL.md
+  - src/app/api/listings/[id]/photos/route.ts
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/lib/property-types/schemas/shop.ts
+  - .github/skills/spectra-ask/SKILL.md
+  - docker/compose.yaml
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/不動產說明書5.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - .github/skills/spectra-debug/SKILL.md
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - CLAUDE.md
+  - docs/0417-old/不動產說明書2.pdf
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/店面_現場必問清單.docx
+  - docs/0417-new/建安不動產欄位總表.md
+  - .github/prompts/spectra-propose.prompt.md
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/lib/document-generator/md/social.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/factory.ts
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/不動產說明書1.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - stitch_ai/_1/code.html
+  - src/lib/codex-client/adapters/claude-code.ts
+  - src/lib/form-renderer/index.ts
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/listings/page.tsx
+  - .opencode/commands/spectra-audit.md
+  - docs/dossier-implementation-spec.md
+tests:
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/outputs/__tests__/social-post-limits.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/db/__tests__/regenerate.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/document-generator/__tests__/script-validation.test.ts
+-->
+
+---
+### Requirement: 591 listing text (plain text)
+
+The system SHALL generate a 591 platform listing description as plain text. The content SHALL follow 591 platform conventions and be ready to copy and paste directly.
+
+#### Scenario: 591 text is displayed for copying
+
+- **WHEN** document generation completes successfully
+- **THEN** the system SHALL display the 591 listing text in a read-only text area
+- **AND** the system SHALL provide a "Copy" button that copies the full text to clipboard
+
+#### Scenario: 591 text does not contain markdown formatting
+
+- **WHEN** the 591 text is generated
+- **THEN** the text SHALL NOT contain markdown symbols (**, ##, -, *) that would appear as literal characters on the 591 platform
+
+
+<!-- @trace
+source: three-stage-listing-workflow
+updated: 2026-04-19
+code:
+  - stitch_ai/estate_logic/DESIGN.md
+  - .opencode/commands/spectra-archive.md
+  - docs/0417-old/不動產說明書14.pdf
+  - docker/first-login.sh
+  - docs/0417-old/不動產說明書6.pdf
+  - src/app/api/health/route.ts
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - .spectra.yaml
+  - .github/prompts/spectra-ingest.prompt.md
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - docker/start.bat
+  - src/app/listings/new/page.tsx
+  - docs/0417-old/店面_秘書後補清單.docx
+  - src/components/Sidebar.tsx
+  - src/lib/db/index.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/route.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書13.pdf
+  - docs/0417-old/不動產說明說16.pdf
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/codex-client/index.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/index.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - stitch_ai/ai/code.html
+  - src/lib/property-types/schemas/residential-land.ts
+  - vitest.config.ts
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - .opencode/skills/spectra-debug/SKILL.md
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - docs/0417-old/不動產說明書4.pdf
+  - scripts/cleanup-empty-drafts.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - stitch_ai/estate_elite/DESIGN.md
+  - .github/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - docs/0417-old/土地物調表-母版.docx
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - src/app/page.tsx
+  - src/lib/document-generator/md/dm.ts
+  - docker-compose.yml
+  - .github/skills/spectra-apply/SKILL.md
+  - docs/0417-old/建物物調表-母版.dot
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/components/Stepper.tsx
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - stitch_ai/_2/screen.png
+  - .opencode/commands/spectra-ingest.md
+  - .opencode/commands/spectra-apply.md
+  - docker/first-login.bat
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - .opencode/commands/spectra-propose.md
+  - docs/client-questions.md
+  - .github/skills/spectra-discuss/SKILL.md
+  - docs/0417-old/不動產說明書8.pdf
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - AGENTS.md
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - .opencode/commands/spectra-debug.md
+  - next.config.ts
+  - src/lib/property-types/schemas/index.ts
+  - .cursorrules
+  - docs/0417-old/農地_現場必問清單.docx
+  - docker/start.sh
+  - src/lib/codex-client/types.ts
+  - docs/0417-old/周遭.pdf
+  - src/lib/codex-client/adapters/ollama.ts
+  - .opencode/commands/spectra-ask.md
+  - docs/0417-old/不動產書說明說7.pdf
+  - docs/release-note-v3.md
+  - src/lib/codex-client/adapters/codex.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/release-note-v3.0.0.md
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/pre-commission/new/page.tsx
+  - src/components/outputs/index.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/lib/storage/index.ts
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/components/outputs/Listing591Output.tsx
+  - src/lib/document-generator/md/listing591.ts
+  - .github/skills/spectra-audit/SKILL.md
+  - .github/prompts/spectra-discuss.prompt.md
+  - docs/0417-old/不動產說明書9.pdf
+  - .github/prompts/spectra-archive.prompt.md
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/installation-guide.md
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/db/schema.ts
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - src/lib/document-generator/types.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-audit.prompt.md
+  - src/lib/document-generator/index.ts
+  - docs/0417-old/套房_秘書後補清單.docx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/property-types/schemas/farmland.ts
+  - docs/0417-old/不動產說明書12.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/dossier-chapter-structure.md
+  - src/components/forms/navigation-helpers.ts
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/app/api/pre-commission/route.ts
+  - stitch_ai/_1/screen.png
+  - .github/skills/spectra-propose/SKILL.md
+  - src/lib/document-generator/md/survey.ts
+  - src/components/outputs/RegenerateButton.tsx
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - package.json
+  - .github/prompts/spectra-ask.prompt.md
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - .github/prompts/spectra-debug.prompt.md
+  - docs/0417-old/不動產說明書3.pdf
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/pdf-generator/templates/dossier.css
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/suite.ts
+  - Dockerfile
+  - docs/0417-old/不動產說明說15.pdf
+  - src/app/listings/[id]/fill/page.tsx
+  - docker/安裝說明.md
+  - src/lib/form-renderer/chapter-grouper.ts
+  - stitch_ai/ai/screen.png
+  - src/app/api/listings/route.ts
+  - src/lib/pre-commission/lookup.ts
+  - stitch_ai/_2/code.html
+  - docs/0417-old/公寓_現場必問清單.docx
+  - GEMINI.md
+  - .opencode/skills/spectra-apply/SKILL.md
+  - src/app/api/listings/[id]/photos/route.ts
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/lib/property-types/schemas/shop.ts
+  - .github/skills/spectra-ask/SKILL.md
+  - docker/compose.yaml
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/不動產說明書5.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - .github/skills/spectra-debug/SKILL.md
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - CLAUDE.md
+  - docs/0417-old/不動產說明書2.pdf
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/店面_現場必問清單.docx
+  - docs/0417-new/建安不動產欄位總表.md
+  - .github/prompts/spectra-propose.prompt.md
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/lib/document-generator/md/social.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/factory.ts
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/不動產說明書1.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - stitch_ai/_1/code.html
+  - src/lib/codex-client/adapters/claude-code.ts
+  - src/lib/form-renderer/index.ts
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/listings/page.tsx
+  - .opencode/commands/spectra-audit.md
+  - docs/dossier-implementation-spec.md
+tests:
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/outputs/__tests__/social-post-limits.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/db/__tests__/regenerate.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/document-generator/__tests__/script-validation.test.ts
+-->
+
+---
+### Requirement: Sales DM copy (PDF)
+
+The system SHALL generate sales DM copy as a PDF document. The PDF SHALL include property highlights, key selling points, and agent contact information, formatted for both print distribution and digital delivery.
+
+#### Scenario: Sales DM PDF is generated and available for download
+
+- **WHEN** document generation completes successfully
+- **THEN** the system SHALL make the sales DM PDF available for download
+- **AND** the PDF SHALL be formatted for A4 printing or digital sharing
+
+
+<!-- @trace
+source: three-stage-listing-workflow
+updated: 2026-04-19
+code:
+  - stitch_ai/estate_logic/DESIGN.md
+  - .opencode/commands/spectra-archive.md
+  - docs/0417-old/不動產說明書14.pdf
+  - docker/first-login.sh
+  - docs/0417-old/不動產說明書6.pdf
+  - src/app/api/health/route.ts
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - .spectra.yaml
+  - .github/prompts/spectra-ingest.prompt.md
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - docker/start.bat
+  - src/app/listings/new/page.tsx
+  - docs/0417-old/店面_秘書後補清單.docx
+  - src/components/Sidebar.tsx
+  - src/lib/db/index.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/route.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書13.pdf
+  - docs/0417-old/不動產說明說16.pdf
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/codex-client/index.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/index.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - stitch_ai/ai/code.html
+  - src/lib/property-types/schemas/residential-land.ts
+  - vitest.config.ts
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - .opencode/skills/spectra-debug/SKILL.md
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - docs/0417-old/不動產說明書4.pdf
+  - scripts/cleanup-empty-drafts.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - stitch_ai/estate_elite/DESIGN.md
+  - .github/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - docs/0417-old/土地物調表-母版.docx
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - src/app/page.tsx
+  - src/lib/document-generator/md/dm.ts
+  - docker-compose.yml
+  - .github/skills/spectra-apply/SKILL.md
+  - docs/0417-old/建物物調表-母版.dot
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/components/Stepper.tsx
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - stitch_ai/_2/screen.png
+  - .opencode/commands/spectra-ingest.md
+  - .opencode/commands/spectra-apply.md
+  - docker/first-login.bat
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - .opencode/commands/spectra-propose.md
+  - docs/client-questions.md
+  - .github/skills/spectra-discuss/SKILL.md
+  - docs/0417-old/不動產說明書8.pdf
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - AGENTS.md
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - .opencode/commands/spectra-debug.md
+  - next.config.ts
+  - src/lib/property-types/schemas/index.ts
+  - .cursorrules
+  - docs/0417-old/農地_現場必問清單.docx
+  - docker/start.sh
+  - src/lib/codex-client/types.ts
+  - docs/0417-old/周遭.pdf
+  - src/lib/codex-client/adapters/ollama.ts
+  - .opencode/commands/spectra-ask.md
+  - docs/0417-old/不動產書說明說7.pdf
+  - docs/release-note-v3.md
+  - src/lib/codex-client/adapters/codex.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/release-note-v3.0.0.md
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/pre-commission/new/page.tsx
+  - src/components/outputs/index.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/lib/storage/index.ts
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/components/outputs/Listing591Output.tsx
+  - src/lib/document-generator/md/listing591.ts
+  - .github/skills/spectra-audit/SKILL.md
+  - .github/prompts/spectra-discuss.prompt.md
+  - docs/0417-old/不動產說明書9.pdf
+  - .github/prompts/spectra-archive.prompt.md
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/installation-guide.md
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/db/schema.ts
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - src/lib/document-generator/types.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-audit.prompt.md
+  - src/lib/document-generator/index.ts
+  - docs/0417-old/套房_秘書後補清單.docx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/property-types/schemas/farmland.ts
+  - docs/0417-old/不動產說明書12.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/dossier-chapter-structure.md
+  - src/components/forms/navigation-helpers.ts
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/app/api/pre-commission/route.ts
+  - stitch_ai/_1/screen.png
+  - .github/skills/spectra-propose/SKILL.md
+  - src/lib/document-generator/md/survey.ts
+  - src/components/outputs/RegenerateButton.tsx
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - package.json
+  - .github/prompts/spectra-ask.prompt.md
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - .github/prompts/spectra-debug.prompt.md
+  - docs/0417-old/不動產說明書3.pdf
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/pdf-generator/templates/dossier.css
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/suite.ts
+  - Dockerfile
+  - docs/0417-old/不動產說明說15.pdf
+  - src/app/listings/[id]/fill/page.tsx
+  - docker/安裝說明.md
+  - src/lib/form-renderer/chapter-grouper.ts
+  - stitch_ai/ai/screen.png
+  - src/app/api/listings/route.ts
+  - src/lib/pre-commission/lookup.ts
+  - stitch_ai/_2/code.html
+  - docs/0417-old/公寓_現場必問清單.docx
+  - GEMINI.md
+  - .opencode/skills/spectra-apply/SKILL.md
+  - src/app/api/listings/[id]/photos/route.ts
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/lib/property-types/schemas/shop.ts
+  - .github/skills/spectra-ask/SKILL.md
+  - docker/compose.yaml
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/不動產說明書5.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - .github/skills/spectra-debug/SKILL.md
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - CLAUDE.md
+  - docs/0417-old/不動產說明書2.pdf
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/店面_現場必問清單.docx
+  - docs/0417-new/建安不動產欄位總表.md
+  - .github/prompts/spectra-propose.prompt.md
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/lib/document-generator/md/social.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/factory.ts
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/不動產說明書1.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - stitch_ai/_1/code.html
+  - src/lib/codex-client/adapters/claude-code.ts
+  - src/lib/form-renderer/index.ts
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/listings/page.tsx
+  - .opencode/commands/spectra-audit.md
+  - docs/dossier-implementation-spec.md
+tests:
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/outputs/__tests__/social-post-limits.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/db/__tests__/regenerate.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/document-generator/__tests__/script-validation.test.ts
+-->
+
+---
+### Requirement: Social media referral posts (plain text)
+
+The system SHALL generate referral post copy for five platforms: Facebook, Instagram, Threads, TikTok, and YouTube. Each platform's post SHALL respect that platform's character limits and formatting conventions. The posts SHALL be displayed as plain text with individual copy buttons.
+
+#### Scenario: Each platform post is displayed separately
+
+- **WHEN** document generation completes successfully
+- **THEN** the system SHALL display five separate plain-text areas, one per platform, each with its own "Copy" button
+
+#### Scenario: Platform character limits are respected
+
+- **WHEN** the social media posts are generated
+- **THEN** the Facebook post SHALL NOT exceed 63,206 characters
+- **AND** the Threads post SHALL NOT exceed 500 characters
+- **AND** the TikTok post SHALL NOT exceed 2,200 characters
+- **AND** the Instagram caption SHALL NOT exceed 2,200 characters
+- **AND** the YouTube description SHALL NOT exceed 5,000 characters
+
+#### Scenario: Posts do not contain markdown formatting
+
+- **WHEN** any social media post is generated
+- **THEN** the text SHALL NOT contain markdown symbols that would appear as literal characters on social platforms
+
+<!-- @trace
+source: three-stage-listing-workflow
+updated: 2026-04-19
+code:
+  - stitch_ai/estate_logic/DESIGN.md
+  - .opencode/commands/spectra-archive.md
+  - docs/0417-old/不動產說明書14.pdf
+  - docker/first-login.sh
+  - docs/0417-old/不動產說明書6.pdf
+  - src/app/api/health/route.ts
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - .spectra.yaml
+  - .github/prompts/spectra-ingest.prompt.md
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - docker/start.bat
+  - src/app/listings/new/page.tsx
+  - docs/0417-old/店面_秘書後補清單.docx
+  - src/components/Sidebar.tsx
+  - src/lib/db/index.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/route.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書13.pdf
+  - docs/0417-old/不動產說明說16.pdf
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/codex-client/index.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/index.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - stitch_ai/ai/code.html
+  - src/lib/property-types/schemas/residential-land.ts
+  - vitest.config.ts
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - .opencode/skills/spectra-debug/SKILL.md
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - docs/0417-old/不動產說明書4.pdf
+  - scripts/cleanup-empty-drafts.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - stitch_ai/estate_elite/DESIGN.md
+  - .github/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - docs/0417-old/土地物調表-母版.docx
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - src/app/page.tsx
+  - src/lib/document-generator/md/dm.ts
+  - docker-compose.yml
+  - .github/skills/spectra-apply/SKILL.md
+  - docs/0417-old/建物物調表-母版.dot
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/components/Stepper.tsx
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - stitch_ai/_2/screen.png
+  - .opencode/commands/spectra-ingest.md
+  - .opencode/commands/spectra-apply.md
+  - docker/first-login.bat
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - .opencode/commands/spectra-propose.md
+  - docs/client-questions.md
+  - .github/skills/spectra-discuss/SKILL.md
+  - docs/0417-old/不動產說明書8.pdf
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - AGENTS.md
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - .opencode/commands/spectra-debug.md
+  - next.config.ts
+  - src/lib/property-types/schemas/index.ts
+  - .cursorrules
+  - docs/0417-old/農地_現場必問清單.docx
+  - docker/start.sh
+  - src/lib/codex-client/types.ts
+  - docs/0417-old/周遭.pdf
+  - src/lib/codex-client/adapters/ollama.ts
+  - .opencode/commands/spectra-ask.md
+  - docs/0417-old/不動產書說明說7.pdf
+  - docs/release-note-v3.md
+  - src/lib/codex-client/adapters/codex.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/release-note-v3.0.0.md
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/pre-commission/new/page.tsx
+  - src/components/outputs/index.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/lib/storage/index.ts
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/components/outputs/Listing591Output.tsx
+  - src/lib/document-generator/md/listing591.ts
+  - .github/skills/spectra-audit/SKILL.md
+  - .github/prompts/spectra-discuss.prompt.md
+  - docs/0417-old/不動產說明書9.pdf
+  - .github/prompts/spectra-archive.prompt.md
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/installation-guide.md
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/db/schema.ts
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - src/lib/document-generator/types.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-audit.prompt.md
+  - src/lib/document-generator/index.ts
+  - docs/0417-old/套房_秘書後補清單.docx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/property-types/schemas/farmland.ts
+  - docs/0417-old/不動產說明書12.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/dossier-chapter-structure.md
+  - src/components/forms/navigation-helpers.ts
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/app/api/pre-commission/route.ts
+  - stitch_ai/_1/screen.png
+  - .github/skills/spectra-propose/SKILL.md
+  - src/lib/document-generator/md/survey.ts
+  - src/components/outputs/RegenerateButton.tsx
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - package.json
+  - .github/prompts/spectra-ask.prompt.md
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - .github/prompts/spectra-debug.prompt.md
+  - docs/0417-old/不動產說明書3.pdf
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/pdf-generator/templates/dossier.css
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/lib/property-types/schemas/suite.ts
+  - Dockerfile
+  - docs/0417-old/不動產說明說15.pdf
+  - src/app/listings/[id]/fill/page.tsx
+  - docker/安裝說明.md
+  - src/lib/form-renderer/chapter-grouper.ts
+  - stitch_ai/ai/screen.png
+  - src/app/api/listings/route.ts
+  - src/lib/pre-commission/lookup.ts
+  - stitch_ai/_2/code.html
+  - docs/0417-old/公寓_現場必問清單.docx
+  - GEMINI.md
+  - .opencode/skills/spectra-apply/SKILL.md
+  - src/app/api/listings/[id]/photos/route.ts
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/lib/property-types/schemas/shop.ts
+  - .github/skills/spectra-ask/SKILL.md
+  - docker/compose.yaml
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/不動產說明書5.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - .github/skills/spectra-debug/SKILL.md
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - CLAUDE.md
+  - docs/0417-old/不動產說明書2.pdf
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/店面_現場必問清單.docx
+  - docs/0417-new/建安不動產欄位總表.md
+  - .github/prompts/spectra-propose.prompt.md
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/lib/document-generator/md/social.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/factory.ts
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/不動產說明書1.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - stitch_ai/_1/code.html
+  - src/lib/codex-client/adapters/claude-code.ts
+  - src/lib/form-renderer/index.ts
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/listings/page.tsx
+  - .opencode/commands/spectra-audit.md
+  - docs/dossier-implementation-spec.md
+tests:
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/outputs/__tests__/social-post-limits.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/db/__tests__/regenerate.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/document-generator/__tests__/script-validation.test.ts
+-->

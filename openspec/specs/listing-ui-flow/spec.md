@@ -858,3 +858,511 @@ tests:
   - src/app/api/__tests__/listings.test.ts
   - src/lib/form-renderer/__tests__/supplementary-form.test.ts
 -->
+
+---
+### Requirement: Top navigation stepper shows five-stage progress on listing pages
+
+The system SHALL render a top navigation stepper on every `/listings/[id]/*` page (fill, supplementary, generating, documents) above the page title. The stepper SHALL display five fixed stages in order: 選類型, 現勘, 補件, 產生中, 文件輸出.
+
+Each stage SHALL display one of three visual states:
+- Green (completed): the stage has been reached based on `listing.status`
+- Blue (current): the stage matches the currently open page
+- Gray (pending): the stage has not been reached
+
+The status-to-stage mapping SHALL be:
+- `draft` → stages 1 green, 2 blue/green, 3-5 gray
+- `field-visit-complete` → stages 1-2 green, 3 blue/green, 4-5 gray
+- `ready-for-generation` → stages 1-3 green, 4 blue/green, 5 gray
+- `documents-ready` → stages 1-4 green, 5 blue/green
+
+Stages in green or blue state SHALL be clickable and SHALL navigate to the corresponding page. Stages in gray state SHALL NOT be clickable and MUST show `cursor-not-allowed`. Stage 1 (選類型) SHALL render as green but non-clickable when viewed from any `/listings/[id]/*` page because the property type cannot be changed after creation.
+
+#### Scenario: Stepper on documents page with documents-ready status
+
+- **WHEN** a user opens `/listings/5/documents` and the listing has status `documents-ready`
+- **THEN** stages 1-4 SHALL be green and clickable
+- **THEN** stage 5 SHALL be blue and marked as the current page
+- **THEN** clicking stage 2 SHALL navigate the user to `/listings/5/fill`
+
+#### Scenario: Stepper on fill page with draft status
+
+- **WHEN** a user opens `/listings/5/fill` and the listing has status `draft`
+- **THEN** stage 1 SHALL be green and non-clickable
+- **THEN** stage 2 SHALL be blue and marked as the current page
+- **THEN** stages 3-5 SHALL be gray and non-clickable
+
+#### Scenario: Stepper does not allow skipping ahead
+
+- **WHEN** a user views stages 3-5 in gray state
+- **THEN** clicking any gray stage SHALL NOT navigate to any page
+- **THEN** the gray stages SHALL visually indicate a disabled state (reduced opacity or `cursor-not-allowed`)
+
+
+<!-- @trace
+source: improve-listings-ux-and-fix-pdf
+updated: 2026-04-19
+code:
+  - src/lib/property-types/schemas/highrise.ts
+  - package.json
+  - scripts/cleanup-empty-drafts.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/form-renderer/index.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - src/lib/property-types/schemas/shop.ts
+  - src/app/api/listings/[id]/route.ts
+  - vitest.config.ts
+  - src/lib/property-types/schemas/factory.ts
+  - src/app/listings/[id]/generating/page.tsx
+  - src/lib/property-types/schemas/apartment.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/components/Stepper.tsx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/farmland.ts
+  - src/app/api/listings/[id]/photos/route.ts
+  - src/lib/form-renderer/chapter-grouper.ts
+  - src/lib/property-types/schemas/residential-land.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/components/Sidebar.tsx
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/listing-routes.ts
+  - src/app/listings/page.tsx
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/suite.ts
+  - src/components/forms/navigation-helpers.ts
+  - src/app/api/listings/route.ts
+  - src/lib/db/index.ts
+tests:
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+-->
+
+---
+### Requirement: Listing page row navigation depends on listing status
+
+The listing page (`/listings`) SHALL route each listing row based on `listing.status`:
+- WHEN `listing.status === 'documents-ready'` THEN the address link and action button SHALL navigate to `GET /listings/{id}/documents` and the action button label SHALL read `查看文件`.
+- WHEN `listing.status` is any other value (`draft`, `field-visit-complete`, `ready-for-generation`) THEN the address link and action button SHALL navigate to `GET /listings/{id}/fill` and the action button label SHALL read `進入填寫`.
+
+The routing rule SHALL be implemented as a pure function in `src/lib/listing-routes.ts` so that both the listings table and the sidebar recent-listings component share a single implementation.
+
+#### Scenario: Click address on documents-ready listing
+
+- **WHEN** user clicks the address of a listing whose status is `documents-ready`
+- **THEN** the browser SHALL navigate to `/listings/{id}/documents` (HTTP 200 on initial render)
+
+#### Scenario: Click action button on draft listing
+
+- **WHEN** user clicks the action button on a listing whose status is `draft`
+- **THEN** the browser SHALL navigate to `/listings/{id}/fill`
+- **THEN** the action button SHALL display the label `進入填寫`
+
+#### Scenario: Empty listings table
+
+- **WHEN** the listings list is empty
+- **THEN** no routing rules SHALL be triggered and an empty-state message SHALL be displayed
+
+
+<!-- @trace
+source: improve-listings-ux-and-fix-pdf
+updated: 2026-04-19
+code:
+  - src/lib/property-types/schemas/highrise.ts
+  - package.json
+  - scripts/cleanup-empty-drafts.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/form-renderer/index.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - src/lib/property-types/schemas/shop.ts
+  - src/app/api/listings/[id]/route.ts
+  - vitest.config.ts
+  - src/lib/property-types/schemas/factory.ts
+  - src/app/listings/[id]/generating/page.tsx
+  - src/lib/property-types/schemas/apartment.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/components/Stepper.tsx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/farmland.ts
+  - src/app/api/listings/[id]/photos/route.ts
+  - src/lib/form-renderer/chapter-grouper.ts
+  - src/lib/property-types/schemas/residential-land.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/components/Sidebar.tsx
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/listing-routes.ts
+  - src/app/listings/page.tsx
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/suite.ts
+  - src/components/forms/navigation-helpers.ts
+  - src/app/api/listings/route.ts
+  - src/lib/db/index.ts
+tests:
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+-->
+
+---
+### Requirement: Sidebar shows recent listings for quick access
+
+The sidebar SHALL display a section below the existing navigation items titled `最近物件`. This section SHALL render up to five most recently created listings ordered by `created_at` descending. Each item SHALL show the listing address (truncated to 20 characters with ellipsis when longer) and a status badge.
+
+Clicking any item SHALL navigate using the same routing rule defined in the Listing page row navigation requirement: `documents-ready` → `/listings/{id}/documents`; otherwise `/listings/{id}/fill`.
+
+The sidebar SHALL fetch recent listings by calling `GET /api/listings` once per page mount and SHALL slice the first 5 entries sorted by `created_at` descending on the client. When the listings list is empty the section SHALL display the placeholder text `尚無物件`.
+
+#### Scenario: Sidebar shows five most recent listings
+
+- **WHEN** the system has 8 listings in the database
+- **THEN** the sidebar `最近物件` section SHALL show exactly 5 entries
+- **THEN** the entries SHALL be ordered by `created_at` descending
+
+#### Scenario: Sidebar with no listings
+
+- **WHEN** the listings list is empty
+- **THEN** the sidebar SHALL display `尚無物件` under `最近物件`
+
+#### Scenario: Click on recent listing navigates by status
+
+- **WHEN** user clicks a recent-listing entry whose listing status is `documents-ready`
+- **THEN** the browser SHALL navigate to `/listings/{id}/documents`
+
+<!-- @trace
+source: improve-listings-ux-and-fix-pdf
+updated: 2026-04-19
+code:
+  - src/lib/property-types/schemas/highrise.ts
+  - package.json
+  - scripts/cleanup-empty-drafts.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/form-renderer/index.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - src/lib/property-types/schemas/shop.ts
+  - src/app/api/listings/[id]/route.ts
+  - vitest.config.ts
+  - src/lib/property-types/schemas/factory.ts
+  - src/app/listings/[id]/generating/page.tsx
+  - src/lib/property-types/schemas/apartment.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/components/Stepper.tsx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/farmland.ts
+  - src/app/api/listings/[id]/photos/route.ts
+  - src/lib/form-renderer/chapter-grouper.ts
+  - src/lib/property-types/schemas/residential-land.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/components/Sidebar.tsx
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/listing-routes.ts
+  - src/app/listings/page.tsx
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/suite.ts
+  - src/components/forms/navigation-helpers.ts
+  - src/app/api/listings/route.ts
+  - src/lib/db/index.ts
+tests:
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+-->
+
+---
+### Requirement: Listing row delete button removes listing
+
+The listing table row SHALL provide a delete button (trash icon) that removes the listing when clicked and confirmed.
+
+#### Scenario: User clicks delete on any listing row
+
+- **WHEN** a user clicks the trash icon on a listing row regardless of listing status
+- **THEN** the system SHALL show a native `window.confirm` dialog with message "確定刪除此物件？此操作無法復原"
+- **AND** upon user confirmation, the system SHALL issue `DELETE /api/listings/{id}`
+- **AND** on API success, the system SHALL remove the row from the table without a full page refresh
+- **AND** on API failure, the system SHALL show an alert with the error message and keep the row visible
+
+#### Scenario: User cancels the confirm dialog
+
+- **WHEN** a user clicks the trash icon but dismisses the confirm dialog
+- **THEN** the system SHALL NOT issue any API request
+- **AND** the listing row SHALL remain visible and unchanged
+
+
+<!-- @trace
+source: fix-listing-flow-and-add-delete
+updated: 2026-04-19
+code:
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/property-types/schemas/industrial-land.ts
+  - src/lib/property-types/schemas/residential-land.ts
+  - src/app/listings/page.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - src/components/forms/navigation-helpers.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - src/app/api/listings/route.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - package.json
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/form-renderer/chapter-grouper.ts
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/lib/property-types/schemas/suite.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/listing-routes.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/db/index.ts
+  - src/lib/property-types/schemas/shop.ts
+  - src/app/api/listings/[id]/photos/route.ts
+  - src/app/listings/[id]/generating/page.tsx
+tests:
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->
+
+---
+### Requirement: Stepper green segments are clickable for navigation back
+
+The stepper navigation SHALL allow users to click any green (completed) segment to navigate back to the corresponding page.
+
+#### Scenario: documents-ready listing navigates back via stepper
+
+- **WHEN** a user is on `/listings/{id}/documents` for a listing with status `documents-ready`
+- **THEN** stepper segments 2 (現勘), 3 (補件), and 4 (產生中) SHALL render as green with cursor-pointer styling
+- **AND** clicking segment 2 SHALL navigate to `/listings/{id}/fill`
+- **AND** clicking segment 3 SHALL navigate to `/listings/{id}/supplementary`
+- **AND** clicking segment 4 SHALL navigate to `/listings/{id}/generating`
+- **AND** segment 1 (選類型) SHALL remain green but non-clickable when `listingId !== null`
+
+
+<!-- @trace
+source: fix-listing-flow-and-add-delete
+updated: 2026-04-19
+code:
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/property-types/schemas/industrial-land.ts
+  - src/lib/property-types/schemas/residential-land.ts
+  - src/app/listings/page.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - src/components/forms/navigation-helpers.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - src/app/api/listings/route.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - package.json
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/form-renderer/chapter-grouper.ts
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/lib/property-types/schemas/suite.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/listing-routes.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/db/index.ts
+  - src/lib/property-types/schemas/shop.ts
+  - src/app/api/listings/[id]/photos/route.ts
+  - src/app/listings/[id]/generating/page.tsx
+tests:
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->
+
+---
+### Requirement: documents-ready listing row shows secondary action button
+
+The listings table SHALL show a secondary "回去補件" button alongside the primary "查看文件" button for `documents-ready` listings.
+
+#### Scenario: documents-ready row renders both buttons
+
+- **WHEN** a listing row has status `documents-ready`
+- **THEN** the action cell SHALL contain two buttons: primary "查看文件" linking to `/listings/{id}/documents` and secondary "回去補件" linking to `/listings/{id}/fill`
+- **AND** the secondary button SHALL use lower visual weight (lighter border, no fill)
+
+#### Scenario: non-documents-ready row renders single button
+
+- **WHEN** a listing row has status other than `documents-ready`
+- **THEN** the action cell SHALL contain only the single primary "進入填寫" button
+
+
+<!-- @trace
+source: fix-listing-flow-and-add-delete
+updated: 2026-04-19
+code:
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/property-types/schemas/industrial-land.ts
+  - src/lib/property-types/schemas/residential-land.ts
+  - src/app/listings/page.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - src/components/forms/navigation-helpers.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - src/app/api/listings/route.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - package.json
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/form-renderer/chapter-grouper.ts
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/lib/property-types/schemas/suite.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/listing-routes.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/db/index.ts
+  - src/lib/property-types/schemas/shop.ts
+  - src/app/api/listings/[id]/photos/route.ts
+  - src/app/listings/[id]/generating/page.tsx
+tests:
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->
+
+---
+### Requirement: documents page provides regenerate action with persistence notice
+
+The `/listings/{id}/documents` page SHALL provide a "重新產生文件" button and a persistent notice informing users that field edits require regeneration.
+
+#### Scenario: User regenerates documents
+
+- **WHEN** a user clicks the "重新產生文件" button on `/listings/{id}/documents`
+- **THEN** the system SHALL show `window.confirm("重新產生會覆蓋現有 5 份文件，確定？")`
+- **AND** on confirmation, the system SHALL invoke the existing generate endpoint (`POST /api/listings/{id}/generate` or the regenerate endpoint, whichever is the implemented one)
+- **AND** the page SHALL reload the listing's generated documents after success
+
+#### Scenario: Field update persistence notice is always visible
+
+- **WHEN** a user is on `/listings/{id}/documents` regardless of whether fields have been edited since generation
+- **THEN** the page SHALL display a persistent notice: "若修改過現勘/補件欄位，請點『重新產生文件』讓內容反映最新輸入"
+
+<!-- @trace
+source: fix-listing-flow-and-add-delete
+updated: 2026-04-19
+code:
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/property-types/schemas/industrial-land.ts
+  - src/lib/property-types/schemas/residential-land.ts
+  - src/app/listings/page.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - src/components/forms/navigation-helpers.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - src/app/api/listings/route.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - package.json
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/form-renderer/chapter-grouper.ts
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/lib/property-types/schemas/suite.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/listing-routes.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/lib/db/index.ts
+  - src/lib/property-types/schemas/shop.ts
+  - src/app/api/listings/[id]/photos/route.ts
+  - src/app/listings/[id]/generating/page.tsx
+tests:
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->

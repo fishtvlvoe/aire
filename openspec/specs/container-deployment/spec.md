@@ -1,0 +1,1119 @@
+# container-deployment Specification
+
+## Purpose
+
+TBD - created by archiving change 'containerized-three-stage-automation-v3'. Update Purpose after archive.
+
+## Requirements
+
+### Requirement: Docker image builds successfully for linux/amd64
+
+The system SHALL provide a Dockerfile that builds a production-ready image including Next.js app, Node.js runtime, Puppeteer + Chromium, Codex CLI, Chinese fonts (Noto Sans TC, Noto Serif TC), and all runtime dependencies.
+
+#### Scenario: Build image on developer Mac
+- **WHEN** developer runs `docker build -t jianan-ai:latest .`
+- **THEN** image builds within 10 minutes without error
+- **AND** image size SHALL be under 2GB
+
+#### Scenario: Image runs on Windows Docker Desktop (WSL2)
+- **WHEN** customer runs `docker compose up -d` on Windows Docker Desktop with WSL2 backend
+- **THEN** container starts successfully within 60 seconds
+- **AND** HTTP endpoint http://localhost:3000 responds with 200 status
+
+
+<!-- @trace
+source: containerized-three-stage-automation-v3
+updated: 2026-04-19
+code:
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/app/listings/new/page.tsx
+  - src/app/listings/[id]/documents/page.tsx
+  - src/app/api/pre-commission/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - docs/dossier-implementation-spec.md
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - src/lib/codex-client/types.ts
+  - src/lib/storage/index.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - docs/0417-old/店面_現場必問清單.docx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/route.ts
+  - .spectra.yaml
+  - src/components/outputs/index.ts
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - src/app/api/listings/[id]/route.ts
+  - next.config.ts
+  - docs/0417-old/建物物調表-母版.dot
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/document-generator/md/survey.ts
+  - docs/0417-old/不動產說明書5.pdf
+  - src/lib/property-types/schemas/residential-land.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/codex-client/adapters/ollama.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/components/outputs/SocialPostTabs.tsx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/codex-client/adapters/claude-code.ts
+  - docs/0417-old/不動產說明書6.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - docs/0417-old/不動產說明書14.pdf
+  - docs/0417-old/不動產書說明說7.pdf
+  - docker/start.sh
+  - src/components/Stepper.tsx
+  - docs/release-note-v3.0.0.md
+  - src/app/page.tsx
+  - src/lib/property-types/schemas/highrise.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - src/lib/pre-commission/lookup.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書8.pdf
+  - src/lib/document-generator/md/dm.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/components/forms/navigation-helpers.ts
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - docker/first-login.sh
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - src/lib/pdf-generator/templates/dossier.css
+  - docs/0417-old/不動產說明說16.pdf
+  - src/lib/codex-client/index.ts
+  - docs/0417-old/不動產說明書2.pdf
+  - src/app/api/listings/[id]/photos/route.ts
+  - docker/first-login.bat
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - src/lib/document-generator/types.ts
+  - src/components/outputs/MarketingFlowGuide.tsx
+  - docs/0417-old/公寓_現場必問清單.docx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - Dockerfile
+  - docs/0417-old/店面_秘書後補清單.docx
+  - docker/compose.yaml
+  - docs/0417-old/土地物調表-母版.docx
+  - src/lib/property-types/schemas/other-land.ts
+  - docs/0417-old/周遭.pdf
+  - docs/0417-old/不動產說明書9.pdf
+  - docs/0417-old/不動產說明書3.pdf
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/套房_秘書後補清單.docx
+  - src/lib/property-types/schemas/suite.ts
+  - docker/start.bat
+  - package.json
+  - vitest.config.ts
+  - src/lib/codex-client/adapters/codex.ts
+  - docs/dossier-chapter-structure.md
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - src/lib/db/list-recent-helper.ts
+  - src/app/api/health/route.ts
+  - src/lib/form-renderer/index.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - src/lib/document-generator/md/listing591.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - docs/0417-new/建安不動產欄位總表.md
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/form-renderer/chapter-grouper.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/generate/route.ts
+  - docker/安裝說明.md
+  - src/lib/property-types/schemas/industrial-land.ts
+  - docs/0417-old/不動產說明書4.pdf
+  - docs/release-note-v3.md
+  - src/lib/db/schema.ts
+  - docs/0417-old/不動產說明書1.pdf
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/property-types/schemas/shop.ts
+  - docs/0417-old/農地_現場必問清單.docx
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/不動產說明書12.pdf
+  - src/components/forms/SupplementaryForm.tsx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/lib/document-generator/md/social.ts
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/components/Sidebar.tsx
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/db/index.ts
+  - docs/0417-old/不動產說明說15.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - src/components/outputs/ShortVideoScript.tsx
+  - src/lib/property-types/index.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/page.tsx
+  - docs/0417-old/不動產說明書13.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/new/page.tsx
+tests:
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->
+
+---
+### Requirement: Codex CLI is installed inside container
+
+The container SHALL include Codex CLI and support customer-account login persistence.
+
+#### Scenario: First-time Codex login
+- **WHEN** customer runs first-login.bat on fresh install
+- **THEN** container starts in interactive mode and runs `codex login`
+- **AND** browser opens for OAuth flow
+- **AND** token is saved to `/root/.codex/auth.json` (mounted to host volume)
+
+#### Scenario: Subsequent startups reuse login
+- **WHEN** customer restarts the container after first login
+- **THEN** codex CLI SHALL work without re-login
+- **AND** `codex exec "test"` SHALL return successful response
+
+
+<!-- @trace
+source: containerized-three-stage-automation-v3
+updated: 2026-04-19
+code:
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/app/listings/new/page.tsx
+  - src/app/listings/[id]/documents/page.tsx
+  - src/app/api/pre-commission/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - docs/dossier-implementation-spec.md
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - src/lib/codex-client/types.ts
+  - src/lib/storage/index.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - docs/0417-old/店面_現場必問清單.docx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/route.ts
+  - .spectra.yaml
+  - src/components/outputs/index.ts
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - src/app/api/listings/[id]/route.ts
+  - next.config.ts
+  - docs/0417-old/建物物調表-母版.dot
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/document-generator/md/survey.ts
+  - docs/0417-old/不動產說明書5.pdf
+  - src/lib/property-types/schemas/residential-land.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/codex-client/adapters/ollama.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/components/outputs/SocialPostTabs.tsx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/codex-client/adapters/claude-code.ts
+  - docs/0417-old/不動產說明書6.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - docs/0417-old/不動產說明書14.pdf
+  - docs/0417-old/不動產書說明說7.pdf
+  - docker/start.sh
+  - src/components/Stepper.tsx
+  - docs/release-note-v3.0.0.md
+  - src/app/page.tsx
+  - src/lib/property-types/schemas/highrise.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - src/lib/pre-commission/lookup.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書8.pdf
+  - src/lib/document-generator/md/dm.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/components/forms/navigation-helpers.ts
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - docker/first-login.sh
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - src/lib/pdf-generator/templates/dossier.css
+  - docs/0417-old/不動產說明說16.pdf
+  - src/lib/codex-client/index.ts
+  - docs/0417-old/不動產說明書2.pdf
+  - src/app/api/listings/[id]/photos/route.ts
+  - docker/first-login.bat
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - src/lib/document-generator/types.ts
+  - src/components/outputs/MarketingFlowGuide.tsx
+  - docs/0417-old/公寓_現場必問清單.docx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - Dockerfile
+  - docs/0417-old/店面_秘書後補清單.docx
+  - docker/compose.yaml
+  - docs/0417-old/土地物調表-母版.docx
+  - src/lib/property-types/schemas/other-land.ts
+  - docs/0417-old/周遭.pdf
+  - docs/0417-old/不動產說明書9.pdf
+  - docs/0417-old/不動產說明書3.pdf
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/套房_秘書後補清單.docx
+  - src/lib/property-types/schemas/suite.ts
+  - docker/start.bat
+  - package.json
+  - vitest.config.ts
+  - src/lib/codex-client/adapters/codex.ts
+  - docs/dossier-chapter-structure.md
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - src/lib/db/list-recent-helper.ts
+  - src/app/api/health/route.ts
+  - src/lib/form-renderer/index.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - src/lib/document-generator/md/listing591.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - docs/0417-new/建安不動產欄位總表.md
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/form-renderer/chapter-grouper.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/generate/route.ts
+  - docker/安裝說明.md
+  - src/lib/property-types/schemas/industrial-land.ts
+  - docs/0417-old/不動產說明書4.pdf
+  - docs/release-note-v3.md
+  - src/lib/db/schema.ts
+  - docs/0417-old/不動產說明書1.pdf
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/property-types/schemas/shop.ts
+  - docs/0417-old/農地_現場必問清單.docx
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/不動產說明書12.pdf
+  - src/components/forms/SupplementaryForm.tsx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/lib/document-generator/md/social.ts
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/components/Sidebar.tsx
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/db/index.ts
+  - docs/0417-old/不動產說明說15.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - src/components/outputs/ShortVideoScript.tsx
+  - src/lib/property-types/index.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/page.tsx
+  - docs/0417-old/不動產說明書13.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/new/page.tsx
+tests:
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->
+
+---
+### Requirement: Data persists on host volume
+
+SQLite database, uploaded files, generated outputs, and Codex auth SHALL all persist across container restart/removal via host volume mounts.
+
+#### Scenario: Container removal preserves data
+- **WHEN** customer runs `docker compose down` and then `docker compose up -d`
+- **THEN** all previous listings, uploaded files, and generated documents SHALL be accessible
+- **AND** Codex login SHALL NOT require re-authentication
+
+#### Scenario: Host volume structure
+- **GIVEN** customer's home directory is `%USERPROFILE%\建安AI`
+- **THEN** the following directories SHALL exist after first run:
+  - `data/db/` — SQLite files
+  - `data/uploads/` — uploaded photos, scanned deeds
+  - `data/outputs/` — generated PDFs and Markdown files
+  - `data/codex/` — Codex OAuth tokens
+
+
+<!-- @trace
+source: containerized-three-stage-automation-v3
+updated: 2026-04-19
+code:
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/app/listings/new/page.tsx
+  - src/app/listings/[id]/documents/page.tsx
+  - src/app/api/pre-commission/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - docs/dossier-implementation-spec.md
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - src/lib/codex-client/types.ts
+  - src/lib/storage/index.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - docs/0417-old/店面_現場必問清單.docx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/route.ts
+  - .spectra.yaml
+  - src/components/outputs/index.ts
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - src/app/api/listings/[id]/route.ts
+  - next.config.ts
+  - docs/0417-old/建物物調表-母版.dot
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/document-generator/md/survey.ts
+  - docs/0417-old/不動產說明書5.pdf
+  - src/lib/property-types/schemas/residential-land.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/codex-client/adapters/ollama.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/components/outputs/SocialPostTabs.tsx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/codex-client/adapters/claude-code.ts
+  - docs/0417-old/不動產說明書6.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - docs/0417-old/不動產說明書14.pdf
+  - docs/0417-old/不動產書說明說7.pdf
+  - docker/start.sh
+  - src/components/Stepper.tsx
+  - docs/release-note-v3.0.0.md
+  - src/app/page.tsx
+  - src/lib/property-types/schemas/highrise.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - src/lib/pre-commission/lookup.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書8.pdf
+  - src/lib/document-generator/md/dm.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/components/forms/navigation-helpers.ts
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - docker/first-login.sh
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - src/lib/pdf-generator/templates/dossier.css
+  - docs/0417-old/不動產說明說16.pdf
+  - src/lib/codex-client/index.ts
+  - docs/0417-old/不動產說明書2.pdf
+  - src/app/api/listings/[id]/photos/route.ts
+  - docker/first-login.bat
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - src/lib/document-generator/types.ts
+  - src/components/outputs/MarketingFlowGuide.tsx
+  - docs/0417-old/公寓_現場必問清單.docx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - Dockerfile
+  - docs/0417-old/店面_秘書後補清單.docx
+  - docker/compose.yaml
+  - docs/0417-old/土地物調表-母版.docx
+  - src/lib/property-types/schemas/other-land.ts
+  - docs/0417-old/周遭.pdf
+  - docs/0417-old/不動產說明書9.pdf
+  - docs/0417-old/不動產說明書3.pdf
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/套房_秘書後補清單.docx
+  - src/lib/property-types/schemas/suite.ts
+  - docker/start.bat
+  - package.json
+  - vitest.config.ts
+  - src/lib/codex-client/adapters/codex.ts
+  - docs/dossier-chapter-structure.md
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - src/lib/db/list-recent-helper.ts
+  - src/app/api/health/route.ts
+  - src/lib/form-renderer/index.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - src/lib/document-generator/md/listing591.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - docs/0417-new/建安不動產欄位總表.md
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/form-renderer/chapter-grouper.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/generate/route.ts
+  - docker/安裝說明.md
+  - src/lib/property-types/schemas/industrial-land.ts
+  - docs/0417-old/不動產說明書4.pdf
+  - docs/release-note-v3.md
+  - src/lib/db/schema.ts
+  - docs/0417-old/不動產說明書1.pdf
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/property-types/schemas/shop.ts
+  - docs/0417-old/農地_現場必問清單.docx
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/不動產說明書12.pdf
+  - src/components/forms/SupplementaryForm.tsx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/lib/document-generator/md/social.ts
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/components/Sidebar.tsx
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/db/index.ts
+  - docs/0417-old/不動產說明說15.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - src/components/outputs/ShortVideoScript.tsx
+  - src/lib/property-types/index.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/page.tsx
+  - docs/0417-old/不動產說明書13.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/new/page.tsx
+tests:
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->
+
+---
+### Requirement: Windows launcher provides one-click startup
+
+The system SHALL provide Windows batch files for non-technical users.
+
+#### Scenario: start.bat on daily use
+- **WHEN** customer double-clicks `start.bat`
+- **THEN** script SHALL check Docker Desktop is running (prompt to start if not)
+- **AND** run `docker compose up -d`
+- **AND** wait for health check to pass
+- **AND** open default browser to http://localhost:3000
+
+#### Scenario: first-login.bat on fresh install
+- **WHEN** customer double-clicks `first-login.bat` for first time
+- **THEN** script SHALL pull image if missing
+- **AND** create required data directories under `%USERPROFILE%\建安AI`
+- **AND** run `docker compose run --rm app codex login` in interactive mode
+- **AND** save confirmation flag to `data/codex/.logged-in`
+
+
+<!-- @trace
+source: containerized-three-stage-automation-v3
+updated: 2026-04-19
+code:
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/app/listings/new/page.tsx
+  - src/app/listings/[id]/documents/page.tsx
+  - src/app/api/pre-commission/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - docs/dossier-implementation-spec.md
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - src/lib/codex-client/types.ts
+  - src/lib/storage/index.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - docs/0417-old/店面_現場必問清單.docx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/route.ts
+  - .spectra.yaml
+  - src/components/outputs/index.ts
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - src/app/api/listings/[id]/route.ts
+  - next.config.ts
+  - docs/0417-old/建物物調表-母版.dot
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/document-generator/md/survey.ts
+  - docs/0417-old/不動產說明書5.pdf
+  - src/lib/property-types/schemas/residential-land.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/codex-client/adapters/ollama.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/components/outputs/SocialPostTabs.tsx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/codex-client/adapters/claude-code.ts
+  - docs/0417-old/不動產說明書6.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - docs/0417-old/不動產說明書14.pdf
+  - docs/0417-old/不動產書說明說7.pdf
+  - docker/start.sh
+  - src/components/Stepper.tsx
+  - docs/release-note-v3.0.0.md
+  - src/app/page.tsx
+  - src/lib/property-types/schemas/highrise.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - src/lib/pre-commission/lookup.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書8.pdf
+  - src/lib/document-generator/md/dm.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/components/forms/navigation-helpers.ts
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - docker/first-login.sh
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - src/lib/pdf-generator/templates/dossier.css
+  - docs/0417-old/不動產說明說16.pdf
+  - src/lib/codex-client/index.ts
+  - docs/0417-old/不動產說明書2.pdf
+  - src/app/api/listings/[id]/photos/route.ts
+  - docker/first-login.bat
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - src/lib/document-generator/types.ts
+  - src/components/outputs/MarketingFlowGuide.tsx
+  - docs/0417-old/公寓_現場必問清單.docx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - Dockerfile
+  - docs/0417-old/店面_秘書後補清單.docx
+  - docker/compose.yaml
+  - docs/0417-old/土地物調表-母版.docx
+  - src/lib/property-types/schemas/other-land.ts
+  - docs/0417-old/周遭.pdf
+  - docs/0417-old/不動產說明書9.pdf
+  - docs/0417-old/不動產說明書3.pdf
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/套房_秘書後補清單.docx
+  - src/lib/property-types/schemas/suite.ts
+  - docker/start.bat
+  - package.json
+  - vitest.config.ts
+  - src/lib/codex-client/adapters/codex.ts
+  - docs/dossier-chapter-structure.md
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - src/lib/db/list-recent-helper.ts
+  - src/app/api/health/route.ts
+  - src/lib/form-renderer/index.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - src/lib/document-generator/md/listing591.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - docs/0417-new/建安不動產欄位總表.md
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/form-renderer/chapter-grouper.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/generate/route.ts
+  - docker/安裝說明.md
+  - src/lib/property-types/schemas/industrial-land.ts
+  - docs/0417-old/不動產說明書4.pdf
+  - docs/release-note-v3.md
+  - src/lib/db/schema.ts
+  - docs/0417-old/不動產說明書1.pdf
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/property-types/schemas/shop.ts
+  - docs/0417-old/農地_現場必問清單.docx
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/不動產說明書12.pdf
+  - src/components/forms/SupplementaryForm.tsx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/lib/document-generator/md/social.ts
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/components/Sidebar.tsx
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/db/index.ts
+  - docs/0417-old/不動產說明說15.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - src/components/outputs/ShortVideoScript.tsx
+  - src/lib/property-types/index.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/page.tsx
+  - docs/0417-old/不動產說明書13.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/new/page.tsx
+tests:
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->
+
+---
+### Requirement: Container exposes only localhost
+
+For data security, container SHALL bind ports to 127.0.0.1 only, not 0.0.0.0.
+
+#### Scenario: LAN isolation
+- **WHEN** another device on the same network attempts to reach `<customer-ip>:3000`
+- **THEN** connection SHALL be refused
+- **AND** only `localhost:3000` on customer's own machine works
+
+
+<!-- @trace
+source: containerized-three-stage-automation-v3
+updated: 2026-04-19
+code:
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/app/listings/new/page.tsx
+  - src/app/listings/[id]/documents/page.tsx
+  - src/app/api/pre-commission/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - docs/dossier-implementation-spec.md
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - src/lib/codex-client/types.ts
+  - src/lib/storage/index.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - docs/0417-old/店面_現場必問清單.docx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/route.ts
+  - .spectra.yaml
+  - src/components/outputs/index.ts
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - src/app/api/listings/[id]/route.ts
+  - next.config.ts
+  - docs/0417-old/建物物調表-母版.dot
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/document-generator/md/survey.ts
+  - docs/0417-old/不動產說明書5.pdf
+  - src/lib/property-types/schemas/residential-land.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/codex-client/adapters/ollama.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/components/outputs/SocialPostTabs.tsx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/codex-client/adapters/claude-code.ts
+  - docs/0417-old/不動產說明書6.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - docs/0417-old/不動產說明書14.pdf
+  - docs/0417-old/不動產書說明說7.pdf
+  - docker/start.sh
+  - src/components/Stepper.tsx
+  - docs/release-note-v3.0.0.md
+  - src/app/page.tsx
+  - src/lib/property-types/schemas/highrise.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - src/lib/pre-commission/lookup.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書8.pdf
+  - src/lib/document-generator/md/dm.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/components/forms/navigation-helpers.ts
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - docker/first-login.sh
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - src/lib/pdf-generator/templates/dossier.css
+  - docs/0417-old/不動產說明說16.pdf
+  - src/lib/codex-client/index.ts
+  - docs/0417-old/不動產說明書2.pdf
+  - src/app/api/listings/[id]/photos/route.ts
+  - docker/first-login.bat
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - src/lib/document-generator/types.ts
+  - src/components/outputs/MarketingFlowGuide.tsx
+  - docs/0417-old/公寓_現場必問清單.docx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - Dockerfile
+  - docs/0417-old/店面_秘書後補清單.docx
+  - docker/compose.yaml
+  - docs/0417-old/土地物調表-母版.docx
+  - src/lib/property-types/schemas/other-land.ts
+  - docs/0417-old/周遭.pdf
+  - docs/0417-old/不動產說明書9.pdf
+  - docs/0417-old/不動產說明書3.pdf
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/套房_秘書後補清單.docx
+  - src/lib/property-types/schemas/suite.ts
+  - docker/start.bat
+  - package.json
+  - vitest.config.ts
+  - src/lib/codex-client/adapters/codex.ts
+  - docs/dossier-chapter-structure.md
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - src/lib/db/list-recent-helper.ts
+  - src/app/api/health/route.ts
+  - src/lib/form-renderer/index.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - src/lib/document-generator/md/listing591.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - docs/0417-new/建安不動產欄位總表.md
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/form-renderer/chapter-grouper.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/generate/route.ts
+  - docker/安裝說明.md
+  - src/lib/property-types/schemas/industrial-land.ts
+  - docs/0417-old/不動產說明書4.pdf
+  - docs/release-note-v3.md
+  - src/lib/db/schema.ts
+  - docs/0417-old/不動產說明書1.pdf
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/property-types/schemas/shop.ts
+  - docs/0417-old/農地_現場必問清單.docx
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/不動產說明書12.pdf
+  - src/components/forms/SupplementaryForm.tsx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/lib/document-generator/md/social.ts
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/components/Sidebar.tsx
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/db/index.ts
+  - docs/0417-old/不動產說明說15.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - src/components/outputs/ShortVideoScript.tsx
+  - src/lib/property-types/index.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/page.tsx
+  - docs/0417-old/不動產說明書13.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/new/page.tsx
+tests:
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->
+
+---
+### Requirement: Container health check reports readiness
+
+The container SHALL expose a health check endpoint for launcher scripts to wait on.
+
+#### Scenario: Health endpoint
+- **WHEN** `start.bat` polls `http://localhost:3000/api/health`
+- **THEN** endpoint SHALL return 200 with `{"status":"ready","codex":true,"db":true}` when all subsystems ready
+- **AND** return 503 with component status when any subsystem not ready
+
+<!-- @trace
+source: containerized-three-stage-automation-v3
+updated: 2026-04-19
+code:
+  - src/app/api/listings/[id]/documents/route.ts
+  - src/app/listings/new/page.tsx
+  - src/app/listings/[id]/documents/page.tsx
+  - src/app/api/pre-commission/route.ts
+  - docs/0417-old/不動產說明書11.pdf
+  - docs/dossier-implementation-spec.md
+  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - docs/0417-old/其他土地_秘書後補清單.docx
+  - src/app/api/pre-commission/[id]/lookup/route.ts
+  - src/lib/codex-client/types.ts
+  - src/lib/storage/index.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - docs/0417-old/大樓華廈_秘書後補清單.docx
+  - docs/0417-old/商業地_秘書後補清單.docx
+  - docs/0417-old/店面_現場必問清單.docx
+  - src/lib/document-generator/codex-provider.ts
+  - src/app/api/listings/route.ts
+  - .spectra.yaml
+  - src/components/outputs/index.ts
+  - docs/handoff/2026-04-17-v3-handoff.md
+  - src/app/api/listings/[id]/route.ts
+  - next.config.ts
+  - docs/0417-old/建物物調表-母版.dot
+  - docs/0417-old/商業地_現場必問清單.docx
+  - src/lib/document-generator/md/survey.ts
+  - docs/0417-old/不動產說明書5.pdf
+  - src/lib/property-types/schemas/residential-land.ts
+  - docs/0417-old/農地_秘書後補清單.docx
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/codex-client/adapters/ollama.ts
+  - src/lib/property-types/schemas/apartment.ts
+  - src/components/outputs/SocialPostTabs.tsx
+  - docs/0417-old/套房_現場必問清單.docx
+  - src/lib/codex-client/adapters/claude-code.ts
+  - docs/0417-old/不動產說明書6.pdf
+  - docs/0417-old/農舍_現場必問清單.docx
+  - docs/0417-old/建地_住宅地_現場必問清單.docx
+  - docs/0417-old/不動產說明書14.pdf
+  - docs/0417-old/不動產書說明說7.pdf
+  - docker/start.sh
+  - src/components/Stepper.tsx
+  - docs/release-note-v3.0.0.md
+  - src/app/page.tsx
+  - src/lib/property-types/schemas/highrise.ts
+  - docs/0417-old/不動產書說明書10.pdf
+  - src/lib/pre-commission/lookup.ts
+  - src/lib/codex-client/adapters/gemini.ts
+  - docs/0417-old/鄉村區建地_秘書後補清單.docx
+  - docs/0417-old/不動產說明書8.pdf
+  - src/lib/document-generator/md/dm.ts
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/components/forms/navigation-helpers.ts
+  - docs/0417-old/農舍_秘書後補清單.docx
+  - docker/first-login.sh
+  - docs/0417-old/廠房_秘書後補清單.docx
+  - src/lib/pdf-generator/templates/dossier.css
+  - docs/0417-old/不動產說明說16.pdf
+  - src/lib/codex-client/index.ts
+  - docs/0417-old/不動產說明書2.pdf
+  - src/app/api/listings/[id]/photos/route.ts
+  - docker/first-login.bat
+  - docs/0417-new/建安不動產欄位總表_建物版.docx
+  - src/lib/document-generator/types.ts
+  - src/components/outputs/MarketingFlowGuide.tsx
+  - docs/0417-old/公寓_現場必問清單.docx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/factory.ts
+  - Dockerfile
+  - docs/0417-old/店面_秘書後補清單.docx
+  - docker/compose.yaml
+  - docs/0417-old/土地物調表-母版.docx
+  - src/lib/property-types/schemas/other-land.ts
+  - docs/0417-old/周遭.pdf
+  - docs/0417-old/不動產說明書9.pdf
+  - docs/0417-old/不動產說明書3.pdf
+  - docs/0417-old/大樓華廈_現場必問清單.docx
+  - docs/0417-old/套房_秘書後補清單.docx
+  - src/lib/property-types/schemas/suite.ts
+  - docker/start.bat
+  - package.json
+  - vitest.config.ts
+  - src/lib/codex-client/adapters/codex.ts
+  - docs/dossier-chapter-structure.md
+  - docs/0417-old/建地_住宅地_秘書後補清單.docx
+  - src/lib/db/list-recent-helper.ts
+  - src/app/api/health/route.ts
+  - src/lib/form-renderer/index.ts
+  - src/app/api/pre-commission/[id]/parse-paste/route.ts
+  - src/lib/document-generator/md/listing591.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - docs/0417-new/建安不動產欄位總表.md
+  - docs/0417-old/鄉村區建地_現場必問清單.docx
+  - scripts/cleanup-empty-drafts.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/lib/form-renderer/chapter-grouper.ts
+  - docs/0417-old/廠房_現場必問清單.docx
+  - src/app/api/listings/[id]/generate/route.ts
+  - docker/安裝說明.md
+  - src/lib/property-types/schemas/industrial-land.ts
+  - docs/0417-old/不動產說明書4.pdf
+  - docs/release-note-v3.md
+  - src/lib/db/schema.ts
+  - docs/0417-old/不動產說明書1.pdf
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/property-types/schemas/shop.ts
+  - docs/0417-old/農地_現場必問清單.docx
+  - docs/0417-old/透明房價一覽表成交行情.pdf
+  - docs/0417-old/不動產說明書12.pdf
+  - src/components/forms/SupplementaryForm.tsx
+  - docs/0417-old/工業地_秘書後補清單.docx
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/lib/document-generator/md/social.ts
+  - docs/0417-new/建安不動產欄位總表_土地版.docx
+  - docs/0417-old/透天別墅_現場必問清單.docx
+  - src/app/pre-commission/[id]/page.tsx
+  - docs/0417-old/透天別墅_秘書後補清單.docx
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/listing-routes.ts
+  - src/lib/property-types/schemas/farmland.ts
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/components/Sidebar.tsx
+  - docs/0417-old/其他土地_現場必問清單.docx
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - docs/extracted-dossier-schema.md
+  - src/lib/db/index.ts
+  - docs/0417-old/不動產說明說15.pdf
+  - docs/0417-old/公寓_秘書後補清單.docx
+  - src/components/outputs/ShortVideoScript.tsx
+  - src/lib/property-types/index.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/listings/page.tsx
+  - docs/0417-old/不動產說明書13.pdf
+  - src/app/listings/[id]/generating/page.tsx
+  - docs/0417-old/工業地_現場必問清單.docx
+  - src/app/pre-commission/new/page.tsx
+tests:
+  - src/app/api/__tests__/listings-photos.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
+  - src/lib/codex-client/__tests__/codex-client.test.ts
+  - src/lib/db/__tests__/state-machine.test.ts
+  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
+  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
+  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/db/__tests__/list-recent.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/land-type.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/__tests__/all-types.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/listing-workflow.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/all-property-types.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+-->

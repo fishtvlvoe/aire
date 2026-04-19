@@ -1,5 +1,5 @@
 export function findNextNonEmptyChapterId(
-  chapters: Array<{ id: string; fields: any[] }>,
+  chapters: Array<{ id: string; fields: unknown[] }>,
   currentChapterId: string
 ): string | null {
   const nonEmpty = chapters.filter((c) => c.fields.length > 0)
@@ -11,7 +11,7 @@ export function findNextNonEmptyChapterId(
 }
 
 export function hasNextNonEmptyChapter(
-  chapters: Array<{ id: string; fields: any[] }>,
+  chapters: Array<{ id: string; fields: unknown[] }>,
   currentChapterId: string
 ): boolean {
   return findNextNonEmptyChapterId(chapters, currentChapterId) !== null

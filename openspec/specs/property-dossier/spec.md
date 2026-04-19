@@ -397,9 +397,17 @@ The PDF SHALL include:
 - Chinese font: Noto Serif TC (loaded via CDN, fallback to system serif)
 - Chapter separation with visible dividers and spacing
 
+The server SHALL load the PDF template files (`dossier.html` and `dossier.css`) using an absolute path resolved from `process.cwd()` joined with `src/lib/pdf-generator/templates/`. The system MUST NOT rely on `__dirname` for template path resolution because `__dirname` resolves to a virtual path (such as `/ROOT/...`) under Next.js 16 with Turbopack server bundling, causing `ENOENT` errors when reading template files.
+
+The `GET /api/listings/{id}/pdf?type=disclosure` endpoint SHALL return:
+- HTTP 200 with `Content-Type: application/pdf` and the rendered PDF binary when the listing exists and `disclosure_document` content is present
+- HTTP 404 when the listing ID does not exist
+- HTTP 422 when the listing exists but `generated_documents.disclosure_document` is empty or equals the placeholder string `[PDF 由任務 10 實作]`
+
 #### Scenario: PDF download from documents page
 
-- **WHEN** user clicks "下載 PDF" on the disclosure document card
+- **WHEN** user clicks "下載 PDF" on the disclosure document card for a listing whose disclosure document is ready
+- **THEN** the server SHALL respond with HTTP 200 and `Content-Type: application/pdf`
 - **THEN** browser SHALL download a PDF file named `disclosure-{listingId}.pdf`
 - **THEN** the PDF SHALL render all 16 chapters with proper A4 layout
 
@@ -409,19 +417,81 @@ The PDF SHALL include:
 - **THEN** the PDF SHALL still render all 16 chapters
 - **THEN** chapters requiring supplementary data SHALL display `待補` in their fields
 
+#### Scenario: Template loads successfully under Next.js Turbopack
+
+- **WHEN** the server runs `npm run dev` on Next.js 16 with Turbopack and receives `GET /api/listings/{id}/pdf?type=disclosure`
+- **THEN** the server SHALL successfully read `dossier.html` and `dossier.css` from the `src/lib/pdf-generator/templates/` directory using `process.cwd()` as the base
+- **THEN** the response SHALL be HTTP 200 with a valid PDF binary
+- **THEN** no `ENOENT` error referencing `/ROOT/src/lib/pdf-generator/templates/` SHALL appear in the server log
+
+#### Scenario: PDF endpoint returns 404 for unknown listing
+
+- **WHEN** the client sends `GET /api/listings/999999/pdf?type=disclosure` and listing 999999 does not exist
+- **THEN** the server SHALL respond with HTTP 404 and JSON body `{"error": "not found"}`
+
+#### Scenario: PDF endpoint returns 422 when disclosure content missing
+
+- **WHEN** the client sends `GET /api/listings/{id}/pdf?type=disclosure` for a listing whose `generated_documents.disclosure_document` is empty or equals `[PDF 由任務 10 實作]`
+- **THEN** the server SHALL respond with HTTP 422 and JSON body `{"error": "disclosure document not available"}`
+
 
 <!-- @trace
-source: disclosure-pdf-16-chapter
-updated: 2026-04-18
+source: improve-listings-ux-and-fix-pdf
+updated: 2026-04-19
 code:
-  - src/lib/pdf-generator/dossier.ts
+  - src/lib/property-types/schemas/highrise.ts
+  - package.json
+  - scripts/cleanup-empty-drafts.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - src/lib/form-renderer/index.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/property-types/schemas/farmhouse.ts
+  - src/lib/property-types/schemas/shop.ts
+  - src/app/api/listings/[id]/route.ts
+  - vitest.config.ts
+  - src/lib/property-types/schemas/factory.ts
+  - src/app/listings/[id]/generating/page.tsx
+  - src/lib/property-types/schemas/apartment.ts
+  - src/lib/property-types/schemas/other-land.ts
+  - src/lib/property-types/schemas/rural-land.ts
   - src/app/listings/[id]/documents/page.tsx
-  - src/lib/document-generator/codex-provider.ts
+  - src/components/Stepper.tsx
+  - src/components/outputs/RegenerateButton.tsx
+  - src/lib/property-types/schemas/farmland.ts
+  - src/app/api/listings/[id]/photos/route.ts
+  - src/lib/form-renderer/chapter-grouper.ts
+  - src/lib/property-types/schemas/residential-land.ts
   - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/property-types/schemas/industrial-land.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/components/Sidebar.tsx
+  - src/lib/property-types/schemas/townhouse.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/components/forms/SupplementaryForm.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/listing-routes.ts
+  - src/app/listings/page.tsx
+  - src/lib/property-types/schemas/commercial-land.ts
+  - src/lib/property-types/schemas/suite.ts
+  - src/components/forms/navigation-helpers.ts
+  - src/app/api/listings/route.ts
+  - src/lib/db/index.ts
 tests:
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
+  - src/components/forms/__tests__/field-visit-navigation.test.ts
+  - src/lib/property-types/__tests__/index.test.ts
+  - src/lib/db/__tests__/e2e-residential.test.ts
+  - src/lib/__tests__/cleanup-empty-drafts.test.ts
+  - src/app/api/__tests__/listings.test.ts
+  - src/lib/db/__tests__/e2e-farmland.test.ts
+  - src/lib/__tests__/listing-routes.test.ts
+  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - src/lib/db/__tests__/list-recent.test.ts
   - src/lib/pdf-generator/__tests__/dossier.test.ts
-  - src/lib/document-generator/__tests__/land-type.test.ts
-  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/app/api/__tests__/listings-photos.test.ts
 -->
 
 ---
