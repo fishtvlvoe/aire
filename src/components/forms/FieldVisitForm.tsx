@@ -586,18 +586,11 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
 
     return (
       <section className="w-full rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">現勘表單</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              請先選擇物件類型，再填寫對應欄位。
-            </p>
-          </div>
-          {actionButtons && (
-            <div className="sticky top-4 z-10 flex gap-3 shrink-0 ml-4">
-              {actionButtons}
-            </div>
-          )}
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">現勘表單</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            請先選擇物件類型，再填寫對應欄位。
+          </p>
         </div>
 
         {/* Property type selector — only shown when not controlled externally */}
@@ -702,6 +695,12 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
             activeChapter.fields.map(renderField)
           )}
         </div>
+
+        {actionButtons && (
+          <div className="mt-8 flex items-center justify-between border-t border-slate-200 pt-6">
+            {actionButtons}
+          </div>
+        )}
       </section>
     );
   },
