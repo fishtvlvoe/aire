@@ -15,6 +15,7 @@ export function executeListRecentListings<T = unknown>(db: Database.Database, li
            OR field_visit_data = ''
            OR field_visit_data = '{}'
          )
+         AND datetime(created_at) < datetime('now', '-24 hours')
        )
        ORDER BY updated_at DESC
        LIMIT ?`
