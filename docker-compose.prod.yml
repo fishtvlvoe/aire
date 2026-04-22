@@ -1,7 +1,6 @@
 version: '3.8'
 services:
   app:
-    build: .
     image: fishandy1213/three-ai:latest
     ports:
       - '3000:3000'
@@ -10,6 +9,11 @@ services:
     volumes:
       - ./data:/app/data
       - ./output:/app/output
-      - ~/.superset/bin/codex:/usr/local/bin/codex:ro
-      - ~/.codex:/root/.codex:ro
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup app
     restart: unless-stopped
