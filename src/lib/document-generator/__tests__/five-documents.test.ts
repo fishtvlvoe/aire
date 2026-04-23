@@ -40,9 +40,8 @@ const LAND_FIXTURE: DocumentGeneratorInput = {
   supplementary_data: {},
 };
 
-// 使用中文 property_type，觸發 isLandType → generateLandDossier
-const CHINESE_LAND_FIXTURE: DocumentGeneratorInput = {
-  property_type: '農地',
+const LAND_DOSSIER_FIXTURE: DocumentGeneratorInput = {
+  property_type: 'farmland',
   field_visit_data: {
     address: '台南市官田區隆本里',
     total_price: 800,
@@ -103,7 +102,7 @@ describe('9.6 五份文件 integration（mock Codex）', () => {
     vi.mocked(runCodex).mockResolvedValue({
       success: true,
       output: structuredOutput,
-      status: 'done',
+      status: 'ready',
     } satisfies CodexResult);
 
     // Act
@@ -123,12 +122,12 @@ describe('9.6 五份文件 integration（mock Codex）', () => {
     vi.mocked(runCodex).mockResolvedValue({
       success: true,
       output: structuredOutput,
-      status: 'done',
+      status: 'ready',
     } satisfies CodexResult);
 
-    // Act: 使用中文土地類型，isLandType('農地') === true → generateLandDossier
+    // Act: 使用土地類型（farmland），isLandType('farmland') === true → generateLandDossier
     const generator = new CodexDocumentGenerator();
-    const result = await generator.generate(CHINESE_LAND_FIXTURE);
+    const result = await generator.generate(LAND_DOSSIER_FIXTURE);
 
     // Assert
     expect(result.disclosure_document).toContain('#### 章節 1：');

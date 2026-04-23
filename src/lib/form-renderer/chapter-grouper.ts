@@ -183,7 +183,7 @@ const buildChapterSkeleton = (propertyType: PropertyType): Chapter[] => {
     { id: 'legal', title: '法律狀態', fields: [] },
     { id: 'tax', title: '稅費資訊', fields: [] },
     { id: 'media', title: '照片/文件', fields: [] },
-    { id: 'supplementary', title: '秘書後補', fields: [] },
+    { id: 'supplementary', title: '補充資料', fields: [] },
     { id: 'notes', title: '備註', fields: [] },
   ]
 }

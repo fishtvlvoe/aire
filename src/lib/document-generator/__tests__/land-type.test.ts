@@ -3,19 +3,19 @@ import { isLandType } from '../codex-provider';
 
 describe('isLandType', () => {
   it.each([
-    '農地',
-    '建地',
-    '商業地',
-    '工業地',
-    '鄉村區建地',
-    '其他土地',
+    'farmland',
+    'residential-land',
+    'commercial-land',
+    'industrial-land',
+    'rural-land',
+    'other-land',
   ])('returns true for land type "%s"', (propertyType) => {
     expect(isLandType(propertyType)).toBe(true);
   });
 
   it.each([
-    '公寓',
-    '透天別墅',
+    'apartment',
+    'townhouse',
     '',
   ])('returns false for non-land type "%s"', (propertyType) => {
     expect(isLandType(propertyType)).toBe(false);

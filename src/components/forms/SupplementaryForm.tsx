@@ -147,14 +147,14 @@ export default function SupplementaryForm({
 
   // Static fields used when no propertyType is provided (legacy behaviour)
   const staticFields: SchemaField[] = [
-    { key: 'transcript_summary', label: '謄本摘要', type: 'textarea', required: true },
-    { key: 'cadastral_map_ref', label: '地籍圖參考', type: 'text', required: true },
-    { key: 'land_use_zoning', label: '使用分區', type: 'text', required: true },
+    { key: 'transcript_summary', label: '謄本摘要', type: 'textarea', required: false },
+    { key: 'cadastral_map_ref', label: '地籍圖參考', type: 'text', required: false },
+    { key: 'land_use_zoning', label: '使用分區', type: 'text', required: false },
     {
       key: 'mortgage_lien_status',
       label: '抵押/查封狀況',
       type: 'select',
-      required: true,
+      required: false,
       options: ['無', '有抵押', '有查封', '有抵押及查封'],
     },
     { key: 'additional_notes', label: '其他備註', type: 'textarea', required: false },
@@ -175,26 +175,23 @@ export default function SupplementaryForm({
     return [...priorityEntries, ...otherEntries]
   }, [preCommissionData])
 
-  const isComplete = useMemo(() => {
-    const required = activeFields.filter((f) => f.required)
-    return required.every((f) => (form[f.key] ?? '').trim() !== '')
-  }, [activeFields, form])
 
   const updateField = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
   const handleGenerateDocuments = () => {
-    if (!isComplete) return
-
     const payload: Record<string, unknown> = {}
     if (propertyType) {
       payload.property_type = propertyType
     }
+
     for (const field of activeFields) {
       const raw = form[field.key] ?? ''
+      if (raw.trim() === '') continue // 空值省略
+
       if (field.type === 'number') {
-        payload[field.key] = raw === '' ? null : Number(raw)
+        payload[field.key] = Number(raw)
       } else {
         payload[field.key] = raw.trim()
       }
@@ -220,9 +217,8 @@ export default function SupplementaryForm({
             value={value}
             onChange={(e) => updateField(field.key, e.target.value)}
             className={inputClassName}
-            required={field.required}
           >
-            <option value="">請選擇狀況</option>
+            <option value="">請選擇${field.label}</option>
             {field.options.map((opt) => (
               <option key={opt} value={opt}>
                 {opt}
@@ -244,7 +240,7 @@ export default function SupplementaryForm({
             value={value}
             onChange={(e) => updateField(field.key, e.target.value)}
             className={`${inputClassName} min-h-28 resize-y`}
-            required={field.required}
+            placeholder={`請輸入${field.label}`}
           />
         </label>
       )
@@ -259,7 +255,6 @@ export default function SupplementaryForm({
           onChange={(e) => updateField(field.key, e.target.value)}
           className={inputClassName}
           placeholder={`請輸入${field.label}`}
-          required={field.required}
         />
       </label>
     )
@@ -311,11 +306,8 @@ export default function SupplementaryForm({
         <div className="flex justify-end lg:col-span-2">
           <button
             type="button"
-            disabled={!isComplete}
             onClick={handleGenerateDocuments}
-            className={`rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors ${
-              isComplete ? 'bg-green-600 hover:bg-green-700' : 'cursor-not-allowed bg-slate-400'
-            }`}
+            className="rounded-lg bg-green-600 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-green-700"
           >
             產出文件
           </button>

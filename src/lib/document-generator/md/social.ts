@@ -1,11 +1,20 @@
 import { runCodex } from '../../codex-client';
 import type { DocumentGeneratorInput } from '../types';
+import { getSupValue } from '../utils';
 
 export async function generateSocialPosts(input: DocumentGeneratorInput): Promise<string> {
+  const supSummary = [
+    `優缺點：${getSupValue(input.supplementary_data, 'pros_cons')}`,
+    `管理費：${getSupValue(input.supplementary_data, 'management_fee')}`,
+    `用途：${getSupValue(input.supplementary_data, 'usage')}`,
+    `社區/設備：${getSupValue(input.supplementary_data, 'amenities')}`,
+  ].join('\n');
+
   const prompt = `你是台灣房仲社群行銷專家。根據以下物件資料，產出 5 個社群平台的貼文，格式為 Markdown，以 ## 平台名分節。
 物件類型：${input.property_type}
 物件資料：${JSON.stringify(input.field_visit_data)}
-秘書補充：${JSON.stringify(input.supplementary_data)}
+秘書補充（缺值以 **【待補】** 顯示）：
+${supSummary}
 
 請依序輸出以下 5 個平台，每個平台包含：貼文內容（繁體中文）＋圖片提示詞（Image prompt in English）：
 

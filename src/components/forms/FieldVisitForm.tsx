@@ -35,6 +35,8 @@ import {
   findNextNonEmptyChapterId,
   hasNextNonEmptyChapter,
 } from "./navigation-helpers";
+import PhotoUploadClassifier from "@/components/PhotoUploadClassifier";
+import LayoutSelector, { type LayoutValue } from "@/components/LayoutSelector";
 
 const SCHEMA_MAP: Record<PropertyType, FullSchema> = {
   apartment: apartmentSchema,
@@ -118,8 +120,13 @@ export const normalizeInitialData = (
       continue;
     }
 
-    // object 或 array 跳過不納入
+    // object 或 array（如 photos/layout）stringify 後納入
     if (typeof value === "object") {
+      try {
+        result[key] = JSON.stringify(value);
+      } catch {
+        result[key] = "";
+      }
       continue;
     }
 
@@ -172,7 +179,6 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
       initialData,
       highlightMissing = false,
       onJumpTo,
-      listingId,
       onNavigationStateChange,
       actionButtons,
     },
@@ -190,8 +196,6 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
     // Decision A: 追蹤是否已經水合過初始資料
     const didHydrateRef = useRef(false);
 
-    // 照片上傳狀態
-    const [uploading, setUploading] = useState(false);
 
     const schema = SCHEMA_MAP[activeType];
     const chapters = useMemo(
@@ -328,6 +332,23 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
           formData[field.key] = raw.trim();
         }
       }
+
+      // Wave 1: extra keys stored outside schema fields
+      const extraNumberKeys = ["floor_current", "floor_total"] as const;
+      for (const key of extraNumberKeys) {
+        const raw = form[key] ?? "";
+        formData[key] = raw === "" ? null : Number(raw);
+      }
+
+      const extraTextKeys = [
+        "utility_type",
+        "utility_other",
+        "utility_notes",
+      ] as const;
+      for (const key of extraTextKeys) {
+        formData[key] = (form[key] ?? "").trim();
+      }
+
       onSave(formData, isComplete);
     }, [activeType, allFields, form, isComplete, onSave]);
 
@@ -341,7 +362,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
       const modeClassName = getDisplayModeClassName(field);
       const helperText = getDisplayModeHelper(field);
       const placeholder =
-        field.displayMode === "blank" ? "秘書後補" : `請輸入${field.label}`;
+        field.displayMode === "blank" ? "" : `請輸入${field.label}`;
 
       // Decision C: 檢查是否需要高亮顯示必填未填欄位
       const isRequiredMissing =
@@ -350,129 +371,184 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
         ? "border-red-500 ring-1 ring-red-500"
         : "";
 
-      // 特殊處理照片欄位
-      if (field.key === "photos") {
-        const handlePhotoUpload = async (
-          e: React.ChangeEvent<HTMLInputElement>,
-        ) => {
-          const files = Array.from(e.target.files ?? []);
-          if (files.length === 0 || listingId === undefined) return;
+      if (field.key === "usage") {
+        const utilityType = form.utility_type ?? "";
+        const utilityOther = form.utility_other ?? "";
+        const utilityNotes = form.utility_notes ?? "";
 
-          setUploading(true);
-          try {
-            const formData = new FormData();
-            files.forEach((f) => formData.append("photo", f));
+        return (
+          <div key={field.key} className="block text-sm font-medium text-slate-700">
+            <p>{labelText}</p>
+            <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-700">
+              {["獨立電表", "共用電表", "其他"].map((opt) => (
+                <label key={opt} className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="utility_type"
+                    value={opt}
+                    checked={utilityType === opt}
+                    onChange={() => {
+                      updateField("utility_type", opt);
+                      if (opt !== "其他") updateField("utility_other", "");
+                    }}
+                    className="h-4 w-4"
+                  />
+                  <span>{opt}</span>
+                </label>
+              ))}
+            </div>
 
-            const res = await fetch(`/api/listings/${listingId}/photos`, {
-              method: "POST",
-              body: formData,
-            });
-            const { filenames } = await res.json();
+            {utilityType === "其他" && (
+              <input
+                type="text"
+                value={utilityOther}
+                onChange={(e) => updateField("utility_other", e.target.value)}
+                className={`${inputClassName} ${modeClassName} ${highlightClassName}`}
+                placeholder="請輸入其他水電類型"
+              />
+            )}
 
-            // 解析當前 photos 狀態
-            let existing: string[] = [];
-            try {
-              if (form.photos && form.photos.trim() !== "") {
-                existing = JSON.parse(form.photos);
-                if (!Array.isArray(existing)) {
-                  existing = [];
-                }
-              }
-            } catch {
-              existing = [];
-            }
+            <label className="mt-3 block text-sm font-medium text-slate-700">
+              備註（選填）
+              <textarea
+                value={utilityNotes}
+                onChange={(e) => updateField("utility_notes", e.target.value)}
+                className={`${inputClassName} min-h-24 resize-y ${modeClassName} ${highlightClassName}`}
+                placeholder=""
+              />
+            </label>
+          </div>
+        );
+      }
 
-            const merged = [...existing, ...filenames];
-            setForm((prev) => ({ ...prev, photos: JSON.stringify(merged) }));
-          } catch (error) {
-            console.error("上傳失敗:", error);
-          } finally {
-            setUploading(false);
-          }
-        };
-
-        const removePhoto = (filenameToRemove: string) => {
-          let existing: string[] = [];
-          try {
-            if (form.photos && form.photos.trim() !== "") {
-              existing = JSON.parse(form.photos);
-              if (!Array.isArray(existing)) {
-                existing = [];
-              }
-            }
-          } catch {
-            existing = [];
-          }
-
-          const filtered = existing.filter(
-            (filename) => filename !== filenameToRemove,
-          );
-          setForm((prev) => ({ ...prev, photos: JSON.stringify(filtered) }));
-        };
-
-        // 取得現有照片列表
-        let existingPhotos: string[] = [];
+      if (field.key === "layout") {
+        let parsed: LayoutValue = { rooms: 0, halls: 0, baths: 0, kitchens: 0 };
         try {
-          if (form.photos && form.photos.trim() !== "") {
-            existingPhotos = JSON.parse(form.photos);
-            if (!Array.isArray(existingPhotos)) {
-              existingPhotos = [];
+          const raw = form.layout ?? "";
+          if (raw.trim() !== "") {
+            const v = JSON.parse(raw) as unknown;
+            if (typeof v === "object" && v !== null) {
+              const obj = v as Partial<LayoutValue>;
+              parsed = {
+                rooms: typeof obj.rooms === "number" ? obj.rooms : 0,
+                halls: typeof obj.halls === "number" ? obj.halls : 0,
+                baths: typeof obj.baths === "number" ? obj.baths : 0,
+                kitchens: typeof obj.kitchens === "number" ? obj.kitchens : 0,
+              };
             }
           }
         } catch {
-          existingPhotos = [];
+          parsed = { rooms: 0, halls: 0, baths: 0, kitchens: 0 };
         }
 
+        return (
+          <div key={field.key} className="block text-sm font-medium text-slate-700">
+            <label>{labelText}</label>
+            <div className="mt-2">
+              <LayoutSelector
+                value={parsed}
+                onChange={(v) => {
+                  setForm((prev) => ({ ...prev, layout: JSON.stringify(v) }));
+                }}
+              />
+            </div>
+          </div>
+        );
+      }
+
+      if (field.key === "floor_count") {
+        const current = form.floor_current ?? "";
+        const total = form.floor_total ?? "";
+        const currentNum = Number.parseInt(current || "0", 10);
+        const totalNum = Number.parseInt(total || "0", 10);
+        const isInvalid = totalNum > 0 && currentNum > totalNum;
+
+        return (
+          <div key={field.key} className="block text-sm font-medium text-slate-700">
+            <label>{labelText}</label>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <label className="text-sm font-medium text-slate-700">
+                所在樓層
+                <input
+                  type="number"
+                  value={current}
+                  min={0}
+                  onChange={(e) => updateField("floor_current", e.target.value)}
+                  className={`${inputClassName} ${modeClassName} ${highlightClassName}`}
+                />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                總樓層
+                <input
+                  type="number"
+                  value={total}
+                  min={0}
+                  onChange={(e) => updateField("floor_total", e.target.value)}
+                  className={`${inputClassName} ${modeClassName} ${highlightClassName}`}
+                />
+              </label>
+            </div>
+            <p className="mt-2 text-sm text-slate-600">
+              {currentNum || 0} / {totalNum || 0} 樓
+            </p>
+            {isInvalid && (
+              <p className="mt-1 text-sm text-red-600">所在樓層不可超過總樓層</p>
+            )}
+          </div>
+        );
+      }
+
+      if (field.key === "year_built") {
+        const label = `建築完成年份（民國）${field.required ? " *" : ""}`;
+        const rocYear = new Date().getFullYear() - 1911;
+        const built = Number.parseInt(form.year_built || "0", 10);
+        const age = rocYear - built;
+        const showAge = built > 0 && Number.isFinite(age) && age >= 0;
+
+        return (
+          <div key={field.key} className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-slate-700">
+              {label}
+              <input
+                type="number"
+                value={form.year_built ?? ""}
+                onChange={(e) => updateField("year_built", e.target.value)}
+                className={`${inputClassName} ${modeClassName} ${highlightClassName}`}
+                placeholder=""
+                required={field.required}
+              />
+            </label>
+            {showAge && (
+              <p className="mt-1 text-sm text-slate-600">屋齡：{age} 年</p>
+            )}
+          </div>
+        );
+      }
+
+      // 特殊處理照片欄位
+      if (field.key === "photos") {
         return (
           <div
             key={field.key}
             className="block text-sm font-medium text-slate-700"
           >
             <label>{labelText}</label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handlePhotoUpload}
-              disabled={uploading || listingId === undefined}
-              className={`${inputClassName} ${modeClassName} ${highlightClassName} disabled:opacity-50`}
-            />
-            {uploading && (
-              <p className="mt-1 text-xs text-blue-600">上傳中...</p>
-            )}
-            {listingId === undefined && (
-              <p className="mt-1 text-xs text-slate-500">
-                需要 listing ID 才能上傳照片
-              </p>
-            )}
+            <div className="mt-2">
+              <PhotoUploadClassifier
+                files={[]}
+                onClassified={(result) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    photos: JSON.stringify(result),
+                  }));
+                }}
+              />
+            </div>
             {helperText ? (
               <p className="mt-1 text-xs text-amber-700">{helperText}</p>
             ) : null}
             {isRequiredMissing && (
               <p className="mt-1 text-xs text-red-600">此欄位必填</p>
-            )}
-
-            {/* 顯示現有照片 */}
-            {existingPhotos.length > 0 && (
-              <div className="mt-2 space-y-1">
-                <p className="text-xs text-slate-600">已上傳的照片：</p>
-                {existingPhotos.map((filename, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs"
-                  >
-                    <span className="text-slate-700">{filename}</span>
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(filename)}
-                      className="ml-2 text-red-500 hover:text-red-700"
-                      disabled={uploading}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
             )}
           </div>
         );
@@ -491,9 +567,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
               className={`${inputClassName} ${modeClassName} ${highlightClassName}`}
               required={field.required}
             >
-              <option value="">
-                {field.displayMode === "blank" ? "秘書後補" : "請選擇"}
-              </option>
+              <option value="">請選擇</option>
               {field.options.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}

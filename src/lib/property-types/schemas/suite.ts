@@ -13,7 +13,7 @@ export const suiteSchema = {
   ],
   building_common: [
     { key: 'building_area', label: '建物面積', type: 'number', required: true, sourceType: 'field-visit', displayMode: 'fixed' },
-    { key: 'layout', label: '格局（幾房幾廳）', type: 'text', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
+    { key: 'layout', label: '格局', type: 'layout', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'floor_count', label: '樓層', type: 'number', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'year_built', label: '年份', type: 'number', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'structure', label: '結構', type: 'text', required: false, sourceType: 'field-visit', displayMode: 'fixed' },

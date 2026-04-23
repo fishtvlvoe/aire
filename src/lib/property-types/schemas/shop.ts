@@ -13,6 +13,7 @@ export const shopSchema = {
   ],
   building_common: [
     { key: 'building_area', label: '建物面積', type: 'number', required: true, sourceType: 'field-visit', displayMode: 'fixed' },
+    { key: 'layout', label: '格局', type: 'layout', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'shop_frontage', label: '店面寬度', type: 'number', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'floor_count', label: '樓層（通常 1F）', type: 'number', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'year_built', label: '年份', type: 'number', required: false, sourceType: 'field-visit', displayMode: 'fixed' },

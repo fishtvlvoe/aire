@@ -16,4 +16,5 @@ export interface DocumentGeneratorInput {
 
 export interface DocumentGenerator {
   generate(input: DocumentGeneratorInput): Promise<GeneratedDocuments>;
+  generateSingle(input: DocumentGeneratorInput, type: keyof GeneratedDocuments): Promise<string>;
 }

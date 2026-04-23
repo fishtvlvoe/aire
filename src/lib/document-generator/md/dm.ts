@@ -1,11 +1,21 @@
 import { runCodex } from '../../codex-client';
 import type { DocumentGeneratorInput } from '../types';
+import { getSupValue } from '../utils';
 
 export async function generateDm(input: DocumentGeneratorInput): Promise<string> {
+  const supSummary = [
+    `優缺點：${getSupValue(input.supplementary_data, 'pros_cons')}`,
+    `管理費：${getSupValue(input.supplementary_data, 'management_fee')}`,
+    `用途：${getSupValue(input.supplementary_data, 'usage')}`,
+    `社區/設備：${getSupValue(input.supplementary_data, 'amenities')}`,
+    `其他備註：${getSupValue(input.supplementary_data, 'additional_notes')}`,
+  ].join('\n');
+
   const prompt = `你是台灣房仲行銷專家。根據以下物件資料，產出一份「銷售 DM 行銷文案」，格式為 Markdown。
 物件類型：${input.property_type}
 物件資料：${JSON.stringify(input.field_visit_data)}
-秘書補充：${JSON.stringify(input.supplementary_data)}
+秘書補充（缺值以 **【待補】** 顯示）：
+${supSummary}
 
 文案應包含：
 - 主標題（吸睛、強調核心賣點）

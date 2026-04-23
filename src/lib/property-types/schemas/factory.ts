@@ -13,6 +13,7 @@ export const factorySchema = {
   ],
   building_common: [
     { key: 'building_area', label: '廠房面積', type: 'number', required: true, sourceType: 'field-visit', displayMode: 'fixed' },
+    { key: 'layout', label: '格局', type: 'layout', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'floor_height', label: '層高', type: 'number', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'factory_type', label: '廠房類型（鋼構/RC）', type: 'text', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
     { key: 'year_built', label: '年份', type: 'number', required: false, sourceType: 'field-visit', displayMode: 'fixed' },
