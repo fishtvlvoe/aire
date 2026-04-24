@@ -175,16 +175,20 @@ POST /api/listings/{id}/extract?attachmentId=xxx
 
 **Risk**：PaddleOCR 在 Windows Docker 內可能有安裝問題 → Mitigation：Dockerfile 多階段建置 + fallback Tesseract.js。
 
-### D8: 規則 parser 設計
+### D8: 規則 parser 設計（2026-04-24 依 26 份樣本更新）
 
-**決策**：每個文件類型一個 parser file，輸入 raw text，輸出 fields object。
+**決策**：三種 section-level parser + 一個組合器，輸入 raw text，輸出 fields object。
+
+依 `sample-inventory.md` 26 份 YAML 黃金樣本分析，謄本的真實結構是 **section-based**（土地標示部 / 土地所有權部 / 土地他項權利部 / 建物標示部 / 建物所有權部 / 建物他項權利部），而非「一檔一種類型」。一份 PDF 常同時含土地+建物+他項共 6 個 section。
 
 ```
 src/lib/ocr/parsers/
-  ├─ transcript-land.ts    // 土地謄本
-  ├─ transcript-building.ts // 建物謄本
-  ├─ title-deed.ts          // 權狀
-  └─ cadastral-map.ts       // 地籍圖（部分結構化）
+  ├─ section-splitter.ts    // 用 section header（***...***）切成多個 section
+  ├─ land-parser.ts         // 土地標示部 + 土地所有權部 + 土地他項權利部
+  ├─ building-parser.ts     // 建物標示部 + 建物所有權部 + 建物他項權利部
+  ├─ mixed-parser.ts        // 組合器：一檔多 section → 合併輸出
+  ├─ normalize.ts           // 日期/面積/地價/權利範圍統一格式
+  └─ title-deed.ts          // 權狀（Phase 2 照片 OCR 用）
 ```
 
 **Parser 內部**：用 regex 抽結構化欄位。例：
@@ -208,6 +212,50 @@ function parseTranscript(text: string): Record<string, FieldValue> {
 ```
 
 **理由**：謄本格式高度標準化（內政部規範），regex 對印刷體 OCR 後的文字準確度高。LLM 只在 regex 失敗時補位。
+
+**欄位清單依樣本重新校準**（完整版見 `sample-inventory.md`）：
+
+| Parser | Section | 主要欄位（樣本實際名稱） |
+|--------|---------|------------------------|
+| land-parser | 土地標示部 | 地號（含區段+段+地號一體字串）、面積、使用分區、使用地類別、公告土地現值、公告地價、公告地價年月、公告現值年月、登記日期、登記原因、地上建物建號[list]、其他登記事項[list]、查詢時間 |
+| land-parser | 土地所有權部 | 登記次序、登記日期、登記原因、原因發生日期、所有權人、統一編號、地址、權利範圍、權狀字號、當期申報地價、當期申報地價年月、前次移轉現值或原規定地價[list of object]、相關他項權利登記次序[list] |
+| land-parser | 土地他項權利部 | 登記次序、登記日期、登記原因、權利種類、權利人、權利人統編、字號、收件年期、共同擔保地號[list]、共同擔保建號[list]、權利擔保[list] |
+| building-parser | 建物標示部 | 建號、建物門牌（= 坐落地址）、建物座落地號[list]、主要用途、主要建材、層數、總面積、層次[list]、附屬建物[list]、共有部分[list]、建築完成日期、登記日期 |
+| building-parser | 建物所有權部 | 登記次序、登記日期、登記原因、原因發生日期、所有權人、統一編號、地址、權利範圍、權狀字號 |
+| building-parser | 建物他項權利部 | 同土地他項權利部結構 |
+
+**常見命名錯誤修正**（相對於原設計）：
+- 「公告現值」→ 正確：**公告土地現值**
+- 「坐落地址」→ 正確：**建物門牌**
+- 「建物面積」→ 正確：**總面積**（同時有 `層次` list 記錄每層面積）
+- 「結構」→ 正確：**主要建材**
+- 「建築完成日」→ 正確：**建築完成日期**
+- 「地段」→ **不獨立**，內嵌於地號字串（例：`臺南市下營區十六甲段2195-0000地號`）
+- 「他項權利」→ 獨立成「土地他項權利部」section，內有多個欄位
+
+**Normalize 規則**（寫在 `normalize.ts`，所有 parser 共用）：
+- 日期：`民國115年04月02日` → ISO `2026-04-02`
+- 面積：`1,223.00平方公尺` → float `1223.00`（坪換算由 UI 層做）
+- 地價：`71,812 元/平方公尺` → int `71812`
+- 權利範圍：`10000分之91` → `91/10000`；`全部1分之1` → `1/1`
+- 空值：`(空白)` / `[(空白)]` → `null` / `[]`
+- 層數：`010層` → int `10`
+- 地號：拆為 `{ county, district, section, number, raw }` 保留原字串
+
+### D9: 樣本驅動的測試策略
+
+**決策**：26 份 YAML 黃金樣本作為 parser 的回歸測試金套（golden fixtures）。
+
+實作時把 `sample-inventory.md` 對應的 26 份 YAML 複製到 `src/lib/ocr/parsers/__fixtures__/`（脫敏後進 git），每次跑測試：
+
+```
+for each fixture.yaml:
+    input_text = reconstruct_raw_from_yaml(fixture)   # 或從業主再要原始 PDF
+    actual = parse(input_text)
+    assert actual == fixture   # 完全相等
+```
+
+Phase 1 目標：**26 份中至少 23 份（88%）完全通過**，少數失敗（3 份內）做為邊界案例分析。
 
 ## Implementation Distribution Strategy
 
