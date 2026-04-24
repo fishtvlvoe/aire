@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import type { PropertyType } from "@/lib/property-types";
 import { PROPERTY_TYPES } from "@/lib/property-types";
+import { formatLabelWithUnit } from "@/lib/property-types/units";
 import {
   type ChapterId,
   type FieldSchema,
@@ -353,7 +354,8 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
 
     const renderField = (field: FieldSchema) => {
       const value = form[field.key] ?? "";
-      const labelText = `${field.label}${field.required ? " *" : ""}`;
+      const labelWithUnit = formatLabelWithUnit(field.label, field.key);
+      const labelText = `${labelWithUnit}${field.required ? " *" : ""}`;
       const modeClassName = getDisplayModeClassName(field);
       const helperText = getDisplayModeHelper(field);
       const placeholder =

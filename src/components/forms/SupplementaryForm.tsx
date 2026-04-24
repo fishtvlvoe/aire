@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { PropertyType } from '@/lib/property-types'
+import { formatLabelWithUnit } from '@/lib/property-types/units'
 import {
   apartmentSchema,
   commercialLandSchema,
@@ -203,7 +204,8 @@ export default function SupplementaryForm({
 
   const renderField = (field: SchemaField) => {
     const value = form[field.key] ?? ''
-    const labelText = `${field.label}${field.required ? ' *' : ''}`
+    const labelWithUnit = formatLabelWithUnit(field.label, field.key)
+    const labelText = `${labelWithUnit}${field.required ? ' *' : ''}`
     const isWide = field.type === 'textarea'
 
     if (field.type === 'select' && field.options) {
