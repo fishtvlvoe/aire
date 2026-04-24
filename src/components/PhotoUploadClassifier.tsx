@@ -40,17 +40,15 @@ const CATEGORY_OPTIONS: Array<{ value: PhotoCategory; label: string }> = [
 
 const classifyByFilename = (name: string): PhotoCategory => {
   const n = name.toLowerCase();
-
-  // 依序 case-insensitive partial match，多重匹配取第一個
-  if (n.includes("interior")) return "interior";
-  if (n.includes("exterior")) return "exterior";
-  if (n.includes("street-view") || n.includes("streetview")) return "street-view";
-  if (n.includes("advantage")) return "advantage";
-  if (n.includes("transcript")) return "transcript";
-  if (n.includes("land-title") || n.includes("landtitle")) return "land-title";
-  if (n.includes("contract")) return "contract";
-  if (n.includes("cadastral-map") || n.includes("cadastral")) return "cadastral-map";
-
+  // 中文 / 簡體 / 英文 關鍵字皆支援，避免「陳世曉-謄本.pdf」這種純中文檔名落空
+  if (n.includes("interior") || n.includes("室內") || n.includes("室内") || n.includes("內部") || n.includes("内部")) return "interior";
+  if (n.includes("exterior") || n.includes("外觀") || n.includes("外观") || n.includes("外部")) return "exterior";
+  if (n.includes("street-view") || n.includes("streetview") || n.includes("街景")) return "street-view";
+  if (n.includes("advantage") || n.includes("優勢") || n.includes("优势") || n.includes("亮點") || n.includes("亮点")) return "advantage";
+  if (n.includes("transcript") || n.includes("謄本") || n.includes("誊本") || n.includes("登記簿") || n.includes("登记簿")) return "transcript";
+  if (n.includes("land-title") || n.includes("landtitle") || n.includes("權狀") || n.includes("权状")) return "land-title";
+  if (n.includes("contract") || n.includes("contract") || n.includes("合約") || n.includes("合约") || n.includes("契約") || n.includes("契约")) return "contract";
+  if (n.includes("cadastral-map") || n.includes("cadastral") || n.includes("地籍")) return "cadastral-map";
   return "other";
 };
 
@@ -112,13 +110,19 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
   const unclassifiedQueue = useMemo(() => items.filter((i) => i.category === null), [items]);
   const classified = useMemo(() => items.filter((i) => i.category !== null), [items]);
 
-  const emitIfComplete = useRef(0);
+  // Stabilize onClassified prop reference to avoid infinite loop when parent
+  // recreates the callback on every render（L044 變體：useEffect 內呼叫 prop callback 觸發
+  // parent setState → parent rerender → 新 callback reference → useEffect 又跑 → 無限）。
+  const onClassifiedRef = useRef(onClassified);
+  onClassifiedRef.current = onClassified;
+
+  // Track last emitted signature to skip duplicate notifications.
+  const lastEmittedRef = useRef<string>('');
+
   useEffect(() => {
     if (items.length === 0) return;
     if (unclassifiedQueue.length > 0) return;
 
-    // Avoid spamming parent on every render when already complete.
-    emitIfComplete.current += 1;
     const result: ClassifiedFile[] = items
       .map((item) => {
         if (item.category === null) return null;
@@ -131,10 +135,13 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
       })
       .filter((x): x is ClassifiedFile => x !== null);
 
-    if (result.length === items.length) {
-      onClassified(result);
-    }
-  }, [items, onClassified, unclassifiedQueue.length]);
+    if (result.length !== items.length) return;
+
+    const sig = result.map((r) => `${r.filename}:${r.category}`).join('|');
+    if (sig === lastEmittedRef.current) return;
+    lastEmittedRef.current = sig;
+    onClassifiedRef.current(result);
+  }, [items, unclassifiedQueue.length]);
 
   const addFiles = (selected: File[]) => {
     if (selected.length === 0) return;
@@ -175,8 +182,7 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
         <div>
           <p className="text-sm font-medium text-slate-700">上傳照片/文件</p>
           <p className="mt-1 text-xs text-slate-500">
-            檔名若包含 interior / exterior / street-view / advantage / transcript / land-title / contract / cadastral-map 會自動分類。
-            未匹配者會進入配對區。
+            系統會依檔名自動歸類為「室內 / 外觀 / 街景 / 優勢 / 謄本 / 權狀 / 合約 / 地籍」；無法判定者會進入下方「未分類配對」由您手動指定。
           </p>
         </div>
         <label className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">

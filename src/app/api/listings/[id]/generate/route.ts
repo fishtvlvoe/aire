@@ -5,8 +5,7 @@ import { createDefaultGenerator } from '@/lib/document-generator';
 import type { DocumentGeneratorInput, GeneratedDocuments } from '@/lib/document-generator/types';
 
 const statusMessages: Record<string, string> = {
-  draft: '請先完成現場勘查資料（業務填寫）',
-  'field-visit-complete': '請先完成補充資料（秘書填寫）',
+  draft: '請先完成現場勘查資料（業務填寫），再回到產出頁',
   'documents-ready': '文件已產出完成',
 };
 
@@ -26,16 +25,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   }
   const documentType = rawType as keyof GeneratedDocuments | undefined;
 
+  // 補充資料章節所有欄位皆為 optional（apartment.supplementary_specific: management_fee/insurance_notes
+  // 都 required: false），因此 'field-visit-complete' 應該允許產文件。
+  // 強制業務先填補充才能產 = 不必要的阻擋。
   const allowedStatuses = documentType
-    ? new Set(['ready-for-generation', 'documents-ready'])
-    : new Set(['ready-for-generation']);
+    ? new Set(['field-visit-complete', 'ready-for-generation', 'documents-ready'])
+    : new Set(['field-visit-complete', 'ready-for-generation']);
 
   if (!allowedStatuses.has(listing.status)) {
     return NextResponse.json(
       {
         error: 'not-ready',
         currentStatus: listing.status,
-        message: statusMessages[listing.status] || '尚未準備好產生文件',
+        message: statusMessages[listing.status] || '尚未完成現勘資料，請先回到「現勘」階段填寫',
       },
       { status: 422 }
     );
