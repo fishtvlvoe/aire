@@ -34,4 +34,11 @@ export function initDb(db: Database.Database): void {
       // column was added by a concurrent process; safe to ignore
     }
   }
+  if (!columns.includes('market_summary')) {
+    try {
+      db.exec('ALTER TABLE listings ADD COLUMN market_summary TEXT');
+    } catch {
+      // column was added by a concurrent process; safe to ignore
+    }
+  }
 }
