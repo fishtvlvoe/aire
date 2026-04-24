@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>不動產物件調查表</title>
+  <link rel="stylesheet" href="survey.css" />
+  <style>
+    @page {
+      size: A4;
+      margin: 15mm 12mm 20mm 12mm;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ 頁眉 running elements ══ -->
+  <div class="page-header">
+    <img
+      src="{{LOGO_PATH}}"
+      alt="建安不動產"
+      width="80"
+      onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"
+    />
+    <span style="display:none; font-weight:bold;">建安不動產</span>
+  </div>
+
+  <div class="page-header-title">物件調查表</div>
+
+  <div class="page-header-page"></div>
+
+  <!-- ══ 頁腳 running elements ══ -->
+  <div class="page-footer-date">製表日期：{{GENERATED_DATE}}</div>
+
+  <div class="page-footer-note">內部作業使用，非對外文件</div>
+
+  <!-- ══ 主內容 ══ -->
+  <main>
+
+    <h1>物件調查表</h1>
+
+    <!-- 物件基本資訊摘要 -->
+    <table class="summary">
+      <tr>
+        <th style="width:25%;">物件名稱</th>
+        <td>{{PROPERTY_NAME}}</td>
+        <th style="width:20%;">案件編號</th>
+        <td>{{CASE_ID}}</td>
+      </tr>
+      <tr>
+        <th>地址</th>
+        <td colspan="3">{{PROPERTY_ADDRESS}}</td>
+      </tr>
+    </table>
+
+    <hr />
+
+    <!-- 由 PDF route 注入的 Markdown 轉 HTML 內容 -->
+    <div id="content">{{CONTENT}}</div>
+
+  </main>
+
+</body>
+</html>

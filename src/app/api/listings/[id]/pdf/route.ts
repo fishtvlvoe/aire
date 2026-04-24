@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getListing } from '@/lib/db';
 import { generateDossierPDF } from '@/lib/pdf-generator/dossier';
+import {
+  generateSurveySalesPDF,
+  type SurveySalesTemplateId,
+} from '@/lib/pdf-generator/survey-sales';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -38,34 +42,37 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     });
   }
 
-  // survey / sales-dm: generic puppeteer rendering
-  const title = type === 'survey' ? '物調表' : '銷售DM';
-  const bodyContent = content
-    ? `<pre style="white-space:pre-wrap;word-break:break-all;">${content}</pre>`
-    : `<p style="color:#888;">尚未產生內容</p>`;
-  const html = `<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:'Noto Sans TC',sans-serif;padding:2rem;font-size:14px;line-height:1.8;}h1{font-size:1.4rem;color:#1B3A6B;}pre{white-space:pre-wrap;word-break:break-all;}</style></head><body><h1>${title}</h1><p style="color:#666;margin-bottom:1.5rem;">物件地址：${address}</p>${bodyContent}</body></html>`;
+  // survey / sales-dm: 使用 v31-polish 引入的專業模板
+  if (type === 'survey' || type === 'sales-dm') {
+    if (!content) {
+      return NextResponse.json({ error: `${type} document not generated yet` }, { status: 422 });
+    }
+    const totalPriceRaw =
+      (fieldVisitData.total_price as number | string | undefined) ??
+      (listing.supplementary_data
+        ? ((JSON.parse(listing.supplementary_data) as Record<string, unknown>).total_price as
+            | number
+            | string
+            | undefined)
+        : undefined);
 
-  let puppeteer: typeof import('puppeteer');
-  try {
-    puppeteer = (await import('puppeteer')).default as unknown as typeof import('puppeteer');
-  } catch {
-    return NextResponse.json({ error: 'puppeteer not available' }, { status: 500 });
+    const pdfBytes = await generateSurveySalesPDF(type as SurveySalesTemplateId, {
+      markdown: content,
+      propertyName: String(fieldVisitData.property_name ?? fieldVisitData.title ?? '物件'),
+      propertyAddress: address,
+      caseId: String(numId),
+      totalPrice: totalPriceRaw,
+      agentName: String(fieldVisitData.agent_name ?? ''),
+      agentPhone: String(fieldVisitData.agent_phone ?? ''),
+    });
+
+    return new NextResponse(pdfBytes.buffer as ArrayBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${type}-${id}.pdf"`,
+      },
+    });
   }
 
-  const launchOptions = process.env.CHROMIUM_PATH
-    ? { executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox', '--disable-setuid-sandbox'] }
-    : {};
-
-  const browser = await puppeteer.launch(launchOptions as Parameters<(typeof puppeteer)['launch']>[0]);
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  const pdf = await page.pdf({ format: 'A4' });
-  await browser.close();
-
-  return new NextResponse(pdf.buffer as ArrayBuffer, {
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${type}-${id}.pdf"`,
-    },
-  });
+  return NextResponse.json({ error: `unsupported PDF type: ${type}` }, { status: 400 });
 }

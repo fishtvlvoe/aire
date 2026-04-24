@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>銷售 DM</title>
+  <link rel="stylesheet" href="sales-dm.css" />
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm 10mm 18mm 10mm;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ 頁眉 ══ -->
+  <div class="page-header">
+    <span class="brand">建安不動產</span>
+  </div>
+
+  <div class="page-header-title">{{PROPERTY_NAME}}</div>
+
+  <div class="page-header-page"></div>
+
+  <!-- ══ 頁腳：經紀人聯絡資訊 ══ -->
+  <div class="page-footer">
+    <span class="footer-agent">經紀人：{{AGENT_NAME}}</span>
+    <span class="footer-phone">{{AGENT_PHONE}}</span>
+    <span class="footer-date">{{GENERATED_DATE}}</span>
+  </div>
+
+  <main>
+
+    <!-- 物件大標題與總價 -->
+    <header class="hero">
+      <h1 class="hero-title">{{PROPERTY_NAME}}</h1>
+      <div class="hero-address">{{PROPERTY_ADDRESS}}</div>
+      <div class="hero-price">
+        總價 <span class="price-number">{{TOTAL_PRICE}}</span> <span class="price-unit">萬元</span>
+      </div>
+    </header>
+
+    <hr class="divider" />
+
+    <!-- 由 PDF route 注入的 Markdown 轉 HTML 內容（亮點條列、規格表、生活圈） -->
+    <div id="content">{{CONTENT}}</div>
+
+  </main>
+
+</body>
+</html>

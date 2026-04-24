@@ -1,0 +1,174 @@
+/* survey.css — 物調表列印樣式（基於 dossier.css 簡化） */
+
+@page {
+  size: A4;
+  margin: 15mm 12mm 20mm 12mm;
+
+  @top-left {
+    content: element(page-header-logo);
+  }
+  @top-center {
+    content: element(page-header-title);
+  }
+  @top-right {
+    content: element(page-header-page);
+  }
+  @bottom-left {
+    content: element(page-footer-date);
+  }
+  @bottom-right {
+    content: element(page-footer-note);
+  }
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Noto Serif TC", serif;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #000;
+  background: #fff;
+}
+
+.page-header {
+  position: running(page-header-logo);
+  font-family: "Noto Serif TC", serif;
+  font-size: 12px;
+  font-weight: bold;
+}
+.page-header-title {
+  position: running(page-header-title);
+  font-family: "Noto Serif TC", serif;
+  font-size: 12px;
+  text-align: center;
+}
+.page-header-page {
+  position: running(page-header-page);
+  font-family: "Noto Serif TC", serif;
+  font-size: 11px;
+  text-align: right;
+}
+.page-header-page::after {
+  content: "第 " counter(page) " 頁 / 共 " counter(pages) " 頁";
+}
+.page-footer-date {
+  position: running(page-footer-date);
+  font-family: "Noto Serif TC", serif;
+  font-size: 10px;
+  color: #444;
+}
+.page-footer-note {
+  position: running(page-footer-note);
+  font-family: "Noto Serif TC", serif;
+  font-size: 10px;
+  color: #444;
+  text-align: right;
+}
+
+#content {
+  width: 100%;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #000;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 18px 0 6px 0;
+  padding: 4px 0 4px 8px;
+  border-left: 4px solid #1B3A6B;
+  background: #f4f6fa;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 12px 0 4px 0;
+  color: #1B3A6B;
+  page-break-after: avoid;
+}
+
+p {
+  margin: 4px 0 8px 0;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #bbb;
+  margin: 14px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 12px 0;
+  font-size: 13px;
+}
+
+table.summary th,
+table.summary td {
+  border: 1px solid #444;
+}
+
+th,
+td {
+  border: 1px solid #888;
+  padding: 5px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #eef1f6;
+  font-weight: bold;
+  color: #1B3A6B;
+}
+
+ul,
+ol {
+  margin: 4px 0 8px 0;
+  padding-left: 20px;
+}
+
+li {
+  margin-bottom: 2px;
+}
+
+span.pending {
+  color: #c00;
+  font-weight: bold;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+  p,
+  li {
+    orphans: 3;
+    widows: 3;
+  }
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+}
