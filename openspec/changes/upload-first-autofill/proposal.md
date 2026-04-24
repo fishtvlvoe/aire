@@ -122,9 +122,16 @@
 - Layer 2：影像 PDF / 權狀照片 → Tesseract / PaddleOCR 後端跑（成本 $0、速度 5–20 秒）
 - Layer 3：Layer 1+2 沒抓到的欄位 → Claude Vision 補強（成本 $0.02–0.05、速度 5–15 秒）
 
-## Open Questions（需業務確認）
+## Open Questions
 
-1. **OCR 失敗時是否阻擋流程**？目前傾向「可跳過 → 進入手填模式」，但業務可能期望「失敗即停 + 換上傳」。需釐清。
-2. **欄位 conflict（謄本說 32.5 坪、業務想填 33 坪）的優先級**？傾向「業務手動覆蓋為準 + 標『已修改』」，但是否需要保留原值供回溯？
-3. **多份同類文件**（如業務上傳 2 份謄本、不同地號）→ 帶入時取第一份還是讓業務選？
-4. **權狀為手機拍照角度歪斜**的 OCR 容錯：需要 image preprocess 嗎（旋轉校正、去陰影）？
+### 已對焦（2026-04-24 與 Fish 確認）
+
+1. **OCR 失敗時是否阻擋流程**？→ **不阻擋**。上傳非必要，業務可點「跳過，全部手動輸入」直接手填；部分欄位失敗時已抽到的仍寫入、未抽到的留空由業務補足（見 `specs/document-ocr-extraction` 之「Partial extraction does not block flow」）。
+2. **欄位 conflict（OCR 帶入與業務手填不同）的優先級**？→ **以業務修改為準**（User edit wins）。OCR 原值保留於 `extracted_data.by_attachment` 作為 raw cache，v1 範圍 UI **不提供回溯到 OCR 原值**。見 `specs/auto-fill-fields` 之「User edit wins on conflict」。
+3. **多份同類文件**（如業務上傳 2 份謄本）→ `merged_fields` 取信心度較高者；信心度相同取較新上傳者，UI 顯示切換下拉。見 `specs/document-ocr-extraction` 之「多份同類文件 conflict 解決」。
+4. **權狀為手機拍照角度歪斜**的 OCR 容錯：需要 image preprocess。已列入 Phase 2 Task 2.4（EXIF 旋轉校正 + contrast 拉伸）。
+
+### 延後至 v2（第二版交付後再詢問客戶）
+
+1. **業務上傳錯檔**的處理：刪除 / 重上傳 / 確認提示 UI？v1 只提供基本的 attachment 刪除，不處理「錯分類」「誤上傳」的特殊 UX。
+2. **同物件更新舊謄本**的重跑邏輯：保留舊 extracted_data / 合併 / 覆蓋？新上傳會走現有 conflict 解決規則，但「明確重跑整個 listing」的按鈕 v1 不做。
