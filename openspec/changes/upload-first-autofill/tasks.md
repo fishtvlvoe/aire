@@ -1,5 +1,15 @@
 # Tasks: upload-first-autofill
 
+## Phase 0: Spike 驗證關鍵假設（1 小時，Gate：決定 Phase 1-6 是否需大改）
+
+> 驗證 design.md 中 4 個未驗證假設。跑完把結果寫入 `spike-report.md` 與 `design.md` 的「Phase 0 Spike Results」段落。PaddleOCR 安裝驗證延至 Phase 2 啟動前。
+
+- [x] 0.1 準備樣本：把 Fish 提供的真實謄本 PDF 複製到 `/tmp/sample-transcript.pdf`（含姓名，不對外，僅本機 spike 用）。[Tool: 主對話]
+- [x] 0.2 **假設 A** — pdfjs-dist 能從真實謄本抽出中文文字層。跑 `pdfjs.getDocument().getTextContent()`，記錄：有無文字層、字數、中文亂碼率。**結果：PASS（1975 字，100% 可讀）** [Tool: 主對話]
+- [x] 0.3 **假設 B** — 5 行 regex 能穩定抽出 4 核心欄位（地段、地號、面積、權利範圍）。命中率目標 ≥ 3/4。**結果：PASS（7/8 = 87.5%）** [Tool: 主對話]
+- [x] 0.4 寫 `spike-report.md`：4 假設逐一記錄「結果、數據、是否通過、下一步建議」。[Tool: 主對話]
+- [x] 0.5 Gate 決策：Phase 1 照原計畫跑，Task 1.3/1.4 微幅補強（filler strip + 頁面分類 + 權利範圍雙 pattern）。[Tool: 主對話]
+
 ## Phase 1: Layer 1 PDF 文字層解析（MVP 核心，2 週）
 
 - [ ] 1.1 Schema migration：新增 `listings.extracted_data TEXT NULL` 欄位 + `src/lib/db/schema.ts:initDb()` 動態 ALTER；migration 檔 003_add_extracted_data.sql。[Tool: 主對話]

@@ -28,6 +28,20 @@ three-ai 的核心場景是：業務拿著紙本/PDF 謄本 + 權狀 + 現場照
 - 不做跨國格式
 - 不訓練自家 OCR 模型
 
+## Phase 0 Spike 假設與結果
+
+以下 4 個假設將在 Phase 0 Spike 驗證（約 1 小時），結果決定 Phase 1-6 是否需要調整。原始數據見同目錄 `spike-report.md`。
+
+| # | 假設 | 驗證方法 | 結果 | 影響 |
+|---|------|---------|------|------|
+| A | pdfjs-dist 能從真實謄本 PDF 抽出中文文字層（非掃描影像） | 用 Fish 提供樣本跑 `pdfjs.getTextContent()`，檢查字數 & 中文完整度 | ✅ PASS（1975 字，100% 可讀） | Layer 1 可行，Phase 1 照原計畫 |
+| B | 5 行 regex 能穩定抽 4 核心欄位（地段/地號/面積/權利範圍），命中 ≥ 3/4 | 對 Layer 1 輸出的 raw text 跑 regex，人工比對 | ✅ PASS（7/8 = 87.5%） | D8 規則 parser 可行，Task 1.4 需擴充處理「全部 + 分數」格式變異 |
+| E | 掃描謄本 PDF（非電子）pdfjs 能否抽到文字 | 需額外索取掃描樣本 | 未驗證 | 若掃描 PDF 無文字層 → pipeline 要偵測並走 Layer 2 OCR |
+| C | PaddleOCR 在 macOS Docker 能跑起來且中文精度堪用 | 延至 Phase 2 啟動前驗（非今日 spike） | 延後 | 決定 R2 風險嚴重度 |
+| D | 業務會信任自動帶入（信任度 ≥ 80% 保留原值） | 需 Phase 5 客戶驗收才有數據 | 延後 | 決定 R3 嚴重度 |
+
+Phase 0 只驗 A + B。C/D 留給後續 Phase。
+
 ## Decisions
 
 ### D1: 三層 OCR 策略（成本/精度平衡）
