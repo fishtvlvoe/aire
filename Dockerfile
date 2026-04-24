@@ -50,13 +50,11 @@ RUN apt-get update && apt-get install -y \
   --no-install-recommends && \
   rm -rf /var/lib/apt/lists/*
 
-# Install all supported AI CLI backends
-RUN npm install -g @openai/codex@0.121.0
-RUN npm install -g @google/gemini-cli
-RUN npm install -g @anthropic-ai/claude-code
-
-# Install Gemini CLI
-RUN npm install -g @google/gemini-cli
+# Install all supported AI CLI backends（hybrid-architecture: gemini-cli 重複安裝已修正）
+RUN npm install -g \
+  @openai/codex@0.121.0 \
+  @google/gemini-cli \
+  @anthropic-ai/claude-code
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium

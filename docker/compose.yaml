@@ -8,6 +8,8 @@ services:
       - NODE_ENV=production
       # 可選值：codex / claude-code / gemini / ollama
       - LLM_BACKEND=gemini
+      # 雲端公開資料 API（hybrid-architecture）；未設定 → 客戶端自動 fallback 到本地查詢
+      - DATA_API_URL=${DATA_API_URL:-}
     volumes:
       - type: bind
         source: ${USERPROFILE:-${HOME:-~}}/建安AI/data
