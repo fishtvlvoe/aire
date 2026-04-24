@@ -5,7 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import SupplementaryForm from '@/components/forms/SupplementaryForm';
 import Stepper from '@/components/Stepper';
+import MarketLookupPanel from '@/components/MarketLookupPanel';
 import { PROPERTY_TYPES, getPropertyType, type PropertyType } from '@/lib/property-types';
+import type { AttachmentMeta } from '@/lib/db';
 
 type Listing = {
   id: number;
@@ -15,6 +17,8 @@ type Listing = {
   field_visit_data?: string | null;
   supplementary_data?: string | null;
   pre_commission_data?: string | Record<string, unknown> | null;
+  market_summary?: string | null;
+  attachments?: string | null;
 };
 
 type ListingResponse = {
@@ -42,6 +46,16 @@ const parseJsonObject = (rawData: unknown): Record<string, unknown> | null => {
     return null;
   } catch {
     return null;
+  }
+};
+
+const parseAttachments = (raw: string | null | undefined): AttachmentMeta[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as AttachmentMeta[]) : [];
+  } catch {
+    return [];
   }
 };
 
@@ -194,6 +208,15 @@ export default function ListingSupplementaryPage() {
                 <div className="mt-4 flex items-center justify-end gap-3">
                   {submitError && <span className="text-sm text-red-600">{submitError}</span>}
                   {submitting && <span className="text-sm text-slate-500">儲存中...</span>}
+                </div>
+
+                <div className="mt-6">
+                  <MarketLookupPanel
+                    listingId={listing.id}
+                    address={getAddressFromListing(listing)}
+                    initialMarketSummary={listing.market_summary ?? null}
+                    initialAttachments={parseAttachments(listing.attachments)}
+                  />
                 </div>
               </>
             )}
