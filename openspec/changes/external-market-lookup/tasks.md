@@ -26,13 +26,13 @@
 
 ## 6. 測試
 
-- [ ] 6.1 撰寫 `MarketLookupPanel.test.tsx` 元件測試：覆蓋（a）三個按鈕 URL 正確（b）textarea 字元上限（c）附件上傳 size/count/format 驗證（d）法律邊界文案存在於頁面。[Tool: copilot-codex]
-- [ ] 6.2 撰寫 E2E 測試 `e2e/external-market-lookup.spec.ts`：Playwright 驗證（a）進入 fill 頁「補充資料」tab → 看到三個按鈕 + 法律提示（b）點按鈕後新分頁打開正確 URL（驗證 URL 不訪問實際網站，僅檢查 anchor href）（c）填寫摘要 + 上傳檔案 → 重新整理後資料保留（d）生成不動產說明書 → PDF 內含摘要與附件（e）空 market_summary 章節顯示「待補」。[Tool: sonnet]
-- [ ] 6.3（延後）跨檔 Code Review：用 Kimi MCP `kimi_analyze` 審查所有 diff，重點確認：URL builder 純函式無副作用、無任何對 591/信義/樂屋的 fetch 呼叫、附件 size/format 驗證在 server side 也有檢查（避免 client-side bypass）。[Tool: kimi]
+- [x] 6.1 撰寫 `MarketLookupPanel.test.tsx` 元件測試：覆蓋（a）三個按鈕 URL 正確（b）textarea 字元上限（c）附件上傳 size/count/format 驗證（d）法律邊界文案存在於頁面。[Tool: copilot-codex]
+- [x] 6.2 撰寫 E2E 測試 `e2e/external-market-lookup.spec.ts`：Playwright 驗證（a）進入 fill 頁「補充資料」tab → 看到三個按鈕 + 法律提示（b）點按鈕後新分頁打開正確 URL（驗證 URL 不訪問實際網站，僅檢查 anchor href）（c）填寫摘要 + 上傳檔案 → 重新整理後資料保留（d）生成不動產說明書 → PDF 內含摘要與附件（e）空 market_summary 章節顯示「待補」。[Tool: sonnet]
+- [x] 6.3（延後）跨檔 Code Review：用 Kimi MCP `kimi_analyze` 審查所有 diff，重點確認：URL builder 純函式無副作用、無任何對 591/信義/樂屋的 fetch 呼叫、附件 size/format 驗證在 server side 也有檢查（避免 client-side bypass）。[Tool: kimi]
 
 ## 7. 視覺驗證與 Commit
 
-- [ ] 7.1 截圖驗證 UI：用 playwright/chrome MCP 截圖以下狀態存到 `/tmp/`：(1) 補充資料 tab 完整畫面 (2) 三個按鈕 hover 狀態 (3) textarea 字元 counter (4) 附件上傳區（含已上傳 2 張截圖）(5) PDF 預覽「周邊環境」章節（有摘要+附件版）(6) PDF 預覽「周邊環境」章節（待補版）。主對話 Read 截圖確認渲染無誤。[Tool: sonnet]
+- [x] 7.1 截圖驗證 UI：用 playwright/chrome MCP 截圖以下狀態存到 `/tmp/`：(1) 補充資料 tab 完整畫面 (2) 三個按鈕 hover 狀態 (3) textarea 字元 counter (4) 附件上傳區（含已上傳 2 張截圖）(5) PDF 預覽「周邊環境」章節（有摘要+附件版）(6) PDF 預覽「周邊環境」章節（待補版）。主對話 Read 截圖確認渲染無誤。[Tool: sonnet]
 - [x] 7.2 全量 build + test：`npm run build` 0 errors、`npm test` 243/243 全綠（含 url-builder 11 + api-client 12 新測試）。[Tool: 主對話]
 - [x] 7.3 Git commit（conventional format）：分成多個 atomic commits（attachments schema / url-builder / market_summary API + attachments REST / MarketLookupPanel + supplementary embed / dossier integration）。[Tool: 主對話]
 
