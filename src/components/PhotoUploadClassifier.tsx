@@ -174,17 +174,31 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, category } : i)));
   };
 
+  // 展開中的分類 bucket（點擊後才顯示該分類裡的檔案細節；其餘情境不秀檔名）
+  const [expandedCategory, setExpandedCategory] = useState<PhotoCategory | null>(null);
+  // 未分類佇列中需要變更檔案分類的 id
   const [changingId, setChangingId] = useState<string | null>(null);
+
+  // 每個分類有幾筆
+  const countByCategory = useMemo(() => {
+    const map = new Map<PhotoCategory, number>();
+    for (const item of classified) {
+      if (item.category) {
+        map.set(item.category, (map.get(item.category) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [classified]);
+
+  const expandedItems = useMemo(
+    () => (expandedCategory ? classified.filter((i) => i.category === expandedCategory) : []),
+    [expandedCategory, classified],
+  );
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate-700">上傳照片/文件</p>
-          <p className="mt-1 text-xs text-slate-500">
-            系統會依檔名自動歸類為「室內 / 外觀 / 街景 / 優勢 / 謄本 / 權狀 / 合約 / 地籍」；無法判定者會進入下方「未分類配對」由您手動指定。
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-slate-700">上傳照片/文件</p>
         <label className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
           <input
             type="file"
@@ -194,7 +208,6 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
             onChange={(e) => {
               const selected = Array.from(e.target.files ?? []);
               addFiles(selected);
-              // allow uploading same file again
               e.currentTarget.value = "";
             }}
           />
@@ -202,49 +215,73 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
         </label>
       </div>
 
+      {/* 分類 bucket 網格（系統自動判別結果；業務直接看聚合數量，不看檔名） */}
       {items.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-700">已加入：{items.length} 個</p>
-            {unclassifiedQueue.length === 0 ? (
-              <span className="text-xs font-medium text-emerald-700">已完成分類</span>
-            ) : (
-              <span className="text-xs font-medium text-amber-700">待分類：{unclassifiedQueue.length}</span>
-            )}
-          </div>
-
-          <div className="mt-3 space-y-2">
-            {classified.map((item) => (
-              <div key={item.id} className="flex items-center justify-between gap-3 rounded bg-white px-3 py-2">
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-slate-800">{item.file.name}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">分類：{CATEGORY_OPTIONS.find((o) => o.value === item.category)?.label}</p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {CATEGORY_OPTIONS.map((opt) => {
+            const count = countByCategory.get(opt.value) ?? 0;
+            const unit = opt.value === "transcript" || opt.value === "land-title" || opt.value === "contract" || opt.value === "cadastral-map" ? "份" : "張";
+            const isExpanded = expandedCategory === opt.value;
+            const isEmpty = count === 0;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setExpandedCategory(isExpanded ? null : isEmpty ? null : opt.value)}
+                disabled={isEmpty}
+                className={[
+                  "rounded-lg border px-3 py-2 text-left transition",
+                  isExpanded
+                    ? "border-blue-500 bg-blue-50"
+                    : isEmpty
+                      ? "border-slate-200 bg-slate-50 text-slate-400"
+                      : "border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50",
+                ].join(" ")}
+              >
+                <div className="text-xs text-slate-500">{opt.label}</div>
+                <div className={`mt-0.5 text-lg font-semibold ${isEmpty ? "text-slate-400" : "text-slate-800"}`}>
+                  {count} <span className="text-xs font-normal text-slate-500">{unit}</span>
                 </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 展開的分類細節（點 bucket 才顯示；僅此時才秀檔名供業務確認/移除） */}
+      {expandedCategory && expandedItems.length > 0 && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-blue-900">
+              「{CATEGORY_OPTIONS.find((o) => o.value === expandedCategory)?.label}」分類下有 {expandedItems.length} 個檔案
+            </p>
+            <button
+              type="button"
+              onClick={() => setExpandedCategory(null)}
+              className="text-xs text-blue-600 hover:text-blue-800"
+            >
+              收起
+            </button>
+          </div>
+          <div className="mt-2 space-y-1">
+            {expandedItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 rounded bg-white px-3 py-1.5 text-sm"
+              >
+                <span className="truncate text-slate-700">{item.file.name}</span>
                 <div className="flex items-center gap-2">
-                  {changingId === item.id ? (
-                    <select
-                      className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs"
-                      value={item.category ?? "other"}
-                      onChange={(e) => {
-                        setItemCategory(item.id, e.target.value as PhotoCategory);
-                        setChangingId(null);
-                      }}
-                    >
-                      {CATEGORY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <button
-                      type="button"
-                      className="text-xs text-blue-600 hover:text-blue-800"
-                      onClick={() => setChangingId(item.id)}
-                    >
-                      變更
-                    </button>
-                  )}
+                  <select
+                    className="rounded-md border border-slate-300 bg-white px-2 py-0.5 text-xs"
+                    value={item.category ?? "other"}
+                    onChange={(e) => setItemCategory(item.id, e.target.value as PhotoCategory)}
+                  >
+                    {CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
                     className="text-xs text-red-600 hover:text-red-800"
@@ -259,11 +296,12 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
         </div>
       )}
 
-      {/* Task 1.2：連連看配對 UI */}
+      {/* 未分類佇列：系統判別不出來時才顯示，此時需要業務看檔名挑分類 */}
       {unclassifiedQueue.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <p className="text-sm font-medium text-amber-900">未分類配對</p>
-          <p className="mt-1 text-xs text-amber-800">請為每個檔案選擇分類；完成後此區會自動隱藏。</p>
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3">
+          <p className="text-sm font-medium text-amber-900">
+            系統判別不出 {unclassifiedQueue.length} 個檔案，請手動指定分類
+          </p>
 
           <div className="mt-3 space-y-2">
             {unclassifiedQueue.map((item) => (
@@ -275,24 +313,22 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
                       <img src={item.previewUrl} alt={item.file.name} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-slate-500">
-                        FILE
+                        PDF
                       </div>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-slate-800">{item.file.name}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">建議：{CATEGORY_OPTIONS.find((o) => o.value === item.suggested)?.label}</p>
-                  </div>
+                  <p className="min-w-0 truncate text-sm text-slate-800">{item.file.name}</p>
                 </div>
 
-                <div className="w-1/2">
+                <div className="flex w-1/2 items-center gap-2">
                   <select
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                    className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
                     defaultValue={""}
                     onChange={(e) => {
                       const v = e.target.value as PhotoCategory;
                       if (!v) return;
                       setItemCategory(item.id, v);
+                      setChangingId(null);
                     }}
                   >
                     <option value="">請選擇分類</option>
@@ -302,12 +338,22 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
                       </option>
                     ))}
                   </select>
+                  <button
+                    type="button"
+                    className="text-xs text-red-600 hover:text-red-800"
+                    onClick={() => removeItem(item.id)}
+                  >
+                    移除
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* suppress unused var warning for legacy state that will be re-used in future iteration */}
+      {changingId ? null : null}
     </div>
   );
 }
