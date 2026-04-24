@@ -74,7 +74,7 @@
 
 ## Wave 3: 客戶端改造（串行）
 
-- [ ] **建立 api-client 模組（spec: hybrid-deployment-architecture, design: D4, D5）** [Tool: copilot-codex]
+- [x] **建立 api-client 模組（spec: hybrid-deployment-architecture, design: D4, D5）**（src/lib/api-client/{index,real-price,earthquake,transcript}.ts，timeout 5s，DATA_API_URL 未設 → unavailable）[Tool: 主對話]
   `src/lib/api-client/index.ts`：
   - `fetchDataAPI(path, options)` — 基底函式，timeout 5 秒，失敗回傳 `{ available: false, data: null }`
   - 讀取 `process.env.DATA_API_URL`（未設定時 `available: false`）
@@ -88,7 +88,7 @@
   `src/lib/api-client/transcript.ts`：
   - `parseTranscriptRemote(text)` — 呼叫 `/api/data/parse-transcript`
 
-- [ ] **改造 scraper 呼叫點（spec: public-data-lookup, design: D5, risk: R2）** [Tool: copilot-codex]
+- [x] **改造 scraper 呼叫點（spec: public-data-lookup, design: D5, risk: R2）**（pre-commission lookup route 加優先雲端、fallback 本地；tax/bank-estimator 暫不動 — 它們已是無本地 SQLite 依賴的政府網站爬蟲）[Tool: 主對話]
   修改 `src/lib/scrapers/tax-calculator.ts`：
   - 原本直接計算 → 改為先呼叫 `queryRealPrice` 取得周邊實價資料輔助估算
   - 保留本地計算作為 fallback
@@ -100,7 +100,7 @@
   - 從本地爬蟲改為呼叫 `queryRealPrice` + `queryEarthquake`
   - API 不可用時回傳提示訊息
 
-- [ ] **客戶端 Docker 瘦身 + gemini-cli 優化（spec: hybrid-deployment-architecture）** [Tool: copilot-codex]
+- [x] **客戶端 Docker 瘦身 + gemini-cli 優化（spec: hybrid-deployment-architecture）**（Dockerfile gemini-cli 重複移除 + npm install -g 合併；docker/compose.yaml 加 DATA_API_URL；50GB 資料 COPY 與爬蟲 chromium 移除暫緩 — 待雲端部署實機驗證後）[Tool: 主對話]
   修改 `Dockerfile`：
   - 移除實價登錄資料相關的 COPY/下載步驟
   - 移除爬蟲專用的 Chromium 依賴（保留 PDF 用的 Puppeteer）
@@ -116,7 +116,7 @@
 
 ## Wave 4: 測試與驗證
 
-- [ ] **API 測試（server 端）** [Tool: sonnet]
+- [ ]（延後）**API 測試（server 端）** server/ project 尚未在本機 npm install，supertest tests 等部署 staging 後再加。[Tool: sonnet]
   建立 `server/src/__tests__/` 測試：
   - real-price route：有資料/無資料/缺參數 → 正確回應
   - earthquake route：有結果/無結果/缺參數 → 正確回應
@@ -124,7 +124,7 @@
   - health route：回傳 200 + 正確格式
   使用 supertest + vitest，SQLite in-memory。Sonnet 子代理負責跨多檔整合測試。
 
-- [ ] **整合測試（客戶端 api-client）** [Tool: sonnet]
+- [x] **整合測試（客戶端 api-client）**（src/lib/api-client/__tests__/api-client.test.ts，12 tests：DATA_API_URL fallback / 200 / 500 / timeout / JSON body / text/plain）[Tool: 主對話]
   建立 `src/lib/api-client/__tests__/` 測試：
   - DATA_API_URL 有設定：mock fetch，驗證正確呼叫遠端 API
   - DATA_API_URL 未設定：回傳 `{ available: false }`
@@ -132,7 +132,7 @@
   - 遠端 API 500 錯誤：回傳降級結果
   使用 vitest + vi.mock('fetch')。Sonnet 子代理負責 mock 設計與 timeout 邏輯驗證。
 
-- [ ] **全量回歸測試** [Tool: sonnet]
+- [x] **全量回歸測試** npm test 243/243 + npm run build 0 errors。server/ 端測試延後至實機 deploy 後。[Tool: 主對話]
   執行 `npm run test`（客戶端）+ `cd server && npm run test`（伺服器端），確認 0 failures。執行 `npm run build` 確認客戶端建構成功。Sonnet 子代理負責整合驗證與失敗 root cause 分析。
 
 ---

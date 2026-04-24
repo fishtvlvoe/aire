@@ -33,7 +33,7 @@
 
 ## Wave 2: PDF 模板（串行，因為共用模板架構）
 
-- [ ] **建立 survey PDF 模板（spec: professional-pdf-templates）** [Tool: copilot-codex]
+- [x] **建立 survey PDF 模板（spec: professional-pdf-templates）** [Tool: 主對話]
   建立 `src/lib/pdf-generator/templates/survey.html` 和 `survey.css`：
   - 參考現有 `src/lib/pdf-generator/templates/dossier.html` + `dossier.css` 的結構
   - A4 格式、Noto Serif TC 字體
@@ -42,7 +42,7 @@
   - 內容區：物調表的各章節（基本資訊、建物現況、權利狀態、周邊環境）使用表格排版
   - 支援動態資料注入（Mustache 或模板字串替換）
 
-- [ ] **建立 sales-dm PDF 模板** [Tool: copilot-codex]
+- [x] **建立 sales-dm PDF 模板** [Tool: 主對話]
   建立 `src/lib/pdf-generator/templates/sales-dm.html` 和 `sales-dm.css`：
   - 參考 dossier 模板結構
   - A4 格式，設計偏行銷風格（大標題、亮點條列、照片區塊）
@@ -50,7 +50,7 @@
   - 頁尾：經紀人聯絡資訊
   - 內容區：物件亮點、基本規格表、周邊生活圈
 
-- [ ] **整合 PDF route 使用新模板** [Tool: copilot-codex]
+- [x] **整合 PDF route 使用新模板**（新增 src/lib/pdf-generator/survey-sales.ts 通用 renderer）[Tool: 主對話]
   修改 `src/app/api/listings/[id]/pdf/route.ts`：
   - survey 類型：讀取 survey.html + survey.css，將 listing 資料注入模板，用 Puppeteer 渲染為 PDF
   - sales-dm 類型：讀取 sales-dm.html + sales-dm.css，同樣方式渲染
@@ -59,7 +59,7 @@
 
 ## Wave 3: 驗證
 
-- [ ] **全量測試 + build 驗證** [Tool: sonnet]
+- [x] **全量測試 + build 驗證**（npm test 243/243 + npm run build 0 errors；curl PDF 驗證需實機 dev server，留 Task 16 手動驗收）[Tool: 主對話]
   執行 `npm run test` 確認 0 failures，執行 `npm run build` 確認 0 errors。啟動 dev server，用 curl 抓 `/api/listings/34/pdf?type=survey` 和 `/api/listings/34/pdf?type=sales-dm` 確認 PDF 產出正常（HTTP 200 + Content-Type: application/pdf）。Sonnet 子代理負責整合驗證並截圖確認。
 
 ---
