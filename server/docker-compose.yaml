@@ -1,0 +1,30 @@
+services:
+  data-api:
+    build: .
+    container_name: jianan-data-api
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/public.db
+      - PORT=4000
+    restart: always
+
+  caddy:
+    image: caddy:2
+    container_name: jianan-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - data-api
+    restart: always
+
+volumes:
+  caddy_data:
+  caddy_config:

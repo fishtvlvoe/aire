@@ -19,7 +19,7 @@
 
 ## Wave 1: 雲端 API 服務骨架（可並行）
 
-- [ ] [P] **建立 server/ 專案結構（spec: data-api-endpoints, design: D1, D2, D8）** [Tool: copilot-codex]
+- [x] [P] **建立 server/ 專案結構（spec: data-api-endpoints, design: D1, D2, D8）** [Tool: copilot-codex]
   建立 `server/` 目錄，初始化 Node.js 專案：
   - `server/package.json`：name 為 `jianan-data-api`，dependencies 包含 `express`、`better-sqlite3`、`cors`、`helmet`
   - `server/tsconfig.json`：TypeScript 設定（target ES2022、module NodeNext）
@@ -27,20 +27,20 @@
   - `server/src/db.ts`：SQLite 連線（讀取 `DATABASE_PATH` 或 `./data/public.db`），開啟 WAL 模式
   - `GET /api/health` 回傳 `{ status: 'ok', db_size: '...', uptime: process.uptime() }`
 
-- [ ] [P] **建立實價登錄查詢 API（spec: data-api-endpoints）** [Tool: copilot-codex]
+- [x] [P] **建立實價登錄查詢 API（spec: data-api-endpoints）** [Tool: copilot-codex]
   `server/src/routes/real-price.ts`：
   - `GET /api/data/real-price`，接受 query params：`city`（必填）、`district`（選填）、`year`（選填）、`type`（選填）
   - SQL 查詢 `real_price_records` 表，支援多條件篩選，回傳 `{ data: [...], total: number }`
   - 分頁：`limit`（預設 50）、`offset`（預設 0）
   - 缺少 city 參數時回傳 400
 
-- [ ] [P] **建立地震資料查詢 API（spec: data-api-endpoints）** [Tool: copilot-codex]
+- [x] [P] **建立地震資料查詢 API（spec: data-api-endpoints）** [Tool: copilot-codex]
   `server/src/routes/earthquake.ts`：
   - `GET /api/data/earthquake`，接受 query params：`lat`、`lng`（必填）、`radius`（公里，預設 5）、`since`（日期，預設近 5 年）
   - SQL 查詢 `earthquake_records` 表，用 Haversine 公式計算距離篩選
   - 回傳 `{ data: [{date, magnitude, depth, distance_km}], total: number }`
 
-- [ ] [P] **建立謄本解析 API（spec: data-api-endpoints）** [Tool: copilot-codex]
+- [x] [P] **建立謄本解析 API（spec: data-api-endpoints，stub 版本，Wave 3 串實際 parser）** [Tool: copilot-codex]
   `server/src/routes/parse-transcript.ts`：
   - `POST /api/data/parse-transcript`，Content-Type: text/plain
   - 呼叫現有 `src/lib/parsers/transcript-parser.ts` 的解析邏輯（複製或 symlink）
@@ -49,7 +49,7 @@
 
 ## Wave 2: 雲端部署設定（串行）
 
-- [ ] **建立 server Dockerfile（spec: hybrid-deployment-architecture, design: D9, risk: R1, R3）** [Tool: copilot-codex]
+- [x] **建立 server Dockerfile（spec: hybrid-deployment-architecture, design: D9, risk: R1, R3）** [Tool: copilot-codex]
   `server/Dockerfile`：
   - 基底：`node:22-slim`
   - 安裝 `python3 make g++`（編譯 better-sqlite3）
@@ -58,13 +58,13 @@
   - EXPOSE 4000
   - HEALTHCHECK: curl localhost:4000/api/health
 
-- [ ] **建立 server docker-compose（spec: hybrid-deployment-architecture, design: D3, D6）** [Tool: copilot-codex]
+- [x] **建立 server docker-compose（spec: hybrid-deployment-architecture, design: D3, D6）** [Tool: copilot-codex]
   `server/docker-compose.yaml`：
   - `data-api` 服務：build from `.`，port 4000，volume `./data:/app/data`，restart always
   - `caddy` 服務：image `caddy:2`，port 80+443，volume `./Caddyfile:/etc/caddy/Caddyfile`，depends_on data-api
   - `server/Caddyfile`：3 行設定（域名 + reverse_proxy data-api:4000）
 
-- [ ] **建立部署腳本（spec: hybrid-deployment-architecture, design: D7）** [Tool: copilot-codex]
+- [x] **建立部署腳本（spec: hybrid-deployment-architecture, design: D7）** [Tool: copilot-codex]
   `scripts/deploy-server.sh`：
   - 參數：`$1` = 雲端主機 IP（**Hetzner CX32**，非 Oracle Cloud），`$2` = SSH key path（選填，預設 `~/.ssh/id_ed25519`）
   - 步驟：SSH 連線 → 建立 `/opt/jianan-data` 目錄 → scp docker-compose.yaml + Caddyfile → docker compose pull → docker compose up -d
