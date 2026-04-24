@@ -51,10 +51,28 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Listing status must be documents-ready' }, { status: 422 });
   }
 
+  const allAttachments = listing.attachments
+    ? (() => {
+        try {
+          const parsed = JSON.parse(listing.attachments as string) as unknown;
+          return Array.isArray(parsed) ? (parsed as Array<{ type: string; path: string }>) : [];
+        } catch {
+          return [];
+        }
+      })()
+    : [];
+  const marketResearchAttachments = allAttachments
+    .filter((a) => a?.type === 'market_research' && typeof a.path === 'string')
+    .map((a) => a.path);
+
   const input: DocumentGeneratorInput = {
     property_type: listing.property_type,
     field_visit_data: listing.field_visit_data ? JSON.parse(listing.field_visit_data as string) : {},
     supplementary_data: listing.supplementary_data ? JSON.parse(listing.supplementary_data as string) : {},
+    market_research: {
+      summary: listing.market_summary ?? null,
+      attachments: marketResearchAttachments,
+    },
   };
 
   let newContent: string;

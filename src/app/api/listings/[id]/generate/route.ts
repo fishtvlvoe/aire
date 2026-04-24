@@ -60,11 +60,28 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       supplementary_data = {};
     }
 
-    // 2. 組成 DocumentGeneratorInput
+    // 2. 組成 DocumentGeneratorInput（含 external-market-lookup 的人工填寫資料）
+    const allAttachments = (() => {
+      if (!listing.attachments) return [];
+      try {
+        const parsed = JSON.parse(listing.attachments) as unknown;
+        return Array.isArray(parsed) ? (parsed as Array<{ type?: string; path?: string }>) : [];
+      } catch {
+        return [];
+      }
+    })();
+    const marketResearchAttachments = allAttachments
+      .filter((a) => a?.type === 'market_research' && typeof a.path === 'string')
+      .map((a) => a.path as string);
+
     const input: DocumentGeneratorInput = {
       property_type: listing.property_type,
       field_visit_data,
       supplementary_data,
+      market_research: {
+        summary: listing.market_summary ?? null,
+        attachments: marketResearchAttachments,
+      },
     };
 
     const generator = createDefaultGenerator();

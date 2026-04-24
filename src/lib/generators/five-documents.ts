@@ -12,6 +12,10 @@ export interface FiveDocumentsInput {
   field_visit_data: Record<string, unknown>;
   supplementary_data: Record<string, unknown>;
   transcript_path?: string; // 可選，有則解析
+  /** 業務人工填寫的周邊行情摘要（external-market-lookup 來源） */
+  market_summary?: string | null;
+  /** 周邊行情附件路徑（type='market_research'，由 listing.attachments 篩選後傳入） */
+  market_research_attachments?: string[];
 }
 
 export interface FiveDocumentsResult {
@@ -105,7 +109,12 @@ export async function generateFiveDocuments(
     property_sheet: async () => generatePropertySheet(dossier, transcript),
     listing_591: async () => generateListing591(dossier, transcript),
     dm_brochure: async () => generateDmBrochure(dossier),
-    disclosure_document: async () => generateDisclosureDocument(dossier, transcript),
+    disclosure_document: async () =>
+      generateDisclosureDocument(dossier, transcript, {
+        field_visit_data: input.field_visit_data,
+        market_summary: input.market_summary,
+        market_research_attachments: input.market_research_attachments,
+      }),
     social_media: async () => generateSocialMedia(dossier),
   } as const;
 

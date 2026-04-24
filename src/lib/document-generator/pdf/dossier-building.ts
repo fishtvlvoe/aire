@@ -19,6 +19,7 @@ export async function generateBuildingDossier(
   const systemComputed = JSON.stringify(input.system_computed ?? {}, null, 2);
   const preCommission = JSON.stringify(input.pre_commission_data ?? {}, null, 2);
   const externalData = JSON.stringify(input.external_data ?? {}, null, 2);
+  const marketResearch = JSON.stringify(input.market_research ?? null, null, 2);
   const propertyType = input.property_type;
 
   const prompt = `你是一位不動產說明書撰寫助理。請根據以下輸入資料，產出完整的「建物版不動產說明書」，共 16 章 Markdown。
@@ -58,6 +59,14 @@ ${systemComputed}
 \`\`\`json
 ${externalData}
 \`\`\`
+
+## 周邊行情人工資料（market_research，由業務查 591/信義/樂屋後親自填寫並上傳截圖）
+\`\`\`json
+${marketResearch}
+\`\`\`
+- 若 market_research 為 null 或 summary 為空字串：周邊環境章節保持「待補」，不要臆測。
+- 若有 summary：應引用該文字（可用「依現勘人員觀察」或「業務查證」開頭）；不得改寫成自己的分析。
+- 若有 attachments：在周邊環境章節末尾以條列方式列出附件路徑，標註「相關截圖」。
 
 ---
 

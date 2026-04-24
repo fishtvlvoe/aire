@@ -12,6 +12,14 @@ export interface DocumentGeneratorInput {
   property_type: PropertyType;
   field_visit_data: Record<string, unknown>;
   supplementary_data: Record<string, unknown>;
+  /**
+   * 周邊行情人工資料（external-market-lookup change）。
+   * 系統 SHALL NOT 自動產生此欄位內容，僅引用業務在 supplementary 頁填寫的摘要與上傳的截圖路徑。
+   */
+  market_research?: {
+    summary: string | null;
+    attachments: string[];
+  };
 }
 
 export interface DocumentGenerator {

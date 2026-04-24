@@ -27,10 +27,20 @@ function v(x: unknown): string {
   return String(x);
 }
 
+export interface DisclosureMarketResearchInput {
+  /** 業務人工填寫的周邊行情摘要（500 字內） */
+  market_summary?: string | null;
+  /** 業務上傳的周邊行情截圖附件路徑陣列（jpg/png/pdf） */
+  market_research_attachments?: string[];
+}
+
 export async function generateDisclosureDocument(
   dossier: PropertyDossier,
   transcript?: TranscriptParseResult,
-  options?: { photos?: string[]; field_visit_data?: Record<string, unknown> }
+  options?: {
+    photos?: string[];
+    field_visit_data?: Record<string, unknown>;
+  } & DisclosureMarketResearchInput
 ): Promise<DisclosureDocumentResult> {
   const merged: PropertyDossier = {
     ...dossier,
@@ -107,7 +117,19 @@ export async function generateDisclosureDocument(
             .join('\n')
         : '待補',
     },
-    { page_number: 8, title: '周邊機能+優劣勢', content: '待補' },
+    {
+      page_number: 8,
+      title: '周邊機能+優劣勢',
+      // 周邊行情章節 SHALL 引用業務人工填寫的 market_summary 與 market_research 附件。
+      // 系統 SHALL NOT 自動產生此章節內容（避免 LLM 幻覺與第三方平臺資料抓取的法律風險）。
+      content: buildNeighborhoodSection(
+        options?.market_summary,
+        options?.market_research_attachments
+      ),
+      attachments: options?.market_research_attachments?.length
+        ? options.market_research_attachments
+        : undefined,
+    },
     { page_number: 9, title: '格局+照片索引', content: `照片數：${v(options?.photos?.length ?? '待補')}` },
     {
       page_number: 10,
@@ -139,7 +161,42 @@ export async function generateDisclosureDocument(
     謄本附件土地: Boolean(pages.find((p) => p.page_number === 10)?.attachments?.length),
     謄本附件建物: Boolean(pages.find((p) => p.page_number === 11)?.attachments?.length),
     地籍圖與使用分區: Boolean(pages.find((p) => p.page_number === 12)?.attachments?.length),
+    周邊機能與優劣勢: Boolean(
+      (options?.market_summary && options.market_summary.trim() !== '') ||
+        options?.market_research_attachments?.length
+    ),
   };
 
   return { pages, toc_checkboxes };
+}
+
+/**
+ * 組合「周邊機能 + 優劣勢」章節內容。
+ * 規則：
+ *  - 有 market_summary → 渲染為「周邊行情摘要」段落
+ *  - 有 market_research 附件 → 在摘要下方列出附件路徑
+ *  - 兩者都沒有 → 顯示「待補」（與其他空章節一致）
+ *  - 系統 SHALL NOT 自動產生此章節內容（避免幻覺與法律風險）
+ */
+function buildNeighborhoodSection(
+  marketSummary: string | null | undefined,
+  attachments: string[] | undefined
+): string {
+  const summary = marketSummary?.trim();
+  const hasAttachments = attachments && attachments.length > 0;
+
+  if (!summary && !hasAttachments) {
+    return '待補';
+  }
+
+  const lines: string[] = [];
+  if (summary) {
+    lines.push('【周邊行情摘要】', summary);
+  }
+  if (hasAttachments) {
+    if (lines.length > 0) lines.push('');
+    lines.push('【附件】');
+    attachments!.forEach((p, i) => lines.push(`${i + 1}. ${p}`));
+  }
+  return lines.join('\n');
 }
