@@ -1,7 +1,41 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import path from 'node:path';
 
 import { parseTranscript } from '@/lib/parsers/transcript-parser';
+
+const readFileMock = vi.hoisted(() => vi.fn());
+
+vi.mock('fs/promises', () => ({ readFile: readFileMock }));
+vi.mock('node:fs/promises', () => ({ readFile: readFileMock }));
+
+const YAML_FIXTURE = `建物標示部:
+  總面積: 77.26
+  層次:
+    - 層次面積: 77.26
+  附屬建物:
+    - 用途: 陽台
+      面積: 9.53
+  共有部分:
+    - 總面積: 18.37
+      權利範圍: 1分之1
+    - 總面積: 39.63
+      權利範圍: 1分之1
+      含停車位:
+        - 編號: 地下71號
+  建築完成日期: 民國110年1月1日
+  主要用途: 集合住宅
+  主要建材: 鋼筋混凝土
+建物他項權利部:
+  - 權利人: 第一商業銀行股份有限公司
+    登記日期: 2020-01-01
+    權利擔保:
+      - 最高限額新台幣 3,180,000 元
+`;
+
+beforeEach(() => {
+  readFileMock.mockReset();
+  readFileMock.mockResolvedValue(YAML_FIXTURE);
+});
 
 const FIXTURE_PATH = path.resolve(
   process.cwd(),

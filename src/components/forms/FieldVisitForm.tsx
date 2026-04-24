@@ -120,13 +120,8 @@ export const normalizeInitialData = (
       continue;
     }
 
-    // object 或 array（如 photos/layout）stringify 後納入
+    // nested object/array 跳過不納入（避免污染表單字串狀態）
     if (typeof value === "object") {
-      try {
-        result[key] = JSON.stringify(value);
-      } catch {
-        result[key] = "";
-      }
       continue;
     }
 

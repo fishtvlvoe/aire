@@ -34,6 +34,13 @@ describe('executeListRecentListings', () => {
        VALUES (?, ?, ?, ?)`
     ).run(5, 'apartment', 'draft', '')
 
+    // 讓「空 draft」符合 created_at < now - 24h 的過濾條件
+    db.prepare(
+      `UPDATE listings
+       SET created_at = datetime('now', '-25 hours')
+       WHERE id IN (1, 5)`
+    ).run()
+
     const rows = executeListRecentListings<{ id: number }>(db, 10)
     const ids = rows.map((r) => r.id)
 
