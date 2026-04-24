@@ -39,8 +39,24 @@ export interface Listing {
   supplementary_data: string | null;
   generated_documents: string | null;
   pre_commission_data: string | null;
+  /** 業務人工填寫的周邊行情摘要，最多 500 字元 */
+  market_summary: string | null;
+  /** JSON array of attachment metadata：`[{ id, filename, type, path, size, uploaded_at }]` */
+  attachments: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** 附件 metadata 結構（儲存於 listings.attachments JSON 字串內） */
+export interface AttachmentMeta {
+  id: string;
+  filename: string;
+  /** 'market_research' = 周邊行情截圖；'field_visit' = 現勘照（保留給未來遷移用） */
+  type: 'market_research' | 'field_visit';
+  path: string;
+  size: number;
+  mime: string;
+  uploaded_at: string;
 }
 
 export interface PreCommissionData {
@@ -164,6 +180,48 @@ export function updateDocuments(
 
 export function updateStatus(id: number, status: ListingStatus): void {
   db.prepare('UPDATE listings SET status = ? WHERE id = ?').run(status, id);
+}
+
+/** 更新周邊行情摘要欄位（500 字元上限由 caller 驗證） */
+export function updateMarketSummary(id: number, summary: string | null): void {
+  db.prepare('UPDATE listings SET market_summary = ? WHERE id = ?').run(summary, id);
+}
+
+/** 取得物件附件清單（解析 JSON；無資料回空陣列） */
+export function getAttachments(id: number): AttachmentMeta[] {
+  const row = db.prepare('SELECT attachments FROM listings WHERE id = ?').get(id) as
+    | { attachments: string | null }
+    | undefined;
+  if (!row?.attachments) return [];
+  try {
+    const parsed = JSON.parse(row.attachments) as unknown;
+    return Array.isArray(parsed) ? (parsed as AttachmentMeta[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 整批寫入附件清單（覆蓋既有；caller 負責保留先前項目） */
+export function setAttachments(id: number, attachments: AttachmentMeta[]): void {
+  db.prepare('UPDATE listings SET attachments = ? WHERE id = ?').run(
+    JSON.stringify(attachments),
+    id,
+  );
+}
+
+/** 新增單一附件（保留現有項目） */
+export function addAttachment(id: number, attachment: AttachmentMeta): void {
+  const current = getAttachments(id);
+  setAttachments(id, [...current, attachment]);
+}
+
+/** 移除單一附件（依 id），回傳是否找到並刪除 */
+export function removeAttachment(id: number, attachmentId: string): boolean {
+  const current = getAttachments(id);
+  const next = current.filter((a) => a.id !== attachmentId);
+  if (next.length === current.length) return false;
+  setAttachments(id, next);
+  return true;
 }
 
 export function deleteListing(id: number): boolean {
