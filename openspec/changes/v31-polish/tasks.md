@@ -2,10 +2,10 @@
 
 ## Wave 1: 快速修補（無依賴，可並行）
 
-- [ ] [P] **metadata 品牌化** [Tool: copilot-codex]
+- [x] [P] **metadata 品牌化** [Tool: 主對話]
   修改 `src/app/layout.tsx`：將 `metadata.title` 從 "Create Next App" 改為 "建安 AI 房產文件系統"，`metadata.description` 改為 "三段式 AI 房產文件自動產出系統"。若有 favicon 相關設定也一併更新。
 
-- [ ] [P] **.env.example 補全** [Tool: copilot-codex]
+- [x] [P] **.env.example 補全** [Tool: 主對話]
   更新 `.env.example`，加入以下變數並附註中文說明：
   - `DB_PATH=./data/listings.db`（必填，SQLite 檔案路徑）
   - `DATABASE_PATH=`（Docker 環境覆蓋用，優先於 DB_PATH）
@@ -18,7 +18,7 @@
   - `PORT=3000`（可選，監聽埠）
   - **註**：`DATA_API_URL` **不在本任務範圍**，保留給 hybrid-architecture Wave 3 追加（避免兩個 change 同時改 .env.example 造成衝突）
 
-- [ ] [P] **CI/CD pipeline（spec: ci-cd-pipeline）** [Tool: copilot-codex]
+- [x] [P] **CI/CD pipeline（spec: ci-cd-pipeline）** [Tool: 主對話]
   建立 `.github/workflows/ci.yml`：
   - name: CI
   - on: push (main), pull_request (main)

@@ -1,7 +1,7 @@
 ## 1. 資料層基礎
 
-- [ ] [P] 1.1 新增 migration `migrations/00X_add_market_summary.sql`：`ALTER TABLE listings ADD COLUMN market_summary TEXT;`，更新 schema 文件。驗證：`npm run migrate` 無錯誤；新欄位 nullable 不影響現有資料。[Tool: copilot-codex]
-- [ ] [P] 1.2 建立 `src/lib/external-links/region-mapping.ts`：定義 6 都（台北/新北/桃園/台中/台南/高雄）的縣市與行政區對應表，每個 mapping 對應 591 `regionid`/`section`、信義 URL slug、樂屋 zipcode。其他縣市僅建縣市層 fallback。匯出 `getRegionMapping(city, district)` 函式，回傳 `{ has591: bool, hasSinyi: bool, hasRakuya: bool, ... }` 結構。[Tool: copilot-codex]
+- [x] [P] 1.1 新增 migration `migrations/001_add_market_summary.sql` + 更新 `src/lib/db/schema.ts:initDb()` 動態 ALTER（同 pre_commission_data 模式）：`ALTER TABLE listings ADD COLUMN market_summary TEXT;`。驗證：220/220 測試通過、新欄位 nullable 不影響現有資料。[Tool: 主對話]
+- [x] [P] 1.2 建立 `src/lib/external-links/region-mapping.ts`：定義 6 都（台北/新北/桃園/台中/台南/高雄）的縣市與行政區對應表，每個 mapping 對應 591 `regionid`/`section`、信義 slug、樂屋 zipcode。匯出 `getRegionMapping(city, district)` 回傳 `{ city, district?, coverage: 'full' | 'city-only' } | null`。**TODO**：591 sectionId 部分為 0 占位，待業務驗證後補正確值。[Tool: 主對話]
 
 ## 2. URL Builder
 
