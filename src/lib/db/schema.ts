@@ -41,4 +41,11 @@ export function initDb(db: Database.Database): void {
       // column was added by a concurrent process; safe to ignore
     }
   }
+  if (!columns.includes('attachments')) {
+    try {
+      db.exec('ALTER TABLE listings ADD COLUMN attachments TEXT');
+    } catch {
+      // column was added by a concurrent process; safe to ignore
+    }
+  }
 }
