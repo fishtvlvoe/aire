@@ -53,8 +53,14 @@ export interface Listing {
 export interface AttachmentMeta {
   id: string;
   filename: string;
-  /** 'market_research' = 周邊行情截圖；'field_visit' = 現勘照（保留給未來遷移用） */
-  type: 'market_research' | 'field_visit';
+  /** 附件分類（由 /api/listings/[id]/attachments 控制允許值） */
+  type:
+    | 'market_research'
+    | 'field_visit'
+    | 'transcript'
+    | 'title-deed'
+    | 'contract'
+    | 'cadastral-map';
   path: string;
   size: number;
   mime: string;

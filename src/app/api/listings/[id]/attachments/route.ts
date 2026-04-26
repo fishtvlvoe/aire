@@ -19,7 +19,14 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB（spec: market_research 截圖通�
 const MAX_ATTACHMENTS_PER_TYPE = 10;
 const ALLOWED_MIME = /^(image\/(jpeg|jpg|png)|application\/pdf)$/i;
 const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.pdf']);
-const ALLOWED_TYPES: AttachmentMeta['type'][] = ['market_research', 'field_visit'];
+const ALLOWED_TYPES: AttachmentMeta['type'][] = [
+  'market_research',
+  'field_visit',
+  'transcript',
+  'title-deed',
+  'contract',
+  'cadastral-map',
+];
 
 function isAttachmentType(value: unknown): value is AttachmentMeta['type'] {
   return typeof value === 'string' && (ALLOWED_TYPES as string[]).includes(value);
