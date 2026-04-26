@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server'
 import { db, getListing, getAttachments } from '@/lib/db'
 import { runOcrPipeline } from '@/lib/ocr'
 import type { ExtractedDataPayload, ExtractedResultByAttachment } from '@/lib/ocr'
+import { mapOcrFieldsToFormKeys } from '@/lib/ocr/field-mapping'
 
 // ─────────────────────────────────────────────
 // 型別
@@ -108,13 +109,18 @@ export async function POST(
   for (const result of Object.values(byAttachment)) {
     if (result.status !== 'done') continue
 
-    for (const [fieldKey, fieldValue] of Object.entries(result.fields)) {
-      // 後來的附件覆蓋先前同欄位（依 Promise.all 解析順序）
-      // 若需要更精細的合併策略，未來可依 confidence 分數決定
-      mergedFields[fieldKey] = {
-        ...fieldValue,
-        provenance: 'ocr-pdf',
-        from: result.filename,
+    // 將 OCR key 映射為表單 field key
+    const mappedFields = mapOcrFieldsToFormKeys(result.fields)
+
+    for (const [fieldKey, fieldValue] of Object.entries(mappedFields)) {
+      const existing = mergedFields[fieldKey]
+      if (!existing || fieldValue.confidence > existing.confidence) {
+        mergedFields[fieldKey] = {
+          value: fieldValue.value,
+          confidence: fieldValue.confidence,
+          provenance: 'ocr-pdf',
+          from: result.filename,
+        }
       }
     }
   }

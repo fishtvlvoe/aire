@@ -1,0 +1,66 @@
+/**
+ * OCR parser key → 表單 field key 映射表
+ *
+ * parser 產出的 key（左）對應到表單 schema 的 key（右）。
+ * 直接相同的 key 不需列在這裡（如 building_area → building_area）。
+ */
+export const OCR_TO_FORM_KEY: Record<string, string> = {
+  // 土地
+  land_number: 'land_number',
+  land_area: 'land_area',
+  usage_zone: 'zoning',
+  usage_type: 'land_purpose',
+  announced_land_value: 'total_price',
+
+  // 所有權
+  owner_name: 'ownership_scope',
+  rights_range: 'ownership_scope',
+  title_deed_number: 'land_register_transcript',
+  registration_date: 'land_register_transcript',
+
+  // 他項權利
+  right_type: 'other_rights',
+  right_holder_name: 'other_rights',
+  mortgage_amount: 'other_rights',
+
+  // 建物
+  building_number: 'land_number',
+  building_address: 'address',
+  building_area: 'building_area',
+  main_material: 'structure',
+  stories: 'floor_count',
+  completion_date: 'year_built',
+  main_usage: 'current_purpose',
+
+  // 建物所有權（加 building_ prefix 的）
+  building_owner_name: 'ownership_scope',
+  building_rights_range: 'ownership_scope',
+  building_title_deed_number: 'land_register_transcript',
+  building_registration_date: 'land_register_transcript',
+
+  // 建物他項權利
+  building_right_type: 'other_rights',
+  building_right_holder_name: 'other_rights',
+  building_mortgage_amount: 'other_rights',
+}
+
+/**
+ * 將 OCR parser 的 fields 轉換為表單 field key
+ * 同一個 form key 被多個 OCR key 映射時，保留 confidence 最高的
+ */
+export function mapOcrFieldsToFormKeys<T extends { confidence: number }>(
+  ocrFields: Record<string, T>,
+): Record<string, T> {
+  const result: Record<string, T> = {}
+
+  for (const [ocrKey, field] of Object.entries(ocrFields)) {
+    const formKey = OCR_TO_FORM_KEY[ocrKey] ?? ocrKey
+    const existing = result[formKey]
+
+    if (!existing || field.confidence > existing.confidence) {
+      result[formKey] = field
+    }
+  }
+
+  return result
+}

@@ -273,6 +273,26 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
       didHydrateRef.current = true;
     }, [initialData]);
 
+    // OCR 預填：mergedFields 有值且表單欄位為空時，自動帶入
+    const didApplyMergedRef = useRef(false);
+    useEffect(() => {
+      if (didApplyMergedRef.current) return;
+      if (!mergedFields || Object.keys(mergedFields).length === 0) return;
+
+      didApplyMergedRef.current = true;
+      setForm((prev) => {
+        const next = { ...prev };
+        for (const [key, field] of Object.entries(mergedFields)) {
+          if (field.value == null) continue;
+          const existing = (prev[key] ?? "").trim();
+          if (existing === "") {
+            next[key] = String(field.value);
+          }
+        }
+        return next;
+      });
+    }, [mergedFields]);
+
     // Reset form values and tab when property type changes
     // Decision A: 僅在 propPropertyType === undefined 時才清空表單
     useEffect(() => {
