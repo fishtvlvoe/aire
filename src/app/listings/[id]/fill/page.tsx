@@ -9,6 +9,7 @@ import FieldVisitForm, {
 } from "@/components/forms/FieldVisitForm";
 import Stepper from "@/components/Stepper";
 import { PROPERTY_TYPES, type PropertyType } from "@/lib/property-types";
+import { useExtractStatus } from "@/hooks/useExtractStatus";
 
 type ListingStatus =
   | "draft"
@@ -106,6 +107,11 @@ export default function ListingFillPage() {
   );
   const [submitting, setSubmitting] = useState(false);
 
+  // Task 4.7: 輪詢 OCR 解析狀態（物件載入後才啟動）
+  const extractPollEnabled = !loading && !loadError && listingId > 0;
+  const { status: extractStatus, progress: extractProgress } =
+    useExtractStatus(extractPollEnabled ? listingId : null, extractPollEnabled);
+
   useEffect(() => {
     if (Number.isNaN(listingId)) {
       setLoadError("物件編號錯誤");
@@ -155,6 +161,27 @@ export default function ListingFillPage() {
       setHighlightMissing(false);
     }
   }, [isComplete]);
+
+  // Task 4.7: OCR 解析完成時，重新讀取 listing 以取得最新的 extracted_data + merged_fields
+  const prevExtractStatusRef = useRef<string>("none");
+  useEffect(() => {
+    const prev = prevExtractStatusRef.current;
+    prevExtractStatusRef.current = extractStatus;
+
+    if (prev !== "done" && extractStatus === "done" && listingId > 0) {
+      // 重新 fetch listing，更新頁面資料
+      void (async () => {
+        try {
+          const res = await fetch(`/api/listings/${listingId}`);
+          if (!res.ok) return;
+          const payload = (await res.json()) as { listing: Listing };
+          setListing(payload.listing);
+        } catch {
+          // 靜默忽略，不影響主流程
+        }
+      })();
+    }
+  }, [extractStatus, listingId]);
 
   const propertyType = listing?.property_type;
 
@@ -429,6 +456,11 @@ export default function ListingFillPage() {
                   ref={formRef}
                   onNavigationStateChange={setNavState}
                   actionButtons={actionButtons}
+                  extractProgress={
+                    extractStatus !== "none"
+                      ? { status: extractStatus, progress: extractProgress }
+                      : undefined
+                  }
                 />
 
                 {submitError && (

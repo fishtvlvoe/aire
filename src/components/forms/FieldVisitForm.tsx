@@ -38,6 +38,11 @@ import {
 } from "./navigation-helpers";
 import PhotoUploadClassifier from "@/components/PhotoUploadClassifier";
 import LayoutSelector, { type LayoutValue } from "@/components/LayoutSelector";
+import ProvenanceBadge from "@/components/ui/ProvenanceBadge";
+import ExtractProgress, {
+  type ExtractProgressProps,
+} from "@/components/ui/ExtractProgress";
+import type { FieldWithProvenance } from "@/lib/ocr";
 
 const SCHEMA_MAP: Record<PropertyType, FullSchema> = {
   apartment: apartmentSchema,
@@ -82,6 +87,15 @@ export type FieldVisitFormProps = {
   onNavigationStateChange?: (state: NavigationState) => void;
   /** 渲染在表單白框右上角的操作按鈕 */
   actionButtons?: React.ReactNode;
+  /**
+   * Task 4.3: OCR 合併欄位資料（含 provenance），用於顯示來源徽章
+   * key 對應 field.key
+   */
+  mergedFields?: Record<string, FieldWithProvenance>;
+  /**
+   * Task 4.6: 目前章節的 OCR 解析進度，用於顯示在章節標題旁
+   */
+  extractProgress?: Pick<ExtractProgressProps, "status" | "progress">;
 };
 
 const inputClassName =
@@ -177,6 +191,8 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
       onJumpTo,
       onNavigationStateChange,
       actionButtons,
+      mergedFields,
+      extractProgress,
     },
     ref,
   ) {
@@ -373,6 +389,23 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
         ? "border-red-500 ring-1 ring-red-500"
         : "";
 
+      // Task 4.3: 取得此欄位的 provenance 資料，用於渲染來源徽章
+      const fieldProvenance = mergedFields?.[field.key];
+      const provenanceBadge = fieldProvenance ? (
+        <ProvenanceBadge
+          provenance={fieldProvenance.provenance}
+          confidence={fieldProvenance.confidence}
+        />
+      ) : null;
+
+      // 欄位標籤列（label 文字 + provenance 徽章）
+      const labelRow = (
+        <span className="flex items-center gap-1.5">
+          <span>{labelText}</span>
+          {provenanceBadge}
+        </span>
+      );
+
       if (field.key === "usage") {
         const utilityType = form.utility_type ?? "";
         const utilityOther = form.utility_other ?? "";
@@ -380,7 +413,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
 
         return (
           <div key={field.key} className="block text-sm font-medium text-slate-700">
-            <p>{labelText}</p>
+            <p className="flex items-center gap-1.5">{labelRow}</p>
             <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-700">
               {["獨立電表", "共用電表", "其他"].map((opt) => (
                 <label key={opt} className="inline-flex items-center gap-2">
@@ -445,7 +478,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
 
         return (
           <div key={field.key} className="block text-sm font-medium text-slate-700">
-            <label>{labelText}</label>
+            <label className="flex items-center gap-1.5">{labelRow}</label>
             <div className="mt-2">
               <LayoutSelector
                 value={parsed}
@@ -467,7 +500,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
 
         return (
           <div key={field.key} className="block text-sm font-medium text-slate-700">
-            <label>{labelText}</label>
+            <label className="flex items-center gap-1.5">{labelRow}</label>
             <div className="mt-2 grid grid-cols-2 gap-3">
               <label className="text-sm font-medium text-slate-700">
                 所在樓層
@@ -501,7 +534,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
       }
 
       if (field.key === "year_built") {
-        const label = `建築完成年份（民國）${field.required ? " *" : ""}`;
+        const yearLabel = `建築完成年份（民國）${field.required ? " *" : ""}`;
         const rocYear = new Date().getFullYear() - 1911;
         const built = Number.parseInt(form.year_built || "0", 10);
         const age = rocYear - built;
@@ -510,7 +543,10 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
         return (
           <div key={field.key} className="block text-sm font-medium text-slate-700">
             <label className="block text-sm font-medium text-slate-700">
-              {label}
+              <span className="flex items-center gap-1.5">
+                <span>{yearLabel}</span>
+                {provenanceBadge}
+              </span>
               <input
                 type="number"
                 value={form.year_built ?? ""}
@@ -534,7 +570,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
             key={field.key}
             className="block text-sm font-medium text-slate-700"
           >
-            <label>{labelText}</label>
+            <label className="flex items-center gap-1.5">{labelRow}</label>
             <div className="mt-2">
               <PhotoUploadClassifier
                 files={[]}
@@ -562,7 +598,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
             key={field.key}
             className="block text-sm font-medium text-slate-700"
           >
-            {labelText}
+            {labelRow}
             <select
               value={value}
               onChange={(e) => updateField(field.key, e.target.value)}
@@ -593,7 +629,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
             key={field.key}
             className="block text-sm font-medium text-slate-700"
           >
-            {labelText}
+            {labelRow}
             <textarea
               value={value}
               onChange={(e) => updateField(field.key, e.target.value)}
@@ -618,7 +654,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
             key={field.key}
             className="block text-sm font-medium text-slate-700"
           >
-            {labelText}
+            {labelRow}
             <input
               type="file"
               onChange={(e) => {
@@ -646,7 +682,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
           key={field.key}
           className="block text-sm font-medium text-slate-700"
         >
-          {labelText}
+          {labelRow}
           <input
             type={field.type === "number" ? "number" : "text"}
             value={value}
@@ -770,8 +806,15 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
         <div className="mt-6 space-y-4">
           {/* 章節標題列：標題左邊、跳過按鈕右邊（照片/文件章節限定） */}
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-slate-900">
+            {/* Task 4.6: 標題 + OCR 解析進度指示 */}
+            <h3 className="flex items-center text-base font-semibold text-slate-900">
               {activeChapter?.title}
+              {extractProgress && (
+                <ExtractProgress
+                  status={extractProgress.status}
+                  progress={extractProgress.progress}
+                />
+              )}
             </h3>
             {/* 照片/文件章節且尚未有上傳檔案時，顯示跳過按鈕 */}
             {activeChapterId === "media" && !(form.photos ?? "").trim() && (

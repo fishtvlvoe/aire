@@ -6,12 +6,14 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import {
+  db,
   addAttachment,
   getAttachments,
   getListing,
   removeAttachment,
   type AttachmentMeta,
 } from '@/lib/db';
+import type { ExtractedDataPayload, FieldWithProvenance } from '@/lib/ocr';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB（spec: market_research 截圖通常 1-3MB）
 const MAX_ATTACHMENTS_PER_TYPE = 10;
@@ -31,10 +33,16 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
   const { id } = await context.params;
   const listingId = Number(id);
   if (Number.isNaN(listingId)) {
-    return NextResponse.json({ error: 'invalid id' }, { status: 400 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'invalid id', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
   if (!getListing(listingId)) {
-    return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
+      { status: 404 },
+    );
   }
 
   const url = new URL(req.url);
@@ -56,17 +64,23 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
   const { id } = await context.params;
   const listingId = Number(id);
   if (Number.isNaN(listingId)) {
-    return NextResponse.json({ error: 'invalid id' }, { status: 400 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'invalid id', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
   if (!getListing(listingId)) {
-    return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
+      { status: 404 },
+    );
   }
 
   const formData = await req.formData();
   const typeValue = formData.get('type');
   if (!isAttachmentType(typeValue)) {
-    return NextResponse.json(
-      { error: `type must be one of ${ALLOWED_TYPES.join(', ')}` },
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: `type must be one of ${ALLOWED_TYPES.join(', ')}`, code: 'INVALID_REQUEST' },
       { status: 400 },
     );
   }
@@ -74,22 +88,25 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
 
   const fileValue = formData.get('file');
   if (!(fileValue instanceof File)) {
-    return NextResponse.json({ error: 'file is required' }, { status: 400 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'file is required', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
   const file = fileValue;
 
   // MIME 檢查
   if (!ALLOWED_MIME.test(file.type)) {
-    return NextResponse.json(
-      { error: `不支援的檔案類型：${file.type}（僅接受 jpg / png / pdf）` },
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: `不支援的檔案類型：${file.type}（僅接受 jpg / png / pdf）`, code: 'INVALID_REQUEST' },
       { status: 400 },
     );
   }
 
   // 大小檢查
   if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json(
-      { error: `檔案 ${file.name} 超過 5MB 限制（建議使用 1080p 截圖）` },
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: `檔案 ${file.name} 超過 5MB 限制（建議使用 1080p 截圖）`, code: 'INVALID_REQUEST' },
       { status: 413 },
     );
   }
@@ -97,8 +114,8 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
   // 副檔名白名單
   const ext = path.extname(path.basename(file.name)).toLowerCase();
   if (!ALLOWED_EXT.has(ext)) {
-    return NextResponse.json(
-      { error: `不支援的副檔名：${ext}（僅接受 .jpg / .jpeg / .png / .pdf）` },
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: `不支援的副檔名：${ext}（僅接受 .jpg / .jpeg / .png / .pdf）`, code: 'INVALID_REQUEST' },
       { status: 400 },
     );
   }
@@ -106,8 +123,8 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
   // 同 type 數量上限
   const currentSameType = getAttachments(listingId).filter((a) => a.type === type);
   if (currentSameType.length >= MAX_ATTACHMENTS_PER_TYPE) {
-    return NextResponse.json(
-      { error: `單一物件 ${type} 類型附件最多 ${MAX_ATTACHMENTS_PER_TYPE} 個` },
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: `單一物件 ${type} 類型附件最多 ${MAX_ATTACHMENTS_PER_TYPE} 個`, code: 'INVALID_REQUEST' },
       { status: 422 },
     );
   }
@@ -160,21 +177,84 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
   const { id } = await context.params;
   const listingId = Number(id);
   if (Number.isNaN(listingId)) {
-    return NextResponse.json({ error: 'invalid id' }, { status: 400 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'invalid id', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
   if (!getListing(listingId)) {
-    return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
+      { status: 404 },
+    );
   }
 
   const url = new URL(req.url);
   const attachmentId = url.searchParams.get('attachmentId');
   if (!attachmentId) {
-    return NextResponse.json({ error: 'attachmentId query param required' }, { status: 400 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'attachmentId query param required', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
 
   const removed = removeAttachment(listingId, attachmentId);
   if (!removed) {
-    return NextResponse.json({ error: 'attachment not found' }, { status: 404 });
+    return NextResponse.json<{ error: string; code: string }>(
+      { error: 'attachment not found', code: 'ATTACHMENT_NOT_FOUND' },
+      { status: 404 },
+    );
   }
+
+  // ─────────────────────────────────────────────
+  // 同步清除 extracted_data 中對應的 by_attachment entry，
+  // 並重新計算 merged_fields（移除僅來自此附件的欄位）
+  // ─────────────────────────────────────────────
+  const freshListing = getListing(listingId);
+  if (freshListing?.extracted_data) {
+    try {
+      const extracted = JSON.parse(freshListing.extracted_data) as ExtractedDataPayload;
+
+      // 移除已刪除附件的 by_attachment entry
+      delete extracted.by_attachment[attachmentId];
+
+      const remainingAttachmentIds = Object.keys(extracted.by_attachment);
+
+      if (remainingAttachmentIds.length === 0) {
+        // 所有附件都刪除了，清空整筆 extracted_data
+        db.prepare('UPDATE listings SET extracted_data = NULL WHERE id = ?').run(listingId);
+      } else {
+        // 重新計算 merged_fields：
+        // 只保留「仍存在附件」貢獻的欄位；若多個附件有同欄位，取最後一個（依 id 排序）
+        const newMergedFields: Record<string, FieldWithProvenance> = {};
+
+        for (const attachId of remainingAttachmentIds) {
+          const entry = extracted.by_attachment[attachId];
+          if (entry.status !== 'done') continue;
+
+          for (const [fieldKey, fieldValue] of Object.entries(entry.fields)) {
+            newMergedFields[fieldKey] = {
+              ...fieldValue,
+              // 保留 manual-edit 如果 merged_fields 原本就是 manual-edit
+              provenance:
+                extracted.merged_fields[fieldKey]?.provenance === 'manual-edit'
+                  ? 'manual-edit'
+                  : 'ocr-pdf',
+              from: attachId,
+            };
+          }
+        }
+
+        extracted.merged_fields = newMergedFields;
+        db.prepare('UPDATE listings SET extracted_data = ? WHERE id = ?').run(
+          JSON.stringify(extracted),
+          listingId,
+        );
+      }
+    } catch {
+      // extracted_data 格式損壞時靜默忽略，避免影響正常刪除流程
+    }
+  }
+
   return NextResponse.json({ success: true });
 }

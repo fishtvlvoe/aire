@@ -1,22 +1,49 @@
 import { NextResponse } from 'next/server';
 import { deleteListing, getListing, updateMarketSummary } from '@/lib/db';
+import type { ExtractedDataPayload } from '@/lib/ocr';
 
 const MARKET_SUMMARY_MAX_LENGTH = 500;
+
+// ─────────────────────────────────────────────
+// 統一 error payload 型別
+// ─────────────────────────────────────────────
+interface ErrorPayload {
+  error: string
+  code: string
+  detail?: string
+}
 
 export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const listingId = Number(id);
 
   if (Number.isNaN(listingId)) {
-    return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json<ErrorPayload>(
+      { error: 'invalid id', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
 
   const listing = getListing(listingId);
   if (!listing) {
-    return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json<ErrorPayload>(
+      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
+      { status: 404 },
+    );
   }
 
-  return NextResponse.json({ listing });
+  // 將 extracted_data 字串轉為物件後一起回傳（null 保持 null）
+  let extractedData: ExtractedDataPayload | null = null;
+  if (listing.extracted_data) {
+    try {
+      extractedData = JSON.parse(listing.extracted_data) as ExtractedDataPayload;
+    } catch {
+      // JSON 損壞時回傳 null，不中斷回應
+      extractedData = null;
+    }
+  }
+
+  return NextResponse.json({ listing: { ...listing, extracted_data: extractedData } });
 }
 
 /**
@@ -29,32 +56,44 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   const listingId = Number(id);
 
   if (Number.isNaN(listingId)) {
-    return NextResponse.json({ error: 'invalid id' }, { status: 400 });
+    return NextResponse.json<ErrorPayload>(
+      { error: 'invalid id', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
 
   const listing = getListing(listingId);
   if (!listing) {
-    return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json<ErrorPayload>(
+      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
+      { status: 404 },
+    );
   }
 
   let body: { market_summary?: unknown };
   try {
     body = (await req.json()) as { market_summary?: unknown };
   } catch {
-    return NextResponse.json({ error: 'invalid json' }, { status: 400 });
+    return NextResponse.json<ErrorPayload>(
+      { error: 'invalid json', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
 
   if ('market_summary' in body) {
     const value = body.market_summary;
     if (value !== null && typeof value !== 'string') {
-      return NextResponse.json(
-        { error: 'market_summary must be string or null' },
+      return NextResponse.json<ErrorPayload>(
+        { error: 'market_summary must be string or null', code: 'INVALID_REQUEST' },
         { status: 400 },
       );
     }
     if (typeof value === 'string' && value.length > MARKET_SUMMARY_MAX_LENGTH) {
-      return NextResponse.json(
-        { error: `market_summary exceeds ${MARKET_SUMMARY_MAX_LENGTH} character limit` },
+      return NextResponse.json<ErrorPayload>(
+        {
+          error: `market_summary exceeds ${MARKET_SUMMARY_MAX_LENGTH} character limit`,
+          code: 'INVALID_REQUEST',
+        },
         { status: 422 },
       );
     }
@@ -72,12 +111,18 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
   const listingId = Number(id);
 
   if (Number.isNaN(listingId)) {
-    return NextResponse.json({ error: 'invalid id' }, { status: 400 });
+    return NextResponse.json<ErrorPayload>(
+      { error: 'invalid id', code: 'INVALID_REQUEST' },
+      { status: 400 },
+    );
   }
 
   const success = deleteListing(listingId);
   if (!success) {
-    return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json<ErrorPayload>(
+      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
+      { status: 404 },
+    );
   }
 
   return NextResponse.json({ success: true });

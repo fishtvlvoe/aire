@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 import type { PropertyType } from '@/lib/property-types'
 import { formatLabelWithUnit } from '@/lib/property-types/units'
+import ProvenanceBadge from '@/components/ui/ProvenanceBadge'
+import type { FieldWithProvenance } from '@/lib/ocr'
 import {
   apartmentSchema,
   commercialLandSchema,
@@ -110,6 +112,11 @@ export type SupplementaryFormProps = {
   propertyType?: PropertyType
   /** Read-only data fetched before commission */
   preCommissionData?: Record<string, unknown> | null
+  /**
+   * Task 4.4: OCR 合併欄位資料（含 provenance），用於顯示來源徽章
+   * key 對應 field.key
+   */
+  mergedFields?: Record<string, FieldWithProvenance>
 }
 
 const inputClassName =
@@ -134,6 +141,7 @@ export default function SupplementaryForm({
   onGenerateDocuments,
   propertyType,
   preCommissionData,
+  mergedFields,
 }: SupplementaryFormProps) {
   const [form, setForm] = useState<Record<string, string>>({})
   const [isExpanded, setIsExpanded] = useState(true)
@@ -208,13 +216,30 @@ export default function SupplementaryForm({
     const labelText = `${labelWithUnit}${field.required ? ' *' : ''}`
     const isWide = field.type === 'textarea'
 
+    // Task 4.4: 取得此欄位的 provenance 資料
+    const fieldProvenance = mergedFields?.[field.key]
+    const provenanceBadge = fieldProvenance ? (
+      <ProvenanceBadge
+        provenance={fieldProvenance.provenance}
+        confidence={fieldProvenance.confidence}
+      />
+    ) : null
+
+    // 欄位標籤列（label 文字 + provenance 徽章）
+    const labelRow = (
+      <span className="flex items-center gap-1.5">
+        <span>{labelText}</span>
+        {provenanceBadge}
+      </span>
+    )
+
     if (field.type === 'select' && field.options) {
       return (
         <label
           key={field.key}
           className="block text-sm font-medium text-slate-700"
         >
-          {labelText}
+          {labelRow}
           <select
             value={value}
             onChange={(e) => updateField(field.key, e.target.value)}
@@ -237,7 +262,7 @@ export default function SupplementaryForm({
           key={field.key}
           className={`block text-sm font-medium text-slate-700 ${isWide ? 'lg:col-span-2' : ''}`}
         >
-          {labelText}
+          {labelRow}
           <textarea
             value={value}
             onChange={(e) => updateField(field.key, e.target.value)}
@@ -250,7 +275,7 @@ export default function SupplementaryForm({
 
     return (
       <label key={field.key} className="block text-sm font-medium text-slate-700">
-        {labelText}
+        {labelRow}
         <input
           type={field.type === 'number' ? 'number' : 'text'}
           value={value}
