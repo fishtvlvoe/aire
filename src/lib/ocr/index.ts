@@ -11,6 +11,8 @@
 
 import { readFile } from 'fs/promises'
 import { basename } from 'path'
+import { runVision } from '../codex-client'
+import { getVisionPrompt } from './llm-vision-prompts'
 import { extractTextLayer } from './pdf-text-layer'
 import { stripFillerChars } from './text-cleanup'
 import { splitBySections } from './section-splitter'
@@ -86,11 +88,11 @@ export type ExtractedDataPayload = {
  * @param attachmentPath - PDF 檔案的絕對路徑
  * @param category - 附件類型，用於選擇對應 parser
  * @returns 萃取結果
- * @throws 若 PDF 不含文字層（掃描圖片 PDF）
  */
 export async function runOcrPipeline(
   attachmentPath: string,
-  category: AttachmentCategory
+  category: AttachmentCategory,
+  llmVisionOptIn?: boolean
 ): Promise<ExtractedResultByAttachment> {
   const filename = basename(attachmentPath)
   const extractedAt = new Date().toISOString()
@@ -102,7 +104,79 @@ export async function runOcrPipeline(
   const { text, hasTextLayer, pageCount: _pageCount } = await extractTextLayer(buffer)
 
   if (!hasTextLayer) {
-    throw new Error('無文字層：此 PDF 為掃描圖片，請使用 LLM Vision 模式')
+    if (!llmVisionOptIn) {
+      return {
+        filename,
+        category,
+        extracted_at: extractedAt,
+        fields: {},
+        raw_text: '',
+        status: 'failed',
+      }
+    }
+
+    const docType: 'transcript' | 'title-deed' | 'contract' =
+      category === 'transcript'
+        ? 'transcript'
+        : category === 'title-deed'
+          ? 'title-deed'
+          : category === 'contract'
+            ? 'contract'
+            : 'transcript'
+
+    const visionResult = await runVision(attachmentPath, getVisionPrompt(docType), 90000)
+
+    if (!visionResult?.success) {
+      return {
+        filename,
+        category,
+        extracted_at: extractedAt,
+        fields: {},
+        raw_text: '',
+        status: 'failed',
+      }
+    }
+
+    const raw = visionResult.output ?? ''
+
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      return {
+        filename,
+        category,
+        extracted_at: extractedAt,
+        fields: {},
+        raw_text: raw,
+        status: 'failed',
+      }
+    }
+
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return {
+        filename,
+        category,
+        extracted_at: extractedAt,
+        fields: {},
+        raw_text: raw,
+        status: 'failed',
+      }
+    }
+
+    const fields: Record<string, ExtractedField> = {}
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      fields[key] = { value: value as any, confidence: 0.7 }
+    }
+
+    return {
+      filename,
+      category,
+      extracted_at: extractedAt,
+      fields,
+      raw_text: raw,
+      status: 'done',
+    }
   }
 
   // 步驟 3：清洗文字
