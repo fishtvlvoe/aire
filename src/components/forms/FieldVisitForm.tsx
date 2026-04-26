@@ -189,6 +189,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
       initialData,
       highlightMissing = false,
       onJumpTo,
+      listingId,
       onNavigationStateChange,
       actionButtons,
       mergedFields,
@@ -593,6 +594,7 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
             <label className="flex items-center gap-1.5">{labelRow}</label>
             <div className="mt-2">
               <PhotoUploadClassifier
+                listingId={listingId}
                 files={[]}
                 onClassified={(result) => {
                   setForm((prev) => ({
