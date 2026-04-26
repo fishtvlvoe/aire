@@ -1,11 +1,65 @@
-import { exec } from "child_process";
-import { promises as fs } from "fs";
+import { exec, spawn } from "child_process";
+import { createReadStream, promises as fs } from "fs";
 import os from "os";
 import path from "path";
 import { promisify } from "util";
 import type { CodexStatus, LlmAdapter } from "../types";
 
 const execAsync = promisify(exec);
+
+async function execPromptFromFileViaStdin(
+  bin: string,
+  args: string[],
+  stdinFile: string,
+  timeoutMs: number,
+): Promise<{ stdout: string; stderr: string }> {
+  return await new Promise((resolve, reject) => {
+    const child = spawn(bin, args, { stdio: ["pipe", "pipe", "pipe"] });
+
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+
+    let didTimeout = false;
+    const timeout = setTimeout(() => {
+      didTimeout = true;
+      child.kill("SIGKILL");
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+
+    child.on("error", (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+
+    child.on("close", () => {
+      clearTimeout(timeout);
+      if (didTimeout) {
+        reject(new Error("Command timed out"));
+        return;
+      }
+      resolve({
+        stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+        stderr: Buffer.concat(stderrChunks).toString("utf8"),
+      });
+    });
+
+    if (!child.stdin) {
+      clearTimeout(timeout);
+      reject(new Error("stdin not available"));
+      return;
+    }
+
+    const rs = createReadStream(stdinFile);
+    rs.on("error", (err) => {
+      clearTimeout(timeout);
+      child.kill("SIGKILL");
+      reject(err);
+    });
+    rs.pipe(child.stdin);
+  });
+}
 
 function classifyClaudeError(stderr: string): CodexStatus {
   const lower = stderr.toLowerCase();
@@ -38,28 +92,34 @@ export const claudeCodeAdapter: LlmAdapter = {
   async runVision(imagePath, prompt, timeoutMs) {
     const ext = path.extname(imagePath).toLowerCase();
     const mime =
-      ext === ".png"
-        ? "image/png"
-        : ext === ".webp"
-          ? "image/webp"
-          : "image/jpeg";
+      ext === ".pdf"
+        ? "application/pdf"
+        : ext === ".png"
+          ? "image/png"
+          : ext === ".webp"
+            ? "image/webp"
+            : "image/jpeg";
 
-    let tmpDir: string | undefined;
     let tmpFile: string | undefined;
 
     try {
       const image = await fs.readFile(imagePath);
       const base64 = image.toString("base64");
-      const visionPrompt = `data:${mime};base64,${base64}\n\n${prompt}`;
+      const fullPrompt = `文件圖像（${mime}，base64 編碼）：data:${mime};base64,${base64}\n\n${prompt}`;
 
-      tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "three-ai-vision-"));
-      tmpFile = path.join(tmpDir, "vision-prompt.txt");
-      await fs.writeFile(tmpFile, visionPrompt, "utf8");
+      tmpFile = path.join(
+        os.tmpdir(),
+        `vision-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`,
+      );
+      await fs.writeFile(tmpFile, fullPrompt, "utf8");
 
-      const escapedPath = tmpFile.replace(/"/g, '\\"');
-      const command = `claude -p "$(cat \"${escapedPath}\")"`;
+      const { stdout, stderr } = await execPromptFromFileViaStdin(
+        "claude",
+        ["-p", "-"],
+        tmpFile,
+        timeoutMs,
+      );
 
-      const { stdout, stderr } = await execAsync(command, { timeout: timeoutMs });
       if (stderr && !stdout) {
         const status = classifyClaudeError(stderr);
         return { success: false, error: stderr.trim(), status };
@@ -73,9 +133,6 @@ export const claudeCodeAdapter: LlmAdapter = {
     } finally {
       try {
         if (tmpFile) await fs.unlink(tmpFile);
-      } catch {}
-      try {
-        if (tmpDir) await fs.rmdir(tmpDir);
       } catch {}
     }
   },

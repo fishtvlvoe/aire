@@ -13,7 +13,12 @@ import path from 'node:path'
 import { NextResponse } from 'next/server'
 import { db, getListing, getAttachments } from '@/lib/db'
 import { runOcrPipeline } from '@/lib/ocr'
-import type { ExtractedDataPayload, ExtractedResultByAttachment } from '@/lib/ocr'
+import type {
+  AttachmentCategory,
+  ExtractedDataPayload,
+  ExtractedResultByAttachment,
+  FieldProvenance,
+} from '@/lib/ocr'
 import { mapOcrFieldsToFormKeys } from '@/lib/ocr/field-mapping'
 
 // ─────────────────────────────────────────────
@@ -26,14 +31,49 @@ interface ErrorPayload {
   detail?: string
 }
 
+const isAttachmentCategory = (v: unknown): v is AttachmentCategory =>
+  v === 'transcript' ||
+  v === 'title-deed' ||
+  v === 'cadastral-map' ||
+  v === 'photo' ||
+  v === 'contract' ||
+  v === 'other'
+
+const inferAttachmentCategory = (attachment: {
+  type?: string
+  category?: unknown
+}): AttachmentCategory => {
+  if (isAttachmentCategory((attachment as any).category)) {
+    return (attachment as any).category
+  }
+
+  if (attachment.type === 'field_visit') return 'photo'
+  if (attachment.type === 'market_research') return 'other'
+  return 'transcript'
+}
+
+// If result came from vision path, confidence will be 0.7 (set in ocr/index.ts)
+const inferProvenance = (confidence: number): FieldProvenance =>
+  confidence === 0.7 ? 'llm-vision' : 'ocr-pdf'
+
 // ─────────────────────────────────────────────
 // Handler
 // ─────────────────────────────────────────────
 
 export async function POST(
-  _req: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  let llmVisionOptIn = request.headers.get('x-llm-vision-opt-in') === 'true'
+  if (!llmVisionOptIn) {
+    try {
+      const body = (await request.json()) as { llmVisionOptIn?: unknown }
+      llmVisionOptIn = body?.llmVisionOptIn === true
+    } catch {
+      // ignore non-JSON body
+    }
+  }
+
   const { id } = await context.params
   const listingId = Number(id)
 
@@ -77,16 +117,17 @@ export async function POST(
     pdfAttachments.map(async (attachment) => {
       // path 欄位儲存的是 public URL（/uploads/...），轉換為磁碟絕對路徑
       const diskPath = path.join(process.cwd(), 'public', attachment.path)
+      const category = inferAttachmentCategory(attachment as any)
 
       try {
-        const result = await runOcrPipeline(diskPath, 'transcript')
+        const result = await runOcrPipeline(diskPath, category, llmVisionOptIn)
         byAttachment[attachment.id] = result
       } catch (err) {
         // OCR 失敗：記錄錯誤但不中斷其他附件
         const detail = err instanceof Error ? err.message : String(err)
         byAttachment[attachment.id] = {
           filename: attachment.filename,
-          category: 'transcript',
+          category,
           extracted_at: new Date().toISOString(),
           fields: {},
           raw_text: '',
@@ -118,7 +159,7 @@ export async function POST(
         mergedFields[fieldKey] = {
           value: fieldValue.value,
           confidence: fieldValue.confidence,
-          provenance: 'ocr-pdf',
+          provenance: inferProvenance(fieldValue.confidence),
           from: result.filename,
         }
       }
