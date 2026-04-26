@@ -43,6 +43,8 @@ export interface Listing {
   market_summary: string | null;
   /** JSON array of attachment metadata：`[{ id, filename, type, path, size, uploaded_at }]` */
   attachments: string | null;
+  /** OCR 萃取結果 JSON（ExtractedDataPayload）；尚未萃取時為 null */
+  extracted_data: string | null;
   created_at: string;
   updated_at: string;
 }

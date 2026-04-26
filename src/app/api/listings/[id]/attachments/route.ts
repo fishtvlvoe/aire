@@ -138,6 +138,17 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
   };
   addAttachment(listingId, meta);
 
+  // 上傳完成後，fire-and-forget 觸發 OCR 萃取（不阻擋回應）
+  // 若附件為 PDF 類型，extract endpoint 會自動處理；非 PDF 則由 extract 回 400 靜默忽略
+  if (file.type.toLowerCase().includes('pdf')) {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    void fetch(`${baseUrl}/api/listings/${listingId}/extract`, {
+      method: 'POST',
+    }).catch(() => {
+      // fire-and-forget：忽略失敗，不影響上傳回應
+    });
+  }
+
   return NextResponse.json({ attachment: meta });
 }
 
