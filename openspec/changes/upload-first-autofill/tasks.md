@@ -42,10 +42,10 @@
 
 ## Phase 3: Layer 3 LLM Vision（1 週）
 
-- [ ] 3.1 LLM Vision 抽象層：擴充 `src/lib/codex-client/` 的 backend adapter，新增 `runVision(imagePath, prompt) → Promise<string>` 介面。[Tool: copilot-codex]
-- [ ] 3.2 Vision prompt 設計：`src/lib/ocr/llm-vision-prompts.ts`，針對每類文件（謄本 / 權狀 / 合約）寫抽欄位的 prompt template。[Tool: copilot-codex]
-- [ ] 3.3 業務 opt-in UI：`src/components/LLMVisionConsentDialog.tsx` 首次啟用時顯示隱私提示。[Tool: copilot-codex]
-- [ ] 3.4 Layer 1+2 失敗時自動降級至 Layer 3（若 opt-in）；同時標記為「llm-vision」provenance。[Tool: copilot-codex]
+- [x] 3.1 LLM Vision 抽象層：擴充 `src/lib/codex-client/` 的 backend adapter，新增 `runVision(imagePath, prompt) → Promise<string>` 介面。[Tool: copilot-codex]
+- [x] 3.2 Vision prompt 設計：`src/lib/ocr/llm-vision-prompts.ts`，針對每類文件（謄本 / 權狀 / 合約）寫抽欄位的 prompt template。[Tool: copilot-codex]
+- [x] 3.3 業務 opt-in UI：`src/components/LLMVisionConsentDialog.tsx` 首次啟用時顯示隱私提示。[Tool: copilot-codex]
+- [x] 3.4 Layer 1+2 失敗時自動降級至 Layer 3（若 opt-in）；同時標記為「llm-vision」provenance。[Tool: copilot-codex]
 
 ## Phase 4: 流程重排 + UI 徽章（與 Phase 1 並行，1 週）
 
