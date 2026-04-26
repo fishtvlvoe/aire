@@ -23,6 +23,7 @@ export type ClassifiedFile = {
 
 export type PhotoUploadClassifierProps = {
   files: File[];
+  listingId?: number;
   onClassified: (result: ClassifiedFile[]) => void;
 };
 
@@ -73,7 +74,7 @@ const toFilename = (item: LocalItem): string => {
   return `${item.id}`;
 };
 
-export default function PhotoUploadClassifier({ files, onClassified }: PhotoUploadClassifierProps) {
+export default function PhotoUploadClassifier({ files, listingId, onClassified }: PhotoUploadClassifierProps) {
   const [items, setItems] = useState<LocalItem[]>(() => {
     const now = new Date().toISOString();
     return files.map((file) => {
@@ -145,6 +146,17 @@ export default function PhotoUploadClassifier({ files, onClassified }: PhotoUplo
 
   const addFiles = (selected: File[]) => {
     if (selected.length === 0) return;
+
+    if (listingId !== undefined) {
+      for (const file of selected) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const isPdf = file.type === "application/pdf";
+        formData.append("type", isPdf ? "transcript" : "market_research");
+        fetch(`/api/listings/${listingId}/attachments`, { method: "POST", body: formData }).catch(console.error);
+      }
+    }
+
     const now = new Date().toISOString();
 
     setItems((prev) => {
