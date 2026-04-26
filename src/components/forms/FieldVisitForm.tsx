@@ -187,7 +187,11 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
     const [form, setForm] = useState<Record<string, string>>(() =>
       normalizeInitialData(initialData),
     );
-    const [activeChapterId, setActiveChapterId] = useState<ChapterId>("basic");
+    // 新物件（無 initialData）預設從照片/文件章節開始，
+    // 既有物件（已有 field_visit_data）維持從基本資訊開始，向下相容
+    const [activeChapterId, setActiveChapterId] = useState<ChapterId>(
+      initialData ? "basic" : "media",
+    );
 
     // Decision A: 追蹤是否已經水合過初始資料
     const didHydrateRef = useRef(false);
@@ -259,7 +263,8 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
       if (propPropertyType === undefined) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm({});
-        setActiveChapterId("basic");
+        // 物件類型切換時，重置到第一章（照片/文件）
+        setActiveChapterId("media");
       }
     }, [activeType, propPropertyType]);
 
@@ -763,9 +768,22 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
         </div>
 
         <div className="mt-6 space-y-4">
-          <h3 className="text-base font-semibold text-slate-900">
-            {activeChapter?.title}
-          </h3>
+          {/* 章節標題列：標題左邊、跳過按鈕右邊（照片/文件章節限定） */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-slate-900">
+              {activeChapter?.title}
+            </h3>
+            {/* 照片/文件章節且尚未有上傳檔案時，顯示跳過按鈕 */}
+            {activeChapterId === "media" && !(form.photos ?? "").trim() && (
+              <button
+                type="button"
+                onClick={goToNextChapter}
+                className="text-sm text-slate-500 underline hover:text-slate-700 transition-colors"
+              >
+                跳過上傳，全部手動輸入
+              </button>
+            )}
+          </div>
           {(activeChapter?.fields.length ?? 0) === 0 ? (
             <p className="text-sm text-slate-500">此章節目前沒有欄位。</p>
           ) : (

@@ -176,13 +176,14 @@ const buildChapterSkeleton = (propertyType: PropertyType): Chapter[] => {
   const propertyChapterTitle = isBuilding ? '建物資訊' : '土地資訊'
 
   return [
+    // 照片/文件移至第一章，讓使用者先上傳照片讓 AI 輔助填寫
+    { id: 'media', title: '照片/文件', fields: [] },
     { id: 'basic', title: '基本資訊', fields: [] },
     { id: 'property', title: propertyChapterTitle, fields: [] },
     { id: 'status', title: '現況調查', fields: [] },
     { id: 'facilities', title: '設備設施', fields: [] },
     { id: 'legal', title: '法律狀態', fields: [] },
     { id: 'tax', title: '稅費資訊', fields: [] },
-    { id: 'media', title: '照片/文件', fields: [] },
     { id: 'supplementary', title: '補充資料', fields: [] },
     { id: 'notes', title: '備註', fields: [] },
   ]
