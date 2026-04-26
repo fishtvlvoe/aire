@@ -13,5 +13,6 @@ export interface CodexResult {
 
 export interface LlmAdapter {
   run(prompt: string, timeoutMs: number): Promise<CodexResult>;
+  runVision?(imagePath: string, prompt: string, timeoutMs: number): Promise<CodexResult>;
   check(): Promise<CodexStatus>;
 }

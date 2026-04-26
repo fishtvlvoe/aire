@@ -43,4 +43,19 @@ export async function runCodex(
   return activeAdapter.run(prompt, timeoutMs);
 }
 
+export async function runVision(
+  imagePath: string,
+  prompt: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS
+): Promise<CodexResult> {
+  if (!activeAdapter.runVision) {
+    return {
+      success: false,
+      error: `Vision not supported by ${activeBackend} backend`,
+      status: "error",
+    };
+  }
+  return activeAdapter.runVision(imagePath, prompt, timeoutMs);
+}
+
 export type { CodexResult, CodexStatus, LlmAdapter };

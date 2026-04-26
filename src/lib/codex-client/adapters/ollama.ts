@@ -53,6 +53,14 @@ export const ollamaAdapter: LlmAdapter = {
     }
   },
 
+  async runVision() {
+    return {
+      success: false,
+      error: "Vision not supported by ollama backend",
+      status: "error",
+    };
+  },
+
   async check() {
     try {
       const response = await fetch(`${getOllamaBaseUrl()}/api/tags`, {

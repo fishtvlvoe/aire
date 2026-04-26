@@ -62,6 +62,14 @@ export const codexAdapter: LlmAdapter = {
     }
   },
 
+  async runVision() {
+    return {
+      success: false,
+      error: "Vision not supported by codex backend",
+      status: "error",
+    };
+  },
+
   async check() {
     try {
       await execAsync("codex --version", { timeout: 5000 });
