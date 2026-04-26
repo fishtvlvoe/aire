@@ -59,14 +59,14 @@
 
 ## Phase 5: 整合測試 + 驗收（1 週）
 
-- [ ] 5.1 E2E 測試：Playwright spec 覆蓋「上傳謄本 PDF → extract → 切基本資料 → 欄位自動帶入 + 徽章 → 修改欄位 → 徽章變灰」完整流程。[Tool: sonnet]
+- [x] 5.1 E2E 測試：Playwright spec 覆蓋「上傳謄本 PDF → extract → 切基本資料 → 欄位自動帶入 + 徽章 → 修改欄位 → 徽章變灰」完整流程。[Tool: sonnet]
 - [ ] 5.2 精度驗證：準備 20 份真實脫敏謄本 + 10 份權狀，跑 extract 並統計：
   - Layer 1 準確率（目標 ≥ 95%）
   - Layer 2 準確率（目標 ≥ 80%）
   - Layer 3 補位率（Layer 1+2 miss 的欄位，Layer 3 能補多少）
   [Tool: sonnet]
 - [ ] 5.3 客戶驗收會議：帶 20 份已抄過的歷史物件，現場上傳 → 對比原始業務填值 → 業務 review 自動帶入結果 → 統計「免修改率」。[Tool: 主對話]
-- [ ] 5.4 跨檔 Code Review：Kimi MCP 審查 OCR + parser + UI 徽章 diff，重點：
+- [x] 5.4 跨檔 Code Review：Kimi MCP 審查 OCR + parser + UI 徽章 diff，重點：
   - OCR 失敗時 fallback 完整性
   - extract 非同步 race condition
   - 業務手填值不被覆蓋的邏輯
