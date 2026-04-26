@@ -125,31 +125,15 @@ export async function runOcrPipeline(
 }
 
 // ─────────────────────────────────────────────
-// 內部：通用欄位萃取邏輯
+// 內部：欄位萃取（委派給對應 parser）
 // ─────────────────────────────────────────────
 
 import type { Section } from './section-splitter'
+import { parseMixedTranscript } from './parsers/mixed-parser'
 
-/**
- * 從段落陣列萃取欄位（通用邏輯）
- *
- * 目前僅將段落文字作為 raw_section 欄位保存，
- * 待各 category parser 實作後替換。
- */
 function extractFieldsFromSections(
   sections: Section[],
   _category: AttachmentCategory
 ): Record<string, ExtractedField> {
-  const fields: Record<string, ExtractedField> = {}
-
-  for (const section of sections) {
-    // 每個段落的文字作為暫存欄位，confidence 設低以標示「未解析」
-    const key = `section_${section.name}`
-    fields[key] = {
-      value: section.text,
-      confidence: 0.3,
-    }
-  }
-
-  return fields
+  return parseMixedTranscript(sections)
 }
