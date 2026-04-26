@@ -12,24 +12,24 @@
 
 ## Phase 1: Layer 1 PDF 文字層解析（MVP 核心，2 週）
 
-- [ ] 1.1 Schema migration：新增 `listings.extracted_data TEXT NULL` 欄位 + `src/lib/db/schema.ts:initDb()` 動態 ALTER；migration 檔 003_add_extracted_data.sql。實作 Requirement: Extracted-data persistence and migration；Requirement: Two-part listing record。[Tool: 主對話]
-- [ ] 1.2 [P] 建立 OCR 抽象層：`src/lib/ocr/index.ts` 定義 `OCRResult` type + `runOcrPipeline(attachmentPath, category) → Promise<ExtractedFields>`。實作 Requirement: Extracted result schema。[Tool: copilot-codex]
-- [ ] 1.3 [P] Layer 1 PDF 文字層抽取：`src/lib/ocr/pdf-text-layer.ts` 用 `pdfjs-dist` 抽文字，回傳 `{ text: string, hasTextLayer: boolean }`。無文字層 → 回 hasTextLayer=false。實作 Requirement: Three-layer OCR pipeline（Layer 1 部分）。[Tool: copilot-codex]
-- [ ] 1.3b 預處理：`src/lib/ocr/text-cleanup.ts` — strip `*` 填充字元、全形空白、奇異換行；輸出乾淨 text。[Tool: copilot-codex]
-- [ ] 1.3c Section splitter：`src/lib/ocr/section-splitter.ts` — 用 `*** XXX部 ***` header 切分成多個 section object `{ name: '土地標示部', text: '...' }`。實作 Requirement: Multi-section PDF splitting。[Tool: copilot-codex]
-- [ ] 1.4a Normalize 共用層：`src/lib/ocr/normalize.ts` — 日期（民國→西元）、面積（移除,/單位→float）、地價（移除,/單位→int）、權利範圍（X分之Y/全部→Y/X）、空值（(空白)→null）、層數（010層→10）、地號拆解（縣+區+段+號+raw）。依 design.md D8 normalize 規則。[Tool: copilot-codex]
-- [ ] 1.4 規則 parser — 土地：`src/lib/ocr/parsers/land-parser.ts`。處理 3 個 section（標示部 / 所有權部 / 他項權利部），欄位清單依 design.md D8 表格 + sample-inventory.md。容錯：部分欄位 regex 未命中時 SHALL NOT 拋錯，寫入已成功欄位即可（實作 Requirement: Partial extraction does not block flow）。[Tool: copilot-codex]
-- [ ] 1.5 規則 parser — 建物：`src/lib/ocr/parsers/building-parser.ts`。處理 3 個 section（標示部 / 所有權部 / 他項權利部）。含列表型欄位（層次、附屬建物、共有部分、建物座落地號）。[Tool: copilot-codex]
-- [ ] 1.5b Mixed parser 組合器：`src/lib/ocr/parsers/mixed-parser.ts` — 依 section-splitter 結果，決定呼叫 land-parser / building-parser，合併輸出為單一 ExtractedFields object。[Tool: copilot-codex]
-- [ ] 1.6 單元測試：把 26 份黃金 YAML 樣本（脫敏後）複製到 `__fixtures__/`，每份 yaml 當 expected 輸出，驗證 parse(rawText) === yaml。目標 ≥ 23/26 通過（88%）。[Tool: sonnet]
-- [ ] 1.7 extract API endpoint：`POST /api/listings/[id]/extract` 接 attachmentId 或全部未解析，執行 pipeline、寫入 extracted_data。[Tool: copilot-codex]
-- [ ] 1.8 attachments POST 完成後非同步觸發 extract（fire-and-forget + 寫入 extracted_data）。實作 Requirement: Async extract triggered after each upload；Requirement: Field auto-fill from extracted data（後端寫入部分）。[Tool: copilot-codex]
-- [ ] 1.9 [P] 新增 `GET /api/listings/[id]/extract-status` endpoint：回傳 `{ by_attachment: { [attId]: { status, error?, completed_at? } } }`。provenance 記錄欄位存在 `extracted_data.by_attachment.<id>.status`（pending/parsing/done/failed）。實作 Requirement: Extract status polling endpoint。[Tool: copilot-codex]
-- [ ] 1.10 [P] 修 `GET /api/listings/[id]` 回傳結構驗證：確保 response payload 含完整 `listing.extracted_data`（若 non-null），並加單元測試覆蓋 null / non-null 兩種情況。實作 Requirement: Listing GET returns extracted_data。[Tool: copilot-codex]
-- [ ] 1.11 修 `POST /api/listings/[id]/field-visit`：接收 body.fields 時比對 `merged_fields.<key>.value`，若值不同且原 provenance 為 ocr-* / llm-vision，SHALL 設定 provenance = `manual-edit`。實作 Requirement: Field-visit PATCH promotes provenance to manual-edit。[Tool: copilot-codex]
-- [ ] 1.12 新增 `POST /api/listings/[id]/field-visit/switch-source` endpoint：body `{ fieldKey, attachmentId }` 切換 merged_fields.<key>.from 與 value，回傳完整 merged_fields；attachment 未提供該欄位時回 404。實作 Requirement: Switch merged field source endpoint。[Tool: copilot-codex]
-- [ ] 1.13 修 `DELETE /api/listings/[id]/attachments`：刪除時 cascade 清 `extracted_data.by_attachment.<attId>` 並重新計算 `merged_fields`（從剩下 attachment 重新 pick 每個 fieldKey 的最佳來源）。實作 Requirement: Delete attachment cascades to extracted_data。[Tool: copilot-codex]
-- [ ] 1.14 統一 error payload：所有本 change 的 new / modified endpoint 回 error 時 SHALL 遵循 `{ error, code, detail? }` 格式與 HTTP status code 表。加一個共用 helper `src/lib/api/errors.ts`。實作 Requirement: Standard error response contract。[Tool: copilot-codex]
+- [x] 1.1 Schema migration：新增 `listings.extracted_data TEXT NULL` 欄位 + `src/lib/db/schema.ts:initDb()` 動態 ALTER；migration 檔 003_add_extracted_data.sql。實作 Requirement: Extracted-data persistence and migration；Requirement: Two-part listing record。[Tool: 主對話]
+- [x] 1.2 [P] 建立 OCR 抽象層：`src/lib/ocr/index.ts` 定義 `OCRResult` type + `runOcrPipeline(attachmentPath, category) → Promise<ExtractedFields>`。實作 Requirement: Extracted result schema。[Tool: copilot-codex]
+- [x] 1.3 [P] Layer 1 PDF 文字層抽取：`src/lib/ocr/pdf-text-layer.ts` 用 `pdfjs-dist` 抽文字，回傳 `{ text: string, hasTextLayer: boolean }`。無文字層 → 回 hasTextLayer=false。實作 Requirement: Three-layer OCR pipeline（Layer 1 部分）。[Tool: copilot-codex]
+- [x] 1.3b 預處理：`src/lib/ocr/text-cleanup.ts` — strip `*` 填充字元、全形空白、奇異換行；輸出乾淨 text。[Tool: copilot-codex]
+- [x] 1.3c Section splitter：`src/lib/ocr/section-splitter.ts` — 用 `*** XXX部 ***` header 切分成多個 section object `{ name: '土地標示部', text: '...' }`。實作 Requirement: Multi-section PDF splitting。[Tool: copilot-codex]
+- [x] 1.4a Normalize 共用層：`src/lib/ocr/normalize.ts` — 日期（民國→西元）、面積（移除,/單位→float）、地價（移除,/單位→int）、權利範圍（X分之Y/全部→Y/X）、空值（(空白)→null）、層數（010層→10）、地號拆解（縣+區+段+號+raw）。依 design.md D8 normalize 規則。[Tool: copilot-codex]
+- [x] 1.4 規則 parser — 土地：`src/lib/ocr/parsers/land-parser.ts`。處理 3 個 section（標示部 / 所有權部 / 他項權利部），欄位清單依 design.md D8 表格 + sample-inventory.md。容錯：部分欄位 regex 未命中時 SHALL NOT 拋錯，寫入已成功欄位即可（實作 Requirement: Partial extraction does not block flow）。[Tool: copilot-codex]
+- [x] 1.5 規則 parser — 建物：`src/lib/ocr/parsers/building-parser.ts`。處理 3 個 section（標示部 / 所有權部 / 他項權利部）。含列表型欄位（層次、附屬建物、共有部分、建物座落地號）。[Tool: copilot-codex]
+- [x] 1.5b Mixed parser 組合器：`src/lib/ocr/parsers/mixed-parser.ts` — 依 section-splitter 結果，決定呼叫 land-parser / building-parser，合併輸出為單一 ExtractedFields object。[Tool: copilot-codex]
+- [x] 1.6 單元測試：把 26 份黃金 YAML 樣本（脫敏後）複製到 `__fixtures__/`，每份 yaml 當 expected 輸出，驗證 parse(rawText) === yaml。目標 ≥ 23/26 通過（88%）。[Tool: sonnet]
+- [x] 1.7 extract API endpoint：`POST /api/listings/[id]/extract` 接 attachmentId 或全部未解析，執行 pipeline、寫入 extracted_data。[Tool: copilot-codex]
+- [x] 1.8 attachments POST 完成後非同步觸發 extract（fire-and-forget + 寫入 extracted_data）。實作 Requirement: Async extract triggered after each upload；Requirement: Field auto-fill from extracted data（後端寫入部分）。[Tool: copilot-codex]
+- [x] 1.9 [P] 新增 `GET /api/listings/[id]/extract-status` endpoint：回傳 `{ by_attachment: { [attId]: { status, error?, completed_at? } } }`。provenance 記錄欄位存在 `extracted_data.by_attachment.<id>.status`（pending/parsing/done/failed）。實作 Requirement: Extract status polling endpoint。[Tool: copilot-codex]
+- [x] 1.10 [P] 修 `GET /api/listings/[id]` 回傳結構驗證：確保 response payload 含完整 `listing.extracted_data`（若 non-null），並加單元測試覆蓋 null / non-null 兩種情況。實作 Requirement: Listing GET returns extracted_data。[Tool: copilot-codex]
+- [x] 1.11 修 `POST /api/listings/[id]/field-visit`：接收 body.fields 時比對 `merged_fields.<key>.value`，若值不同且原 provenance 為 ocr-* / llm-vision，SHALL 設定 provenance = `manual-edit`。實作 Requirement: Field-visit PATCH promotes provenance to manual-edit。[Tool: copilot-codex]
+- [x] 1.12 新增 `POST /api/listings/[id]/field-visit/switch-source` endpoint：body `{ fieldKey, attachmentId }` 切換 merged_fields.<key>.from 與 value，回傳完整 merged_fields；attachment 未提供該欄位時回 404。實作 Requirement: Switch merged field source endpoint。[Tool: copilot-codex]
+- [x] 1.13 修 `DELETE /api/listings/[id]/attachments`：刪除時 cascade 清 `extracted_data.by_attachment.<attId>` 並重新計算 `merged_fields`（從剩下 attachment 重新 pick 每個 fieldKey 的最佳來源）。實作 Requirement: Delete attachment cascades to extracted_data。[Tool: copilot-codex]
+- [x] 1.14 統一 error payload：所有本 change 的 new / modified endpoint 回 error 時 SHALL 遵循 `{ error, code, detail? }` 格式與 HTTP status code 表。加一個共用 helper `src/lib/api/errors.ts`。實作 Requirement: Standard error response contract。[Tool: copilot-codex]
 
 ## Phase 2: Layer 2 本地 OCR（2 週）
 
@@ -49,13 +49,13 @@
 
 ## Phase 4: 流程重排 + UI 徽章（與 Phase 1 並行，1 週）
 
-- [ ] 4.1 章節順序重排：`src/app/listings/[id]/fill/page.tsx` 把「照片/文件」移到第一個 tab，並且新建物件預設停留在該 tab。實作 Requirement: Upload as first step in listing creation flow。[Tool: copilot-codex]
-- [ ] 4.2 「跳過上傳，全部手動輸入」按鈕：upload tab 右上角，點擊後 navigate 到下一 tab（基本資料）。實作 Requirement: Upload allows skip to manual entry。[Tool: copilot-codex]
-- [ ] 4.3 FieldVisitForm 欄位徽章：render 欄位時讀 `extracted_data.merged_fields.<key>`，根據 provenance 顯示綠/黃/橘/紫徽章。實作 Requirement: Field provenance display；Requirement: Field visit form hydrates initial data from existing listing（OCR 來源部分）。[Tool: copilot-codex]
-- [ ] 4.4 SupplementaryForm 同上：補充資料章節的欄位也要支援自動帶入徽章。[Tool: copilot-codex]
-- [ ] 4.5 Conflict 切換 UI：欄位旁顯示「另有 N 份文件值為 X，切換」下拉（僅 conflict 時顯示）。實作 Requirement: Cross-file conflict resolution；Requirement: User edit wins on conflict（徽章變橘色與業務值持久化）。[Tool: copilot-codex]
-- [ ] 4.6 「OCR 解析中」進度指示：章節 header 加 spinner + 進度條，extract 完成後變 toast「資料已帶入，請檢查」。[Tool: copilot-codex]
-- [ ] 4.7 extract 非同步 polling：前端每 2 秒查一次 `extracted_data.by_attachment` 數量，直到所有上傳的 attachment 都有 entry。[Tool: copilot-codex]
+- [x] 4.1 章節順序重排：`src/app/listings/[id]/fill/page.tsx` 把「照片/文件」移到第一個 tab，並且新建物件預設停留在該 tab。實作 Requirement: Upload as first step in listing creation flow。[Tool: copilot-codex]
+- [x] 4.2 「跳過上傳，全部手動輸入」按鈕：upload tab 右上角，點擊後 navigate 到下一 tab（基本資料）。實作 Requirement: Upload allows skip to manual entry。[Tool: copilot-codex]
+- [x] 4.3 FieldVisitForm 欄位徽章：render 欄位時讀 `extracted_data.merged_fields.<key>`，根據 provenance 顯示綠/黃/橘/紫徽章。實作 Requirement: Field provenance display；Requirement: Field visit form hydrates initial data from existing listing（OCR 來源部分）。[Tool: copilot-codex]
+- [x] 4.4 SupplementaryForm 同上：補充資料章節的欄位也要支援自動帶入徽章。[Tool: copilot-codex]
+- [x] 4.5 Conflict 切換 UI：欄位旁顯示「另有 N 份文件值為 X，切換」下拉（僅 conflict 時顯示）。實作 Requirement: Cross-file conflict resolution；Requirement: User edit wins on conflict（徽章變橘色與業務值持久化）。[Tool: copilot-codex]
+- [x] 4.6 「OCR 解析中」進度指示：章節 header 加 spinner + 進度條，extract 完成後變 toast「資料已帶入，請檢查」。[Tool: copilot-codex]
+- [x] 4.7 extract 非同步 polling：前端每 2 秒查一次 `extracted_data.by_attachment` 數量，直到所有上傳的 attachment 都有 entry。[Tool: copilot-codex]
 
 ## Phase 5: 整合測試 + 驗收（1 週）
 
