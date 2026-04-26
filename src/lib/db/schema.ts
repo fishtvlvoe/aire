@@ -48,4 +48,11 @@ export function initDb(db: Database.Database): void {
       // column was added by a concurrent process; safe to ignore
     }
   }
+  if (!columns.includes('extracted_data')) {
+    try {
+      db.exec('ALTER TABLE listings ADD COLUMN extracted_data TEXT');
+    } catch {
+      // column was added by a concurrent process; safe to ignore
+    }
+  }
 }
