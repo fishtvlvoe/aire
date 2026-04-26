@@ -22,6 +22,7 @@ type Listing = {
   address: string;
   status: ListingStatus;
   field_visit_data?: string | null;
+  extracted_data?: string | null;
 };
 import { getPropertyType } from "@/lib/property-types";
 
@@ -184,6 +185,18 @@ export default function ListingFillPage() {
   }, [extractStatus, listingId]);
 
   const propertyType = listing?.property_type;
+
+  const mergedFields = useMemo(() => {
+    if (!listing?.extracted_data) return undefined;
+    try {
+      const parsed = typeof listing.extracted_data === 'string'
+        ? JSON.parse(listing.extracted_data)
+        : listing.extracted_data;
+      return parsed?.merged_fields ?? undefined;
+    } catch {
+      return undefined;
+    }
+  }, [listing?.extracted_data]);
 
   const propertyTypeLabel = useMemo(() => {
     if (!propertyType) {
@@ -456,6 +469,7 @@ export default function ListingFillPage() {
                   ref={formRef}
                   onNavigationStateChange={setNavState}
                   actionButtons={actionButtons}
+                  mergedFields={mergedFields}
                   extractProgress={
                     extractStatus !== "none"
                       ? { status: extractStatus, progress: extractProgress }
