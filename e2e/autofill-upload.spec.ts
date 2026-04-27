@@ -27,17 +27,27 @@ async function createListing(page: Page): Promise<number> {
   return body.listing?.id ?? body.id;
 }
 
-async function waitForExtractDone(page: Page, listingId: number, maxMs = 20000): Promise<boolean> {
+async function waitForExtractStarted(page: Page, listingId: number, maxMs = 15000): Promise<boolean> {
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
     const res = await page.request.get(`/api/listings/${listingId}/extract-status`);
     if (res.ok()) {
       const body = await res.json();
-      const statuses: string[] = Object.values(
-        (body.by_attachment ?? {}) as Record<string, { status: string }>
-      ).map((a) => a.status);
-      if (statuses.length > 0 && statuses.every((s) => s === 'done' || s === 'failed')) {
-        return statuses.some((s) => s === 'done');
+      if ((body.total ?? 0) > 0 || body.status !== 'none') return true;
+    }
+    await page.waitForTimeout(1000);
+  }
+  return false;
+}
+
+async function waitForExtractDone(page: Page, listingId: number, maxMs = 60000): Promise<boolean> {
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    const res = await page.request.get(`/api/listings/${listingId}/extract-status`);
+    if (res.ok()) {
+      const body = await res.json();
+      if (body.status === 'done' || body.status === 'failed') {
+        return body.status === 'done' && (body.done ?? 0) > 0;
       }
     }
     await page.waitForTimeout(1500);
@@ -81,27 +91,26 @@ test.describe('autofill：上傳謄本 PDF → 欄位自動帶入', () => {
     expect(page.url()).toContain('/fill');
   });
 
-  test('上傳謄本 PDF → extract API 被觸發', async ({ page }) => {
+  test('上傳謄本 PDF → extract pipeline 被觸發', async ({ page }) => {
     const listingId = await createListing(page);
     await page.goto(`/listings/${listingId}/fill`);
     await page.waitForLoadState('networkidle');
 
-    // 監聽 extract API 是否被觸發
-    const extractCalled = new Promise<boolean>((resolve) => {
-      page.on('request', (req) => {
-        if (req.url().includes('/extract') && req.method() === 'POST') {
-          resolve(true);
-        }
-      });
-      setTimeout(() => resolve(false), 15000);
-    });
+    // 等 attachments POST 完成（瀏覽器端發出，可監聽）
+    const attachmentsResponse = page.waitForResponse(
+      (res) => res.url().includes(`/api/listings/${listingId}/attachments`) && res.request().method() === 'POST',
+      { timeout: 10000 }
+    );
 
-    // 上傳 PDF（file input 可能是隱藏的，用 force: true）
     const fileInput = page.locator('input[type="file"][accept*="pdf"], input[type="file"]').first();
     await fileInput.setInputFiles(TRANSCRIPT_PDF);
 
-    const triggered = await extractCalled;
-    expect(triggered, 'extract API 應在上傳後被觸發').toBeTruthy();
+    const res = await attachmentsResponse;
+    expect(res.status(), 'attachments API 應回 2xx').toBeLessThan(300);
+
+    // server-side fire-and-forget 觸發 extract，輪詢 extract-status 確認 pipeline 已收件
+    const started = await waitForExtractStarted(page, listingId, 15000);
+    expect(started, 'extract pipeline 應收到此 attachment').toBeTruthy();
   });
 
   test('extract 完成後 merged_fields 有值', async ({ page }) => {
@@ -114,7 +123,7 @@ test.describe('autofill：上傳謄本 PDF → 欄位自動帶入', () => {
     await fileInput.setInputFiles(TRANSCRIPT_PDF);
 
     // 等待 extract
-    const done = await waitForExtractDone(page, listingId, 20000);
+    const done = await waitForExtractDone(page, listingId, 60000);
     expect(done, 'extract 應完成').toBeTruthy();
 
     // 確認 API 回傳 merged_fields

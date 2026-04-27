@@ -2,7 +2,7 @@
 
 ### Wave 1: API 層修復
 
-- [ ] 1.1 Expanded ALLOWED_TYPES for OCR document uploads — 實作 design 第 1 節「attachments API — 擴充 ALLOWED_TYPES」，加入 `transcript`、`title-deed`、`contract`、`cadastral-map` [Tool: copilot-codex]
+- [x] 1.1 Expanded ALLOWED_TYPES for OCR document uploads — 實作 design 第 1 節「attachments API — 擴充 ALLOWED_TYPES」，加入 `transcript`、`title-deed`、`contract`、`cadastral-map` [Tool: copilot-codex]
 
   **檔案**：`src/app/api/listings/[id]/attachments/route.ts`
 
@@ -26,7 +26,7 @@
 
 ### Wave 2: UI 層修復
 
-- [ ] 2.1 File category mapping for attachment type — 實作 design 第 2 節「PhotoUploadClassifier — 加 listingId + 上傳邏輯」，依 MIME 對應 transcript/market_research [Tool: copilot-codex]
+- [x] 2.1 File category mapping for attachment type — 實作 design 第 2 節「PhotoUploadClassifier — 加 listingId + 上傳邏輯」，依 MIME 對應 transcript/market_research [Tool: copilot-codex]
 
   **檔案**：`src/components/PhotoUploadClassifier.tsx`
 
@@ -47,7 +47,7 @@
 
   跑 `npm run build` 確認 0 errors。
 
-- [ ] 2.2 listingId propagation to upload component — 實作 design 第 3 節「FieldVisitForm — 傳入 listingId」 [Tool: copilot-codex]
+- [x] 2.2 listingId propagation to upload component — 實作 design 第 3 節「FieldVisitForm — 傳入 listingId」 [Tool: copilot-codex]
 
   **檔案**：`src/components/forms/FieldVisitForm.tsx`
 
@@ -59,7 +59,7 @@
 
 ### Wave 3: 驗收
 
-- [ ] 3.1 Photo and document tab uploads wire through to attachments API — 跑 Playwright E2E 確認 extract API 被觸發 [Tool: sonnet]
+- [x] 3.1 Photo and document tab uploads wire through to attachments API — 跑 Playwright E2E 確認 extract API 被觸發 [Tool: sonnet]
 
   執行：`npx playwright test e2e/autofill-upload.spec.ts --reporter=line`
 
