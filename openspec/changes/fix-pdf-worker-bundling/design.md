@@ -53,6 +53,12 @@ const nextConfig = {
 
 先試候選 1；若 dev mode 仍失敗，加候選 2 為保險。
 
+### 實際結果（2026-04-27）
+
+- 候選 1 單獨套用：dev mode 仍失敗，相同錯誤。Turbopack 對 server-side `import.meta.url + new URL(...)` 沒解析。
+- 候選 2 加上後：extract 成功 done，merged_fields=19 個欄位。
+- 候選 1 的 workerSrc 設定保留（不傷害且對 production webpack 有保險意義），但**真正解決 dev mode 的是候選 2**。
+
 ## Verification
 
 E2E：`npx playwright test e2e/autofill-upload.spec.ts:120` — 4/4 全綠。

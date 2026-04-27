@@ -7,8 +7,15 @@
 
 // pdfjs-dist v5 為 ESM，必須使用 legacy build 的 .mjs 入口
 // @ts-ignore — 型別宣告在 .d.mts，動態 import 時 TS 無法自動推斷
-import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { TextItem, TextMarkedContent } from 'pdfjs-dist/types/src/display/api'
+
+if (typeof window === 'undefined' && !GlobalWorkerOptions.workerSrc) {
+  GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
+    import.meta.url
+  ).toString()
+}
 
 export type TextLayerResult = {
   /** 合併後的完整文字 */
