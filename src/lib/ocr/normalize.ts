@@ -92,6 +92,22 @@ export function normalizeRightsRange(raw: string): string | null {
 }
 
 /**
+ * 持分字串 → 持分類型語意標籤
+ * "全部" 或 "1/1" → "單獨所有"；其他分數 → "持分共有"；無法識別 → null
+ */
+export function normalizeOwnershipScope(raw: string): string | null {
+  if (!raw) return null
+  const trimmed = raw.trim()
+
+  // "全部" 單獨出現（無分數）→ 單獨所有
+  if (/^全部$/.test(trimmed)) return '單獨所有'
+
+  const fraction = normalizeRightsRange(trimmed)
+  if (fraction === null) return null
+  return fraction === '1/1' ? '單獨所有' : '持分共有'
+}
+
+/**
  * 空值標準化：將各種形式的「空」轉為 null
  * 例：(空白) / [(空白)] / 空字串 → null；否則回傳原值
  */

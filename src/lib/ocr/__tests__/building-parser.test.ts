@@ -15,6 +15,7 @@ const sampleSections: Section[] = [
 主要建材：鋼筋混凝土造
 主要用途：住家用
 層數：14
+層次：3層
 建築完成日期：民國90年06月30日`,
   },
   {
@@ -91,6 +92,12 @@ describe('parseBuildingTranscript', () => {
       expect(fields['completion_date']).toBeDefined()
       expect(fields['completion_date'].value).toBe(90)
     })
+
+    it('floor_current.value === 3（層次：3層）', () => {
+      const fields = parseBuildingTranscript(sampleSections)
+      expect(fields['floor_current']).toBeDefined()
+      expect(fields['floor_current'].value).toBe(3)
+    })
   })
 
   describe('建物所有權部欄位（building_ prefix）', () => {
@@ -127,6 +134,12 @@ describe('parseBuildingTranscript', () => {
       const fields = parseBuildingTranscript(sampleSections)
       expect(fields['building_title_deed_number']).toBeDefined()
       expect(String(fields['building_title_deed_number'].value)).toContain('103南麻字')
+    })
+
+    it('ownership_scope.value === "單獨所有"（1分之1 全部所有）', () => {
+      const fields = parseBuildingTranscript(sampleSections)
+      expect(fields['ownership_scope']).toBeDefined()
+      expect(fields['ownership_scope'].value).toBe('單獨所有')
     })
   })
 
@@ -173,9 +186,11 @@ describe('parseBuildingTranscript', () => {
 
     it('建物欄位 key 帶有 building_ prefix（不與土地欄位衝突）', () => {
       const fields = parseBuildingTranscript(sampleSections)
-      // 確認所有所有權部欄位都有 building_ prefix
+      // ownership_scope 為兩份謄本共用欄位，不加 building_ prefix；其餘所有權部欄位應有 prefix
       const ownershipKeys = Object.keys(fields).filter(
-        (k) => k.includes('registration') || k.includes('owner') || k.includes('rights_range')
+        (k) =>
+          (k.includes('registration') || k.includes('owner') || k.includes('rights_range')) &&
+          k !== 'ownership_scope'
       )
       ownershipKeys.forEach((k) => {
         expect(k.startsWith('building_')).toBe(true)

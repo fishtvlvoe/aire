@@ -103,6 +103,12 @@ describe('parseLandTranscript', () => {
       expect(fields['rights_range'].confidence).toBe(0.95)
     })
 
+    it('ownership_scope.value === "持分共有"（10000分之91 → 非全部）', () => {
+      const fields = parseLandTranscript(sampleSections)
+      expect(fields['ownership_scope']).toBeDefined()
+      expect(fields['ownership_scope'].value).toBe('持分共有')
+    })
+
     it('owner_name.value === "顏＊＊"', () => {
       const fields = parseLandTranscript(sampleSections)
       expect(fields['owner_name']).toBeDefined()

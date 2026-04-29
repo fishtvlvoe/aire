@@ -16,6 +16,7 @@ import {
   normalizeArea,
   normalizePrice,
   normalizeRightsRange,
+  normalizeOwnershipScope,
   normalizeStories,
   parseLandParcel,
 } from '../normalize'
@@ -92,11 +93,18 @@ function parseBuildingDescriptionSection(
     fields['main_usage'] = { value: mainUsageRaw, confidence: 0.95 }
   }
 
-  // 層數
+  // 層數（總樓層）
   const storiesRaw = extractFirst(t, /層\s*數[：:]\s*(\d+)/)
   if (storiesRaw !== null) {
     const f = makeField(normalizeStories(storiesRaw), storiesRaw)
     if (f) fields['stories'] = f
+  }
+
+  // 層次（所在樓層）
+  const floorCurrentRaw = extractFirst(t, /層\s*次[：:]\s*(\d+)\s*層?/)
+  if (floorCurrentRaw !== null) {
+    const f = makeField(normalizeStories(floorCurrentRaw), floorCurrentRaw)
+    if (f) fields['floor_current'] = f
   }
 
   // 建築完成日期
@@ -164,6 +172,9 @@ function parseBuildingOwnershipSection(
   if (rightsRaw !== null) {
     const f = makeField(normalizeRightsRange(rightsRaw), rightsRaw)
     if (f) fields['building_rights_range'] = f
+
+    const scope = normalizeOwnershipScope(rightsRaw)
+    if (scope !== null) fields['ownership_scope'] = { value: scope, confidence: 0.95 }
   }
 
   // 原因發生日期

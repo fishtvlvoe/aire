@@ -50,14 +50,15 @@ function insertListing(db: Database.Database): number {
 // 測試資料：模擬 OCR 萃取結果
 // ─────────────────────────────────────────────
 
-/** 模擬 land-parser 產出的 OCR fields */
+/** 模擬 land-parser 產出的 OCR fields（ownership_scope 由 parser 直接產出）*/
 const MOCK_OCR_LAND_FIELDS: Record<string, ExtractedField> = {
-  usage_zone:         { value: '住宅區',      confidence: 0.92 },
-  land_area:          { value: '50.00',       confidence: 0.88 },
-  owner_name:         { value: '王小明',       confidence: 0.75 },
-  rights_range:       { value: '全部',         confidence: 0.85 }, // 同 form key ownership_scope，confidence 較高
-  title_deed_number:  { value: 'A001',         confidence: 0.90 },
-  registration_date:  { value: '2020-01-01',  confidence: 0.80 }, // 同 form key land_register_transcript，owner_name 勝出
+  usage_zone:       { value: '住宅區',      confidence: 0.92 },
+  land_area:        { value: '50.00',       confidence: 0.88 },
+  owner_name:       { value: '王小明',       confidence: 0.75 },
+  rights_range:     { value: '全部',         confidence: 0.85 },
+  ownership_scope:  { value: '單獨所有',     confidence: 0.95 }, // parser 直接產出
+  title_deed_number:  { value: 'A001',        confidence: 0.90 },
+  registration_date:  { value: '2020-01-01', confidence: 0.80 }, // 同 form key land_register_transcript
 }
 
 /** 模擬 building-parser 產出的 OCR fields */
@@ -262,17 +263,17 @@ describe('Test 2：OCR key → form key 映射', () => {
   })
 
   it('同 form key 多個 OCR key → 保留 confidence 最高者', () => {
-    // owner_name 和 rights_range 都映射到 ownership_scope
+    // title_deed_number 和 registration_date 都映射到 land_register_transcript
     const input: Record<string, ExtractedField> = {
-      owner_name:   { value: '王小明', confidence: 0.75 },
-      rights_range: { value: '全部',   confidence: 0.85 }, // 較高，應勝出
+      title_deed_number: { value: 'A001',        confidence: 0.80 },
+      registration_date: { value: '2020-01-01',  confidence: 0.95 }, // 較高，應勝出
     }
     const result = mapOcrFieldsToFormKeys(input)
 
-    expect(result).toHaveProperty('ownership_scope')
-    // confidence 0.85 > 0.75，應保留 rights_range 的值
-    expect(result.ownership_scope.value).toBe('全部')
-    expect(result.ownership_scope.confidence).toBe(0.85)
+    expect(result).toHaveProperty('land_register_transcript')
+    // confidence 0.95 > 0.80，應保留 registration_date 的值
+    expect(result.land_register_transcript.value).toBe('2020-01-01')
+    expect(result.land_register_transcript.confidence).toBe(0.95)
   })
 
   it('同 form key 多個 OCR key → 並列時第一個勝出（相同 confidence）', () => {
@@ -303,16 +304,18 @@ describe('Test 2：OCR key → form key 映射', () => {
 
     // usage_zone 應映射為 zoning
     expect(result).toHaveProperty('zoning')
-    // land_area 直接 pass-through（不在映射表，但 value 相同）
+    // land_area 直接 pass-through（不在映射表）
     expect(result).toHaveProperty('land_area')
-    // ownership_scope 應存在（owner_name 和 rights_range 合一，取較高者）
+    // ownership_scope 由 parser 直接產出，pass-through
     expect(result).toHaveProperty('ownership_scope')
-    expect(result.ownership_scope.confidence).toBe(0.85) // rights_range 的 0.85 > owner_name 的 0.75
+    expect(result.ownership_scope.value).toBe('單獨所有')
+    expect(result.ownership_scope.confidence).toBe(0.95)
 
-    // 原始 OCR key 不應出現
+    // usage_zone 原始 key 不應出現（已映射為 zoning）
     expect(result).not.toHaveProperty('usage_zone')
-    expect(result).not.toHaveProperty('owner_name')
-    expect(result).not.toHaveProperty('rights_range')
+    // owner_name 和 rights_range 現在 pass-through（不再映射到 ownership_scope）
+    expect(result).toHaveProperty('owner_name')
+    expect(result).toHaveProperty('rights_range')
   })
 })
 

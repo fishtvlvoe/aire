@@ -12,9 +12,7 @@ export const OCR_TO_FORM_KEY: Record<string, string> = {
   usage_type: 'land_purpose',
   announced_land_value: 'total_price',
 
-  // 所有權
-  owner_name: 'ownership_scope',
-  rights_range: 'ownership_scope',
+  // 所有權（ownership_scope 由 parser 直接產出，不需映射）
   title_deed_number: 'land_register_transcript',
   registration_date: 'land_register_transcript',
 
@@ -32,9 +30,7 @@ export const OCR_TO_FORM_KEY: Record<string, string> = {
   completion_date: 'year_built',
   main_usage: 'current_purpose',
 
-  // 建物所有權（加 building_ prefix 的）
-  building_owner_name: 'ownership_scope',
-  building_rights_range: 'ownership_scope',
+  // 建物所有權（ownership_scope 由 parser 直接產出，不需映射）
   building_title_deed_number: 'land_register_transcript',
   building_registration_date: 'land_register_transcript',
 

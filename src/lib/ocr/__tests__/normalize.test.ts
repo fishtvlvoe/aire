@@ -5,6 +5,7 @@ import {
   normalizeArea,
   normalizePrice,
   normalizeRightsRange,
+  normalizeOwnershipScope,
   normalizeEmpty,
   normalizeStories,
   parseLandParcel,
@@ -266,5 +267,43 @@ describe('parseLandParcel', () => {
 
   it('無段名也無地號格式 → null', () => {
     expect(parseLandParcel('無效文字')).toBeNull()
+  })
+})
+
+// ─────────────────────────────────────────────
+// normalizeOwnershipScope
+// ─────────────────────────────────────────────
+
+describe('normalizeOwnershipScope', () => {
+  it('"1分之1" → "單獨所有"', () => {
+    expect(normalizeOwnershipScope('1分之1')).toBe('單獨所有')
+  })
+
+  it('"全部 1分之1"（帶「全部」前綴）→ "單獨所有"', () => {
+    expect(normalizeOwnershipScope('全部 1分之1')).toBe('單獨所有')
+  })
+
+  it('"全部"（無分數）→ "單獨所有"', () => {
+    expect(normalizeOwnershipScope('全部')).toBe('單獨所有')
+  })
+
+  it('"2分之1" → "持分共有"', () => {
+    expect(normalizeOwnershipScope('2分之1')).toBe('持分共有')
+  })
+
+  it('"10000分之91" → "持分共有"', () => {
+    expect(normalizeOwnershipScope('10000分之91')).toBe('持分共有')
+  })
+
+  it('空字串 → null', () => {
+    expect(normalizeOwnershipScope('')).toBeNull()
+  })
+
+  it('null 輸入 → null', () => {
+    expect(normalizeOwnershipScope(null as unknown as string)).toBeNull()
+  })
+
+  it('純文字無分數也非「全部」→ null', () => {
+    expect(normalizeOwnershipScope('不詳')).toBeNull()
   })
 })

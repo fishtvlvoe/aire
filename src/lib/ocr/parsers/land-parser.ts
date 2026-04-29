@@ -12,6 +12,7 @@ import {
   normalizeArea,
   normalizePrice,
   normalizeRightsRange,
+  normalizeOwnershipScope,
   normalizeEmpty,
   parseLandParcel,
 } from '../normalize'
@@ -187,6 +188,9 @@ function parseLandOwnershipSection(
   if (rightsRaw !== null) {
     const f = makeField(normalizeRightsRange(rightsRaw), rightsRaw)
     if (f) fields['rights_range'] = f
+
+    const scope = normalizeOwnershipScope(rightsRaw)
+    if (scope !== null) fields['ownership_scope'] = { value: scope, confidence: 0.95 }
   }
 
   // 原因發生日期
