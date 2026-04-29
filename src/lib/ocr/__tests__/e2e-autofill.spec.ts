@@ -232,7 +232,7 @@ describe('Test 2：OCR key → form key 映射', () => {
     expect(OCR_TO_FORM_KEY['usage_zone']).toBe('zoning')
     expect(OCR_TO_FORM_KEY['building_address']).toBe('address')
     expect(OCR_TO_FORM_KEY['main_material']).toBe('structure')
-    expect(OCR_TO_FORM_KEY['stories']).toBe('floor_count')
+    expect(OCR_TO_FORM_KEY['stories']).toBe('floor_total')
     expect(OCR_TO_FORM_KEY['completion_date']).toBe('year_built')
     expect(OCR_TO_FORM_KEY['main_usage']).toBe('current_purpose')
     expect(OCR_TO_FORM_KEY['announced_land_value']).toBe('total_price')
@@ -447,7 +447,7 @@ describe('Test 4：Provenance 標記流程', () => {
     // 驗證特定欄位存在
     expect(mergedFields).toHaveProperty('address')
     expect(mergedFields).toHaveProperty('structure')
-    expect(mergedFields).toHaveProperty('floor_count')
+    expect(mergedFields).toHaveProperty('floor_total')
   })
 
   it('使用者修改後 provenance 變為 manual-edit', () => {
@@ -746,7 +746,7 @@ describe('Test 5：E2E 完整 golden path', () => {
     // 欄位帶有 provenance = 'ocr-pdf'（對應綠色徽章）
     expect(mergedFields['zoning'].provenance).toBe('ocr-pdf')
     expect(mergedFields['address'].provenance).toBe('ocr-pdf')
-    expect(mergedFields['floor_count'].provenance).toBe('ocr-pdf')
+    expect(mergedFields['floor_total'].provenance).toBe('ocr-pdf')
 
     // 來源檔名記錄正確（徽章顯示「已從 transcript.pdf」）
     expect(mergedFields['zoning'].from).toBe('transcript.pdf')

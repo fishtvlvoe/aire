@@ -12,6 +12,7 @@ import type { ExtractedField } from '../index'
 import type { Section } from '../section-splitter'
 import {
   normalizeDate,
+  normalizeRocYear,
   normalizeArea,
   normalizePrice,
   normalizeRightsRange,
@@ -104,7 +105,7 @@ function parseBuildingDescriptionSection(
     /建築完成日期[：:]\s*(民國\d{2,3}年\d{1,2}月\d{1,2}日)/
   )
   if (completionDateRaw !== null) {
-    const f = makeField(normalizeDate(completionDateRaw), completionDateRaw)
+    const f = makeField(normalizeRocYear(completionDateRaw), completionDateRaw)
     if (f) fields['completion_date'] = f
   }
 

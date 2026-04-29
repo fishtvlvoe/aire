@@ -86,10 +86,10 @@ describe('parseBuildingTranscript', () => {
       expect(fields['stories'].value).toBe(14)
     })
 
-    it('completion_date.value === "2001-06-30"（民國90年）', () => {
+    it('completion_date.value === 90（民國年整數，年份欄位直接帶入）', () => {
       const fields = parseBuildingTranscript(sampleSections)
       expect(fields['completion_date']).toBeDefined()
-      expect(fields['completion_date'].value).toBe('2001-06-30')
+      expect(fields['completion_date'].value).toBe(90)
     })
   })
 

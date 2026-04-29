@@ -28,7 +28,7 @@ export const OCR_TO_FORM_KEY: Record<string, string> = {
   building_address: 'address',
   building_area: 'building_area',
   main_material: 'structure',
-  stories: 'floor_count',
+  stories: 'floor_total',
   completion_date: 'year_built',
   main_usage: 'current_purpose',
 

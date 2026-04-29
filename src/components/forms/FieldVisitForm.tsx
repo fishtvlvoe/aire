@@ -411,7 +411,10 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
         : "";
 
       // Task 4.3: 取得此欄位的 provenance 資料，用於渲染來源徽章
-      const fieldProvenance = mergedFields?.[field.key];
+      // floor_count 是複合欄位，實際資料存在 floor_total / floor_current
+      const fieldProvenance = field.key === 'floor_count'
+        ? (mergedFields?.floor_total ?? mergedFields?.floor_current)
+        : mergedFields?.[field.key];
       const provenanceBadge = fieldProvenance ? (
         <ProvenanceBadge
           provenance={fieldProvenance.provenance}

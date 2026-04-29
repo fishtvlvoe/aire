@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   normalizeDate,
+  normalizeRocYear,
   normalizeArea,
   normalizePrice,
   normalizeRightsRange,
@@ -40,6 +41,32 @@ describe('normalizeDate', () => {
 
   it('含雜訊前後文字仍能解析', () => {
     expect(normalizeDate('登記日期：民國105年03月01日 其他文字')).toBe('2016-03-01')
+  })
+})
+
+// ─────────────────────────────────────────────
+// normalizeRocYear
+// ─────────────────────────────────────────────
+
+describe('normalizeRocYear', () => {
+  it('民國79年06月15日 → 79', () => {
+    expect(normalizeRocYear('民國79年06月15日')).toBe(79)
+  })
+
+  it('民國90年6月（無日）→ 90', () => {
+    expect(normalizeRocYear('民國90年6月')).toBe(90)
+  })
+
+  it('113年（省略前綴）→ 113', () => {
+    expect(normalizeRocYear('113年')).toBe(113)
+  })
+
+  it('空字串 → null', () => {
+    expect(normalizeRocYear('')).toBeNull()
+  })
+
+  it('無年份 → null', () => {
+    expect(normalizeRocYear('2026-04-02')).toBeNull()
   })
 })
 

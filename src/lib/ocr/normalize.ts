@@ -30,6 +30,17 @@ export function normalizeDate(raw: string): string | null {
 }
 
 /**
+ * 民國年份字串 → 民國整數年份
+ * 例：民國79年06月15日 → 79；民國90年6月 → 90
+ */
+export function normalizeRocYear(raw: string): number | null {
+  if (!raw) return null
+  const match = raw.match(/(?:民國)?(\d{2,3})\s*年/)
+  if (!match) return null
+  return parseInt(match[1], 10)
+}
+
+/**
  * 面積字串轉數字（平方公尺）
  * 例：1,223.00 平方公尺 → 1223.00
  */
