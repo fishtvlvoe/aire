@@ -236,7 +236,7 @@ describe('Test 2：OCR key → form key 映射', () => {
     expect(OCR_TO_FORM_KEY['stories']).toBe('floor_total')
     expect(OCR_TO_FORM_KEY['completion_date']).toBe('year_built')
     expect(OCR_TO_FORM_KEY['main_usage']).toBe('current_purpose')
-    expect(OCR_TO_FORM_KEY['announced_land_value']).toBe('total_price')
+    expect(OCR_TO_FORM_KEY['announced_land_value']).toBeUndefined() // 公告地價不等於委託總價，不做映射
   })
 
   it('mapOcrFieldsToFormKeys：基本映射（usage_zone → zoning）', () => {

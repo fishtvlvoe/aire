@@ -10,7 +10,6 @@ export const OCR_TO_FORM_KEY: Record<string, string> = {
   land_area: 'land_area',
   usage_zone: 'zoning',
   usage_type: 'land_purpose',
-  announced_land_value: 'total_price',
 
   // 所有權（ownership_scope 由 parser 直接產出，不需映射）
   title_deed_number: 'land_register_transcript',
