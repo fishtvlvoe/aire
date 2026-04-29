@@ -54,7 +54,7 @@ describe('DELETE /api/listings/[id]', () => {
     const response = await DELETE(request, { params: Promise.resolve({ id: '999' }) });
 
     expect(response.status).toBe(404);
-    expect(response.data.error).toBe('not found');
+    expect(response.data.error).toBe('listing not found');
   });
 
   it('無效 id 字串回 400 + error:invalid id', async () => {
