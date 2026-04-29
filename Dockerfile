@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
   rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm ci
+# 跳過 postinstall 的 Chrome 下載：Docker runner 用系統 chromium
+RUN PUPPETEER_SKIP_DOWNLOAD=true npm ci
 
 # -------------------------------------------------------------------
 FROM node:22-slim AS builder

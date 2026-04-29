@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "cleanup:drafts": "tsx scripts/cleanup-empty-drafts.ts"
+    "cleanup:drafts": "tsx scripts/cleanup-empty-drafts.ts",
+    "postinstall": "node -e \"if(!process.env.PUPPETEER_SKIP_DOWNLOAD&&!process.env.PUPPETEER_EXECUTABLE_PATH){require('child_process').execSync('npx puppeteer browsers install chrome',{stdio:'inherit'})}else{console.log('skip: puppeteer chrome install')}\""
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",
