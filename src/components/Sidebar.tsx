@@ -88,7 +88,7 @@ export default function Sidebar() {
   return (
     <aside className="flex min-h-screen w-64 flex-col bg-[#1B3A6B] px-6 py-8 text-white shadow-lg font-['Manrope']">
       <div className="mb-10 border-b border-white/20 pb-6">
-        <p className="text-lg font-bold leading-snug">建安不動產 AI 系統</p>
+        <p className="text-lg font-bold leading-snug">不動產 AI 系統</p>
       </div>
 
       <nav className="flex flex-col gap-2">

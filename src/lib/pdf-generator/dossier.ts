@@ -32,6 +32,7 @@ function buildFullHtml(
   result = result.replace('{{LOGO_PATH}}', logoPath || '');
 
   // Replace date and metadata placeholders
+  result = result.replace('{{COMPANY_NAME}}', process.env.COMPANY_NAME ?? '不動產仲介');
   result = result.replace('{{GENERATED_DATE}}', today);
   result = result.replace('{{PROPERTY_NAME}}', '');
   result = result.replace('{{CASE_ID}}', '');
@@ -68,7 +69,7 @@ export async function generateDossierPDF(
   const fullHtml = buildFullHtml(contentHtml, logoPath, css, templateHtml, today);
 
   const headerTemplate = `<div style="font-size:10px;width:100%;padding:0 12mm;display:flex;justify-content:space-between;align-items:center;color:#555;">
-    <span>建安不動產</span>
+    <span>${process.env.COMPANY_NAME || '不動產仲介'}</span>
     <span>不動產說明書</span>
     <span><span class="pageNumber"></span>/<span class="totalPages"></span></span>
   </div>`;

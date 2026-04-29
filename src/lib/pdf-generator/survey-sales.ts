@@ -59,6 +59,7 @@ function buildFullHtml(
   const today = formatDate(new Date());
   const replacements: Record<string, string> = {
     '{{LOGO_PATH}}': process.env.DOSSIER_LOGO_PATH ?? '',
+    '{{COMPANY_NAME}}': process.env.COMPANY_NAME ?? '不動產仲介',
     '{{GENERATED_DATE}}': today,
     '{{PROPERTY_NAME}}': input.propertyName ?? '物件名稱',
     '{{PROPERTY_ADDRESS}}': input.propertyAddress ?? '',
