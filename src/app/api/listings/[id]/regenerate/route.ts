@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getListing, updateDocuments } from '@/lib/db';
-import type { DocumentGeneratorInput } from '@/lib/document-generator/types';
+import { buildDocumentInput } from '@/lib/document-generator/build-input';
 import { generateSurvey } from '@/lib/document-generator/md/survey';
 import { generateListing591 } from '@/lib/document-generator/md/listing591';
 import { generateDm } from '@/lib/document-generator/md/dm';
@@ -51,29 +51,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Listing status must be documents-ready' }, { status: 422 });
   }
 
-  const allAttachments = listing.attachments
-    ? (() => {
-        try {
-          const parsed = JSON.parse(listing.attachments as string) as unknown;
-          return Array.isArray(parsed) ? (parsed as Array<{ type: string; path: string }>) : [];
-        } catch {
-          return [];
-        }
-      })()
-    : [];
-  const marketResearchAttachments = allAttachments
-    .filter((a) => a?.type === 'market_research' && typeof a.path === 'string')
-    .map((a) => a.path);
-
-  const input: DocumentGeneratorInput = {
-    property_type: listing.property_type,
-    field_visit_data: listing.field_visit_data ? JSON.parse(listing.field_visit_data as string) : {},
-    supplementary_data: listing.supplementary_data ? JSON.parse(listing.supplementary_data as string) : {},
-    market_research: {
-      summary: listing.market_summary ?? null,
-      attachments: marketResearchAttachments,
-    },
-  };
+  const input = buildDocumentInput(listing);
 
   let newContent: string;
   try {

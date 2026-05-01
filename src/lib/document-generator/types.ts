@@ -20,6 +20,24 @@ export interface DocumentGeneratorInput {
     summary: string | null;
     attachments: string[];
   };
+  /**
+   * OCR 從謄本 PDF 解析出的原始欄位，如 announced_land_value（公告現值）、
+   * rights_range（持分比）、land_section（地段）等。
+   */
+  extracted_data?: Record<string, unknown>;
+  /**
+   * 後端 API 計算的衍生值，如 area_ping（坪數，building_area × 0.3025）、
+   * building_age（屋齡）、report_date（製表日）等。
+   */
+  system_computed?: Record<string, unknown>;
+  /**
+   * 委前資料，含業主姓名、電話、委託價、地址等。
+   */
+  pre_commission_data?: Record<string, unknown>;
+  /**
+   * 外部行情、周遭設施等附加資料。
+   */
+  external_data?: Record<string, unknown>;
 }
 
 export interface DocumentGenerator {

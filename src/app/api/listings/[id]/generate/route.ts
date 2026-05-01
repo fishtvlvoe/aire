@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getListing, updateDocuments } from '@/lib/db';
 import { createDefaultGenerator } from '@/lib/document-generator';
-import type { DocumentGeneratorInput, GeneratedDocuments } from '@/lib/document-generator/types';
+import { buildDocumentInput } from '@/lib/document-generator/build-input';
+import type { GeneratedDocuments } from '@/lib/document-generator/types';
 
 const statusMessages: Record<string, string> = {
   draft: '請先完成現場勘查資料（業務填寫），再回到產出頁',
@@ -44,48 +45,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   }
 
   try {
-    // 1. 解析 field_visit_data 和 supplementary_data（確保為 object）
-    let field_visit_data: Record<string, unknown> = {};
-    let supplementary_data: Record<string, unknown> = {};
-
-    try {
-      field_visit_data = listing.field_visit_data ? (JSON.parse(listing.field_visit_data) as Record<string, unknown>) : {};
-    } catch {
-      field_visit_data = {};
-    }
-
-    try {
-      supplementary_data = listing.supplementary_data
-        ? (JSON.parse(listing.supplementary_data) as Record<string, unknown>)
-        : {};
-    } catch {
-      supplementary_data = {};
-    }
-
-    // 2. 組成 DocumentGeneratorInput（含 external-market-lookup 的人工填寫資料）
-    const allAttachments = (() => {
-      if (!listing.attachments) return [];
-      try {
-        const parsed = JSON.parse(listing.attachments) as unknown;
-        return Array.isArray(parsed) ? (parsed as Array<{ type?: string; path?: string }>) : [];
-      } catch {
-        return [];
-      }
-    })();
-    const marketResearchAttachments = allAttachments
-      .filter((a) => a?.type === 'market_research' && typeof a.path === 'string')
-      .map((a) => a.path as string);
-
-    const input: DocumentGeneratorInput = {
-      property_type: listing.property_type,
-      field_visit_data,
-      supplementary_data,
-      market_research: {
-        summary: listing.market_summary ?? null,
-        attachments: marketResearchAttachments,
-      },
-    };
-
+    const input = buildDocumentInput(listing);
     const generator = createDefaultGenerator();
 
     // 若有指定 documentType，只產出該文件
@@ -130,4 +90,3 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'generation-failed', provider, message }, { status: 422 });
   }
 }
-

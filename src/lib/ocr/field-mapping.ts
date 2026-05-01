@@ -3,6 +3,10 @@
  *
  * parser 產出的 key（左）對應到表單 schema 的 key（右）。
  * 直接相同的 key 不需列在這裡（如 building_area → building_area）。
+ *
+ * 【映射規則說明】
+ * - 「映射到真實 form key」：會寫入 field_visit_data，供前端表單使用
+ * - 「映射到 __extracted_only__」：只存在 extracted_data，不寫入表單，供文件生成器使用
  */
 export const OCR_TO_FORM_KEY: Record<string, string> = {
   // 土地
@@ -10,6 +14,11 @@ export const OCR_TO_FORM_KEY: Record<string, string> = {
   land_area: 'land_area',
   usage_zone: 'zoning',
   usage_type: 'land_purpose',
+
+  // 謄本解析欄位（部分僅供 extracted_data 使用，不進入表單）
+  announced_land_value: '__extracted_only__',
+  rights_range: '__extracted_only__',
+  land_section: 'land_section',
 
   // 所有權（ownership_scope 由 parser 直接產出，不需映射）
   title_deed_number: 'land_register_transcript',
@@ -25,7 +34,7 @@ export const OCR_TO_FORM_KEY: Record<string, string> = {
   building_address: 'address',
   building_area: 'building_area',
   main_material: 'structure',
-  stories: 'floor_total',
+  stories: 'floor_count',
   completion_date: 'year_built',
   main_usage: 'current_purpose',
 
@@ -49,7 +58,13 @@ export function mapOcrFieldsToFormKeys<T extends { confidence: number }>(
   const result: Record<string, T> = {}
 
   for (const [ocrKey, field] of Object.entries(ocrFields)) {
-    const formKey = OCR_TO_FORM_KEY[ocrKey] ?? ocrKey
+    let formKey = OCR_TO_FORM_KEY[ocrKey] ?? ocrKey
+
+    // 映射到 __extracted_only__ 表示該欄位無對應表單欄位，保留原始 OCR key
+    if (formKey === '__extracted_only__') {
+      formKey = ocrKey
+    }
+
     const existing = result[formKey]
 
     if (!existing || field.confidence > existing.confidence) {

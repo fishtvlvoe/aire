@@ -9,6 +9,7 @@ import type { DocumentGeneratorInput } from '../types';
 
 export async function generateBuildingDossier(
   input: DocumentGeneratorInput & {
+    extracted_data?: Record<string, unknown>;
     system_computed?: Record<string, unknown>;
     pre_commission_data?: Record<string, unknown>;
     external_data?: Record<string, unknown>;
@@ -16,6 +17,7 @@ export async function generateBuildingDossier(
 ): Promise<string> {
   const fieldVisit = JSON.stringify(input.field_visit_data, null, 2);
   const supplementary = JSON.stringify(input.supplementary_data, null, 2);
+  const extractedData = JSON.stringify(input.extracted_data ?? {}, null, 2);
   const systemComputed = JSON.stringify(input.system_computed ?? {}, null, 2);
   const preCommission = JSON.stringify(input.pre_commission_data ?? {}, null, 2);
   const externalData = JSON.stringify(input.external_data ?? {}, null, 2);
@@ -49,6 +51,14 @@ ${fieldVisit}
 \`\`\`json
 ${supplementary}
 \`\`\`
+
+## 謄本 OCR 解析資料（extracted_data，來自 PDF 自動辨識，請優先採用但標注來源）
+\`\`\`json
+${extractedData}
+\`\`\`
+- 此區塊的資料來自 OCR 自動辨識，可能有辨識誤差。
+- 若此區塊有值而 supplementary_data 對應欄位為空，請採用此值，並在欄位後標注「（OCR讀取，請確認）」。
+- 優先順序：supplementary_data > extracted_data > field_visit_data。
 
 ## 系統計算結果（system_computed，稅費/日期/頁數由系統提供）
 \`\`\`json
@@ -119,7 +129,7 @@ ${marketResearch}
 ---
 
 #### 章節 6：產權調查表（土地標示，建物附屬土地）
-本章為固定欄位，請填入以下資料（取自 supplementary_data，缺則待補）。若有多筆地號，逐筆列出：
+本章為固定欄位，請填入以下資料（取自 supplementary_data；若 supplementary_data 無值，改取 extracted_data，並標注（OCR讀取，請確認）；兩者皆無則待補）。若有多筆地號，逐筆列出：
 - 地段/地號：{{待補}}
 - 土地面積：{{待補}}
 - 使用分區/用地別：{{待補}}
