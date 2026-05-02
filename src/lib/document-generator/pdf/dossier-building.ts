@@ -116,26 +116,42 @@ ${marketResearch}
 ---
 
 #### 章節 5：產權調查表（建物標示）
-本章為固定欄位，請填入以下資料（取自 supplementary_data，缺則待補）：
-- 建號：{{待補}}
-- 法定用途：{{待補}}
-- 建築完成日：{{待補}}
-- 樓層/總樓層：{{待補}}
-- 主建物坪數：{{待補}}
-- 附屬建物坪數：{{待補}}
-- 公設坪數：{{待補}}
+
+本章為固定欄位，請依照以下優先順序填入資料：
+1. 優先使用 supplementary_data 中對應欄位的值
+2. supplementary_data 無值時，使用 extracted_data 中指定的 key（並在括弧中標注「OCR讀取，請確認」）
+3. 兩者皆無則填 {{待補}}
+
+欄位對應表：
+- 建號：supplementary_data.building_number → 否則取 extracted_data.building_number（OCR讀取，請確認）→ 否則{{待補}}
+- 法定用途：supplementary_data.legal_use → 否則解析 extracted_data.current_purpose 中包含的用途字串（如「住家用」）（OCR讀取，請確認）→ 否則{{待補}}
+- 主要建材：supplementary_data.structure → 否則解析 extracted_data.structure 中包含的建材字串（如「鋼筋混凝土造」）（OCR讀取，請確認）→ 否則{{待補}}
+- 總樓層：supplementary_data.floor_count → 否則取 extracted_data.floor_count（OCR讀取，請確認）→ 否則{{待補}}
+- 主建物坪數：supplementary_data.building_area → 否則取 extracted_data.building_area（單位為㎡，換算坪數請乘以0.3025）（OCR讀取，請確認）→ 否則{{待補}}
+- 建築完成日：supplementary_data.completion_date → 否則取 extracted_data.year_built（OCR讀取，請確認）→ 否則{{待補}}
+- 門牌地址：supplementary_data.address → 否則取 extracted_data.address（OCR讀取，請確認）→ 否則{{待補}}
+- 附屬建物坪數：supplementary_data.accessory_area → 否則{{待補}}
+- 公設坪數：supplementary_data.common_area → 否則{{待補}}
 - 備註：以最新謄本為準。
 
 ---
 
 #### 章節 6：產權調查表（土地標示，建物附屬土地）
-本章為固定欄位，請填入以下資料（取自 supplementary_data；若 supplementary_data 無值，改取 extracted_data，並標注（OCR讀取，請確認）；兩者皆無則待補）。若有多筆地號，逐筆列出：
-- 地段/地號：{{待補}}
-- 土地面積：{{待補}}
-- 使用分區/用地別：{{待補}}
-- 持分比例：{{待補}}
-- 公告現值：{{待補}}
-- 公告地價：{{待補}}
+
+本章為固定欄位，請依照以下優先順序填入資料：
+1. 優先使用 supplementary_data 中對應欄位的值
+2. supplementary_data 無值時，使用 extracted_data 中指定的 key（並在括弧中標注「OCR讀取，請確認」）
+3. 兩者皆無則填 {{待補}}
+
+若有多筆地號，逐筆列出。
+
+欄位對應表：
+- 地段/地號：supplementary_data.land_number → 否則取 extracted_data.land_number（OCR讀取，請確認）→ 否則{{待補}}
+- 土地面積：supplementary_data.land_area → 否則取 extracted_data.land_area（單位為㎡）（OCR讀取，請確認）→ 否則{{待補}}
+- 使用分區/用地別：supplementary_data.zoning → 否則{{待補}}
+- 持分比例：supplementary_data.rights_range → 否則取 extracted_data.rights_range（OCR讀取，請確認）→ 否則{{待補}}
+- 公告現值：supplementary_data.announced_land_value → 否則{{待補}}
+- 公告地價：supplementary_data.announced_land_price → 否則取 extracted_data.announced_land_value（OCR讀取，請確認）→ 否則{{待補}}
 
 ---
 
