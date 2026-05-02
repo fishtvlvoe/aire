@@ -74,11 +74,22 @@ function classifyGeminiError(stderr: string): CodexStatus {
 
 export const geminiAdapter: LlmAdapter = {
   async run(prompt, timeoutMs) {
-    const escaped = prompt.replace(/"/g, '\\"');
-    const command = `gemini -p "${escaped}"`;
+    let tmpFile: string | undefined;
 
     try {
-      const { stdout, stderr } = await execAsync(command, { timeout: timeoutMs });
+      tmpFile = path.join(
+        os.tmpdir(),
+        `prompt-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`,
+      );
+      await fs.writeFile(tmpFile, prompt, "utf8");
+
+      const { stdout, stderr } = await execPromptFromFileViaStdin(
+        "gemini",
+        ["-p", "-"],
+        tmpFile,
+        timeoutMs,
+      );
+
       if (stderr && !stdout) {
         const status = classifyGeminiError(stderr);
         return { success: false, error: stderr.trim(), status };
@@ -89,6 +100,10 @@ export const geminiAdapter: LlmAdapter = {
       const stderr = error.stderr ?? error.message ?? "";
       const status = classifyGeminiError(stderr);
       return { success: false, error: stderr.trim() || error.message, status };
+    } finally {
+      try {
+        if (tmpFile) await fs.unlink(tmpFile);
+      } catch {}
     }
   },
 
