@@ -30,17 +30,45 @@ const adapters: Record<LlmBackend, LlmAdapter> = {
 };
 
 const activeBackend = resolveBackend(process.env.LLM_BACKEND);
-const activeAdapter = adapters[activeBackend];
+
+function buildFallbackChain(preferred: LlmBackend): LlmBackend[] {
+  const base: LlmBackend[] = ["gemini", "codex", "claude-code", "ollama"];
+  return [preferred, ...base.filter((b) => b !== preferred)];
+}
 
 export async function checkCodexStatus(): Promise<CodexStatus> {
-  return activeAdapter.check();
+  return adapters[activeBackend].check();
 }
 
 export async function runCodex(
   prompt: string,
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<CodexResult> {
-  return activeAdapter.run(prompt, timeoutMs);
+  const chain = buildFallbackChain(activeBackend);
+
+  for (const backend of chain) {
+    const adapter = adapters[backend];
+
+    const checkStatus = await adapter.check();
+    if (checkStatus !== "ready") {
+      continue;
+    }
+
+    const result = await adapter.run(prompt, timeoutMs);
+
+    if (result.status === "quota-exceeded") {
+      continue;
+    }
+
+    return { ...result, usedBackend: backend };
+  }
+
+  return {
+    success: false,
+    error: "All LLM backends failed",
+    status: "error",
+    usedBackend: null,
+  };
 }
 
 export async function runVision(
@@ -48,14 +76,15 @@ export async function runVision(
   prompt: string,
   timeoutMs = DEFAULT_TIMEOUT_MS
 ): Promise<CodexResult> {
-  if (!activeAdapter.runVision) {
+  const adapter = adapters[activeBackend];
+  if (!adapter.runVision) {
     return {
       success: false,
       error: `Vision not supported by ${activeBackend} backend`,
       status: "error",
     };
   }
-  return activeAdapter.runVision(imagePath, prompt, timeoutMs);
+  return adapter.runVision(imagePath, prompt, timeoutMs);
 }
 
 export type { CodexResult, CodexStatus, LlmAdapter };

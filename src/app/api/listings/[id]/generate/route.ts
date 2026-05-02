@@ -62,7 +62,12 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       docs[documentType] = singleResult;
 
       await updateDocuments(numId, docs);
-      return NextResponse.json({ ok: true, documentType, document: singleResult });
+      return NextResponse.json({
+        ok: true,
+        documentType,
+        document: singleResult,
+        usedBackend: (singleResult as unknown as Record<string, unknown>)?.usedBackend ?? null,
+      });
     }
 
     // 否則維持原有全量產出

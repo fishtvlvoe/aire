@@ -9,6 +9,7 @@ export interface CodexResult {
   output?: string;
   error?: string;
   status: CodexStatus;
+  usedBackend?: string | null;
 }
 
 export interface LlmAdapter {
