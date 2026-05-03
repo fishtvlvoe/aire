@@ -44,12 +44,9 @@ export function buildFullHtml(
   // 從 input 取得封面 header 欄位值
   const supplementary = (input?.supplementary_data ?? {}) as Record<string, unknown>;
   const fieldVisit = (input?.field_visit_data ?? {}) as Record<string, unknown>;
-  const extracted = (input?.extracted_data ?? {}) as Record<string, unknown>;
 
   const propertyName = String(supplementary.property_name ?? '');
   const caseNumber = String(supplementary.case_number ?? '');
-  const address =
-    String(fieldVisit.address ?? extracted.address ?? '');
 
   // 公司名稱：supplementary_data.company_name 有值則用，否則留 pdf-blank span
   const companyNameRaw = supplementary.company_name;
@@ -64,7 +61,6 @@ export function buildFullHtml(
 
   result = result.replaceAll('{{PROPERTY_NAME}}', propertyName || `<span data-field-id="header-property-name" class="pdf-blank">______</span>`);
   result = result.replace('{{CASE_ID}}', caseNumber || `<span data-field-id="header-case-number" class="pdf-blank">______</span>`);
-  result = result.replace('{{PROPERTY_ADDRESS}}', address || `<span data-field-id="header-address" class="pdf-blank">______</span>`);
   result = result.replace('{{COMPANY_NAME_DISPLAY}}', companyNameDisplay || '不動產仲介');
   result = result.replace('{{COMPANY_NAME_CELL}}', companyNameCell);
 
