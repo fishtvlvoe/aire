@@ -68,6 +68,12 @@ export function buildFullHtml(
   result = result.replace('{{COMPANY_NAME_DISPLAY}}', companyNameDisplay || '不動產仲介');
   result = result.replace('{{COMPANY_NAME_CELL}}', companyNameCell);
 
+  const agentNameRaw = supplementary.agent_name ?? fieldVisit.agent_name;
+  const agentName = agentNameRaw && String(agentNameRaw).trim()
+    ? String(agentNameRaw).trim()
+    : '______';
+  result = result.replace('{{AGENT_NAME}}', agentName);
+
   // Insert main content
   result = result.replace('{{CONTENT}}', contentHtml);
 
