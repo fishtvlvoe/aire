@@ -33,6 +33,7 @@ export async function generateBuildingDossier(
 4. 只能引用輸入資料中已有的內容，不得杜撰。
 5. 繁體中文輸出。
 6. 章節格式固定為：\`#### 章節 X：標題\`，每章標題必須完全一致（供系統解析）。
+7. 請勿使用任何稱呼或問候語，直接從章節 1 開始輸出內容。
 
 ## 物件類型
 ${propertyType}

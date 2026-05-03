@@ -43,7 +43,7 @@ CREATE INDEX idx_licenses_serial_key ON licenses(serial_key);
 
 ### 用戶登入：Auth.js Credentials Provider + 雙 Token
 
-使用 Auth.js 4.x（`next-auth`）Credentials Provider，密碼以 `bcryptjs`（cost=12）hash 後存入 SQLite `users` 表。Session 策略選 `jwt`（無 DB Session），並另外實作 Refresh Token 白名單（SQLite `refresh_tokens` 表），在 `/api/auth/refresh` 輪轉。
+使用 Auth.js 4.x（`next-auth`）Credentials Provider，密碼以 `bcryptjs`（cost=12）hash 後存入 SQLite `users` 表。Auth.js 內建 Session 策略選 `jwt`（不額外使用 Auth.js 的 DB Session 表），但應用層另外實作 Refresh Token 白名單（SQLite `refresh_tokens` 表），在 `/api/auth/refresh` 輪轉。
 
 **Alternatives Considered:**
 - Redis Session：可實現即時踢人，但增加基礎設施維護成本（客戶需自架 Redis）
@@ -108,20 +108,15 @@ CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 **部署步驟（客戶新裝）：**
 1. 設定環境變數：`COMPANY_NAME`, `NEXTAUTH_SECRET`（128-bit random），`NEXTAUTH_URL`，`LICENSE_PUBLIC_KEY`（Ed25519 公鑰 hex），`CHROMIUM_MODE=local`（本機）或 `serverless`（Vercel）
 2. 執行 `npm install`（安裝 puppeteer-core、@sparticuz/chromium、next-auth、bcryptjs）
-3. 執行 `npm run db:migrate`（建立 licenses / users / refresh_tokens 表）
+3. 啟動應用，`src/lib/db/index.ts` 會在初次連線時自動執行 migration 建立 licenses / users / refresh_tokens 表
 4. 執行 `node scripts/create-admin.ts`（建立初始管理員帳號）
 5. 啟動應用後前往 `/setup/license` 輸入序號完成啟用
 
 **升級舊版本（已有資料）：**
 1. 備份 `*.db` 資料庫檔案
-2. 執行 migration script 新增 3 個新資料表（不刪除現有資料）
+2. 啟動新版本應用，`initDb()` 自動偵測並新增 3 個新資料表（不刪除現有資料）
 3. 驗證：`curl /api/health` 回傳 200
 
 **回滾策略：**
 - 若新版本啟動失敗，回退 `package.json` lock 版本，還原 DB 備份
 - `licenses` / `users` / `refresh_tokens` 均為新增資料表，回滾時只需 `DROP TABLE`，不影響現有房源資料
-
-## Open Questions
-
-- `@sparticuz/chromium` Serverless 模式首次冷啟動需約 3-5 秒下載 Chromium，是否可接受？或需預熱機制？
-- 初始管理員帳號建立方式：`scripts/create-admin.ts` CLI script，還是首次訪問 `/setup` 時引導建立？

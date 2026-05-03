@@ -1,0 +1,47 @@
+## ADDED Requirements
+
+### Requirement: agent-identity-fields
+
+The supplementary form SHALL include company_name, property_name, case_number, agent_name, and agent_phone fields.
+
+#### Scenario: fill agent identity fields
+
+- **WHEN** the user fills in company_name, property_name, case_number, agent_name, agent_phone in the supplementary form and saves
+- **THEN** these values are persisted in supplementary_data JSON and appear in the generated disclosure PDF header table
+
+##### Example: header population
+
+| Field | Input | PDF Header Cell |
+|-------|-------|-----------------|
+| company_name | "建安不動產" | renders in PDF header replacing {{COMPANY_NAME}} |
+| property_name | "台南網寮電梯大樓" | fills 物件名稱 cell |
+| case_number | "TN-2026-001" | fills 案件編號 cell |
+| agent_name | "王小明" | fills 承辦人 field in Chapter 1 |
+| agent_phone | "0912-345-678" | appended after agent_name as "王小明/0912-345-678" |
+
+### Requirement: transaction-fields
+
+The supplementary form SHALL include sale_price, transaction_type, deed_fee_split, and other_terms fields for Chapter 4 (成交條件).
+
+#### Scenario: fill transaction terms
+
+- **WHEN** the user enters transaction_type = "一般買賣", deed_fee_split = "雙方各半", other_terms = "無" and saves
+- **THEN** Chapter 4 of the generated PDF shows these values instead of {{待補}}
+
+### Requirement: building-supplement-fields
+
+The supplementary form SHALL include ancillary_building_area, common_area_ping, land_use_zone, and announced_land_value fields for Chapters 5–6.
+
+#### Scenario: fill building supplement
+
+- **WHEN** the user enters ancillary_building_area = "3.12", common_area_ping = "8.45", land_use_zone = "住宅區", announced_land_value = "85000" and saves
+- **THEN** Chapter 5 附屬建物坪數 = "3.12"、公設坪數 = "8.45" and Chapter 6 使用分區 = "住宅區"、公告現值 = "85000" appear in generated PDF
+
+### Requirement: surrounding-facility-fields
+
+The supplementary form SHALL include school_distance, park_distance, transport_description, and shopping_description for Chapter 14 (周遭機能).
+
+#### Scenario: fill surrounding facilities
+
+- **WHEN** the user enters school_distance = "步行5分鐘", transport_description = "距台南火車站10分鐘車程" and saves
+- **THEN** Chapter 14 shows these values instead of "距離待補" and {{待補}}

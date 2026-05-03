@@ -720,3 +720,138 @@ tests:
   - src/lib/db/__tests__/listing-workflow.test.ts
   - src/lib/document-generator/__tests__/script-validation.test.ts
 -->
+
+---
+### Requirement: PDF OCR worker resolution
+
+PDF OCR pipeline SHALL successfully load `pdfjs-dist` worker module in both Next.js development (Turbopack) and production (webpack) builds. The worker resolution SHALL NOT depend on Next.js internal chunk paths (`.next/dev/server/chunks/...`).
+
+#### Scenario: Upload transcript PDF in dev mode triggers successful OCR
+
+- **WHEN** a user uploads a transcript PDF via `/api/listings/{id}/attachments` in `npm run dev` mode
+- **THEN** the extract pipeline SHALL complete with status `done` within 60 seconds
+- **THEN** `extract-status` SHALL return `done >= 1` and `failed == 0`
+- **THEN** `extracted_data.merged_fields` SHALL contain at least 1 field
+
+#### Scenario: Worker module not lost during Turbopack bundling
+
+- **WHEN** the OCR pipeline imports `pdfjs-dist`
+- **THEN** the worker module SHALL be resolved via `import.meta.url` or external package configuration
+- **THEN** no `Cannot find module 'pdf.worker.mjs'` error SHALL appear in the failed extract record
+
+<!-- @trace
+source: fix-pdf-worker-bundling
+updated: 2026-05-03
+code:
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/layout.tsx
+  - src/lib/ocr/parsers/land-parser.ts
+  - src/lib/pdf-generator/templates/sales-dm.html
+  - next.config.ts
+  - src/lib/ocr/parsers/building-parser.ts
+  - Dockerfile
+  - kimi-statusline-feature-request.md
+  - docs/kimi-prompts-wave1-fix-disclosure.md
+  - src/components/Sidebar.tsx
+  - src/lib/document-generator/build-input.ts
+  - src/lib/document-generator/types.ts
+  - src/lib/ocr/normalize.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/app/api/listings/[id]/generate/route.ts
+  - kimi-statusline-issue-body.md
+  - src/lib/codex-client/types.ts
+  - vitest.config.ts
+  - src/lib/codex-client/index.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - listings.db
+  - kimi-usage-ux-issue-body.md
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/lib/pdf-generator/templates/survey.html
+  - package.json
+  - three-ai.db
+  - src/lib/codex-client/adapters/gemini.ts
+  - src/lib/ocr/pdf-text-layer.ts
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - src/lib/ocr/field-mapping.ts
+tests:
+  - src/lib/document-generator/__tests__/build-input.test.ts
+  - src/lib/ocr/__tests__/normalize.test.ts
+  - src/lib/codex-client/__tests__/fallback-chain.test.ts
+  - src/lib/ocr/__tests__/land-parser.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/lib/ocr/__tests__/e2e-autofill.spec.ts
+  - src/lib/ocr/__tests__/building-parser.test.ts
+-->
+
+---
+### Requirement: OCR field mapping covers legal and financial fields
+
+The system SHALL map OCR-extracted fields to form keys for all legally significant fields. The mapping in `field-mapping.ts` SHALL include at minimum:
+
+- `announced_land_value` → stored in `extracted_data.fields.announced_land_value`
+- `rights_range` → stored in `extracted_data.fields.rights_range`
+- `land_section` → stored in `extracted_data.fields.land_section`
+- `floor_total` → mapped to form key `floor_count`
+- `building_area` → mapped to form key `building_area`
+
+Fields that have no corresponding form schema entry (such as `announced_land_value` and `rights_range`) SHALL remain in `extracted_data` and SHALL NOT be written to `field_visit_data`. These fields SHALL be accessible to the document generator via the `extracted_data` data source.
+
+#### Scenario: Transcript uploaded with complete legal fields
+
+- **WHEN** a transcript PDF is uploaded and OCR parsing succeeds
+- **THEN** the system SHALL extract `announced_land_value`, `rights_range`, and `land_section` from the parsed result
+- **THEN** these values SHALL be persisted in `listing.extracted_data` with their confidence scores
+
+#### Scenario: Transcript uploaded with partial legal fields
+
+- **WHEN** a transcript PDF is uploaded but OCR confidence for `rights_range` is below 0.5
+- **THEN** the field SHALL still be stored in `extracted_data` with the low confidence score
+- **THEN** the document generator SHALL include the value annotated as `(OCR讀取，請確認)`
+
+#### Scenario: Floor count mapped to form field
+
+- **WHEN** OCR extracts `stories` from the transcript
+- **THEN** the system SHALL map it to `floor_total` in the form autofill
+- **THEN** the field-visit form SHALL pre-populate the total floors field with the extracted value
+
+##### Example: OCR field mapping coverage
+
+| OCR raw key | Mapped form key | Stored in |
+|-------------|-----------------|-----------|
+| `stories` | `floor_count` | field_visit_data |
+| `building_area` | `building_area` | field_visit_data |
+| `land_area` | `land_area` | field_visit_data |
+| `announced_land_value` | (no form key) | extracted_data only |
+| `rights_range` | (no form key) | extracted_data only |
+| `land_section` | `land_section` | field_visit_data |
+| `year_built` | `year_built` | field_visit_data |
+
+<!-- @trace
+source: fix-disclosure-extracted-data-pipeline
+updated: 2026-05-03
+code:
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - docs/kimi-prompts-wave1-fix-disclosure.md
+  - src/app/api/listings/[id]/generate/route.ts
+  - kimi-statusline-feature-request.md
+  - src/lib/ocr/field-mapping.ts
+  - listings.db
+  - src/lib/codex-client/index.ts
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - kimi-usage-ux-issue-body.md
+  - src/lib/document-generator/types.ts
+  - src/lib/document-generator/build-input.ts
+  - kimi-statusline-issue-body.md
+  - src/lib/codex-client/adapters/gemini.ts
+  - src/lib/codex-client/types.ts
+  - three-ai.db
+tests:
+  - src/lib/ocr/__tests__/e2e-autofill.spec.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/lib/document-generator/__tests__/build-input.test.ts
+  - src/lib/codex-client/__tests__/fallback-chain.test.ts
+-->

@@ -1441,3 +1441,75 @@ tests:
   - src/lib/pdf-generator/__tests__/dossier.test.ts
   - src/app/api/__tests__/listings-photos.test.ts
 -->
+
+---
+### Requirement: File category mapping for attachment type
+
+PhotoUploadClassifier SHALL map selected file MIME type to the `type` field sent to the attachments API:
+
+| File MIME / Extension | Sent `type` |
+|----------------------|-------------|
+| `application/pdf` | `transcript` |
+| `image/*` | `market_research` |
+| Unknown | `transcript` (fallback) |
+
+#### Scenario: PDF mapped to transcript type
+
+- **WHEN** user selects a `.pdf` file
+- **THEN** POST body SHALL include `type: 'transcript'`
+
+#### Scenario: Image mapped to market_research type
+
+- **WHEN** user selects an `image/*` file
+- **THEN** POST body SHALL include `type: 'market_research'`
+
+<!-- @trace
+source: fix-upload-extract-wiring
+updated: 2026-05-03
+code:
+  - src/lib/codex-client/index.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - Dockerfile
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/document-generator/build-input.ts
+  - listings.db
+  - src/lib/pdf-generator/templates/sales-dm.html
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/ocr/field-mapping.ts
+  - src/components/Sidebar.tsx
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/components/PhotoUploadClassifier.tsx
+  - src/lib/ocr/parsers/land-parser.ts
+  - package.json
+  - src/lib/codex-client/adapters/gemini.ts
+  - src/lib/pdf-generator/survey-sales.ts
+  - next.config.ts
+  - src/lib/ocr/parsers/building-parser.ts
+  - src/lib/pdf-generator/templates/survey.html
+  - kimi-statusline-feature-request.md
+  - kimi-usage-ux-issue-body.md
+  - three-ai.db
+  - src/lib/codex-client/types.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/app/layout.tsx
+  - src/lib/db/index.ts
+  - src/lib/document-generator/types.ts
+  - docs/kimi-prompts-wave1-fix-disclosure.md
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/ocr/pdf-text-layer.ts
+  - src/lib/ocr/normalize.ts
+  - vitest.config.ts
+  - src/app/api/listings/[id]/attachments/route.ts
+  - kimi-statusline-issue-body.md
+tests:
+  - src/lib/ocr/__tests__/normalize.test.ts
+  - src/lib/codex-client/__tests__/fallback-chain.test.ts
+  - src/lib/ocr/__tests__/land-parser.test.ts
+  - e2e/autofill-upload.spec.ts
+  - src/lib/ocr/__tests__/e2e-autofill.spec.ts
+  - src/lib/ocr/__tests__/building-parser.test.ts
+  - src/lib/document-generator/__tests__/build-input.test.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+-->

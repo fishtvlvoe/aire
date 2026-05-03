@@ -36,14 +36,49 @@ The system SHALL authenticate users via Auth.js Credentials Provider with userna
 
 User passwords SHALL be hashed with bcryptjs at cost factor 12 before storage. Plaintext passwords SHALL never be stored or logged.
 
+#### Scenario: Create user with plaintext password
+- Given: Admin runs `create-admin.ts --username admin --password secret123`
+- When: Script calls `createUser()`
+- Then: `users` table SHALL store bcrypt-hashed password with cost factor 12, and plaintext SHALL NOT appear in logs or DB
+
 ### Requirement: Admin account creation CLI
 
 `scripts/create-admin.ts` SHALL accept `--username` and `--password` arguments to create the initial admin account. SHALL fail if username already exists.
+
+#### Scenario: Create initial admin
+- Given: `users` table is empty
+- When: Operator runs `npx tsx scripts/create-admin.ts --username admin --password secret123`
+- Then: Script SHALL insert one user record and exit 0
+
+#### Scenario: Duplicate username
+- Given: User "admin" already exists in `users` table
+- When: Operator runs script with `--username admin`
+- Then: Script SHALL print error to stderr and exit 1 without modifying DB
 
 ### Requirement: Auth middleware order
 
 Auth check SHALL run only after License check passes. Invalid license causes redirect to `/setup/license` before any auth check.
 
+#### Scenario: Unlicensed unauthenticated request
+- Given: No valid license exists and user has no Access Token
+- When: Request hits a protected page
+- Then: Middleware SHALL redirect to `/setup/license` (not `/login`)
+
+#### Scenario: Licensed but unauthenticated request
+- Given: Valid license exists but user has no Access Token
+- When: Request hits a protected page
+- Then: Middleware SHALL redirect to `/login`
+
 ### Requirement: Route protection scope
 
 Exempt from authentication: `/login`, `/api/auth/*`, `/_next/*`, `/favicon.ico`. All other routes require valid Access Token.
+
+#### Scenario: Access static asset
+- Given: User has no Access Token
+- When: Request hits `/_next/static/chunk.js`
+- Then: Middleware SHALL allow the request without redirect
+
+#### Scenario: Access protected listing page
+- Given: User has no Access Token
+- When: Request hits `/listings`
+- Then: Middleware SHALL redirect to `/login` with HTTP 301

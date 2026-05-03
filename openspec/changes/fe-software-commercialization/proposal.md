@@ -14,7 +14,7 @@
 - 修改：`src/lib/pdf-generator/dossier.ts` 及 `src/lib/pdf-generator/survey-sales.ts`，改用 `chromium-launcher.ts` 抽象層
 - 新增：`src/lib/pdf-generator/chromium-launcher.ts`，依 `CHROMIUM_MODE` env 切換本機/Serverless 模式
 - 修改：`Dockerfile`，移除 Puppeteer 全裝，改用系統 Chromium（`CHROMIUM_MODE=local`）
-- 新增環境變數：`COMPANY_NAME`, `CHROMIUM_MODE`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
+- 新增環境變數：`COMPANY_NAME`, `CHROMIUM_MODE`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `LICENSE_PUBLIC_KEY`
 
 ## Non-Goals
 
@@ -59,6 +59,8 @@
     - `src/lib/pdf-generator/survey-sales.ts`（改用 chromium-launcher）
     - `Dockerfile`（移除 puppeteer 全裝，新增 CHROMIUM_MODE env）
     - `package.json`（移除 puppeteer，新增 puppeteer-core + @sparticuz/chromium + next-auth + bcryptjs）
-  - Removed: none
+  - Removed:
+    - `puppeteer` dependency（改用 `puppeteer-core`）
+    - 原有 `postinstall` script 的自動 Chrome 下載邏輯（改為依 `CHROMIUM_MODE` 條件觸發）
 - New dependencies: `puppeteer-core`, `@sparticuz/chromium`, `next-auth@4.x`, `bcryptjs`, `@types/bcryptjs`, `@noble/ed25519`
 - New env vars: `COMPANY_NAME`, `CHROMIUM_MODE` (`local` | `serverless`), `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `LICENSE_PUBLIC_KEY`

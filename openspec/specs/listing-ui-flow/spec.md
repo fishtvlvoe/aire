@@ -1366,3 +1366,71 @@ tests:
   - src/lib/__tests__/listing-routes.test.ts
   - src/lib/property-types/schemas/__tests__/required-fields.test.ts
 -->
+
+---
+### Requirement: Photo and document tab uploads wire through to attachments API
+
+The 照片/文件 tab inside the fill-form page SHALL trigger a real upload to `/api/listings/{listingId}/attachments` immediately after the user selects a file. The upload SHALL be fire-and-forget and SHALL NOT block UI navigation across the three-tab layout.
+
+#### Scenario: Selecting a transcript PDF in the photo/document tab uploads to server
+
+- **WHEN** user selects a `.pdf` file in the 照片/文件 tab of the fill-form page
+- **THEN** the UI SHALL POST the file to `/api/listings/{listingId}/attachments` with `type: 'transcript'`
+- **THEN** the user SHALL be able to navigate between tabs without waiting for upload completion
+
+#### Scenario: Upload failure does not interrupt fill-form flow
+
+- **WHEN** the attachments API returns 4xx/5xx after a tab upload
+- **THEN** the user SHALL NOT see a blocking error dialog
+- **THEN** the failure SHALL be logged via `console.error`
+
+<!-- @trace
+source: fix-upload-extract-wiring
+updated: 2026-05-03
+code:
+  - src/lib/codex-client/index.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - Dockerfile
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/document-generator/build-input.ts
+  - listings.db
+  - src/lib/pdf-generator/templates/sales-dm.html
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/ocr/field-mapping.ts
+  - src/components/Sidebar.tsx
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/components/PhotoUploadClassifier.tsx
+  - src/lib/ocr/parsers/land-parser.ts
+  - package.json
+  - src/lib/codex-client/adapters/gemini.ts
+  - src/lib/pdf-generator/survey-sales.ts
+  - next.config.ts
+  - src/lib/ocr/parsers/building-parser.ts
+  - src/lib/pdf-generator/templates/survey.html
+  - kimi-statusline-feature-request.md
+  - kimi-usage-ux-issue-body.md
+  - three-ai.db
+  - src/lib/codex-client/types.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/app/layout.tsx
+  - src/lib/db/index.ts
+  - src/lib/document-generator/types.ts
+  - docs/kimi-prompts-wave1-fix-disclosure.md
+  - src/app/api/listings/[id]/generate/route.ts
+  - src/lib/ocr/pdf-text-layer.ts
+  - src/lib/ocr/normalize.ts
+  - vitest.config.ts
+  - src/app/api/listings/[id]/attachments/route.ts
+  - kimi-statusline-issue-body.md
+tests:
+  - src/lib/ocr/__tests__/normalize.test.ts
+  - src/lib/codex-client/__tests__/fallback-chain.test.ts
+  - src/lib/ocr/__tests__/land-parser.test.ts
+  - e2e/autofill-upload.spec.ts
+  - src/lib/ocr/__tests__/e2e-autofill.spec.ts
+  - src/lib/ocr/__tests__/building-parser.test.ts
+  - src/lib/document-generator/__tests__/build-input.test.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+-->
