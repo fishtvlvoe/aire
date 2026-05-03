@@ -16,8 +16,8 @@ export type ExternalUrlResult = {
 };
 
 const PLATFORM_HOME: Record<ExternalPlatformId, string> = {
-  '591-price': 'https://price.591.com.tw/',
-  '591-buy': 'https://buy.591.com.tw/',
+  '591-price': 'https://market.591.com.tw/',
+  '591-buy': 'https://www.591.com.tw/',
   sinyi: 'https://www.sinyi.com.tw/',
   rakuya: 'https://www.rakuya.com.tw/',
 };
@@ -69,25 +69,27 @@ export function buildExternalUrl(
 type Mapping = NonNullable<ReturnType<typeof getRegionMapping>>;
 
 function build591PriceUrl(m: Mapping): ExternalUrlResult {
+  // price.591.com.tw 已遷移至 market.591.com.tw，路徑改為根路徑帶 regionid
   const params = new URLSearchParams();
   params.set('regionid', String(m.city.regionId591));
   const sectionId = m.district?.sectionId591;
   if (sectionId && sectionId > 0) {
     params.set('section', String(sectionId));
-    return { url: `https://price.591.com.tw/list?${params.toString()}`, coverage: 'full' };
+    return { url: `https://market.591.com.tw/?${params.toString()}`, coverage: 'full' };
   }
-  return { url: `https://price.591.com.tw/list?${params.toString()}`, coverage: 'city-only' };
+  return { url: `https://market.591.com.tw/?${params.toString()}`, coverage: 'city-only' };
 }
 
 function build591BuyUrl(m: Mapping): ExternalUrlResult {
+  // buy.591.com.tw 已合併到主站 www.591.com.tw，直接使用最終域名
   const params = new URLSearchParams();
   params.set('regionid', String(m.city.regionId591));
   const sectionId = m.district?.sectionId591;
   if (sectionId && sectionId > 0) {
     params.set('section', String(sectionId));
-    return { url: `https://buy.591.com.tw/?${params.toString()}`, coverage: 'full' };
+    return { url: `https://www.591.com.tw/?${params.toString()}`, coverage: 'full' };
   }
-  return { url: `https://buy.591.com.tw/?${params.toString()}`, coverage: 'city-only' };
+  return { url: `https://www.591.com.tw/?${params.toString()}`, coverage: 'city-only' };
 }
 
 function buildSinyiUrl(m: Mapping): ExternalUrlResult {
@@ -106,20 +108,15 @@ function buildSinyiUrl(m: Mapping): ExternalUrlResult {
 }
 
 function buildRakuyaUrl(m: Mapping): ExternalUrlResult {
-  const params = new URLSearchParams();
-  params.set('city', String(m.city.cityCodeRakuya));
+  // 樂屋網正確格式：/sell/result?zipcode=XXX（只需郵遞區號，不需 city 代碼）
   const zipcode = m.district?.zipcodeRakuya;
   if (zipcode && zipcode > 0) {
-    params.set('zipcode', String(zipcode));
     return {
-      url: `https://www.rakuya.com.tw/sale/sale_search?${params.toString()}`,
+      url: `https://www.rakuya.com.tw/sell/result?zipcode=${zipcode}`,
       coverage: 'full',
     };
   }
-  return {
-    url: `https://www.rakuya.com.tw/sale/sale_search?${params.toString()}`,
-    coverage: 'city-only',
-  };
+  return { url: PLATFORM_HOME['rakuya'], coverage: 'city-only' };
 }
 
 /**

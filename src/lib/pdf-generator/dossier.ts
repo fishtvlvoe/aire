@@ -92,8 +92,10 @@ function formatDate(date: Date): string {
  * 每個佔位符取得唯一遞增 ID，供後續 AcroForm overlay 定位使用。
  */
 function replacePendingPlaceholders(html: string): string {
+  // 先移除 LLM 有時生成的 {{___}} 格式佔位符（印出來手寫時不需要這個框）
+  let result = html.replace(/\{\{_+\}\}/g, '______');
   let counter = 0;
-  return html.replace(/待補/g, () => {
+  return result.replace(/待補/g, () => {
     counter++;
     return `<span data-field-id="field-${counter}" class="pdf-blank">______</span>`;
   });
