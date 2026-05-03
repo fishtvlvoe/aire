@@ -171,7 +171,7 @@ function AccordionPanel({ panel, values, onChange }: AccordionPanelProps) {
 export default function ListingSupplementaryPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const listingId = Number(params.id ?? '0');
+  const listingId = Number(params.id ?? 'NaN');
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,7 +183,7 @@ export default function ListingSupplementaryPage() {
   const [accordionFields, setAccordionFields] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (Number.isNaN(listingId)) {
+    if (Number.isNaN(listingId) || listingId <= 0) {
       setLoadError('物件編號錯誤');
       setLoading(false);
       return;
@@ -210,8 +210,8 @@ export default function ListingSupplementaryPage() {
           const initial: Record<string, string> = {};
           for (const key of allKeys) {
             const val = suppData[key];
-            if (typeof val === 'string' && val.trim() !== '') {
-              initial[key] = val;
+            if (val !== undefined && val !== null) {
+              initial[key] = String(val);
             }
           }
           setAccordionFields(initial);
@@ -241,7 +241,7 @@ export default function ListingSupplementaryPage() {
     if (!listing) {
       return '-';
     }
-    return getPropertyType(listing.property_type)?.displayName ?? PROPERTY_TYPES[listing.property_type].displayName;
+    return getPropertyType(listing.property_type)?.displayName ?? PROPERTY_TYPES[listing.property_type]?.displayName ?? '未知類型';
   }, [listing]);
 
   const preCommissionData = useMemo(() => {
@@ -260,12 +260,10 @@ export default function ListingSupplementaryPage() {
     setSubmitting(true);
     setSubmitError(null);
 
-    // Merge accordion fields (non-empty values only) into form payload
+    // Merge accordion fields into form payload (always write, even empty, so users can clear saved values)
     const mergedData: Record<string, unknown> = { ...data };
     for (const [key, value] of Object.entries(accordionFields)) {
-      if (value.trim() !== '') {
-        mergedData[key] = value.trim();
-      }
+      mergedData[key] = value.trim();
     }
 
     try {

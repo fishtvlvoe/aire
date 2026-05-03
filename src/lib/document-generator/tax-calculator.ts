@@ -7,7 +7,7 @@ export interface TaxResult {
 }
 
 function isValidNumber(value: number | undefined | null): value is number {
-  return value !== undefined && value !== null && !isNaN(value);
+  return value !== undefined && value !== null && !isNaN(value) && isFinite(value);
 }
 
 export function calculateTaxFees(input: {

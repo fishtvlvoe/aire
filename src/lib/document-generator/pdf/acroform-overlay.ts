@@ -22,12 +22,24 @@ export async function overlayAcroForm(
   const form = pdfDoc.getForm();
   const pages = pdfDoc.getPages();
 
+  // TODO: Helvetica does not support CJK characters; users inputting Chinese in AcroForm
+  // fields will see tofu (□). To fix: embed a CJK font (e.g. NotoSansTC) and call
+  // field.updateAppearances(font). Tracked as a separate task.
   // 預先嵌入字型（供欄位使用）
   await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   for (const [fieldId, coord] of Object.entries(fieldMap)) {
     // 跳過頁碼超出範圍的欄位
-    if (coord.page >= pages.length) continue;
+    if (coord.page >= pages.length) {
+      console.warn(`[overlayAcroForm] Skip "${fieldId}": page ${coord.page} >= ${pages.length}`);
+      continue;
+    }
+
+    // 跳過尺寸無效的欄位
+    if (coord.width <= 0 || coord.height <= 0) {
+      console.warn(`[overlayAcroForm] Skip "${fieldId}": invalid dimensions ${coord.width}x${coord.height}`);
+      continue;
+    }
 
     const page = pages[coord.page];
     const field = form.createTextField(fieldId);

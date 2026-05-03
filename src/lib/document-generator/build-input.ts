@@ -143,7 +143,7 @@ export function buildDocumentInput(listing: Listing): DocumentGeneratorInput {
     : typeof salePriceText === 'number'
       ? salePriceText
       : NaN;
-  const sale_price = !isNaN(salePriceWan) && salePriceWan > 0 ? salePriceWan * 10000 : undefined;
+  const sale_price = !isNaN(salePriceWan) && isFinite(salePriceWan) && salePriceWan > 0 ? salePriceWan * 10000 : undefined;
 
   // 解析房屋現值：優先取 supplementary_data，次取 extracted_data
   const houseAssessedRaw = supplementary_data.house_assessed_value !== undefined && supplementary_data.house_assessed_value !== ''
@@ -154,7 +154,7 @@ export function buildDocumentInput(listing: Listing): DocumentGeneratorInput {
     : typeof houseAssessedRaw === 'number'
       ? houseAssessedRaw
       : NaN;
-  const house_assessed_value = !isNaN(houseAssessedNum) && houseAssessedNum > 0 ? houseAssessedNum : undefined;
+  const house_assessed_value = !isNaN(houseAssessedNum) && isFinite(houseAssessedNum) && houseAssessedNum > 0 ? houseAssessedNum : undefined;
 
   // 呼叫稅費計算，將結果附加至 system_computed
   const taxResult = calculateTaxFees({ sale_price, house_assessed_value });
@@ -162,7 +162,14 @@ export function buildDocumentInput(listing: Listing): DocumentGeneratorInput {
   if (taxResult.stamp_tax_buyer !== null) system_computed.computed_stamp_tax_buyer = taxResult.stamp_tax_buyer;
   if (taxResult.stamp_tax_seller !== null) system_computed.computed_stamp_tax_seller = taxResult.stamp_tax_seller;
   if (taxResult.registration_fee !== null) system_computed.computed_registration_fee = taxResult.registration_fee;
-  if (taxResult.escrow_fee_each !== null) system_computed.computed_escrow_fee = taxResult.escrow_fee_each;
+  if (taxResult.escrow_fee_each !== null) system_computed.computed_escrow_fee_each = taxResult.escrow_fee_each;
+
+  // system_computed tax keys (conditionally present):
+  // computed_deed_tax: number
+  // computed_stamp_tax_buyer: number
+  // computed_stamp_tax_seller: number
+  // computed_registration_fee: number
+  // computed_escrow_fee_each: number
 
   const marketResearchAttachments = extractMarketResearchAttachments(listing.attachments);
 

@@ -10,7 +10,7 @@ import { overlayAcroForm, type FieldCoordMap } from '../document-generator/pdf/a
 const TEMPLATES_DIR = path.join(process.cwd(), 'src/lib/pdf-generator/templates');
 
 // A4 頁面尺寸常數（用於座標換算）
-const VIEWPORT_HEIGHT = 1123; // A4 at 96 DPI（像素）
+const VIEWPORT_HEIGHT = 980; // A4 content height in px after subtracting margins (top+bottom ~143px at 96dpi)
 const PAGE_HEIGHT_PT = 841.89; // A4 高度（pt）
 const SCALE = 72 / 96; // 像素轉 pt 比例
 
@@ -133,6 +133,7 @@ export async function generateDossierPDF(
 
   try {
     const page = await browser.newPage();
+    await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
 
     // 擷取所有 [data-field-id] 元素的座標，用於後續 AcroForm overlay
@@ -155,6 +156,9 @@ export async function generateDossierPDF(
     const coordMap: FieldCoordMap = {};
     for (const c of rawCoords) {
       if (!c.fieldId) continue;
+      if (coordMap[c.fieldId]) {
+        console.warn('[dossier] Duplicate data-field-id:', c.fieldId);
+      }
       const pageIndex = Math.floor(c.top / VIEWPORT_HEIGHT);
       const localTop = c.top - pageIndex * VIEWPORT_HEIGHT;
       coordMap[c.fieldId] = {
