@@ -27,4 +27,4 @@
 
 ## 5. 端對端驗收
 
-- [ ] 5.1 以含有完整 supplementary_data（sale_price、house_assessed_value、previous_transfer_value、case_handler、shop_manager、agent_name）的測試 listing 生成完整 PDF，截圖確認：(1) 全文無「OCR讀取，請確認」；(2) 章節 4 無英文 key 括號；(3) 章節 8 空白列備註欄空白；(4) 章節 10 契稅顯示金額；(5) 章節 14 無「（距離）」「（已確認）」；(6) 封面顯示正確 4 列結構 [Tool: sonnet]
+- [x] 5.1 以含有完整 supplementary_data（sale_price、house_assessed_value、previous_transfer_value、case_handler、shop_manager、agent_name）的測試 listing 生成完整 PDF，截圖確認：(1) 全文無「OCR讀取，請確認」；(2) 章節 4 無英文 key 括號；(3) 章節 8 空白列備註欄空白；(4) 章節 10 契稅顯示金額；(5) 章節 14 無「（距離）」「（已確認）」；(6) 封面顯示正確 4 列結構 [Tool: sonnet]

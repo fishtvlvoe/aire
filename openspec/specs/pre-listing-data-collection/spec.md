@@ -790,3 +790,43 @@ tests:
   - src/lib/document-generator/__tests__/build-input.test.ts
   - src/lib/codex-client/__tests__/fallback-chain.test.ts
 -->
+
+---
+### Requirement: announced-land-price-parsing
+
+The system SHALL extract the current declared land price (申報地價) per square metre from the OCR transcript text and store it as a structured numeric field `announced_land_price`.
+
+The parser MUST recognise the following text patterns:
+- 「當期申報地價：\<year\>年\<month\>月\<value\>元／平方公尺」
+- 「申報地價：\<value\>元」
+
+The value SHALL be normalised to a plain number (e.g., "10,188.0" → 10188).
+
+If the pattern is absent or unparseable, `announced_land_price` SHALL remain `undefined` (no error thrown).
+
+#### Scenario: parse 申報地價 from full-format text
+
+- **WHEN** OCR text contains「當期申報地價：115年01月10,188.0元／平方公尺」
+- **THEN** `announced_land_price` equals 10188
+
+#### Scenario: absent 申報地價
+
+- **WHEN** OCR text does not contain any 申報地價 keyword
+- **THEN** `announced_land_price` is undefined
+
+<!-- @trace
+source: pdf-tax-and-field-fixes
+updated: 2026-05-03
+code:
+  - src/lib/document-generator/tax-calculator.ts
+  - src/lib/document-generator/build-input.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/parsers/transcript-parser.ts
+  - scripts/e2e-verify-pdf.mjs
+  - src/lib/pdf-generator/templates/dossier.html
+tests:
+  - src/lib/parsers/__tests__/transcript-parser.test.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/lib/document-generator/__tests__/tax-calculator.test.ts
+-->

@@ -549,6 +549,24 @@ The table SHALL NOT contain an address row or a 案件編號 column.
 - **WHEN** supplementary_data does not include case_handler or shop_manager
 - **THEN** the corresponding cells in row 4 are blank (no placeholder text)
 
+
+<!-- @trace
+source: pdf-tax-and-field-fixes
+updated: 2026-05-03
+code:
+  - src/lib/document-generator/tax-calculator.ts
+  - src/lib/document-generator/build-input.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/parsers/transcript-parser.ts
+  - scripts/e2e-verify-pdf.mjs
+  - src/lib/pdf-generator/templates/dossier.html
+tests:
+  - src/lib/parsers/__tests__/transcript-parser.test.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/lib/document-generator/__tests__/tax-calculator.test.ts
+-->
+
 ---
 ### Requirement: property-name-subtitle
 
@@ -570,3 +588,20 @@ Below the H1「不動產說明書」heading, the PDF SHALL render the property n
 |----------------------------------|------------------------|
 | "" (empty string) | `<p class="dossier-subtitle"></p>` |
 | undefined | `<p class="dossier-subtitle"></p>` |
+
+<!-- @trace
+source: pdf-tax-and-field-fixes
+updated: 2026-05-03
+code:
+  - src/lib/document-generator/tax-calculator.ts
+  - src/lib/document-generator/build-input.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/parsers/transcript-parser.ts
+  - scripts/e2e-verify-pdf.mjs
+  - src/lib/pdf-generator/templates/dossier.html
+tests:
+  - src/lib/parsers/__tests__/transcript-parser.test.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/lib/document-generator/__tests__/tax-calculator.test.ts
+-->
