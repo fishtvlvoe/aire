@@ -758,3 +758,70 @@ tests:
   - src/lib/form-renderer/__tests__/all-property-types.test.ts
   - src/lib/property-types/schemas/__tests__/required-fields.test.ts
 -->
+
+---
+### Requirement: grouped-optional-field-sections
+
+The supplementary form page SHALL display four collapsible sections for the new optional fields: 身份資訊, 交易資訊, 建物補充, 周遭機能.
+
+#### Scenario: optional sections are collapsed by default
+
+- **WHEN** the user opens the supplementary form page
+- **THEN** the four new sections are collapsed by default; the user can expand any section to reveal and fill the fields
+
+
+<!-- @trace
+source: disclosure-complete-and-fillable
+updated: 2026-05-03
+code:
+  - three-ai.db
+  - src/lib/pdf-generator/dossier.ts
+  - kimi-usage-ux-issue-body.md
+  - src/lib/document-generator/build-input.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/schemas/supplementary-schema.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/document-generator/tax-calculator.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - package.json
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/document-generator/pdf/acroform-overlay.ts
+tests:
+  - src/lib/document-generator/__tests__/tax-calculator.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/acroform-overlay.test.ts
+-->
+
+---
+### Requirement: sale-price-in-wan-unit
+
+The sale_price_text field in the form SHALL be labeled "成交價（萬元）" and accept numeric input representing units of 萬 (10,000 NTD). The stored value SHALL be the text string as-is; the conversion to NTD is performed at tax-calculation time.
+
+#### Scenario: sale price input
+
+- **WHEN** the user enters "800" in the 成交價（萬元）field and saves
+- **THEN** supplementary_data.sale_price_text = "800", and tax-calculator converts this to 8,000,000 NTD for computation
+
+<!-- @trace
+source: disclosure-complete-and-fillable
+updated: 2026-05-03
+code:
+  - three-ai.db
+  - src/lib/pdf-generator/dossier.ts
+  - kimi-usage-ux-issue-body.md
+  - src/lib/document-generator/build-input.ts
+  - src/lib/pdf-generator/templates/dossier.html
+  - src/lib/schemas/supplementary-schema.ts
+  - src/app/api/listings/[id]/pdf/route.ts
+  - src/lib/document-generator/tax-calculator.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - package.json
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - src/lib/document-generator/pdf/acroform-overlay.ts
+tests:
+  - src/lib/document-generator/__tests__/tax-calculator.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/lib/document-generator/__tests__/acroform-overlay.test.ts
+-->
