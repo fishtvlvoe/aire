@@ -32,9 +32,8 @@ export async function overlayAcroForm(
     const page = pages[coord.page];
     const field = form.createTextField(fieldId);
 
-    // fontSize 需透過 setFontSize 獨立設定（不在 addToPage options 中）
-    field.setFontSize(10);
-
+    // addToPage 必須在 setFontSize 之前執行，
+    // 因為 /DA（default appearance）entry 只有在欄位加入頁面後才存在
     field.addToPage(page, {
       x: coord.x,
       y: coord.y,
@@ -42,6 +41,9 @@ export async function overlayAcroForm(
       height: coord.height,
       borderWidth: 0,
     });
+
+    // 在欄位加入頁面後才設定 fontSize
+    field.setFontSize(10);
   }
 
   const savedBytes = await pdfDoc.save();
