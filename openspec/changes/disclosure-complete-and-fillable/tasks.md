@@ -15,7 +15,7 @@
 
 ## 4. Wave 4：AcroForm 覆蓋模組（依賴 Wave 3）
 
-- [ ] 4.1 新建 `src/lib/document-generator/pdf/acroform-overlay.ts`，export `overlayAcroForm(pdfBytes: Uint8Array, fieldMap: FieldCoordMap): Promise<Uint8Array>`。使用 `pdf-lib` 在 pdfBytes 上逐頁疊加 AcroForm text field：每個 field 設定 `PDFTextField`，`fieldName` = fieldId，位置依 FieldCoordMap 的 x/y/width/height/page。AcroForm text field 無邊框（`borderWidth: 0`），字型大小 10pt，中文字體使用 StandardFonts.Helvetica（fallback）。FieldCoordMap 型別：`Record<string, { x: number; y: number; width: number; height: number; page: number }>`。新增 `package.json` 相依：`pdf-lib`（若尚未安裝）。[Tool: sonnet]
+- [x] 4.1 新建 `src/lib/document-generator/pdf/acroform-overlay.ts`，export `overlayAcroForm(pdfBytes: Uint8Array, fieldMap: FieldCoordMap): Promise<Uint8Array>`。使用 `pdf-lib` 在 pdfBytes 上逐頁疊加 AcroForm text field：每個 field 設定 `PDFTextField`，`fieldName` = fieldId，位置依 FieldCoordMap 的 x/y/width/height/page。AcroForm text field 無邊框（`borderWidth: 0`），字型大小 10pt，中文字體使用 StandardFonts.Helvetica（fallback）。FieldCoordMap 型別：`Record<string, { x: number; y: number; width: number; height: number; page: number }>`。新增 `package.json` 相依：`pdf-lib`（若尚未安裝）。[Tool: sonnet]
 
 ## 5. Wave 5：Pipeline 整合（依賴 Wave 3 + Wave 4）
 
