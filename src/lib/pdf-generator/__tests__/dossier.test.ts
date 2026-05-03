@@ -8,6 +8,7 @@ vi.mock('puppeteer', () => ({
       newPage: vi.fn().mockResolvedValue({
         setContent: vi.fn().mockResolvedValue(undefined),
         pdf: vi.fn().mockResolvedValue(new Uint8Array([0x25, 0x50, 0x44, 0x46])), // %PDF magic bytes
+        evaluate: vi.fn().mockResolvedValue([]), // returns empty coord array in tests
       }),
       close: vi.fn().mockResolvedValue(undefined),
     }),

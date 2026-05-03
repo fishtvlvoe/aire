@@ -25,4 +25,4 @@
 ## 6. Wave 6：驗收測試（依賴 Wave 5）
 
 - [x] 6.1 新增 `src/lib/document-generator/__tests__/acroform-overlay.test.ts`：用 `pdf-lib` 建立最小 PDF，呼叫 `overlayAcroForm` 傳入 2 個欄位的 coordMap，再用 `pdf-lib` 讀取結果 PDF 確認 AcroForm 欄位數量 = 2、fieldName 正確。[Tool: sonnet]
-- [ ] 6.2 確認 `npm run build` 通過（0 errors），`npm test` 全綠（含 1.1 tax-calculator、6.1 acroform-overlay 新增測試）。[Tool: copilot]
+- [x] 6.2 確認 `npm run build` 通過（0 errors），`npm test` 全綠（含 1.1 tax-calculator、6.1 acroform-overlay 新增測試）。[Tool: copilot]
