@@ -90,12 +90,13 @@ describe("dossier-building prompt OCR 欄位對應（Chapter 5 & 6）", () => {
       expect(capturedPrompt).toContain("0.3025");
     });
 
-    it("prompt 包含三層優先順序結構（supplementary_data → extracted_data → 待補）", async () => {
+    it("prompt 包含三層優先順序結構（supplementary_data → extracted_data → 待補），無 OCR 標注", async () => {
       await generateBuildingDossier(BASE_INPUT);
       // 驗證三層結構的關鍵標記
       expect(capturedPrompt).toContain("supplementary_data.building_number");
-      expect(capturedPrompt).toContain("OCR讀取，請確認");
+      expect(capturedPrompt).toContain("直接填入值"); // 取代舊的「OCR讀取，請確認」
       expect(capturedPrompt).toContain("{{待補}}");
+      expect(capturedPrompt).not.toContain("OCR讀取，請確認");
     });
   });
 
@@ -110,9 +111,9 @@ describe("dossier-building prompt OCR 欄位對應（Chapter 5 & 6）", () => {
       expect(capturedPrompt).toContain("extracted_data.rights_range");
     });
 
-    it("prompt 包含 extracted_data.announced_land_value 欄位指引", async () => {
+    it("prompt 包含 extracted_data.announced_land_price 欄位指引（修正後正確 key）", async () => {
       await generateBuildingDossier(BASE_INPUT);
-      expect(capturedPrompt).toContain("extracted_data.announced_land_value");
+      expect(capturedPrompt).toContain("extracted_data.announced_land_price");
     });
 
     it("prompt 包含 extracted_data.land_number 欄位指引", async () => {
