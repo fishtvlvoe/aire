@@ -81,6 +81,36 @@ describe('buildDocumentInput', () => {
     expect(input.extracted_data).toEqual({});
   });
 
+  it('低信心值欄位被過濾，不進入 extracted_data', () => {
+    const listing = makeListing({
+      extracted_data: JSON.stringify({
+        merged_fields: {
+          building_area: { value: '3Ä5㎡', confidence: 0.35, provenance: 'ocr-pdf' },
+          land_section: { value: '中西區段', confidence: 0.95, provenance: 'ocr-pdf' },
+        },
+      }),
+    });
+
+    const input = buildDocumentInput(listing);
+
+    expect(input.extracted_data.building_area).toBeUndefined();
+    expect(input.extracted_data.land_section).toBe('中西區段');
+  });
+
+  it('無 confidence 屬性的舊資料欄位正常帶入（相容模式）', () => {
+    const listing = makeListing({
+      extracted_data: JSON.stringify({
+        merged_fields: {
+          building_area: { value: '50', provenance: 'ocr-pdf' },
+        },
+      }),
+    });
+
+    const input = buildDocumentInput(listing);
+
+    expect(input.extracted_data.building_area).toBe('50');
+  });
+
   it('extracted_data JSON 損壞時回傳空物件，不拋錯', () => {
     const listing = makeListing({ extracted_data: 'not-json' });
     const input = buildDocumentInput(listing);
@@ -188,6 +218,36 @@ describe('buildDocumentInput', () => {
       });
       const input = buildDocumentInput(listing);
       expect(input.system_computed?.area_ping).toBe(0);
+    });
+  });
+
+  describe('getMergedValue null 處理', () => {
+    it('supplementary_data 為 null 時 fallback 到 extracted_data', () => {
+      const listing = makeListing({
+        supplementary_data: JSON.stringify({ building_area: null }),
+        extracted_data: JSON.stringify({ building_area: '60' }),
+      });
+      const input = buildDocumentInput(listing);
+      expect(input.system_computed?.area_ping).toBe(18.15);
+    });
+
+    it('extracted_data 為 null 時 fallback 到 field_visit_data', () => {
+      const listing = makeListing({
+        supplementary_data: JSON.stringify({ building_area: null }),
+        extracted_data: JSON.stringify({ building_area: null }),
+        field_visit_data: JSON.stringify({ building_area: 20 }),
+      });
+      const input = buildDocumentInput(listing);
+      expect(input.system_computed?.area_ping).toBe(6.05);
+    });
+
+    it('supplementary_data 為空字串時 fallback 到 extracted_data', () => {
+      const listing = makeListing({
+        supplementary_data: JSON.stringify({ building_area: '' }),
+        extracted_data: JSON.stringify({ building_area: '50' }),
+      });
+      const input = buildDocumentInput(listing);
+      expect(input.system_computed?.area_ping).toBe(15.13);
     });
   });
 });

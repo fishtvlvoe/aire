@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { generateDossierPDF } from '../dossier';
+import { generateDossierPDF, buildFullHtml } from '../dossier';
+import fs from 'fs';
+import path from 'path';
 
 // Mock puppeteer to avoid launching actual browser in tests
 vi.mock('puppeteer', () => ({
@@ -121,5 +123,33 @@ describe('template 路徑解析（Decision: process.cwd()）', () => {
     const isMockBytes = b.join(',') === [0x25, 0x50, 0x44, 0x46].join(',');
 
     expect(isPdfSignature || isMockBytes).toBe(true);
+  });
+});
+
+describe('buildFullHtml 頁碼與執行元素', () => {
+  const templateDir = path.join(process.cwd(), 'src/lib/pdf-generator/templates');
+  const templateHtml = fs.readFileSync(path.join(templateDir, 'dossier.html'), 'utf-8');
+  const templateCss = fs.readFileSync(path.join(templateDir, 'dossier.css'), 'utf-8');
+
+  it('生成的 HTML 應隱藏 CSS running 元素，避免 Puppeteer 重複顯示頁首頁尾', () => {
+    const html = buildFullHtml('<p>內容</p>', '', templateCss, templateHtml, '2026/05/03');
+
+    // 應包含隱藏 running 元素的 CSS 規則
+    expect(html).toMatch(/\.page-header\s*,\s*\.page-header-title/);
+    expect(html).toMatch(/display:\s*none\s*!important/);
+  });
+
+  it('生成的 HTML 不應在 body 中直接顯示頁碼 counter（避免「第 0 頁 / 共 0 頁」）', () => {
+    const html = buildFullHtml('<p>內容</p>', '', templateCss, templateHtml, '2026/05/03');
+
+    // .page-header-page 應被隱藏，其 ::after content 不會顯示
+    const styleMatch = html.match(/<style[^>]*>[\s\S]*?<\/style>/gi);
+    expect(styleMatch).toBeTruthy();
+
+    // 確認有隱藏 .page-header-page 的規則
+    const hasHideRule = styleMatch!.some((s) =>
+      s.includes('.page-header-page') && s.includes('display: none')
+    );
+    expect(hasHideRule).toBe(true);
   });
 });

@@ -20,7 +20,7 @@ function loadTemplate(): { html: string; css: string } {
   return { html, css };
 }
 
-function buildFullHtml(
+export function buildFullHtml(
   contentHtml: string,
   logoPath: string,
   css: string,
@@ -35,6 +35,12 @@ function buildFullHtml(
     '<link rel="stylesheet" href="dossier.css" />',
     `${notoFontLink}\n  <style>\n${css}\n  </style>`
   );
+
+  // Puppeteer 使用 headerTemplate/footerTemplate 處理頁首頁尾，
+  // 不支援 CSS Paged Media 的 position: running()，因此隱藏模板中的 running 元素
+  // 避免它們在正文區域顯示（否則會出現「第 0 頁 / 共 0 頁」）
+  const hideRunningElements = `\n  <style>\n    .page-header, .page-header-title, .page-header-page, .page-footer-date, .page-footer-note { display: none !important; }\n  </style>`;
+  result = result.replace('</head>', `${hideRunningElements}\n</head>`);
 
   // Replace logo path (use data-URI or URL; if empty, the onerror handler hides img)
   result = result.replace('{{LOGO_PATH}}', logoPath || '');
@@ -115,7 +121,7 @@ export async function generateDossierPDF(
   const headerTemplate = `<div style="font-size:10px;width:100%;padding:0 12mm;display:flex;justify-content:space-between;align-items:center;color:#555;">
     <span>${process.env.COMPANY_NAME || '不動產仲介'}</span>
     <span>不動產說明書</span>
-    <span><span class="pageNumber"></span>/<span class="totalPages"></span></span>
+    <span>第 <span class="pageNumber"></span> 頁 / 共 <span class="totalPages"></span> 頁</span>
   </div>`;
 
   const footerTemplate = `<div style="font-size:9px;width:100%;padding:0 12mm;text-align:center;color:#777;">

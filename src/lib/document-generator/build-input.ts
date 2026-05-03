@@ -3,6 +3,13 @@ import type { DocumentGeneratorInput } from './types';
 import type { ExtractedDataPayload } from '../ocr';
 import { calculateTaxFees } from './tax-calculator';
 
+const DEFAULT_OCR_THRESHOLD = 0.80;
+const envThreshold = parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD ?? '');
+const OCR_THRESHOLD =
+  !isNaN(envThreshold) && isFinite(envThreshold) && envThreshold >= 0 && envThreshold <= 1
+    ? envThreshold
+    : DEFAULT_OCR_THRESHOLD;
+
 /**
  * 安全解析 JSON 字串，失敗時回傳 {}
  */
@@ -22,6 +29,7 @@ function safeParseObject(json: string | null): Record<string, unknown> {
  * 將 ExtractedDataPayload 轉換為扁平的 Record<string, unknown>，供生成器使用。
  * - 若輸入是 ExtractedDataPayload 格式（含 merged_fields），從 merged_fields 提取 value
  * - 若輸入已是扁平物件，直接回傳
+ * - 若欄位有 confidence 屬性且低於門檻，過濾掉（避免亂碼滲入）
  */
 function flattenExtractedData(raw: Record<string, unknown>): Record<string, unknown> {
   const maybePayload = raw as unknown as Partial<ExtractedDataPayload>;
@@ -29,7 +37,11 @@ function flattenExtractedData(raw: Record<string, unknown>): Record<string, unkn
     const flat: Record<string, unknown> = {};
     for (const [key, field] of Object.entries(maybePayload.merged_fields)) {
       if (field && typeof field === 'object' && 'value' in field) {
-        flat[key] = (field as { value: unknown }).value;
+        const fieldObj = field as { value: unknown; confidence?: number };
+        if (typeof fieldObj.confidence === 'number' && fieldObj.confidence < OCR_THRESHOLD) {
+          continue;
+        }
+        flat[key] = fieldObj.value;
       }
     }
     return flat;
@@ -39,6 +51,7 @@ function flattenExtractedData(raw: Record<string, unknown>): Record<string, unkn
 
 /**
  * 依優先順序從多個資料來源取值：supplementary_data > extracted_data > field_visit_data
+ * 排除 undefined、null、空字串
  */
 function getMergedValue(
   fieldName: string,
@@ -48,11 +61,13 @@ function getMergedValue(
     field_visit_data: Record<string, unknown>;
   },
 ): unknown {
-  if (sources.supplementary_data[fieldName] !== undefined && sources.supplementary_data[fieldName] !== '') {
-    return sources.supplementary_data[fieldName];
+  const sup = sources.supplementary_data[fieldName];
+  if (sup !== undefined && sup !== null && sup !== '') {
+    return sup;
   }
-  if (sources.extracted_data[fieldName] !== undefined && sources.extracted_data[fieldName] !== '') {
-    return sources.extracted_data[fieldName];
+  const ext = sources.extracted_data[fieldName];
+  if (ext !== undefined && ext !== null && ext !== '') {
+    return ext;
   }
   return sources.field_visit_data[fieldName];
 }
