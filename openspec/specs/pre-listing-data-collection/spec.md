@@ -489,6 +489,8 @@ tests:
 
 The system SHALL store each property listing as a single record with two clearly separated data sections: "field-visit data" (filled by agent) and "supplementary data" (filled by secretary). Each section SHALL have its own completion status.
 
+**Added in upload-first-autofill change**: A third section "extracted data" (auto-populated by OCR pipeline) SHALL be maintained alongside the two human-authored sections. The creation flow SHALL sequence upload → OCR extraction → auto-fill before agent review, moving file upload from a late step to the first step of the workflow. Upload SHALL remain optional — agents without documents SHALL be able to skip upload and proceed to manual field entry.
+
 #### Scenario: Record status transitions
 
 - **WHEN** a new listing is created
@@ -500,225 +502,158 @@ The system SHALL store each property listing as a single record with two clearly
 - **WHEN** documents have been generated successfully
 - **THEN** the record status SHALL become "documents-ready"
 
+#### Scenario: Upload-first creation flow with OCR auto-fill
+
+- **WHEN** an agent creates a new listing via `/listings/new`
+- **THEN** the system SHALL redirect to `/listings/{id}/fill` with the chapter navigation starting at the `照片/文件` tab
+- **WHEN** the agent uploads one or more documents (transcript / title-deed / contract / photos)
+- **THEN** the system SHALL asynchronously trigger OCR extraction and write results to `extracted_data`
+- **WHEN** the agent proceeds to subsequent chapters
+- **THEN** fields populated from `extracted_data.merged_fields` SHALL render with green provenance badges
+- **AND** record status SHALL remain `draft` until agent explicitly submits the field-visit section
+
+#### Scenario: Skip upload for manual entry
+
+- **WHEN** an agent without any source documents clicks `跳過，全部手動輸入` on the upload chapter
+- **THEN** the system SHALL navigate to the `基本資料` chapter with all fields empty
+- **AND** record status SHALL remain `draft`
+- **AND** the agent SHALL complete the listing via manual entry only (no OCR involvement)
+
+
 <!-- @trace
-source: three-stage-listing-workflow
-updated: 2026-04-19
+source: upload-first-autofill
+updated: 2026-05-03
 code:
-  - stitch_ai/estate_logic/DESIGN.md
-  - .opencode/commands/spectra-archive.md
-  - docs/0417-old/不動產說明書14.pdf
-  - docker/first-login.sh
-  - docs/0417-old/不動產說明書6.pdf
-  - src/app/api/health/route.ts
-  - src/app/api/listings/[id]/generate/route.ts
-  - src/lib/document-generator/pdf/dossier-building.ts
-  - .spectra.yaml
-  - .github/prompts/spectra-ingest.prompt.md
-  - docs/0417-new/建安不動產欄位總表_建物版.docx
-  - docker/start.bat
-  - src/app/listings/new/page.tsx
-  - docs/0417-old/店面_秘書後補清單.docx
-  - src/components/Sidebar.tsx
-  - src/lib/db/index.ts
-  - docs/0417-old/廠房_現場必問清單.docx
-  - src/app/api/listings/[id]/route.ts
-  - docs/0417-old/農地_秘書後補清單.docx
-  - docs/0417-old/不動產說明書13.pdf
-  - docs/0417-old/不動產說明說16.pdf
-  - docs/0417-old/商業地_現場必問清單.docx
-  - src/lib/codex-client/index.ts
-  - .opencode/skills/spectra-discuss/SKILL.md
-  - src/lib/db/list-recent-helper.ts
-  - src/lib/property-types/index.ts
-  - src/lib/property-types/schemas/highrise.ts
-  - stitch_ai/ai/code.html
-  - src/lib/property-types/schemas/residential-land.ts
-  - vitest.config.ts
-  - docs/0417-old/工業地_現場必問清單.docx
-  - src/app/pre-commission/[id]/page.tsx
-  - .opencode/skills/spectra-debug/SKILL.md
-  - .opencode/skills/spectra-audit/SKILL.md
-  - docs/0417-old/其他土地_現場必問清單.docx
-  - docs/0417-old/鄉村區建地_現場必問清單.docx
-  - docs/0417-old/不動產說明書4.pdf
-  - scripts/cleanup-empty-drafts.ts
-  - docs/0417-old/不動產書說明書10.pdf
-  - docs/0417-old/建地_住宅地_現場必問清單.docx
-  - stitch_ai/estate_elite/DESIGN.md
-  - .github/skills/spectra-archive/SKILL.md
-  - src/lib/property-types/schemas/rural-land.ts
-  - src/app/api/pre-commission/[id]/parse-paste/route.ts
-  - docs/0417-old/土地物調表-母版.docx
-  - docs/0417-old/農舍_秘書後補清單.docx
-  - src/app/page.tsx
-  - src/lib/document-generator/md/dm.ts
-  - docker-compose.yml
-  - .github/skills/spectra-apply/SKILL.md
-  - docs/0417-old/建物物調表-母版.dot
-  - src/lib/property-types/schemas/commercial-land.ts
-  - src/lib/property-types/schemas/other-land.ts
-  - src/components/Stepper.tsx
-  - docs/0417-old/鄉村區建地_秘書後補清單.docx
-  - stitch_ai/_2/screen.png
-  - .opencode/commands/spectra-ingest.md
-  - .opencode/commands/spectra-apply.md
-  - docker/first-login.bat
-  - docs/0417-old/建地_住宅地_秘書後補清單.docx
-  - docs/0417-old/工業地_秘書後補清單.docx
-  - .opencode/commands/spectra-propose.md
-  - docs/client-questions.md
-  - .github/skills/spectra-discuss/SKILL.md
-  - docs/0417-old/不動產說明書8.pdf
-  - src/app/listings/[id]/documents/page.tsx
-  - src/lib/pdf-generator/dossier.ts
-  - AGENTS.md
-  - docs/0417-old/大樓華廈_秘書後補清單.docx
-  - .opencode/commands/spectra-debug.md
-  - next.config.ts
-  - src/lib/property-types/schemas/index.ts
-  - .cursorrules
-  - docs/0417-old/農地_現場必問清單.docx
-  - docker/start.sh
-  - src/lib/codex-client/types.ts
-  - docs/0417-old/周遭.pdf
-  - src/lib/codex-client/adapters/ollama.ts
-  - .opencode/commands/spectra-ask.md
-  - docs/0417-old/不動產書說明說7.pdf
-  - docs/release-note-v3.md
-  - src/lib/codex-client/adapters/codex.ts
-  - src/lib/property-types/schemas/farmhouse.ts
-  - docs/release-note-v3.0.0.md
-  - src/lib/property-types/schemas/townhouse.ts
-  - src/app/pre-commission/new/page.tsx
-  - src/components/outputs/index.ts
-  - docs/0417-old/其他土地_秘書後補清單.docx
-  - src/lib/storage/index.ts
-  - docs/0417-old/透天別墅_秘書後補清單.docx
-  - src/components/outputs/Listing591Output.tsx
-  - src/lib/document-generator/md/listing591.ts
-  - .github/skills/spectra-audit/SKILL.md
-  - .github/prompts/spectra-discuss.prompt.md
-  - docs/0417-old/不動產說明書9.pdf
-  - .github/prompts/spectra-archive.prompt.md
-  - .opencode/skills/spectra-ask/SKILL.md
-  - docs/installation-guide.md
-  - src/components/forms/FieldVisitForm.tsx
-  - src/lib/db/schema.ts
-  - src/app/api/pre-commission/[id]/lookup/route.ts
-  - docs/0417-old/不動產說明書11.pdf
-  - src/lib/document-generator/types.ts
-  - src/lib/property-types/schemas/industrial-land.ts
-  - .github/prompts/spectra-apply.prompt.md
-  - .github/prompts/spectra-audit.prompt.md
-  - src/lib/document-generator/index.ts
-  - docs/0417-old/套房_秘書後補清單.docx
-  - docs/0417-old/套房_現場必問清單.docx
-  - src/lib/listing-routes.ts
-  - src/lib/property-types/schemas/apartment.ts
-  - docs/extracted-dossier-schema.md
-  - src/lib/property-types/schemas/farmland.ts
-  - docs/0417-old/不動產說明書12.pdf
-  - docs/0417-old/農舍_現場必問清單.docx
-  - docs/dossier-chapter-structure.md
-  - src/components/forms/navigation-helpers.ts
-  - .github/skills/spectra-ingest/SKILL.md
-  - src/app/api/pre-commission/route.ts
-  - stitch_ai/_1/screen.png
-  - .github/skills/spectra-propose/SKILL.md
-  - src/lib/document-generator/md/survey.ts
-  - src/components/outputs/RegenerateButton.tsx
-  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
+  - scripts/verify-disclosure-pdf.ts
   - package.json
-  - .github/prompts/spectra-ask.prompt.md
-  - src/app/api/listings/[id]/regenerate/route.ts
-  - .opencode/commands/spectra-discuss.md
-  - .opencode/skills/spectra-ingest/SKILL.md
-  - src/lib/document-generator/pdf/dossier-land.ts
-  - .github/prompts/spectra-debug.prompt.md
-  - docs/0417-old/不動產說明書3.pdf
-  - src/app/listings/[id]/supplementary/page.tsx
-  - src/lib/pdf-generator/templates/dossier.css
-  - .opencode/skills/spectra-archive/SKILL.md
-  - src/lib/property-types/schemas/suite.ts
-  - Dockerfile
-  - docs/0417-old/不動產說明說15.pdf
-  - src/app/listings/[id]/fill/page.tsx
-  - docker/安裝說明.md
+  - src/lib/ocr/pdf-text-layer.ts
+  - src/app/api/listings/[id]/field-visit/route.ts
+  - src/lib/pdf-generator/survey-sales.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - AGENTS.md.before-zerospec-20260427
+  - three-ai-ui-test.js
+  - src/lib/db/schema.ts
+  - src/app/layout.tsx
+  - src/lib/codex-client/types.ts
+  - .env.example
+  - .opencode/commands/spectra-ingest.md
+  - .cursorrules
+  - .github/prompts/spectra-commit.prompt.md
+  - docs/README.md
+  - src/lib/ocr/field-mapping.ts
+  - .github/skills/spectra-discuss/SKILL.md
+  - src/lib/ocr/index.ts
+  - src/app/api/listings/[id]/extract/route.ts
   - src/lib/form-renderer/chapter-grouper.ts
-  - stitch_ai/ai/screen.png
-  - src/app/api/listings/route.ts
-  - src/lib/pre-commission/lookup.ts
-  - stitch_ai/_2/code.html
-  - docs/0417-old/公寓_現場必問清單.docx
-  - GEMINI.md
-  - .opencode/skills/spectra-apply/SKILL.md
-  - src/app/api/listings/[id]/photos/route.ts
-  - .opencode/skills/spectra-propose/SKILL.md
-  - src/lib/property-types/schemas/shop.ts
-  - .github/skills/spectra-ask/SKILL.md
-  - docker/compose.yaml
-  - docs/0417-new/建安不動產欄位總表_土地版.docx
-  - docs/0417-old/不動產說明書5.pdf
-  - docs/0417-old/公寓_秘書後補清單.docx
-  - docs/0417-old/廠房_秘書後補清單.docx
-  - docs/handoff/2026-04-17-v3-handoff.md
-  - docs/0417-old/商業地_秘書後補清單.docx
-  - .github/skills/spectra-debug/SKILL.md
-  - src/app/api/listings/[id]/pdf/route.ts
-  - src/lib/codex-client/adapters/gemini.ts
-  - CLAUDE.md
-  - docs/0417-old/不動產說明書2.pdf
-  - docs/0417-old/透明房價一覽表成交行情.pdf
-  - docs/0417-old/店面_現場必問清單.docx
-  - docs/0417-new/建安不動產欄位總表.md
-  - .github/prompts/spectra-propose.prompt.md
-  - src/components/forms/SupplementaryForm.tsx
-  - src/lib/document-generator/codex-provider.ts
-  - src/app/api/listings/[id]/documents/route.ts
-  - src/lib/document-generator/md/social.ts
-  - src/lib/pdf-generator/templates/dossier.html
-  - src/lib/property-types/schemas/factory.ts
-  - docs/0417-old/大樓華廈_現場必問清單.docx
-  - docs/0417-old/不動產說明書1.pdf
-  - src/app/listings/[id]/generating/page.tsx
-  - stitch_ai/_1/code.html
-  - src/lib/codex-client/adapters/claude-code.ts
-  - src/lib/form-renderer/index.ts
-  - docs/0417-old/透天別墅_現場必問清單.docx
-  - src/app/listings/page.tsx
+  - next.config.ts
   - .opencode/commands/spectra-audit.md
-  - docs/dossier-implementation-spec.md
+  - src/lib/codex-client/adapters/claude-code.ts
+  - CLAUDE.md
+  - docs/specs/SPEC-002_audit-trail.md
+  - src/lib/ocr/parsers/building-parser.ts
+  - .github/prompts/spectra-propose.prompt.md
+  - .github/prompts/spectra-ingest.prompt.md
+  - .opencode/commands/spectra-discuss.md
+  - kimi-usage-ux-issue-body.md
+  - .opencode/commands/spectra-propose.md
+  - .opencode/skills/spectra-apply/SKILL.md
+  - GEMINI.md
+  - listings.db
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/components/ui/ProvenanceBadge.tsx
+  - src/hooks/useExtractStatus.ts
+  - src/lib/document-generator/types.ts
+  - src/lib/ocr/normalize.ts
+  - migrations/003_add_extracted_data.sql
+  - src/lib/pdf-generator/templates/survey.html
+  - .github/skills/spectra-archive/SKILL.md
+  - src/lib/codex-client/adapters/codex.ts
+  - .github/prompts/spectra-ask.prompt.md
+  - AGENTS.md
+  - src/lib/codex-client/adapters/gemini.ts
+  - src/lib/document-generator/build-input.ts
+  - .opencode/skills/spectra-commit/SKILL.md
+  - src/lib/external-links/url-builder.ts
+  - src/test-setup.ts
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - docs/adr/ADR-001_sqlite-cloud-split.md
+  - src/lib/ocr/parsers/land-parser.ts
+  - .github/skills/spectra-apply/SKILL.md
+  - Dockerfile
+  - docs/kimi-prompts-wave1-fix-disclosure.md
+  - src/lib/codex-client/adapters/ollama.ts
+  - src/components/Sidebar.tsx
+  - src/components/ui/ExtractProgress.tsx
+  - .github/prompts/spectra-archive.prompt.md
+  - src/components/forms/SupplementaryForm.tsx
+  - src/components/LLMVisionConsentDialog.tsx
+  - src/lib/pdf-generator/templates/sales-dm.html
+  - .github/prompts/spectra-audit.prompt.md
+  - src/lib/schemas/supplementary-schema.ts
+  - playwright.config.ts
+  - src/app/api/listings/[id]/attachments/route.ts
+  - src/lib/ocr/section-splitter.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/components/PhotoUploadClassifier.tsx
+  - src/lib/ocr/llm-vision-prompts.ts
+  - src/lib/document-generator/tax-calculator.ts
+  - src/app/api/listings/[id]/generate/route.ts
+  - .opencode/commands/spectra-commit.md
+  - src/app/api/listings/[id]/extract-status/route.ts
+  - src/components/ui/SourceSwitcher.tsx
+  - src/lib/ocr/text-cleanup.ts
+  - .opencode/commands/spectra-ask.md
+  - docs/specs/SPEC-005_data-portability.md
+  - src/lib/ocr/parsers/mixed-parser.ts
+  - .opencode/commands/spectra-archive.md
+  - .opencode/commands/spectra-apply.md
+  - .github/prompts/spectra-debug.prompt.md
+  - .opencode/commands/spectra-debug.md
+  - src/lib/pdf-generator/templates/dossier.html
+  - docs/specs/SPEC-003_api-security.md
+  - src/app/listings/[id]/supplementary/page.tsx
+  - docs/adr/ADR-003_docker-optimization.md
+  - src/lib/document-generator/pdf/acroform-overlay.ts
+  - .github/skills/spectra-commit/SKILL.md
+  - docs/specs/SPEC-001_auth-identity.md
+  - .github/prompts/spectra-apply.prompt.md
+  - docs/specs/SPEC-004_notification-system.md
+  - .github/prompts/spectra-discuss.prompt.md
+  - src/app/listings/[id]/fill/page.tsx
+  - kimi-statusline-issue-body.md
+  - src/lib/codex-client/index.ts
+  - src/lib/db/index.ts
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/app/api/listings/[id]/field-visit/switch-source/route.ts
+  - three-ai.db
+  - src/app/api/listings/[id]/pdf/route.ts
+  - kimi-statusline-feature-request.md
+  - vitest.config.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - .github/skills/spectra-propose/SKILL.md
+  - docs/adr/ADR-002_llm-backend-pluggability.md
+  - src/components/forms/FieldVisitForm.tsx
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/app/api/listings/[id]/route.ts
 tests:
-  - src/lib/property-types/__tests__/all-types.test.ts
-  - src/components/__tests__/Stepper.test.tsx
-  - src/lib/db/__tests__/state-machine.test.ts
-  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
-  - src/components/outputs/__tests__/social-post-limits.test.ts
-  - src/lib/property-types/__tests__/index.test.ts
-  - src/lib/document-generator/__tests__/five-documents.test.ts
-  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
-  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
-  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
-  - src/lib/codex-client/__tests__/codex-client.test.ts
-  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
-  - src/lib/db/__tests__/regenerate.test.ts
-  - src/app/api/__tests__/listings-delete.test.ts
-  - src/lib/db/__tests__/e2e-residential.test.ts
-  - src/lib/document-generator/__tests__/land-type.test.ts
-  - src/lib/db/__tests__/list-recent.test.ts
-  - src/lib/db/__tests__/e2e-farmland.test.ts
-  - src/lib/__tests__/listing-routes.test.ts
-  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
   - src/lib/pdf-generator/__tests__/dossier.test.ts
-  - src/lib/__tests__/cleanup-empty-drafts.test.ts
-  - src/lib/form-renderer/__tests__/all-property-types.test.ts
-  - src/app/api/__tests__/listings-photos.test.ts
-  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
-  - src/components/forms/__tests__/field-visit-navigation.test.ts
-  - src/app/api/__tests__/listings.test.ts
-  - src/lib/db/__tests__/index.test.ts
-  - src/lib/db/__tests__/listing-workflow.test.ts
-  - src/lib/document-generator/__tests__/script-validation.test.ts
+  - e2e/external-market-lookup.spec.ts
+  - src/lib/codex-client/__tests__/fallback-chain.test.ts
+  - src/lib/document-generator/__tests__/tax-calculator.test.ts
+  - src/lib/ocr/__tests__/text-cleanup.test.ts
+  - src/lib/ocr/__tests__/land-parser.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - e2e/autofill-upload.spec.ts
+  - src/components/__tests__/MarketLookupPanel.test.tsx
+  - e2e/screenshot-market-lookup.spec.ts
+  - src/lib/document-generator/__tests__/build-input.test.ts
+  - src/lib/ocr/__tests__/building-parser.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/lib/ocr/__tests__/section-splitter.test.ts
+  - src/lib/document-generator/__tests__/acroform-overlay.test.ts
+  - src/lib/ocr/__tests__/e2e-autofill.spec.ts
+  - src/lib/ocr/__tests__/normalize.test.ts
 -->
 
 ---

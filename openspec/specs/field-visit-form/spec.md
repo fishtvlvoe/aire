@@ -1175,6 +1175,8 @@ The form SHALL perform a one-time hydration when `initialData` first transitions
 
 The property-type selector clear-form effect SHALL only execute when `propertyType` prop is `undefined` (i.e., uncontrolled mode). In controlled mode (parent passes `propertyType`), changing property types SHALL NOT clear the form because controlled mode implies editing an existing listing.
 
+**Added in upload-first-autofill change**: `initialData` SHALL support two sources merged by precedence: (1) `field_visit_data` (agent-edited values), and (2) `extracted_data.merged_fields` (OCR-extracted values). Agent-edited values SHALL take precedence over OCR values on conflict — see `auto-fill-fields` capability's "User edit wins on conflict" requirement. Each field SHALL render a provenance badge indicating source (green = OCR-filled, orange = user-modified, yellow = parsing-in-progress, purple = LLM Vision, no badge = manual-only).
+
 #### Scenario: Load existing listing for edit
 
 - **WHEN** user navigates to `/listings/{id}/fill` for a listing whose `field_visit_data` contains `{"address": "台南市中西區民族路三段191號", "price": "500"}`
@@ -1193,64 +1195,148 @@ The property-type selector clear-form effect SHALL only execute when `propertyTy
 - **THEN** the form SHALL render with all fields empty
 - **THEN** no hydration effect SHALL occur
 
+#### Scenario: Hydrate from OCR-extracted data with provenance
+
+- **WHEN** a listing has `extracted_data.merged_fields.address = { value: "臺南市下營區十六甲段2195-0000地號", confidence: 0.97, from: "att_abc" }` and `field_visit_data.address` is empty
+- **THEN** the `物件地址` field SHALL display `臺南市下營區十六甲段2195-0000地號`
+- **AND** the field SHALL render a green provenance badge labelled `📄 已從 {filename} 帶入`
+- **AND** subsequent agent edits SHALL transition the badge to orange `✏️ 已修改` (User edit wins on conflict)
+
 
 <!-- @trace
-source: improve-listings-ux-and-fix-pdf
-updated: 2026-04-19
+source: upload-first-autofill
+updated: 2026-05-03
 code:
-  - src/lib/property-types/schemas/highrise.ts
+  - scripts/verify-disclosure-pdf.ts
   - package.json
-  - scripts/cleanup-empty-drafts.ts
-  - src/components/forms/FieldVisitForm.tsx
-  - src/lib/form-renderer/index.ts
-  - src/app/listings/[id]/fill/page.tsx
-  - src/app/api/listings/[id]/generate/route.ts
-  - src/lib/property-types/schemas/farmhouse.ts
-  - src/lib/property-types/schemas/shop.ts
-  - src/app/api/listings/[id]/route.ts
-  - vitest.config.ts
-  - src/lib/property-types/schemas/factory.ts
-  - src/app/listings/[id]/generating/page.tsx
-  - src/lib/property-types/schemas/apartment.ts
-  - src/lib/property-types/schemas/other-land.ts
-  - src/lib/property-types/schemas/rural-land.ts
-  - src/app/listings/[id]/documents/page.tsx
-  - src/components/Stepper.tsx
-  - src/components/outputs/RegenerateButton.tsx
-  - src/lib/property-types/schemas/farmland.ts
-  - src/app/api/listings/[id]/photos/route.ts
+  - src/lib/ocr/pdf-text-layer.ts
+  - src/app/api/listings/[id]/field-visit/route.ts
+  - src/lib/pdf-generator/survey-sales.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - AGENTS.md.before-zerospec-20260427
+  - three-ai-ui-test.js
+  - src/lib/db/schema.ts
+  - src/app/layout.tsx
+  - src/lib/codex-client/types.ts
+  - .env.example
+  - .opencode/commands/spectra-ingest.md
+  - .cursorrules
+  - .github/prompts/spectra-commit.prompt.md
+  - docs/README.md
+  - src/lib/ocr/field-mapping.ts
+  - .github/skills/spectra-discuss/SKILL.md
+  - src/lib/ocr/index.ts
+  - src/app/api/listings/[id]/extract/route.ts
   - src/lib/form-renderer/chapter-grouper.ts
-  - src/lib/property-types/schemas/residential-land.ts
-  - src/app/api/listings/[id]/pdf/route.ts
-  - src/lib/property-types/schemas/industrial-land.ts
-  - src/lib/db/list-recent-helper.ts
+  - next.config.ts
+  - .opencode/commands/spectra-audit.md
+  - src/lib/codex-client/adapters/claude-code.ts
+  - CLAUDE.md
+  - docs/specs/SPEC-002_audit-trail.md
+  - src/lib/ocr/parsers/building-parser.ts
+  - .github/prompts/spectra-propose.prompt.md
+  - .github/prompts/spectra-ingest.prompt.md
+  - .opencode/commands/spectra-discuss.md
+  - kimi-usage-ux-issue-body.md
+  - .opencode/commands/spectra-propose.md
+  - .opencode/skills/spectra-apply/SKILL.md
+  - GEMINI.md
+  - listings.db
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/components/ui/ProvenanceBadge.tsx
+  - src/hooks/useExtractStatus.ts
+  - src/lib/document-generator/types.ts
+  - src/lib/ocr/normalize.ts
+  - migrations/003_add_extracted_data.sql
+  - src/lib/pdf-generator/templates/survey.html
+  - .github/skills/spectra-archive/SKILL.md
+  - src/lib/codex-client/adapters/codex.ts
+  - .github/prompts/spectra-ask.prompt.md
+  - AGENTS.md
+  - src/lib/codex-client/adapters/gemini.ts
+  - src/lib/document-generator/build-input.ts
+  - .opencode/skills/spectra-commit/SKILL.md
+  - src/lib/external-links/url-builder.ts
+  - src/test-setup.ts
+  - src/lib/document-generator/pdf/dossier-land.ts
+  - docs/adr/ADR-001_sqlite-cloud-split.md
+  - src/lib/ocr/parsers/land-parser.ts
+  - .github/skills/spectra-apply/SKILL.md
+  - Dockerfile
+  - docs/kimi-prompts-wave1-fix-disclosure.md
+  - src/lib/codex-client/adapters/ollama.ts
   - src/components/Sidebar.tsx
-  - src/lib/property-types/schemas/townhouse.ts
-  - src/app/listings/[id]/supplementary/page.tsx
+  - src/components/ui/ExtractProgress.tsx
+  - .github/prompts/spectra-archive.prompt.md
   - src/components/forms/SupplementaryForm.tsx
+  - src/components/LLMVisionConsentDialog.tsx
+  - src/lib/pdf-generator/templates/sales-dm.html
+  - .github/prompts/spectra-audit.prompt.md
+  - src/lib/schemas/supplementary-schema.ts
+  - playwright.config.ts
+  - src/app/api/listings/[id]/attachments/route.ts
+  - src/lib/ocr/section-splitter.ts
   - src/lib/pdf-generator/dossier.ts
-  - src/lib/listing-routes.ts
-  - src/app/listings/page.tsx
-  - src/lib/property-types/schemas/commercial-land.ts
-  - src/lib/property-types/schemas/suite.ts
-  - src/components/forms/navigation-helpers.ts
-  - src/app/api/listings/route.ts
+  - src/components/PhotoUploadClassifier.tsx
+  - src/lib/ocr/llm-vision-prompts.ts
+  - src/lib/document-generator/tax-calculator.ts
+  - src/app/api/listings/[id]/generate/route.ts
+  - .opencode/commands/spectra-commit.md
+  - src/app/api/listings/[id]/extract-status/route.ts
+  - src/components/ui/SourceSwitcher.tsx
+  - src/lib/ocr/text-cleanup.ts
+  - .opencode/commands/spectra-ask.md
+  - docs/specs/SPEC-005_data-portability.md
+  - src/lib/ocr/parsers/mixed-parser.ts
+  - .opencode/commands/spectra-archive.md
+  - .opencode/commands/spectra-apply.md
+  - .github/prompts/spectra-debug.prompt.md
+  - .opencode/commands/spectra-debug.md
+  - src/lib/pdf-generator/templates/dossier.html
+  - docs/specs/SPEC-003_api-security.md
+  - src/app/listings/[id]/supplementary/page.tsx
+  - docs/adr/ADR-003_docker-optimization.md
+  - src/lib/document-generator/pdf/acroform-overlay.ts
+  - .github/skills/spectra-commit/SKILL.md
+  - docs/specs/SPEC-001_auth-identity.md
+  - .github/prompts/spectra-apply.prompt.md
+  - docs/specs/SPEC-004_notification-system.md
+  - .github/prompts/spectra-discuss.prompt.md
+  - src/app/listings/[id]/fill/page.tsx
+  - kimi-statusline-issue-body.md
+  - src/lib/codex-client/index.ts
   - src/lib/db/index.ts
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/app/api/listings/[id]/field-visit/switch-source/route.ts
+  - three-ai.db
+  - src/app/api/listings/[id]/pdf/route.ts
+  - kimi-statusline-feature-request.md
+  - vitest.config.ts
+  - src/lib/document-generator/pdf/dossier-building.ts
+  - .github/skills/spectra-propose/SKILL.md
+  - docs/adr/ADR-002_llm-backend-pluggability.md
+  - src/components/forms/FieldVisitForm.tsx
+  - src/app/api/listings/[id]/regenerate/route.ts
+  - src/app/api/listings/[id]/route.ts
 tests:
-  - src/app/api/__tests__/listings-delete.test.ts
-  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
-  - src/components/forms/__tests__/field-visit-navigation.test.ts
-  - src/lib/property-types/__tests__/index.test.ts
-  - src/lib/db/__tests__/e2e-residential.test.ts
-  - src/lib/__tests__/cleanup-empty-drafts.test.ts
-  - src/app/api/__tests__/listings.test.ts
-  - src/lib/db/__tests__/e2e-farmland.test.ts
-  - src/lib/__tests__/listing-routes.test.ts
-  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
-  - src/components/__tests__/Stepper.test.tsx
-  - src/lib/db/__tests__/list-recent.test.ts
   - src/lib/pdf-generator/__tests__/dossier.test.ts
-  - src/app/api/__tests__/listings-photos.test.ts
+  - e2e/external-market-lookup.spec.ts
+  - src/lib/codex-client/__tests__/fallback-chain.test.ts
+  - src/lib/document-generator/__tests__/tax-calculator.test.ts
+  - src/lib/ocr/__tests__/text-cleanup.test.ts
+  - src/lib/ocr/__tests__/land-parser.test.ts
+  - src/app/api/__tests__/listings-delete.test.ts
+  - e2e/autofill-upload.spec.ts
+  - src/components/__tests__/MarketLookupPanel.test.tsx
+  - e2e/screenshot-market-lookup.spec.ts
+  - src/lib/document-generator/__tests__/build-input.test.ts
+  - src/lib/ocr/__tests__/building-parser.test.ts
+  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
+  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
+  - src/lib/ocr/__tests__/section-splitter.test.ts
+  - src/lib/document-generator/__tests__/acroform-overlay.test.ts
+  - src/lib/ocr/__tests__/e2e-autofill.spec.ts
+  - src/lib/ocr/__tests__/normalize.test.ts
 -->
 
 ---
