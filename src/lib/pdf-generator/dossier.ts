@@ -62,7 +62,7 @@ export function buildFullHtml(
       ? String(companyNameRaw).trim()
       : `<span data-field-id="header-company-name" class="pdf-blank">______</span>`;
 
-  result = result.replace('{{PROPERTY_NAME}}', propertyName || `<span data-field-id="header-property-name" class="pdf-blank">______</span>`);
+  result = result.replaceAll('{{PROPERTY_NAME}}', propertyName || `<span data-field-id="header-property-name" class="pdf-blank">______</span>`);
   result = result.replace('{{CASE_ID}}', caseNumber || `<span data-field-id="header-case-number" class="pdf-blank">______</span>`);
   result = result.replace('{{PROPERTY_ADDRESS}}', address || `<span data-field-id="header-address" class="pdf-blank">______</span>`);
   result = result.replace('{{COMPANY_NAME_DISPLAY}}', companyNameDisplay || '不動產仲介');
@@ -73,6 +73,11 @@ export function buildFullHtml(
     ? String(agentNameRaw).trim()
     : '______';
   result = result.replace('{{AGENT_NAME}}', agentName);
+
+  const caseHandler = String(supplementary.case_handler ?? '');
+  const shopManager = String(supplementary.shop_manager ?? '');
+  result = result.replace('{{CASE_HANDLER}}', caseHandler);
+  result = result.replace('{{SHOP_MANAGER}}', shopManager);
 
   // Insert main content
   result = result.replace('{{CONTENT}}', contentHtml);

@@ -196,7 +196,7 @@ function extractFromYaml(doc: any): TranscriptParseResult {
   // 1.2 extension（若有土地欄位則提取）
   const asText = JSON.stringify(doc);
   additional.announced_land_value = findFirstNumberNear(asText, [/公告土地現值/]);
-  additional.announced_land_price = findFirstNumberNear(asText, [/公告地價/]);
+  additional.announced_land_price = findFirstNumberNear(asText, [/公告地價/, /申報地價/, /當期申報地價/]);
   const zoningMatch = asText.match(/使用分區[^\u4e00-\u9fff]*([\u4e00-\u9fff]{2,10})/);
   if (zoningMatch) additional.land_use_zoning = zoningMatch[1];
   additional.previous_transfer_value = findFirstNumberNear(asText, [/前次移轉/, /移轉現值/]);

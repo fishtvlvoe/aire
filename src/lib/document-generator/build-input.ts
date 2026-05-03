@@ -1,7 +1,7 @@
 import type { Listing } from '../db';
 import type { DocumentGeneratorInput } from './types';
 import type { ExtractedDataPayload } from '../ocr';
-import { calculateTaxFees } from './tax-calculator';
+import { calculateTaxFees, calculateLandValueIncrement } from './tax-calculator';
 
 const DEFAULT_OCR_THRESHOLD = 0.80;
 const envThreshold = parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD ?? '');
@@ -178,6 +178,19 @@ export function buildDocumentInput(listing: Listing): DocumentGeneratorInput {
   if (taxResult.stamp_tax_seller !== null) system_computed.computed_stamp_tax_seller = taxResult.stamp_tax_seller;
   if (taxResult.registration_fee !== null) system_computed.computed_registration_fee = taxResult.registration_fee;
   if (taxResult.escrow_fee_each !== null) system_computed.computed_escrow_fee_each = taxResult.escrow_fee_each;
+
+  // 土地增值稅試算（取 extracted_data 或 supplementary_data 的前次移轉現值）
+  const prevTransferRaw = extracted_data.previous_transfer_value ?? supplementary_data.previous_transfer_value;
+  const prevTransferNum = typeof prevTransferRaw === 'number' ? prevTransferRaw
+    : typeof prevTransferRaw === 'string' ? parseFloat(prevTransferRaw)
+    : NaN;
+  const landIncrement = calculateLandValueIncrement({
+    previous_transfer_value: isFinite(prevTransferNum) ? prevTransferNum : undefined,
+  });
+  if (landIncrement !== null) {
+    system_computed.computed_land_increment_general_approx = landIncrement.general;
+    system_computed.computed_land_increment_self_use_approx = landIncrement.selfUse;
+  }
 
   // system_computed tax keys (conditionally present):
   // computed_deed_tax: number

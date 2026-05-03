@@ -44,3 +44,14 @@ export function calculateTaxFees(input: {
     escrow_fee_each,
   };
 }
+
+export function calculateLandValueIncrement(
+  input: { previous_transfer_value?: number }
+): { general: number; selfUse: number } | null {
+  const val = input.previous_transfer_value;
+  if (!isValidNumber(val)) return null;
+  return {
+    general: Math.round(val * 0.1),
+    selfUse: Math.round(val * 0.08),
+  };
+}

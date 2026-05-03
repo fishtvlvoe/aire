@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateTaxFees } from '../tax-calculator';
+import { calculateTaxFees, calculateLandValueIncrement } from '../tax-calculator';
 
 describe('calculateTaxFees', () => {
   const SALE_PRICE = 5_000_000;
@@ -56,5 +56,29 @@ describe('calculateTaxFees', () => {
     expect(result.stamp_tax_seller).toBeNull();
     expect(result.registration_fee).toBeNull();
     expect(result.escrow_fee_each).toBeNull();
+  });
+});
+
+describe('calculateLandValueIncrement', () => {
+  it('previous_transfer_value = 5000000 → general=500000, selfUse=400000', () => {
+    const result = calculateLandValueIncrement({ previous_transfer_value: 5_000_000 });
+    expect(result).not.toBeNull();
+    expect(result!.general).toBe(500_000);
+    expect(result!.selfUse).toBe(400_000);
+  });
+
+  it('previous_transfer_value = undefined → null', () => {
+    expect(calculateLandValueIncrement({ previous_transfer_value: undefined })).toBeNull();
+  });
+
+  it('previous_transfer_value = NaN → null', () => {
+    expect(calculateLandValueIncrement({ previous_transfer_value: NaN })).toBeNull();
+  });
+
+  it('previous_transfer_value = 0 → { general: 0, selfUse: 0 }（非 null）', () => {
+    const result = calculateLandValueIncrement({ previous_transfer_value: 0 });
+    expect(result).not.toBeNull();
+    expect(result!.general).toBe(0);
+    expect(result!.selfUse).toBe(0);
   });
 });

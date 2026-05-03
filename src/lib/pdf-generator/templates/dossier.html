@@ -49,24 +49,24 @@
 
     <!-- 文件主標題 -->
     <h1>不動產說明書</h1>
+    <p class="dossier-subtitle">{{PROPERTY_NAME}}</p>
 
     <!-- 物件基本資訊摘要列 -->
     <table>
       <tr>
         <th style="width:25%;">物件名稱</th>
         <td>{{PROPERTY_NAME}}</td>
-        <th style="width:20%;">案件編號</th>
+        <th style="width:20%;">物件編號</th>
         <td>{{CASE_ID}}</td>
       </tr>
       <tr>
-        <th>地址</th>
-        <td colspan="2">{{PROPERTY_ADDRESS}}</td>
-        <th style="width:20%;">公司名稱</th>
-        <td>{{COMPANY_NAME_CELL}}</td>
+        <th>公司名稱</th>
+        <td colspan="3">{{COMPANY_NAME_CELL}}</td>
       </tr>
       <tr>
-        <th>負責業務</th>
-        <td colspan="3">{{AGENT_NAME}}</td>
+        <td>承辦人：{{CASE_HANDLER}}</td>
+        <td>店長：{{SHOP_MANAGER}}</td>
+        <td colspan="2">經紀人：{{AGENT_NAME}}</td>
       </tr>
     </table>
 

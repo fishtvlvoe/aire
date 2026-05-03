@@ -53,12 +53,12 @@ ${fieldVisit}
 ${supplementary}
 \`\`\`
 
-## 謄本 OCR 解析資料（extracted_data，來自 PDF 自動辨識，請優先採用但標注來源）
+## 謄本 OCR 解析資料（extracted_data，來自 PDF 自動辨識）
 \`\`\`json
 ${extractedData}
 \`\`\`
 - 此區塊的資料來自 OCR 自動辨識，可能有辨識誤差。
-- 若此區塊有值而 supplementary_data 對應欄位為空，請採用此值，並在欄位後標注「（OCR讀取，請確認）」。
+- 若此區塊有值而 supplementary_data 對應欄位為空，請直接使用此值，不加任何來源標注。
 - 優先順序：supplementary_data > extracted_data > field_visit_data。
 
 ## 系統計算結果（system_computed，稅費/日期/頁數由系統提供）
@@ -113,6 +113,7 @@ ${marketResearch}
 
 #### 章節 4：成交條件/費用分擔
 請根據 pre_commission_data，以 2~5 點白話條列方式說明買賣方式、代書費/履保等費用分擔，以及其他約定事項。資料不足標「待補」。
+輸出純中文內容，禁止使用「（英文key：值）」等括號格式顯示欄位名稱。例：「交易方式：買賣。」，不可寫成「交易方式：買賣（transaction_type：買賣）。」
 
 ---
 
@@ -120,17 +121,17 @@ ${marketResearch}
 
 本章為固定欄位，請依照以下優先順序填入資料：
 1. 優先使用 supplementary_data 中對應欄位的值
-2. supplementary_data 無值時，使用 extracted_data 中指定的 key（並在括弧中標注「OCR讀取，請確認」）
+2. supplementary_data 無值時，使用 extracted_data 中指定的 key，直接填入值
 3. 兩者皆無則填 {{待補}}
 
 欄位對應表：
-- 建號：supplementary_data.building_number → 否則取 extracted_data.building_number（OCR讀取，請確認）→ 否則{{待補}}
-- 法定用途：supplementary_data.legal_use → 否則解析 extracted_data.current_purpose 中包含的用途字串（如「住家用」）（OCR讀取，請確認）→ 否則{{待補}}
-- 主要建材：supplementary_data.structure → 否則解析 extracted_data.structure 中包含的建材字串（如「鋼筋混凝土造」）（OCR讀取，請確認）→ 否則{{待補}}
-- 總樓層：supplementary_data.floor_count → 否則取 extracted_data.floor_count（OCR讀取，請確認）→ 否則{{待補}}
-- 主建物坪數：supplementary_data.building_area → 否則取 extracted_data.building_area（單位為㎡，換算坪數請乘以0.3025）（OCR讀取，請確認）→ 否則{{待補}}
-- 建築完成日：supplementary_data.completion_date → 否則取 extracted_data.year_built（OCR讀取，請確認）→ 否則{{待補}}
-- 門牌地址：supplementary_data.address → 否則取 extracted_data.address（OCR讀取，請確認）→ 否則{{待補}}
+- 建號：supplementary_data.building_number → 否則取 extracted_data.building_number → 否則{{待補}}
+- 法定用途：supplementary_data.legal_use → 否則解析 extracted_data.current_purpose 中包含的用途字串（如「住家用」）→ 否則{{待補}}
+- 主要建材：supplementary_data.structure → 否則解析 extracted_data.structure 中包含的建材字串（如「鋼筋混凝土造」）→ 否則{{待補}}
+- 總樓層：supplementary_data.floor_count → 否則取 extracted_data.floor_count → 否則{{待補}}
+- 主建物坪數：supplementary_data.building_area → 否則取 extracted_data.building_area（單位為㎡，換算坪數請乘以0.3025）→ 否則{{待補}}
+- 建築完成日：supplementary_data.completion_date → 否則取 extracted_data.year_built → 否則{{待補}}
+- 門牌地址：supplementary_data.address → 否則取 extracted_data.address → 否則{{待補}}
 - 附屬建物坪數：supplementary_data.accessory_area → 否則{{待補}}
 - 公設坪數：supplementary_data.common_area → 否則{{待補}}
 - 備註：以最新謄本為準。
@@ -141,18 +142,18 @@ ${marketResearch}
 
 本章為固定欄位，請依照以下優先順序填入資料：
 1. 優先使用 supplementary_data 中對應欄位的值
-2. supplementary_data 無值時，使用 extracted_data 中指定的 key（並在括弧中標注「OCR讀取，請確認」）
+2. supplementary_data 無值時，使用 extracted_data 中指定的 key，直接填入值
 3. 兩者皆無則填 {{待補}}
 
 若有多筆地號，逐筆列出。
 
 欄位對應表：
-- 地段/地號：supplementary_data.land_number → 否則取 extracted_data.land_number（OCR讀取，請確認）→ 否則{{待補}}
-- 土地面積：supplementary_data.land_area → 否則取 extracted_data.land_area（單位為㎡）（OCR讀取，請確認）→ 否則{{待補}}
+- 地段/地號：supplementary_data.land_number → 否則取 extracted_data.land_number → 否則{{待補}}
+- 土地面積：supplementary_data.land_area → 否則取 extracted_data.land_area（單位為㎡）→ 否則{{待補}}
 - 使用分區/用地別：supplementary_data.zoning → 否則{{待補}}
-- 持分比例：supplementary_data.rights_range → 否則取 extracted_data.rights_range（OCR讀取，請確認）→ 否則{{待補}}
-- 公告現值：supplementary_data.announced_land_value → 否則{{待補}}
-- 公告地價：supplementary_data.announced_land_price → 否則取 extracted_data.announced_land_value（OCR讀取，請確認）→ 否則{{待補}}
+- 持分比例：supplementary_data.rights_range → 否則取 extracted_data.rights_range → 否則{{待補}}
+- 公告土地現值（每平方公尺，土地專屬，不含建物評定現值）：supplementary_data.announced_land_value → 否則{{待補}}
+- 公告地價：supplementary_data.announced_land_price → 否則取 extracted_data.announced_land_price → 否則{{待補}}
 
 ---
 
@@ -172,6 +173,7 @@ ${marketResearch}
 - 管委會/共管
 - 分租狀況
 格式：項目 | 狀態 | 備註
+無資料的項目，「狀態」與「備註」欄位一律留空，禁止填入「資料不足」或任何說明文字。
 
 ---
 
@@ -188,16 +190,17 @@ ${marketResearch}
 ---
 
 #### 章節 10：稅費/規費/其他費用（項目 + 金額）
-本章所有金額取自 system_computed，AI 不得自行計算。請輸出以下表格，缺值填「待補」：
+本章所有金額取自 system_computed，AI 不得自行計算。請輸出以下表格，無值時儲存格完全留空，禁止填入「待補」或任何說明文字：
 | 項目 | 基礎 | 金額 | 備註 |
 |------|------|------|------|
-| 契稅 | | | |
+| 契稅 | | system_computed.computed_deed_tax | |
 | 房屋稅 | | | |
 | 地價稅 | | | |
-| 印花稅 | | | |
-| 登記規費 | | | |
+| 印花稅（買方） | | system_computed.computed_stamp_tax_buyer | |
+| 印花稅（賣方） | | system_computed.computed_stamp_tax_seller | |
+| 登記規費 | | system_computed.computed_registration_fee | |
 | 代書費 | | | |
-| 履保費 | | | |
+| 履保費（各半） | | system_computed.computed_escrow_fee_each | |
 
 ---
 
@@ -207,16 +210,16 @@ ${marketResearch}
 ---
 
 #### 章節 12：土地增值稅概算（一般/自用）
-本章所有數字取自 system_computed，請輸出雙欄比較表：
+本章所有數字取自 system_computed，請輸出雙欄比較表；無值時儲存格完全留空：
 | 項目 | 一般稅率 | 自用稅率 |
 |------|---------|---------|
-| 試算金額 | | |
+| 試算金額 | system_computed.computed_land_increment_general_approx | system_computed.computed_land_increment_self_use_approx |
 | 試算基礎 | | |
 | 原地價/現值 | | |
 | 物價指數 | | |
 | 扣除額 | | |
 | 持分 | | |
-缺值填「待補」。
+以上土地增值稅為試算近似值，以主管機關核定為準。
 
 ---
 
@@ -227,7 +230,8 @@ ${marketResearch}
 
 #### 章節 14：周遭機能
 請根據 external_data 中的周遭設施清單，撰寫 3~5 點生活機能摘要（採買/通勤/醫療/教育等）。格式：
-- [類別]：[名稱，距離]（取自 external_data，缺則待補）
+- [類別]：[名稱（距離，若有具體數字）]
+無具體距離數字時只列設施名稱，禁止輸出「（距離）」佔位符。禁止輸出「（已確認）」等確認標記。
 
 ---
 
