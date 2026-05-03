@@ -19,8 +19,8 @@
 
 ## 5. Wave 5：Pipeline 整合（依賴 Wave 3 + Wave 4）
 
-- [ ] [P] 5.1 修改 `src/lib/document-generator/pdf/dossier.ts` 中的 `generateDossierPDF()` 函數：在 Puppeteer `page.goto()` 後、`page.pdf()` 前，新增 `page.evaluate()` 呼叫，取得所有 `[data-field-id]` 元素的 `getBoundingClientRect()`，建立 FieldCoordMap（需換算 HTML px → PDF pt，比例 = 72/96）。`page.pdf()` 產生 pdfBytes 後，呼叫 `overlayAcroForm(pdfBytes, coordMap)` 得到最終 pdfBytes。[Tool: sonnet]
-- [ ] [P] 5.2 修改 `src/lib/document-generator/build-input.ts` 的 `buildDocumentInput()`，新增 tax 計算：從 `supplementary_data.sale_price_text` 解析 `sale_price`（× 10000 還原萬元），從 `supplementary_data.house_assessed_value`（或 `extracted_data.house_assessed_value`）取得房屋現值，呼叫 `calculateTaxFees()` 並將結果附加至 `system_computed`（keys: `computed_deed_tax`、`computed_stamp_tax_buyer`、`computed_stamp_tax_seller`、`computed_registration_fee`、`computed_escrow_fee`）。[Tool: copilot]
+- [x] [P] 5.1 修改 `src/lib/document-generator/pdf/dossier.ts` 中的 `generateDossierPDF()` 函數：在 Puppeteer `page.goto()` 後、`page.pdf()` 前，新增 `page.evaluate()` 呼叫，取得所有 `[data-field-id]` 元素的 `getBoundingClientRect()`，建立 FieldCoordMap（需換算 HTML px → PDF pt，比例 = 72/96）。`page.pdf()` 產生 pdfBytes 後，呼叫 `overlayAcroForm(pdfBytes, coordMap)` 得到最終 pdfBytes。[Tool: sonnet]
+- [x] [P] 5.2 修改 `src/lib/document-generator/build-input.ts` 的 `buildDocumentInput()`，新增 tax 計算：從 `supplementary_data.sale_price_text` 解析 `sale_price`（× 10000 還原萬元），從 `supplementary_data.house_assessed_value`（或 `extracted_data.house_assessed_value`）取得房屋現值，呼叫 `calculateTaxFees()` 並將結果附加至 `system_computed`（keys: `computed_deed_tax`、`computed_stamp_tax_buyer`、`computed_stamp_tax_seller`、`computed_registration_fee`、`computed_escrow_fee`）。[Tool: copilot]
 
 ## 6. Wave 6：驗收測試（依賴 Wave 5）
 

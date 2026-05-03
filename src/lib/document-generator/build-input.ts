@@ -1,6 +1,7 @@
 import type { Listing } from '../db';
 import type { DocumentGeneratorInput } from './types';
 import type { ExtractedDataPayload } from '../ocr';
+import { calculateTaxFees } from './tax-calculator';
 
 /**
  * 安全解析 JSON 字串，失敗時回傳 {}
@@ -118,8 +119,9 @@ function extractMarketResearchAttachments(attachmentsJson: string | null): strin
  * 1. 解析 extracted_data（含 ExtractedDataPayload → 扁平轉換）
  * 2. 解析 pre_commission_data
  * 3. 計算 system_computed（area_ping、building_age、report_date）
- * 4. 組裝 market_research attachments
- * 5. 回傳完整 DocumentGeneratorInput
+ * 4. 計算稅費（deed_tax、stamp_tax、registration_fee、escrow_fee）
+ * 5. 組裝 market_research attachments
+ * 6. 回傳完整 DocumentGeneratorInput
  */
 export function buildDocumentInput(listing: Listing): DocumentGeneratorInput {
   const field_visit_data = safeParseObject(listing.field_visit_data);
@@ -133,6 +135,34 @@ export function buildDocumentInput(listing: Listing): DocumentGeneratorInput {
     extracted_data,
     field_visit_data,
   });
+
+  // 解析售價：supplementary_data.sale_price_text 儲存為「萬元」字串（如 "2000"），× 10000 還原為元
+  const salePriceText = supplementary_data.sale_price_text;
+  const salePriceWan = typeof salePriceText === 'string'
+    ? parseFloat(salePriceText)
+    : typeof salePriceText === 'number'
+      ? salePriceText
+      : NaN;
+  const sale_price = !isNaN(salePriceWan) && salePriceWan > 0 ? salePriceWan * 10000 : undefined;
+
+  // 解析房屋現值：優先取 supplementary_data，次取 extracted_data
+  const houseAssessedRaw = supplementary_data.house_assessed_value !== undefined && supplementary_data.house_assessed_value !== ''
+    ? supplementary_data.house_assessed_value
+    : extracted_data.house_assessed_value;
+  const houseAssessedNum = typeof houseAssessedRaw === 'string'
+    ? parseFloat(houseAssessedRaw)
+    : typeof houseAssessedRaw === 'number'
+      ? houseAssessedRaw
+      : NaN;
+  const house_assessed_value = !isNaN(houseAssessedNum) && houseAssessedNum > 0 ? houseAssessedNum : undefined;
+
+  // 呼叫稅費計算，將結果附加至 system_computed
+  const taxResult = calculateTaxFees({ sale_price, house_assessed_value });
+  if (taxResult.deed_tax !== null) system_computed.computed_deed_tax = taxResult.deed_tax;
+  if (taxResult.stamp_tax_buyer !== null) system_computed.computed_stamp_tax_buyer = taxResult.stamp_tax_buyer;
+  if (taxResult.stamp_tax_seller !== null) system_computed.computed_stamp_tax_seller = taxResult.stamp_tax_seller;
+  if (taxResult.registration_fee !== null) system_computed.computed_registration_fee = taxResult.registration_fee;
+  if (taxResult.escrow_fee_each !== null) system_computed.computed_escrow_fee = taxResult.escrow_fee_each;
 
   const marketResearchAttachments = extractMarketResearchAttachments(listing.attachments);
 
