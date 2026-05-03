@@ -3,16 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { marked } from 'marked';
 import type { DocumentGeneratorInput } from '../document-generator/types';
-import { overlayAcroForm, type FieldCoordMap } from '../document-generator/pdf/acroform-overlay';
-
 // Next.js 16 + Turbopack 下 __dirname 會解析為 /ROOT/ 假路徑（造成 ENOENT）
 // 改用 process.cwd() 定位專案根目錄的 template（dev / start 皆為專案根，行為一致）
 const TEMPLATES_DIR = path.join(process.cwd(), 'src/lib/pdf-generator/templates');
-
-// A4 頁面尺寸常數（用於座標換算）
-const VIEWPORT_HEIGHT = 980; // A4 content height in px after subtracting margins (top+bottom ~143px at 96dpi)
-const PAGE_HEIGHT_PT = 841.89; // A4 高度（pt）
-const SCALE = 72 / 96; // 像素轉 pt 比例
 
 function loadTemplate(): { html: string; css: string } {
   const html = fs.readFileSync(path.join(TEMPLATES_DIR, 'dossier.html'), 'utf-8');
@@ -142,40 +135,6 @@ export async function generateDossierPDF(
     await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
 
-    // 擷取所有 [data-field-id] 元素的座標，用於後續 AcroForm overlay
-    const rawCoords = await page.evaluate(() => {
-      const elements = document.querySelectorAll('[data-field-id]');
-      return Array.from(elements).map(el => {
-        const rect = el.getBoundingClientRect();
-        const fieldId = el.getAttribute('data-field-id') ?? '';
-        return {
-          fieldId,
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-        };
-      });
-    });
-
-    // 將像素座標換算為 PDF pt 座標（PDF 原點在左下角）
-    const coordMap: FieldCoordMap = {};
-    for (const c of rawCoords) {
-      if (!c.fieldId) continue;
-      if (coordMap[c.fieldId]) {
-        console.warn('[dossier] Duplicate data-field-id:', c.fieldId);
-      }
-      const pageIndex = Math.floor(c.top / VIEWPORT_HEIGHT);
-      const localTop = c.top - pageIndex * VIEWPORT_HEIGHT;
-      coordMap[c.fieldId] = {
-        x: c.left * SCALE,
-        y: PAGE_HEIGHT_PT - (localTop + c.height) * SCALE,
-        width: Math.max(c.width * SCALE, 80),   // 最小寬度 80pt
-        height: Math.max(c.height * SCALE, 14), // 最小高度 14pt
-        page: pageIndex,
-      };
-    }
-
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -190,15 +149,7 @@ export async function generateDossierPDF(
       },
     });
 
-    // 若無可填寫欄位，直接回傳原始 PDF
-    if (Object.keys(coordMap).length === 0) {
-      return new Uint8Array(pdfBuffer);
-    }
-
-    // 將 AcroForm 可填寫欄位疊加到 PDF
-    const pdfBytes = new Uint8Array(pdfBuffer);
-    const finalPdfBytes = await overlayAcroForm(pdfBytes, coordMap);
-    return finalPdfBytes;
+    return new Uint8Array(pdfBuffer);
   } finally {
     await browser.close();
   }
