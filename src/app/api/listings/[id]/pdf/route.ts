@@ -6,6 +6,7 @@ import {
   generateSurveySalesPDF,
   type SurveySalesTemplateId,
 } from '@/lib/pdf-generator/survey-sales';
+import type { DocumentGeneratorInput } from '@/lib/document-generator/types';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -33,7 +34,18 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     if (!content || content === '[PDF 由任務 10 實作]') {
       return NextResponse.json({ error: 'disclosure document not available' }, { status: 422 });
     }
-    const pdfBytes = await generateDossierPDF(content, numId);
+
+    // 建立 DocumentGeneratorInput 供封面 header 欄位帶入
+    const supplementaryData = listing.supplementary_data
+      ? (JSON.parse(listing.supplementary_data) as Record<string, unknown>)
+      : {};
+    const dossierInput: DocumentGeneratorInput = {
+      property_type: listing.property_type,
+      field_visit_data: fieldVisitData,
+      supplementary_data: supplementaryData,
+    };
+
+    const pdfBytes = await generateDossierPDF(content, numId, dossierInput);
     return new NextResponse(pdfBytes.buffer as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/pdf',

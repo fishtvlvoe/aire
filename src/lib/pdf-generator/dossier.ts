@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { marked } from 'marked';
+import type { DocumentGeneratorInput } from '../document-generator/types';
 
 // Next.js 16 + Turbopack 下 __dirname 會解析為 /ROOT/ 假路徑（造成 ENOENT）
 // 改用 process.cwd() 定位專案根目錄的 template（dev / start 皆為專案根，行為一致）
@@ -18,7 +19,8 @@ function buildFullHtml(
   logoPath: string,
   css: string,
   template: string,
-  today: string
+  today: string,
+  input?: DocumentGeneratorInput
 ): string {
   // Inline CSS: replace the external stylesheet link with a <style> block
   // so Puppeteer doesn't need to resolve relative file paths
@@ -31,12 +33,35 @@ function buildFullHtml(
   // Replace logo path (use data-URI or URL; if empty, the onerror handler hides img)
   result = result.replace('{{LOGO_PATH}}', logoPath || '');
 
-  // Replace date and metadata placeholders
-  result = result.replace('{{COMPANY_NAME}}', process.env.COMPANY_NAME ?? '不動產仲介');
+  // Replace date
   result = result.replace('{{GENERATED_DATE}}', today);
-  result = result.replace('{{PROPERTY_NAME}}', '');
-  result = result.replace('{{CASE_ID}}', '');
-  result = result.replace('{{PROPERTY_ADDRESS}}', '');
+
+  // 從 input 取得封面 header 欄位值
+  const supplementary = (input?.supplementary_data ?? {}) as Record<string, unknown>;
+  const fieldVisit = (input?.field_visit_data ?? {}) as Record<string, unknown>;
+  const extracted = (input?.extracted_data ?? {}) as Record<string, unknown>;
+
+  const propertyName = String(supplementary.property_name ?? '');
+  const caseNumber = String(supplementary.case_number ?? '');
+  const address =
+    String(fieldVisit.address ?? extracted.address ?? '');
+
+  // 公司名稱：supplementary_data.company_name 有值則用，否則留 pdf-blank span
+  const companyNameRaw = supplementary.company_name;
+  const companyNameDisplay =
+    companyNameRaw && String(companyNameRaw).trim()
+      ? String(companyNameRaw).trim()
+      : (process.env.COMPANY_NAME ?? '');
+  const companyNameCell =
+    companyNameRaw && String(companyNameRaw).trim()
+      ? String(companyNameRaw).trim()
+      : `<span data-field-id="header-company-name" class="pdf-blank">______</span>`;
+
+  result = result.replace('{{PROPERTY_NAME}}', propertyName || `<span data-field-id="header-property-name" class="pdf-blank">______</span>`);
+  result = result.replace('{{CASE_ID}}', caseNumber || `<span data-field-id="header-case-number" class="pdf-blank">______</span>`);
+  result = result.replace('{{PROPERTY_ADDRESS}}', address || `<span data-field-id="header-address" class="pdf-blank">______</span>`);
+  result = result.replace('{{COMPANY_NAME_DISPLAY}}', companyNameDisplay || '不動產仲介');
+  result = result.replace('{{COMPANY_NAME_CELL}}', companyNameCell);
 
   // Insert main content
   result = result.replace('{{CONTENT}}', contentHtml);
@@ -51,13 +76,26 @@ function formatDate(date: Date): string {
   return `${y}/${m}/${d}`;
 }
 
+/**
+ * 將 LLM 回傳的 markdown 中所有「待補」標記替換為可識別的 pdf-blank span。
+ * 每個佔位符取得唯一遞增 ID，供後續 AcroForm overlay 定位使用。
+ */
+function replacePendingPlaceholders(html: string): string {
+  let counter = 0;
+  return html.replace(/待補/g, () => {
+    counter++;
+    return `<span data-field-id="field-${counter}" class="pdf-blank">______</span>`;
+  });
+}
+
 export async function generateDossierPDF(
   markdown: string,
-  listingId: number | string
+  listingId: number | string,
+  input?: DocumentGeneratorInput
 ): Promise<Uint8Array> {
-  // Convert Markdown to HTML and mark pending fields
+  // Convert Markdown to HTML and mark pending fields as fillable blanks
   let contentHtml = await marked(markdown) as string;
-  contentHtml = contentHtml.replace(/待補/g, '<span class="pending">待補</span>');
+  contentHtml = replacePendingPlaceholders(contentHtml);
 
   // Load templates
   const { html: templateHtml, css } = loadTemplate();
@@ -66,7 +104,7 @@ export async function generateDossierPDF(
   const logoPath = process.env.DOSSIER_LOGO_PATH || '';
   const today = formatDate(new Date());
 
-  const fullHtml = buildFullHtml(contentHtml, logoPath, css, templateHtml, today);
+  const fullHtml = buildFullHtml(contentHtml, logoPath, css, templateHtml, today, input);
 
   const headerTemplate = `<div style="font-size:10px;width:100%;padding:0 12mm;display:flex;justify-content:space-between;align-items:center;color:#555;">
     <span>${process.env.COMPANY_NAME || '不動產仲介'}</span>

@@ -6,12 +6,12 @@
 
 ## 2. Wave 2：補件表單 UI（依賴 Wave 1）
 
-- [ ] 2.1 修改 `src/app/listings/[id]/supplementary/page.tsx`，新增 4 個摺疊面板（Accordion）：「身份資訊」、「交易資訊」、「建物補充」、「周遭機能」。每個面板包含對應欄位的 `<input type="text">` 元件，label 使用繁體中文。sale_price_text 顯示「成交價（萬元）」。所有欄位為非必填，不加紅色必填標記。儲存時將新欄位合併入現有 supplementary_data 送出。[Tool: copilot]
+- [x] 2.1 修改 `src/app/listings/[id]/supplementary/page.tsx`，新增 4 個摺疊面板（Accordion）：「身份資訊」、「交易資訊」、「建物補充」、「周遭機能」。每個面板包含對應欄位的 `<input type="text">` 元件，label 使用繁體中文。sale_price_text 顯示「成交價（萬元）」。所有欄位為非必填，不加紅色必填標記。儲存時將新欄位合併入現有 supplementary_data 送出。[Tool: copilot]
 
 ## 3. Wave 3：HTML 模板調整（依賴 Wave 1）
 
-- [ ] [P] 3.1 在 `src/lib/document-generator/pdf/` 的說明書 HTML 模板中，將所有 `{{待補}}` 或 `待補` 佔位符替換為 `<span data-field-id="[唯一 ID]" class="pdf-blank">______</span>`。field-id 命名規則：`chapter[N]-[field-key]`（例如 `chapter1-case-number`、`chapter5-building-number`、`chapter10-deed-tax`）。同步更新 CSS：`.pdf-blank { border-bottom: 1px solid #333; min-width: 80px; display: inline-block; }`。[Tool: copilot]
-- [ ] [P] 3.2 修改說明書 HTML 模板封面 header 表格，從 `DocumentGeneratorInput` 帶入：物件名稱（`supplementary_data.property_name`）、案件編號（`supplementary_data.case_number`）、地址（`field_visit_data.address` 或 `extracted_data.address`）、公司名稱（`supplementary_data.company_name`，缺則留 data-field-id span）。移除 `{{COMPANY_NAME}}` 字串。[Tool: copilot]
+- [x] [P] 3.1 在 `src/lib/document-generator/pdf/` 的說明書 HTML 模板中，將所有 `{{待補}}` 或 `待補` 佔位符替換為 `<span data-field-id="[唯一 ID]" class="pdf-blank">______</span>`。field-id 命名規則：`chapter[N]-[field-key]`（例如 `chapter1-case-number`、`chapter5-building-number`、`chapter10-deed-tax`）。同步更新 CSS：`.pdf-blank { border-bottom: 1px solid #333; min-width: 80px; display: inline-block; }`。[Tool: copilot]
+- [x] [P] 3.2 修改說明書 HTML 模板封面 header 表格，從 `DocumentGeneratorInput` 帶入：物件名稱（`supplementary_data.property_name`）、案件編號（`supplementary_data.case_number`）、地址（`field_visit_data.address` 或 `extracted_data.address`）、公司名稱（`supplementary_data.company_name`，缺則留 data-field-id span）。移除 `{{COMPANY_NAME}}` 字串。[Tool: copilot]
 
 ## 4. Wave 4：AcroForm 覆蓋模組（依賴 Wave 3）
 
