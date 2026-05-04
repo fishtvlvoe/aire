@@ -149,3 +149,74 @@ tests:
   - src/lib/pdf-generator/__tests__/dossier.test.ts
   - src/lib/document-generator/__tests__/acroform-overlay.test.ts
 -->
+
+---
+### Requirement: Three-state completeness calculation for list icon
+
+The supplementary field completeness module SHALL provide a three-state status value for use in the listing list icon display.
+
+#### Scenario: Calculate status for list icon
+
+- **WHEN** system evaluates supplementary completeness for a listing
+- **THEN** it SHALL return one of three states: "missing" (has unfilled required fields), "complete" (all required fields filled), or "not-started" (listing in draft status)
+
+##### Example: State determination
+
+| Listing Status | Required Fields Filled | Result |
+|---|---|---|
+| draft | 0/5 | not-started |
+| in-progress | 3/5 | missing |
+| in-progress | 5/5 | complete |
+| completed | 4/5 | missing |
+| completed | 5/5 | complete |
+
+<!-- @trace
+source: supplementary-independence
+updated: 2026-05-04
+code:
+  - src/lib/listings/supplementary-status.ts
+  - src/app/listings/page.tsx
+  - package.json
+  - src/components/listings/SupplementStatusIcon.tsx
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/listings/[id]/generating/page.tsx
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/admin/transfer/page.tsx
+  - src/lib/db/schema.ts
+  - src/lib/generators/disclaimer.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/app/login/page.tsx
+  - src/components/FolderSidebar.tsx
+  - src/app/api/listings/[id]/route.ts
+  - src/proxy.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/components/Stepper.tsx
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/audit.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/lib/generators/disclosure-document.ts
+  - src/app/listings/[id]/supplement/page.tsx
+  - src/lib/auth.ts
+  - src/lib/db/index.ts
+  - src/app/api/auth/login/route.ts
+  - src/components/SearchBar.tsx
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/admin/users/route.ts
+  - src/app/api/auth/logout/route.ts
+tests:
+  - e2e/user-management.spec.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - e2e/listing-ux.spec.ts
+-->

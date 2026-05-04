@@ -1544,3 +1544,307 @@ code:
 tests:
   - e2e/user-management.spec.ts
 -->
+
+---
+### Requirement: Listings page includes folder sidebar
+
+The listings page SHALL display a folder sidebar on the left side for folder navigation.
+
+#### Scenario: Sidebar displays all folders
+
+- **WHEN** user opens the listings page
+- **THEN** the left sidebar SHALL show: "全部", all user-created folders, "未分類", and "封存區"
+
+##### Example: Sidebar with 3 folders
+
+- **GIVEN** user has created folders: "信義區", "VIP客戶", "已成交"
+- **WHEN** user opens the listings page
+- **THEN** sidebar SHALL display in order: "全部", "信義區", "VIP客戶", "已成交", "未分類", "封存區"
+
+#### Scenario: Folder selection updates list
+
+- **WHEN** user clicks a folder in the sidebar
+- **THEN** the right-side listing table SHALL update to show only listings in that folder
+
+##### Example: Filter by folder
+
+- **GIVEN** 5 listings total, 2 in folder "信義區"
+- **WHEN** user clicks "信義區" in sidebar
+- **THEN** only the 2 listings in "信義區" SHALL be displayed
+
+
+<!-- @trace
+source: listing-ux-enhancement
+updated: 2026-05-04
+code:
+  - src/components/SearchBar.tsx
+  - src/app/admin/transfer/page.tsx
+  - src/app/listings/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/login/page.tsx
+  - src/lib/generators/disclosure-document.ts
+  - src/components/FolderSidebar.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/audit.ts
+  - src/lib/generators/disclaimer.ts
+  - package.json
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/api/auth/logout/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/db/index.ts
+  - src/app/api/admin/users/route.ts
+  - src/lib/db/schema.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/proxy.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/auth.ts
+tests:
+  - e2e/user-management.spec.ts
+  - e2e/listing-ux.spec.ts
+-->
+
+---
+### Requirement: Listings page includes search bar
+
+The listings page SHALL display a search input above the listing table.
+
+#### Scenario: Search bar presence
+
+- **WHEN** user opens the listings page
+- **THEN** a search input with placeholder "搜尋物件..." SHALL be visible above the table
+
+#### Scenario: Search triggers filtering
+
+- **WHEN** user types a keyword and waits 300ms (debounce)
+- **THEN** the listing table SHALL update to show only matching results
+
+
+<!-- @trace
+source: listing-ux-enhancement
+updated: 2026-05-04
+code:
+  - src/components/SearchBar.tsx
+  - src/app/admin/transfer/page.tsx
+  - src/app/listings/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/login/page.tsx
+  - src/lib/generators/disclosure-document.ts
+  - src/components/FolderSidebar.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/audit.ts
+  - src/lib/generators/disclaimer.ts
+  - package.json
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/api/auth/logout/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/db/index.ts
+  - src/app/api/admin/users/route.ts
+  - src/lib/db/schema.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/proxy.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/auth.ts
+tests:
+  - e2e/user-management.spec.ts
+  - e2e/listing-ux.spec.ts
+-->
+
+---
+### Requirement: Archive action on listing row
+
+The listings page SHALL provide an archive action for each listing.
+
+#### Scenario: Archive button visibility
+
+- **WHEN** user views a non-archived listing row
+- **THEN** an "封存" action SHALL be available in the row actions menu
+
+<!-- @trace
+source: listing-ux-enhancement
+updated: 2026-05-04
+code:
+  - src/components/SearchBar.tsx
+  - src/app/admin/transfer/page.tsx
+  - src/app/listings/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/login/page.tsx
+  - src/lib/generators/disclosure-document.ts
+  - src/components/FolderSidebar.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/audit.ts
+  - src/lib/generators/disclaimer.ts
+  - package.json
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/api/auth/logout/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/db/index.ts
+  - src/app/api/admin/users/route.ts
+  - src/lib/db/schema.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/proxy.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/auth.ts
+tests:
+  - e2e/user-management.spec.ts
+  - e2e/listing-ux.spec.ts
+-->
+
+---
+### Requirement: Listing creation form excludes supplementary tab
+
+The listing creation/edit form SHALL no longer include a supplementary data tab or "前去補件" navigation button.
+
+#### Scenario: Form tabs after modification
+
+- **WHEN** user opens listing creation or edit form
+- **THEN** only "基本資料" and "謄本資料" tabs SHALL be displayed
+- **THEN** no supplementary-related UI elements SHALL be present
+
+
+<!-- @trace
+source: supplementary-independence
+updated: 2026-05-04
+code:
+  - src/lib/listings/supplementary-status.ts
+  - src/app/listings/page.tsx
+  - package.json
+  - src/components/listings/SupplementStatusIcon.tsx
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/listings/[id]/generating/page.tsx
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/admin/transfer/page.tsx
+  - src/lib/db/schema.ts
+  - src/lib/generators/disclaimer.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/app/login/page.tsx
+  - src/components/FolderSidebar.tsx
+  - src/app/api/listings/[id]/route.ts
+  - src/proxy.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/components/Stepper.tsx
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/audit.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/lib/generators/disclosure-document.ts
+  - src/app/listings/[id]/supplement/page.tsx
+  - src/lib/auth.ts
+  - src/lib/db/index.ts
+  - src/app/api/auth/login/route.ts
+  - src/components/SearchBar.tsx
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/admin/users/route.ts
+  - src/app/api/auth/logout/route.ts
+tests:
+  - e2e/user-management.spec.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - e2e/listing-ux.spec.ts
+-->
+
+---
+### Requirement: Listing list includes supplement status column
+
+The listing list table SHALL include a new column displaying supplementary data completion status as an icon.
+
+#### Scenario: Status column presence
+
+- **WHEN** user views the listings page
+- **THEN** a "補件" column with status icons SHALL be visible between "狀態" and "動作" columns
+
+<!-- @trace
+source: supplementary-independence
+updated: 2026-05-04
+code:
+  - src/lib/listings/supplementary-status.ts
+  - src/app/listings/page.tsx
+  - package.json
+  - src/components/listings/SupplementStatusIcon.tsx
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/listings/[id]/generating/page.tsx
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/admin/transfer/page.tsx
+  - src/lib/db/schema.ts
+  - src/lib/generators/disclaimer.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/app/login/page.tsx
+  - src/components/FolderSidebar.tsx
+  - src/app/api/listings/[id]/route.ts
+  - src/proxy.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/components/Stepper.tsx
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/audit.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/lib/generators/disclosure-document.ts
+  - src/app/listings/[id]/supplement/page.tsx
+  - src/lib/auth.ts
+  - src/lib/db/index.ts
+  - src/app/api/auth/login/route.ts
+  - src/components/SearchBar.tsx
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/admin/users/route.ts
+  - src/app/api/auth/logout/route.ts
+tests:
+  - e2e/user-management.spec.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - e2e/listing-ux.spec.ts
+-->

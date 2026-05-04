@@ -9,6 +9,10 @@ const DEFAULT_TIMEOUT_MS = 60000;
 type LlmBackend = "codex" | "claude-code" | "gemini" | "ollama";
 
 function resolveBackend(rawBackend: string | undefined): LlmBackend {
+  // Production 模式（客戶版 Electron）鎖定 Codex，不允許切換
+  if (process.env.NEXT_PUBLIC_APP_MODE === "production") {
+    return "codex";
+  }
   switch (rawBackend?.trim()) {
     case "claude-code":
       return "claude-code";

@@ -825,3 +825,76 @@ tests:
   - src/lib/pdf-generator/__tests__/dossier.test.ts
   - src/lib/document-generator/__tests__/acroform-overlay.test.ts
 -->
+
+---
+### Requirement: Supplementary form accessible via independent route
+
+The supplementary form SHALL be accessible at /listings/[id]/supplement as a standalone page, no longer embedded within the listing creation flow.
+
+#### Scenario: Standalone page rendering
+
+- **WHEN** user navigates to /listings/5/supplement
+- **THEN** the full supplementary form SHALL render with all fields for listing #5
+- **THEN** a "返回列表" navigation link SHALL be present
+
+#### Scenario: Form submission returns to list
+
+- **WHEN** user completes and saves the supplementary form
+- **THEN** user SHALL be redirected back to the listings page
+
+##### Example: Redirect after save
+
+- **GIVEN** user is on /listings/5/supplement
+- **WHEN** user fills all fields and clicks "儲存"
+- **THEN** browser SHALL navigate to /listings
+
+<!-- @trace
+source: supplementary-independence
+updated: 2026-05-04
+code:
+  - src/lib/listings/supplementary-status.ts
+  - src/app/listings/page.tsx
+  - package.json
+  - src/components/listings/SupplementStatusIcon.tsx
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/listings/[id]/generating/page.tsx
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/admin/transfer/page.tsx
+  - src/lib/db/schema.ts
+  - src/lib/generators/disclaimer.ts
+  - src/app/listings/[id]/supplementary/page.tsx
+  - src/app/login/page.tsx
+  - src/components/FolderSidebar.tsx
+  - src/app/api/listings/[id]/route.ts
+  - src/proxy.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/listings/[id]/documents/page.tsx
+  - src/components/Stepper.tsx
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/audit.ts
+  - src/app/listings/[id]/fill/page.tsx
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/lib/generators/disclosure-document.ts
+  - src/app/listings/[id]/supplement/page.tsx
+  - src/lib/auth.ts
+  - src/lib/db/index.ts
+  - src/app/api/auth/login/route.ts
+  - src/components/SearchBar.tsx
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/admin/users/route.ts
+  - src/app/api/auth/logout/route.ts
+tests:
+  - e2e/user-management.spec.ts
+  - src/components/__tests__/Stepper.test.tsx
+  - e2e/listing-ux.spec.ts
+-->

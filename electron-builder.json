@@ -1,0 +1,52 @@
+{
+  "appId": "com.aiver.three-ai",
+  "productName": "AI 不動產說明書",
+  "copyright": "Copyright © 2026 核流有限公司",
+  "directories": {
+    "output": "dist-electron",
+    "buildResources": "electron/build"
+  },
+  "files": [
+    "electron/build/**",
+    ".next/standalone/**",
+    ".next/static/**",
+    "public/**",
+    "node_modules/**"
+  ],
+  "extraResources": [
+    {
+      "from": ".next/standalone",
+      "to": "app/.next/standalone",
+      "filter": ["**/*"]
+    },
+    {
+      "from": ".next/static",
+      "to": "app/.next/standalone/.next/static",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "public",
+      "to": "app/public",
+      "filter": ["**/*"]
+    }
+  ],
+  "mac": {
+    "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+    "category": "public.app-category.business"
+  },
+  "win": {
+    "target": [{ "target": "nsis", "arch": ["x64"] }],
+    "icon": "electron/build/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "AI 不動產說明書"
+  },
+  "publish": {
+    "provider": "generic",
+    "url": "https://license.three-ai.app/releases"
+  }
+}

@@ -46,3 +46,7 @@ data/
 # 物件照片上傳（法規必揭，不入版控）
 /public/uploads/
 test-results/
+
+# Electron compiled output
+electron/build/
+dist-electron/

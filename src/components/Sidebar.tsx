@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { resolveListingHref } from '@/lib/listing-routes'
+import { syncFeatures, hasFeature, type Features } from '@/lib/features/client'
 
-const navigationItems = [
-  { href: '/listings', label: '物件列表' },
-  { href: '/listings/new', label: '新增物件' },
+type NavItem = { href: string; label: string; feature?: string }
+
+const ALL_NAV_ITEMS: NavItem[] = [
+  { href: '/listings', label: '物件列表', feature: 'disclosure-document' },
+  { href: '/listings/new', label: '新增物件', feature: 'disclosure-document' },
 ];
 
 type Listing = {
@@ -63,6 +66,15 @@ function getStatusLabel(status: string): string {
 export default function Sidebar() {
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
+  const [features, setFeatures] = useState<Features>([])
+
+  const navItems = ALL_NAV_ITEMS.filter(
+    (item) => !item.feature || hasFeature(features, item.feature),
+  )
+
+  useEffect(() => {
+    void syncFeatures().then(setFeatures)
+  }, [])
 
   useEffect(() => {
     const fetchRecentListings = async () => {
@@ -92,7 +104,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex flex-col gap-2">
-        {navigationItems.map((item) => (
+        {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}

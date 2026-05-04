@@ -718,3 +718,126 @@ code:
 tests:
   - e2e/user-management.spec.ts
 -->
+
+---
+### Requirement: Listing status includes archived state
+
+The listing workflow SHALL support an "archived" state in addition to existing states (draft, in-progress, completed).
+
+#### Scenario: Transition to archived
+
+- **WHEN** a completed listing is archived by the user
+- **THEN** the listing status remains "completed" but archived_at timestamp is set
+- **THEN** the listing SHALL be excluded from default list queries
+
+
+<!-- @trace
+source: listing-ux-enhancement
+updated: 2026-05-04
+code:
+  - src/components/SearchBar.tsx
+  - src/app/admin/transfer/page.tsx
+  - src/app/listings/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/login/page.tsx
+  - src/lib/generators/disclosure-document.ts
+  - src/components/FolderSidebar.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/audit.ts
+  - src/lib/generators/disclaimer.ts
+  - package.json
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/api/auth/logout/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/db/index.ts
+  - src/app/api/admin/users/route.ts
+  - src/lib/db/schema.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/proxy.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/auth.ts
+tests:
+  - e2e/user-management.spec.ts
+  - e2e/listing-ux.spec.ts
+-->
+
+---
+### Requirement: Listing API supports folder and archive filtering
+
+The listings API SHALL accept folder_id and archived parameters for filtering.
+
+#### Scenario: Filter by folder
+
+- **WHEN** API receives request with folder_id=1
+- **THEN** only listings belonging to folder 1 SHALL be returned
+
+##### Example: Filter results
+
+- **GIVEN** 10 listings total, 3 in folder_id=1
+- **WHEN** GET /api/listings?folder_id=1
+- **THEN** 3 listings SHALL be returned
+
+#### Scenario: Filter archived
+
+- **WHEN** API receives request with archived=false (default)
+- **THEN** listings with non-null archived_at SHALL be excluded
+
+##### Example: Archived exclusion
+
+- **GIVEN** 10 listings, 2 are archived
+- **WHEN** GET /api/listings?archived=false
+- **THEN** 8 listings SHALL be returned
+
+<!-- @trace
+source: listing-ux-enhancement
+updated: 2026-05-04
+code:
+  - src/components/SearchBar.tsx
+  - src/app/admin/transfer/page.tsx
+  - src/app/listings/page.tsx
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/api/listings/[id]/folder/route.ts
+  - src/lib/generators/property-sheet.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/route.ts
+  - src/app/login/page.tsx
+  - src/lib/generators/disclosure-document.ts
+  - src/components/FolderSidebar.tsx
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/audit.ts
+  - src/lib/generators/disclaimer.ts
+  - package.json
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/listings/folders/route.ts
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/api/auth/logout/route.ts
+  - src/app/api/listings/[id]/archive/route.ts
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/api/listings/[id]/restore/route.ts
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/db/index.ts
+  - src/app/api/admin/users/route.ts
+  - src/lib/db/schema.ts
+  - src/app/api/listings/folders/[id]/route.ts
+  - src/proxy.ts
+  - src/app/api/listings/[id]/route.ts
+  - src/app/api/admin/audit-logs/route.ts
+  - src/lib/auth.ts
+tests:
+  - e2e/user-management.spec.ts
+  - e2e/listing-ux.spec.ts
+-->
