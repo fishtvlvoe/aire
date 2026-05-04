@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeAuditLog } from '@/lib/audit';
 import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
-import { createListing, listRecentListings } from '@/lib/db';
+import { createListing, searchListings } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
   const user = sessionId ? getSessionUser(sessionId) : null;
   const ownerId = user?.role === 'agent' ? user.id : undefined;
-  const listings = listRecentListings(10, ownerId);
+
+  const { searchParams } = req.nextUrl;
+  const q = searchParams.get('q') ?? undefined;
+  const archivedParam = searchParams.get('archived') ?? 'false';
+  const archived = (archivedParam === 'true' || archivedParam === 'all') ? archivedParam : 'false';
+  const folderParam = searchParams.get('folder_id');
+  const folderId = folderParam === 'none' ? 'none'
+    : folderParam !== null && !Number.isNaN(Number(folderParam)) ? Number(folderParam)
+    : undefined;
+
+  const listings = searchListings({ ownerId, q, archived, folderId, limit: 50 });
   return NextResponse.json({ listings });
 }
 

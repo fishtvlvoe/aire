@@ -47,6 +47,10 @@ export interface Listing {
   extracted_data: string | null;
   /** 建立者 user_id（null = 系統建立或未認證前的資料） */
   owner_id: number | null;
+  /** 所屬資料夾 id；null = 未分類 */
+  folder_id: number | null;
+  /** 封存時間；null = 未封存 */
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -93,6 +97,65 @@ export function getAllListings(ownerId?: number): Listing[] {
  */
 export function listRecentListings(limit: number = 10, ownerId?: number): Listing[] {
   return executeListRecentListings<Listing>(db, limit, ownerId);
+}
+
+export interface SearchListingsParams {
+  /** agent 限制：只查自己的物件 */
+  ownerId?: number;
+  /** 資料夾篩選：數字 = 特定資料夾；'none' = 未分類；undefined = 全部 */
+  folderId?: number | 'none';
+  /** 封存狀態：'false'（預設）= 未封存；'true' = 已封存；'all' = 全部 */
+  archived?: 'false' | 'true' | 'all';
+  /** FTS5 全文搜尋關鍵字 */
+  q?: string;
+  limit?: number;
+}
+
+export function searchListings(params: SearchListingsParams = {}): Listing[] {
+  const { ownerId, folderId, archived = 'false', q, limit = 50 } = params;
+
+  const conditions: string[] = [];
+  const sqlParams: (string | number)[] = [];
+
+  if (ownerId !== undefined) {
+    conditions.push('l.owner_id = ?');
+    sqlParams.push(ownerId);
+  }
+
+  if (folderId === 'none') {
+    conditions.push('l.folder_id IS NULL');
+  } else if (typeof folderId === 'number') {
+    conditions.push('l.folder_id = ?');
+    sqlParams.push(folderId);
+  }
+
+  if (archived === 'false') {
+    conditions.push('l.archived_at IS NULL');
+  } else if (archived === 'true') {
+    conditions.push('l.archived_at IS NOT NULL');
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  if (q && q.trim()) {
+    const ftsQuery = q.trim().replace(/['"*]/g, '') + '*';
+    const ftsWhere = conditions.length
+      ? `${where} AND fts.listings_fts MATCH ?`
+      : `WHERE fts.listings_fts MATCH ?`;
+    const ftsParams = [...sqlParams, ftsQuery, limit];
+    return db.prepare(`
+      SELECT l.* FROM listings l
+      JOIN listings_fts fts ON fts.rowid = l.id
+      ${ftsWhere}
+      ORDER BY l.updated_at DESC LIMIT ?
+    `).all(...ftsParams) as Listing[];
+  }
+
+  return db.prepare(`
+    SELECT l.* FROM listings l
+    ${where}
+    ORDER BY l.updated_at DESC LIMIT ?
+  `).all(...sqlParams, limit) as Listing[];
 }
 
 export function createListing(propertyType: string, initialStatus: ListingStatus = 'draft', ownerId?: number): Listing {
@@ -241,5 +304,87 @@ export function deleteListing(id: number): boolean {
   // 硬刪除。listings 表無 FK 引用（已確認），直接 DELETE 即可。
   // changes > 0 表示有找到並刪除該筆；false 表示 id 不存在。
   const result = db.prepare('DELETE FROM listings WHERE id = ?').run(id);
+  return result.changes > 0;
+}
+
+// ─── Folders ─────────────────────────────────────────────────────────────────
+
+export interface Folder {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FolderWithCount extends Folder {
+  listing_count: number;
+}
+
+export function createFolder(name: string): Folder {
+  try {
+    const result = db.prepare(
+      "INSERT INTO folders (name) VALUES (?)"
+    ).run(name);
+    return db.prepare('SELECT * FROM folders WHERE id = ?').get(result.lastInsertRowid) as Folder;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('UNIQUE constraint')) throw new Error('資料夾名稱已存在');
+    throw err;
+  }
+}
+
+export function getFolder(id: number): Folder | undefined {
+  return db.prepare('SELECT * FROM folders WHERE id = ?').get(id) as Folder | undefined;
+}
+
+export function getAllFolders(): FolderWithCount[] {
+  return db.prepare(`
+    SELECT f.*, COUNT(l.id) as listing_count
+    FROM folders f
+    LEFT JOIN listings l ON l.folder_id = f.id AND l.archived_at IS NULL
+    GROUP BY f.id
+    ORDER BY f.name ASC
+  `).all() as FolderWithCount[];
+}
+
+export function renameFolder(id: number, name: string): boolean {
+  try {
+    const result = db.prepare(
+      "UPDATE folders SET name = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(name, id);
+    return result.changes > 0;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('UNIQUE constraint')) throw new Error('資料夾名稱已存在');
+    throw err;
+  }
+}
+
+export function deleteFolder(id: number): boolean {
+  // ON DELETE SET NULL 已在 schema 定義，直接刪除即可
+  const result = db.prepare('DELETE FROM folders WHERE id = ?').run(id);
+  return result.changes > 0;
+}
+
+export function moveListingToFolder(listingId: number, folderId: number | null): boolean {
+  const result = db.prepare(
+    "UPDATE listings SET folder_id = ? WHERE id = ?"
+  ).run(folderId, listingId);
+  return result.changes > 0;
+}
+
+// ─── Archive / Restore ───────────────────────────────────────────────────────
+
+export function archiveListing(id: number): boolean {
+  const result = db.prepare(
+    "UPDATE listings SET archived_at = datetime('now') WHERE id = ? AND archived_at IS NULL"
+  ).run(id);
+  return result.changes > 0;
+}
+
+export function restoreListing(id: number): boolean {
+  const result = db.prepare(
+    "UPDATE listings SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL"
+  ).run(id);
   return result.changes > 0;
 }
