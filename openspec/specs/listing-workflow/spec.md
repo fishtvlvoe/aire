@@ -619,3 +619,102 @@ tests:
   - src/lib/__tests__/listing-routes.test.ts
   - src/lib/property-types/schemas/__tests__/required-fields.test.ts
 -->
+
+---
+### Requirement: Listing creation assigns owner
+
+When a new listing is created, the system SHALL automatically set owner_id to the currently authenticated user's id.
+
+#### Scenario: Auto-assign owner on creation
+
+- **WHEN** a logged-in user creates a new listing via POST /api/listings
+- **THEN** the listings row SHALL have owner_id set to the authenticated user's id
+
+##### Example: Agent creates listing
+
+- **GIVEN** agent "王小明" (user_id=2) is logged in
+- **WHEN** POST /api/listings with body { "address": "信義路100號", "type": "apartment" }
+- **THEN** the new listing row SHALL have owner_id=2
+
+
+<!-- @trace
+source: user-management
+updated: 2026-05-04
+code:
+  - package.json
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/db/schema.ts
+  - src/lib/db/index.ts
+  - src/app/api/auth/logout/route.ts
+  - src/lib/audit.ts
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/[id]/route.ts
+  - src/app/api/listings/route.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/api/admin/audit-logs/route.ts
+  - src/app/admin/transfer/page.tsx
+  - src/app/api/admin/users/route.ts
+  - src/app/login/page.tsx
+  - src/lib/generators/disclosure-document.ts
+  - src/proxy.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/lib/auth.ts
+  - src/lib/generators/disclaimer.ts
+  - src/lib/generators/property-sheet.ts
+tests:
+  - e2e/user-management.spec.ts
+-->
+
+---
+### Requirement: All listing API endpoints require authentication
+
+Every listing-related API endpoint (GET, POST, PUT, DELETE on /api/listings/*) SHALL reject unauthenticated requests with 401.
+
+#### Scenario: Unauthenticated request rejected
+
+- **WHEN** a request without a valid session cookie hits any /api/listings endpoint
+- **THEN** response SHALL be 401 with body { "error": "未登入" }
+
+##### Example: No session cookie
+
+- **GIVEN** no session cookie in request headers
+- **WHEN** GET /api/listings
+- **THEN** response SHALL be 401 { "error": "未登入" }
+
+<!-- @trace
+source: user-management
+updated: 2026-05-04
+code:
+  - package.json
+  - src/app/admin/audit-logs/page.tsx
+  - src/lib/db/schema.ts
+  - src/lib/db/index.ts
+  - src/app/api/auth/logout/route.ts
+  - src/lib/audit.ts
+  - src/app/api/admin/users/[id]/reset-password/route.ts
+  - src/app/admin/users/page.tsx
+  - src/app/api/listings/[id]/route.ts
+  - src/app/api/listings/route.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/app/api/admin/audit-logs/route.ts
+  - src/app/admin/transfer/page.tsx
+  - src/app/api/admin/users/route.ts
+  - src/app/login/page.tsx
+  - src/lib/generators/disclosure-document.ts
+  - src/proxy.ts
+  - src/lib/db/list-recent-helper.ts
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/app/api/admin/transfer-cases/route.ts
+  - src/app/api/admin/users/[id]/disable/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/lib/auth.ts
+  - src/lib/generators/disclaimer.ts
+  - src/lib/generators/property-sheet.ts
+tests:
+  - e2e/user-management.spec.ts
+-->
