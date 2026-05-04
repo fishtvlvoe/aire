@@ -45,6 +45,8 @@ export interface Listing {
   attachments: string | null;
   /** OCR 萃取結果 JSON（ExtractedDataPayload）；尚未萃取時為 null */
   extracted_data: string | null;
+  /** 建立者 user_id（null = 系統建立或未認證前的資料） */
+  owner_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -78,7 +80,10 @@ export function getListing(id: number): Listing | undefined {
   return db.prepare('SELECT * FROM listings WHERE id = ?').get(id) as Listing | undefined;
 }
 
-export function getAllListings(): Listing[] {
+export function getAllListings(ownerId?: number): Listing[] {
+  if (ownerId !== undefined) {
+    return db.prepare('SELECT * FROM listings WHERE owner_id = ? ORDER BY created_at DESC').all(ownerId) as Listing[];
+  }
   return db.prepare('SELECT * FROM listings ORDER BY created_at DESC').all() as Listing[];
 }
 
@@ -86,11 +91,11 @@ export function getAllListings(): Listing[] {
  * 側邊欄最近物件清單，排除純空 draft 以避免 UI 被測試殘留淹沒
  * listRecentListings
  */
-export function listRecentListings(limit: number = 10): Listing[] {
-  return executeListRecentListings<Listing>(db, limit);
+export function listRecentListings(limit: number = 10, ownerId?: number): Listing[] {
+  return executeListRecentListings<Listing>(db, limit, ownerId);
 }
 
-export function createListing(propertyType: string, initialStatus: ListingStatus = 'draft'): Listing {
+export function createListing(propertyType: string, initialStatus: ListingStatus = 'draft', ownerId?: number): Listing {
   const propertyInfo = Object.prototype.hasOwnProperty.call(PROPERTY_TYPES, propertyType)
     ? PROPERTY_TYPES[propertyType as PropertyType]
     : undefined;
@@ -105,9 +110,9 @@ export function createListing(propertyType: string, initialStatus: ListingStatus
 
   const result = db
     .prepare(
-      'INSERT INTO listings (propertyType, property_type, status, field_visit_status) VALUES (?, ?, ?, ?) RETURNING *'
+      'INSERT INTO listings (propertyType, property_type, status, field_visit_status, owner_id) VALUES (?, ?, ?, ?, ?) RETURNING *'
     )
-    .get(propertyType, propertyType, initialStatus, 'draft') as Listing;
+    .get(propertyType, propertyType, initialStatus, 'draft', ownerId ?? null) as Listing;
   return result;
 }
 

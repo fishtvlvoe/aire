@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { writeAuditLog } from '@/lib/audit';
+import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
 import { deleteListing, getListing, updateMarketSummary } from '@/lib/db';
 import type { ExtractedDataPayload } from '@/lib/ocr';
 
@@ -13,7 +15,7 @@ interface ErrorPayload {
   detail?: string
 }
 
-export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const listingId = Number(id);
 
@@ -30,6 +32,13 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
       { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
       { status: 404 },
     );
+  }
+
+  // agent 只能看自己的物件
+  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const user = sessionId ? getSessionUser(sessionId) : null;
+  if (user?.role === 'agent' && listing.owner_id !== user.id) {
+    return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
   }
 
   // 將 extracted_data 字串轉為物件後一起回傳（null 保持 null）
@@ -51,7 +60,7 @@ export async function GET(_req: Request, context: { params: Promise<{ id: string
  * 目前支援的欄位：market_summary（周邊行情摘要，最多 500 字元；傳 null 或空字串可清除）。
  * 未來新增其他可編輯欄位時擴充此 endpoint。
  */
-export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const listingId = Number(id);
 
@@ -68,6 +77,12 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
       { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
       { status: 404 },
     );
+  }
+
+  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const user = sessionId ? getSessionUser(sessionId) : null;
+  if (user?.role === 'agent' && listing.owner_id !== user.id) {
+    return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
   }
 
   let body: { market_summary?: unknown };
@@ -106,7 +121,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
 }
 
 // 需求（Requirement）：Listings 支援透過 DELETE API 進行硬刪除（hard delete）。
-export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const listingId = Number(id);
 
@@ -117,6 +132,20 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
     );
   }
 
+  const listing = getListing(listingId);
+  if (!listing) {
+    return NextResponse.json<ErrorPayload>(
+      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
+      { status: 404 },
+    );
+  }
+
+  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const user = sessionId ? getSessionUser(sessionId) : null;
+  if (user?.role === 'agent' && listing.owner_id !== user.id) {
+    return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
+  }
+
   const success = deleteListing(listingId);
   if (!success) {
     return NextResponse.json<ErrorPayload>(
@@ -125,5 +154,8 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
     );
   }
 
+  if (user) {
+    writeAuditLog(user.id, 'delete_listing', 'listing', listingId, `刪除物件 #${listingId}`);
+  }
   return NextResponse.json({ success: true });
 }
