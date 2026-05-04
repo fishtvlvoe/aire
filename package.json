@@ -12,8 +12,10 @@
     "postinstall": "node -e \"if(!process.env.PUPPETEER_SKIP_DOWNLOAD&&!process.env.PUPPETEER_EXECUTABLE_PATH){require('child_process').execSync('npx puppeteer browsers install chrome',{stdio:'inherit'})}else{console.log('skip: puppeteer chrome install')}\""
   },
   "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/pdf-parse": "^1.1.5",
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.9.0",
     "marked": "^18.0.1",
     "next": "16.2.4",
