@@ -4,7 +4,7 @@ import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
 import { createListing, listRecentListings } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
-  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
   const user = sessionId ? getSessionUser(sessionId) : null;
   const ownerId = user?.role === 'agent' ? user.id : undefined;
   const listings = listRecentListings(10, ownerId);
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
   const user = sessionId ? getSessionUser(sessionId) : null;
 
   let body: { propertyType: string };

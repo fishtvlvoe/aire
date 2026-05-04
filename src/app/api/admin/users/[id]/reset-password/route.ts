@@ -6,7 +6,7 @@ import { db } from '@/lib/db';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
   const currentUser = sessionId ? getSessionUser(sessionId) : null;
   if (!currentUser || currentUser.role !== 'admin') {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });

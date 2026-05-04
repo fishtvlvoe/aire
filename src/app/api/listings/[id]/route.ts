@@ -35,7 +35,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   }
 
   // agent 只能看自己的物件
-  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
   const user = sessionId ? getSessionUser(sessionId) : null;
   if (user?.role === 'agent' && listing.owner_id !== user.id) {
     return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     );
   }
 
-  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
   const user = sessionId ? getSessionUser(sessionId) : null;
   if (user?.role === 'agent' && listing.owner_id !== user.id) {
     return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
@@ -140,7 +140,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     );
   }
 
-  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
   const user = sessionId ? getSessionUser(sessionId) : null;
   if (user?.role === 'agent' && listing.owner_id !== user.id) {
     return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });

@@ -3,7 +3,7 @@ import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
-  const sessionId = req.cookies.get(SESSION_COOKIE)?.value;
+  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
   const currentUser = sessionId ? getSessionUser(sessionId) : null;
   if (!currentUser || currentUser.role !== 'admin') {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
