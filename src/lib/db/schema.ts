@@ -34,6 +34,15 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 );
 `;
 
+const FOLDERS_SCHEMA = `
+CREATE TABLE IF NOT EXISTS folders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`;
+
 const LISTINGS_SCHEMA = `
 CREATE TABLE IF NOT EXISTS listings (
   id INTEGER PRIMARY KEY,
@@ -61,6 +70,7 @@ export function initDb(db: Database.Database): void {
   db.exec(USERS_SCHEMA);
   db.exec(SESSIONS_SCHEMA);
   db.exec(AUDIT_LOGS_SCHEMA);
+  db.exec(FOLDERS_SCHEMA);
   db.exec(LISTINGS_SCHEMA);
   // SQLite does not support ADD COLUMN IF NOT EXISTS; check pragma_table_info first
   const columns = (db.pragma('table_info(listings)') as Array<{ name: string }>).map((c) => c.name);
@@ -99,6 +109,52 @@ export function initDb(db: Database.Database): void {
       // column was added by a concurrent process; safe to ignore
     }
   }
+  if (!columns.includes('folder_id')) {
+    try {
+      db.exec('ALTER TABLE listings ADD COLUMN folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL');
+    } catch {
+      // safe to ignore
+    }
+  }
+  if (!columns.includes('archived_at')) {
+    try {
+      db.exec('ALTER TABLE listings ADD COLUMN archived_at TEXT DEFAULT NULL');
+    } catch {
+      // safe to ignore
+    }
+  }
+
+  // FTS5 虛擬表（搜尋用）
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS listings_fts USING fts5(
+      address, property_type,
+      content='listings', content_rowid='id'
+    );
+  `);
+  // FTS5 同步觸發器
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS listings_fts_insert
+      AFTER INSERT ON listings BEGIN
+        INSERT INTO listings_fts(rowid, address, property_type)
+        VALUES (new.id, COALESCE(new.address,''), COALESCE(new.property_type,''));
+      END;
+  `);
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS listings_fts_update
+      AFTER UPDATE ON listings BEGIN
+        INSERT INTO listings_fts(listings_fts, rowid, address, property_type)
+        VALUES ('delete', old.id, COALESCE(old.address,''), COALESCE(old.property_type,''));
+        INSERT INTO listings_fts(rowid, address, property_type)
+        VALUES (new.id, COALESCE(new.address,''), COALESCE(new.property_type,''));
+      END;
+  `);
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS listings_fts_delete
+      AFTER DELETE ON listings BEGIN
+        INSERT INTO listings_fts(listings_fts, rowid, address, property_type)
+        VALUES ('delete', old.id, COALESCE(old.address,''), COALESCE(old.property_type,''));
+      END;
+  `);
 
   // 建立預設 admin 帳號（只在沒有 admin 時才 hash，避免每次初始化都跑 bcrypt）
   const adminRow = db.prepare("SELECT id FROM users WHERE email = 'admin@local' LIMIT 1").get();
