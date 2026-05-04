@@ -92,12 +92,17 @@ export async function generateSurveySalesPDF(
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
+  const aiFooter = `<div style="font-size:9px;width:100%;padding:0 12mm;text-align:center;color:#9ca3af;">⚠️ 本文件由 AI 輔助產出，請務必確認內容正確後再使用。</div>`;
+
   try {
     const page = await browser.newPage();
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
     return await page.pdf({
       format: 'A4',
       printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: '<span></span>',
+      footerTemplate: aiFooter,
       margin:
         template === 'sales-dm'
           ? { top: '12mm', bottom: '18mm', left: '10mm', right: '10mm' }

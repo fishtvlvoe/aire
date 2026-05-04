@@ -3,6 +3,7 @@ import type { PropertyDossier, PublicFacility } from '@/lib/models/property-doss
 import type { TranscriptParseResult } from '@/lib/parsers/transcript-parser';
 import { TaxCalculator } from '@/lib/scrapers/tax-calculator';
 import { BankEstimator } from '@/lib/scrapers/bank-estimator';
+import { appendDisclaimer } from './disclaimer';
 
 function display(v: unknown, unit?: string): string {
   if (v === null || v === undefined || v === '') return '待補';
@@ -132,5 +133,5 @@ export async function generatePropertySheet(
   lines.push(`- 建築完成日期：${display(a.building_completion_date)}`);
   lines.push(`- 屋齡：${display(a.building_age, ' 年')}`);
 
-  return lines.join('\n');
+  return appendDisclaimer(lines.join('\n'));
 }

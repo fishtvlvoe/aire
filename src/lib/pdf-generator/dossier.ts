@@ -122,8 +122,8 @@ export async function generateDossierPDF(
     <span>第 <span class="pageNumber"></span> 頁 / 共 <span class="totalPages"></span> 頁</span>
   </div>`;
 
-  const footerTemplate = `<div style="font-size:9px;width:100%;padding:0 12mm;text-align:center;color:#777;">
-    製表日期：${today} | 本文件資料以謄本登記為準
+  const footerTemplate = `<div style="font-size:9px;width:100%;padding:0 12mm;text-align:center;color:#9ca3af;">
+    製表日期：${today} | 本文件資料以謄本登記為準 | ⚠️ 本文件由 AI 輔助產出，請務必確認內容正確後再使用。
   </div>`;
 
   const browser = await puppeteer.launch({

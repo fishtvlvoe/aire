@@ -3,6 +3,7 @@ import type { PropertyDossier } from '@/lib/models/property-dossier';
 import type { TranscriptParseResult } from '@/lib/parsers/transcript-parser';
 import { TaxCalculator } from '@/lib/scrapers/tax-calculator';
 import { BankEstimator } from '@/lib/scrapers/bank-estimator';
+import { AI_DISCLAIMER_MD } from './disclaimer';
 import {
   buildEncumbranceInterpretationPrompt,
   buildPropertySummaryPrompt,
@@ -166,6 +167,16 @@ export async function generateDisclosureDocument(
         options?.market_research_attachments?.length
     ),
   };
+
+  // 在最後一頁末尾加入 AI 輔助提示（hardcode，不可移除）
+  if (pages.length > 0) {
+    const last = pages[pages.length - 1];
+    if (last.content && last.content !== '待補') {
+      last.content = last.content + AI_DISCLAIMER_MD;
+    } else {
+      last.content = AI_DISCLAIMER_MD.trimStart();
+    }
+  }
 
   return { pages, toc_checkboxes };
 }
