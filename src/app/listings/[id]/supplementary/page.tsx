@@ -1,10 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import SupplementaryForm from '@/components/forms/SupplementaryForm';
-import Stepper from '@/components/Stepper';
 import MarketLookupPanel from '@/components/MarketLookupPanel';
 import { PROPERTY_TYPES, getPropertyType, type PropertyType } from '@/lib/property-types';
 import type { AttachmentMeta } from '@/lib/db';
@@ -279,7 +279,7 @@ export default function ListingSupplementaryPage() {
         throw new Error('儲存失敗，請稍後再試');
       }
 
-      router.push(`/listings/${listing.id}/generating`);
+      router.push('/listings');
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : '儲存失敗，請稍後再試';
       setSubmitError(message);
@@ -295,13 +295,13 @@ export default function ListingSupplementaryPage() {
 
         <main className="flex-1 p-8">
           <div className="mb-4">
-            <Stepper
-              currentStep={3}
-              listingId={listing?.id ?? null}
-              listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null}
-            />
+            <Link href="/listings" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#1B3A6B] transition">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+              </svg>
+              返回列表
+            </Link>
           </div>
-
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
               <h1 className="text-2xl font-bold text-[#1B3A6B]">補件資料</h1>

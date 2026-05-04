@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import FolderSidebar, { type Folder, type FolderSel } from '@/components/FolderSidebar';
+import SupplementStatusIcon from '@/components/listings/SupplementStatusIcon';
 import SearchBar from '@/components/SearchBar';
 import Sidebar from '@/components/Sidebar';
 import { PROPERTY_TYPES, getPropertyType, type PropertyType } from '@/lib/property-types';
@@ -19,6 +20,7 @@ type Listing = {
   folder_id?: number | null;
   archived_at?: string | null;
   owner_id?: number | null;
+  supplementary_data?: string | null;
 };
 
 type ListingStatusOption = { label: string; className: string };
@@ -217,6 +219,7 @@ export default function ListingsPage() {
                       <th className="px-4 py-3 font-semibold">地址</th>
                       <th className="px-4 py-3 font-semibold">類型</th>
                       <th className="px-4 py-3 font-semibold">狀態</th>
+                      <th className="px-4 py-3 font-semibold">補件</th>
                       <th className="px-4 py-3 font-semibold">建立日期</th>
                       <th className="px-4 py-3 font-semibold text-right">操作</th>
                     </tr>
@@ -248,6 +251,13 @@ export default function ListingsPage() {
                             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status.className}`}>
                               {status.label}
                             </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <SupplementStatusIcon
+                              listingId={listing.id}
+                              listingStatus={listing.status}
+                              supplementaryData={listing.supplementary_data}
+                            />
                           </td>
                           <td className="px-4 py-3">{formatDate(listing.created_at)}</td>
                           <td className="px-4 py-3">
@@ -359,7 +369,7 @@ export default function ListingsPage() {
 
                     {filteredRows.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                        <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                           目前沒有符合篩選條件的物件
                         </td>
                       </tr>

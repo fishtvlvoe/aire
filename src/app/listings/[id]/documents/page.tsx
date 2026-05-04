@@ -190,7 +190,7 @@ export default function ListingDocumentsPage() {
         <main className="flex-1 p-8">
           <div className="mb-4">
             <Stepper 
-              currentStep={5} 
+              currentStep={4} 
               listingId={listingId || null} 
               listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null} 
             />

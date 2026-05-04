@@ -188,7 +188,7 @@ export default function ListingGeneratingPage() {
 
         <main className="flex-1 p-8">
           <div className="mb-4">
-            <Stepper currentStep={4} listingId={listing?.id ?? null} listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null} />
+            <Stepper currentStep={3} listingId={listing?.id ?? null} listingStatus={(listing?.status as 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready' | undefined) ?? null} />
           </div>
           
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
