@@ -2,40 +2,37 @@
 
 import { useEffect, useState } from 'react';
 
-type UpdateStatus = 'idle' | 'checking' | 'downloading' | 'ready' | 'up-to-date' | 'error';
-
-interface StatusEvent {
-  status: UpdateStatus;
-  progress?: number;
-  message?: string;
-}
+type UpdateStatus = 'idle' | 'checking' | 'available' | 'progress' | 'ready' | 'up-to-date' | 'error';
 
 export default function UpdateChecker() {
+  const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
   const [status, setStatus] = useState<UpdateStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
   const [version, setVersion] = useState('');
 
   useEffect(() => {
-    if (!window.electronAPI) return;
+    if (!isElectron) return;
+    const api = window.electronAPI;
+    if (!api) return;
 
-    void window.electronAPI.getVersion().then(setVersion);
+    void api.getVersion().then(setVersion);
 
-    const unsub = window.electronAPI.onUpdateStatus((e) => {
+    const unsub = api.onUpdateStatus((e) => {
       setStatus(e.status as UpdateStatus);
       setProgress(e.progress ?? 0);
       setMessage(e.message ?? '');
     });
 
     return unsub;
-  }, []);
+  }, [isElectron]);
 
   // 非 Electron 環境不顯示
-  if (!window.electronAPI) return null;
+  if (!isElectron) return null;
 
   const handleCheck = () => {
     setStatus('checking');
-    void window.electronAPI!.checkForUpdates();
+    void window.electronAPI?.checkForUpdates();
   };
 
   return (
@@ -47,14 +44,18 @@ export default function UpdateChecker() {
         </div>
         <button
           onClick={handleCheck}
-          disabled={status === 'checking' || status === 'downloading'}
+          disabled={status === 'checking' || status === 'progress'}
           className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {status === 'checking' ? '檢查中...' : '檢查更新'}
         </button>
       </div>
 
-      {status === 'downloading' && (
+      {status === 'available' && (
+        <p className="mt-2 text-xs text-blue-600">{message || '發現新版本，開始下載中...'}</p>
+      )}
+
+      {status === 'progress' && (
         <div className="mt-3">
           <div className="mb-1 flex justify-between text-xs text-slate-600">
             <span>正在下載更新...</span>
@@ -74,7 +75,16 @@ export default function UpdateChecker() {
       )}
 
       {status === 'ready' && (
-        <p className="mt-2 text-xs text-blue-600">{message || '更新已下載，重啟後完成安裝'}</p>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="text-xs text-blue-600">{message || '更新已下載，重啟後完成安裝'}</p>
+          <button
+            type="button"
+            onClick={() => void window.electronAPI?.installUpdate()}
+            className="rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+          >
+            立即安裝
+          </button>
+        </div>
       )}
 
       {status === 'error' && (

@@ -15,9 +15,10 @@
     "electron:build": "npm run build && node scripts/obfuscate-build.js && npm run electron:compile && electron-builder --config electron-builder.json",
     "electron:pack:mac": "electron-builder --mac --config electron-builder.json",
     "electron:pack:win": "electron-builder --win --config electron-builder.json",
-    "postinstall": "node -e \"if(!process.env.PUPPETEER_SKIP_DOWNLOAD&&!process.env.PUPPETEER_EXECUTABLE_PATH){require('child_process').execSync('npx puppeteer browsers install chrome',{stdio:'inherit'})}else{console.log('skip: puppeteer chrome install')}\""
+    "postinstall": "node -e \"console.log('skip: chromium download managed externally')\""
   },
   "dependencies": {
+    "@sparticuz/chromium": "131.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/pdf-parse": "^1.1.5",
@@ -25,13 +26,15 @@
     "better-sqlite3": "^12.9.0",
     "marked": "^18.0.1",
     "next": "16.2.4",
+    "next-auth": "4.24.11",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.6.205",
-    "puppeteer": "^24.41.0",
+    "puppeteer-core": "23.11.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.3",
+    "electron-updater": "^6.6.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
@@ -51,5 +54,13 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^2.1.9"
+  },
+  "build": {
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://license.three-ai.app/releases"
+      }
+    ]
   }
 }

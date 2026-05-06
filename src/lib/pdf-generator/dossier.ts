@@ -1,8 +1,8 @@
-import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { marked } from 'marked';
 import type { DocumentGeneratorInput } from '../document-generator/types';
+import { launchBrowser } from './chromium-launcher';
 // Next.js 16 + Turbopack 下 __dirname 會解析為 /ROOT/ 假路徑（造成 ENOENT）
 // 改用 process.cwd() 定位專案根目錄的 template（dev / start 皆為專案根，行為一致）
 const TEMPLATES_DIR = path.join(process.cwd(), 'src/lib/pdf-generator/templates');
@@ -94,7 +94,7 @@ function formatDate(date: Date): string {
  */
 function replacePendingPlaceholders(html: string): string {
   // 移除所有佔位符，留空白讓業務手寫填入
-  let result = html.replace(/\{\{_+\}\}/g, '');
+  const result = html.replace(/\{\{_+\}\}/g, '');
   return result.replace(/待補/g, '');
 }
 
@@ -126,11 +126,7 @@ export async function generateDossierPDF(
     製表日期：${today} | 本文件資料以謄本登記為準 | ⚠️ 本文件由 AI 輔助產出，請務必確認內容正確後再使用。
   </div>`;
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   // Suppress unused variable warning — listingId reserved for future logging
   void listingId;

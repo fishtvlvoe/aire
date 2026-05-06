@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../pdf-generator/chromium-launcher';
 
 export interface MortgageScenario {
   loan_ratio: 0.6 | 0.7 | 0.8;
@@ -38,7 +38,7 @@ function monthlyPayment(P: number, annualRate: number, years: number): number {
 }
 
 async function scrapeFubonRange(): Promise<{ min: number; max: number } | undefined> {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
     await page.goto('https://www.fubon.com/', { waitUntil: 'domcontentloaded' });
@@ -52,7 +52,7 @@ async function scrapeFubonRange(): Promise<{ min: number; max: number } | undefi
 }
 
 async function scrapeCathayRatio(): Promise<number | undefined> {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
     await page.goto('https://www.cathaybk.com.tw/', { waitUntil: 'domcontentloaded' });

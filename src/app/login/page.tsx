@@ -2,10 +2,21 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+
+export async function loginWithCredentials(username: string, password: string): Promise<boolean> {
+  const result = await signIn('credentials', {
+    username,
+    password,
+    redirect: false,
+  });
+
+  return Boolean(result?.ok);
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,16 +26,12 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        setError(data.error ?? '登入失敗');
+      const success = await loginWithCredentials(username, password);
+      if (!success) {
+        setError('帳號或密碼錯誤');
         return;
       }
+
       router.push('/listings');
       router.refresh();
     } catch {
@@ -42,12 +49,12 @@ export default function LoginPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">帳號</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="admin@local"
+              placeholder="admin"
             />
           </div>
           <div>
@@ -69,7 +76,7 @@ export default function LoginPage() {
             {loading ? '登入中...' : '登入'}
           </button>
         </form>
-        <p className="mt-4 text-xs text-gray-400 text-center">預設帳號：admin@local / admin123</p>
+        <p className="mt-4 text-xs text-gray-400 text-center">預設帳號：admin / admin123</p>
       </div>
     </div>
   );

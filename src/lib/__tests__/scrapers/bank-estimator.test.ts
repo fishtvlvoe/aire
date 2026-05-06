@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 
 import { BankEstimator } from '@/lib/scrapers/bank-estimator';
 
-vi.mock('puppeteer', () => ({
+vi.mock('puppeteer-core', () => ({
   default: {
     launch: vi.fn(),
   },

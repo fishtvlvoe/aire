@@ -12,9 +12,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateStatus: (
     callback: (event: { status: string; progress?: number; message?: string }) => void,
   ) => {
-    ipcRenderer.on('update:status', (_e, payload) => callback(payload as Parameters<typeof callback>[0]));
-    return () => ipcRenderer.removeAllListeners('update:status');
+    ipcRenderer.on('update-status', (_e, payload) => callback(payload as Parameters<typeof callback>[0]));
+    return () => ipcRenderer.removeAllListeners('update-status');
   },
+
+  installUpdate: (): Promise<void> => ipcRenderer.invoke('updater:install'),
 
   /** 開啟系統瀏覽器（用於 OAuth 授權） */
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke('shell:openExternal', url),

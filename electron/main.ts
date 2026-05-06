@@ -1,9 +1,9 @@
-import { app, BrowserWindow, ipcMain, shell, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { launchNextServer, stopNextServer, getServerUrl } from './launcher';
-import { checkAndApplyUpdate } from './updater';
+import { checkAndApplyUpdate, installUpdate } from './updater';
 
 const isDev = !app.isPackaged;
 const APP_ROOT = isDev ? path.join(__dirname, '..') : path.join(process.resourcesPath, 'app');
@@ -65,6 +65,10 @@ ipcMain.handle('shell:openExternal', (_e, url: string) => {
 
 ipcMain.handle('updater:check', () => {
   if (mainWindow) checkAndApplyUpdate(mainWindow);
+});
+
+ipcMain.handle('updater:install', () => {
+  installUpdate();
 });
 
 ipcMain.handle('openai:getToken', () => {

@@ -14,8 +14,22 @@ if (!fs.existsSync(dbDir)) {
 
 const db = new Database(DB_PATH);
 
+export function runAuthLicenseMigration(database: Database.Database): void {
+  const migrationPath = path.join(process.cwd(), 'migrations', '004_auth_license.sql');
+  const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
+  database.exec(migrationSql);
+
+  const userColumns = (database.pragma('table_info(users)') as Array<{ name: string }>).map((column) => column.name);
+  if (!userColumns.includes('username')) {
+    database.exec('ALTER TABLE users ADD COLUMN username TEXT');
+    database.exec("UPDATE users SET username = email WHERE username IS NULL");
+    database.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+  }
+}
+
 // Run schema on initialization
 initDb(db);
+runAuthLicenseMigration(db);
 
 // Enable WAL mode for better concurrent read performance
 // (WAL is not supported for in-memory DBs used in tests)

@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import { launchBrowser } from '../pdf-generator/chromium-launcher';
 
 export interface TaxInput {
   announced_land_value: number;
@@ -37,7 +37,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function scrapeTax(input: TaxInput): Promise<TaxResult> {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
 

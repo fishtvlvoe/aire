@@ -6,6 +6,7 @@ import FolderSidebar, { type Folder, type FolderSel } from '@/components/FolderS
 import SupplementStatusIcon from '@/components/listings/SupplementStatusIcon';
 import SearchBar from '@/components/SearchBar';
 import Sidebar from '@/components/Sidebar';
+import UpdateChecker from '@/components/UpdateChecker';
 import { PROPERTY_TYPES, getPropertyType, type PropertyType } from '@/lib/property-types';
 import { resolveListingActionLabel, resolveListingHref, resolveListingSecondaryAction } from '@/lib/listing-routes';
 
@@ -205,6 +206,10 @@ export default function ListingsPage() {
                 onToggleArchived={setIncludeArchived}
                 showArchivedToggle={!archivedView}
               />
+            </div>
+
+            <div className="mb-4">
+              <UpdateChecker />
             </div>
 
             {loading && <p className="py-8 text-center text-sm text-slate-500">讀取中...</p>}

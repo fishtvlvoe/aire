@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 
 import { TaxCalculator, TaxScraperError, clearTaxCache, type TaxInput } from '@/lib/scrapers/tax-calculator';
 
-vi.mock('puppeteer', () => ({
+vi.mock('puppeteer-core', () => ({
   default: {
     launch: vi.fn(),
   },

@@ -4,6 +4,7 @@ interface ElectronAPI {
   onUpdateStatus: (
     callback: (event: { status: string; progress?: number; message?: string }) => void,
   ) => () => void;
+  installUpdate: () => Promise<void>;
   openExternal: (url: string) => Promise<void>;
   getOpenAIToken: () => Promise<{ token: string } | null>;
   saveOpenAIToken: (token: string) => Promise<void>;

@@ -1,7 +1,7 @@
-import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { marked } from 'marked';
+import { launchBrowser } from './chromium-launcher';
 
 /**
  * 物調表 / 銷售 DM 的專用 PDF 模板渲染器，取代舊版 `<pre>` 直接輸出純文字的做法。
@@ -86,11 +86,7 @@ export async function generateSurveySalesPDF(
   const { html: templateHtml, css } = loadTemplate(template);
   const fullHtml = buildFullHtml(template, templateHtml, css, contentHtml, input);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const browser = await launchBrowser();
 
   const aiFooter = `<div style="font-size:9px;width:100%;padding:0 12mm;text-align:center;color:#9ca3af;">⚠️ 本文件由 AI 輔助產出，請務必確認內容正確後再使用。</div>`;
 

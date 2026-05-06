@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y \
 
 COPY package*.json ./
 # 跳過 postinstall 的 Chrome 下載：Docker runner 用系統 chromium
-RUN PUPPETEER_SKIP_DOWNLOAD=true npm ci
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+RUN npm ci
 
 # -------------------------------------------------------------------
 FROM node:22-slim AS builder
@@ -31,7 +32,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm rebuild better-sqlite3
@@ -59,6 +60,7 @@ RUN npm install -g \
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV CHROMIUM_MODE=local
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
