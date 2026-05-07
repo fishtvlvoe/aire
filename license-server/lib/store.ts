@@ -1,4 +1,5 @@
 import { kv } from '@vercel/kv';
+import { generateSerialKey } from './serial';
 
 export type LicenseStatus = 'issued' | 'activated' | 'revoked';
 
@@ -144,6 +145,108 @@ export async function revokeLicense(
   });
   await saveLicense(revoked);
   return revoked;
+}
+
+async function deleteLicenseRecord(record: LicenseRecord): Promise<void> {
+  await kv.del(licenseKey(record.licenseKey));
+  if (record.email) {
+    await kv.del(emailIndex(record.email));
+  }
+}
+
+export async function transferLicense(
+  oldKey: string,
+  newContact: { contactName: string | null; company: string | null; email: string | null },
+  reason?: string,
+): Promise<
+  | { ok: true; newLicense: LicenseRecord }
+  | { ok: false; error: 'not_found' | 'transfer_failed' }
+> {
+  const oldLicense = await getLicense(oldKey);
+  if (!oldLicense) {
+    return { ok: false, error: 'not_found' };
+  }
+
+  const newKey = generateSerialKey();
+  const newLicense = normalizeLicenseRecord({
+    ...oldLicense,
+    licenseKey: newKey,
+    email: newContact.email,
+    contactName: newContact.contactName,
+    company: newContact.company,
+    machineId: null,
+    status: 'issued',
+    active: true,
+    activatedAt: null,
+    createdAt: new Date().toISOString(),
+    issuedBy: 'admin',
+    revokedAt: null,
+    revokedReason: null,
+  });
+
+  try {
+    await saveLicense(newLicense);
+    const revokeReason = reason || `transferred to ${newKey}`;
+    const revoked = await revokeLicense(oldKey, revokeReason);
+    if (!revoked) {
+      try {
+        await deleteLicenseRecord(newLicense);
+      } catch {
+        // 轉移回滾為 best-effort，失敗時仍回傳 transfer_failed
+      }
+      return { ok: false, error: 'transfer_failed' };
+    }
+    return { ok: true, newLicense };
+  } catch {
+    try {
+      await deleteLicenseRecord(newLicense);
+    } catch {
+      // 轉移回滾為 best-effort，失敗時仍回傳 transfer_failed
+    }
+    return { ok: false, error: 'transfer_failed' };
+  }
+}
+
+export async function unbindMachine(key: string): Promise<LicenseRecord | null> {
+  const current = await getLicense(key);
+  if (!current) return null;
+
+  const updated = normalizeLicenseRecord({
+    ...current,
+    machineId: null,
+  });
+  await saveLicense(updated);
+  return updated;
+}
+
+export async function updateLicenseInfo(
+  key: string,
+  field: 'contactName' | 'company' | 'email',
+  value: string | null,
+): Promise<LicenseRecord | null> {
+  const current = await getLicense(key);
+  if (!current) return null;
+
+  const normalizedValue = typeof value === 'string' ? value.trim() : null;
+  const nextValue = normalizedValue && normalizedValue.length > 0 ? normalizedValue : null;
+  const updated = { ...current };
+
+  if (field === 'email') {
+    const oldEmail = current.email;
+    const newEmail = nextValue ? nextValue.toLowerCase() : null;
+    if (oldEmail && oldEmail !== newEmail) {
+      await kv.del(emailIndex(oldEmail));
+    }
+    updated.email = newEmail;
+  } else if (field === 'contactName') {
+    updated.contactName = nextValue;
+  } else {
+    updated.company = nextValue;
+  }
+
+  const normalized = normalizeLicenseRecord(updated);
+  await saveLicense(normalized);
+  return normalized;
 }
 
 /** IP 在 CIDR 範圍內 */

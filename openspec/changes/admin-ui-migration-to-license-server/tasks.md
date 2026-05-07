@@ -1,19 +1,19 @@
 ## 1. license-server 升級為 Next.js 14 App Router 專案
 
-- [ ] 1.1 [Tool: copilot] 修改 `license-server/package.json` 加入依賴 `next@^14`、`react@^18`、`react-dom@^18`、`@types/react`、`@types/react-dom`、`bcryptjs`、`@types/bcryptjs`，並新增 scripts `dev`/`build`/`start` 對應 Decision 1：license-server 升級為 Next.js 14 App Router 專案
-- [ ] 1.2 [Tool: copilot] 新增 `license-server/next.config.ts` 與 `license-server/tsconfig.json`，照 three-ai 慣例設定 strict mode、paths alias，落實 Decision 1：license-server 升級為 Next.js 14 App Router 專案
-- [ ] 1.3 [P] [Tool: copilot] 新增 `license-server/app/layout.tsx` 與 `license-server/app/globals.css`（最小骨架，含 mobile viewport meta），符合 Decision 1：license-server 升級為 Next.js 14 App Router 專案
+- [x] 1.1 [Tool: copilot] 修改 `license-server/package.json` 加入依賴 `next@^14`、`react@^18`、`react-dom@^18`、`@types/react`、`@types/react-dom`、`bcryptjs`、`@types/bcryptjs`，並新增 scripts `dev`/`build`/`start` 對應 Decision 1：license-server 升級為 Next.js 14 App Router 專案
+- [x] 1.2 [Tool: copilot] 新增 `license-server/next.config.ts` 與 `license-server/tsconfig.json`，照 three-ai 慣例設定 strict mode、paths alias，落實 Decision 1：license-server 升級為 Next.js 14 App Router 專案
+- [x] 1.3 [P] [Tool: copilot] 新增 `license-server/app/layout.tsx` 與 `license-server/app/globals.css`（最小骨架，含 mobile viewport meta），符合 Decision 1：license-server 升級為 Next.js 14 App Router 專案
 
 ## 2. admin session 模組（TDD）
 
-- [ ] 2.1 [Tool: sonnet] 在 `license-server/lib/__tests__/admin-session.test.ts` 寫紅燈測試覆蓋 Password verification with bcrypt、Session token format、Logout clears the session cookie、Boundary handling 四個 Requirement（含 examples 表格的所有 case）對應 Decision 2：admin 認證採 HTTP-only Cookie + HMAC-signed session
-- [ ] 2.2 [Tool: copilot] 新增 `license-server/lib/admin-session.ts` 實作 HMAC-SHA256 sign/verify、`createSessionToken(secret)`、`verifySessionToken(token, secret)`、cookie name 常數，讓 2.1 紅燈測試轉綠（Password verification with bcrypt + Session token format + Boundary handling）
-- [ ] 2.3 [Tool: copilot] 在 `license-server/middleware.ts` 實作 Session validation on every protected request：攔截 `/admin/*`（排除 `/admin/login`）與 `/api/admin/*`（排除 `POST /api/admin/session`），未通過驗證時依路徑回 307 redirect 或 401 JSON
+- [x] 2.1 [Tool: sonnet] 在 `license-server/lib/__tests__/admin-session.test.ts` 寫紅燈測試覆蓋 Password verification with bcrypt、Session token format、Logout clears the session cookie、Boundary handling 四個 Requirement（含 examples 表格的所有 case）對應 Decision 2：admin 認證採 HTTP-only Cookie + HMAC-signed session
+- [x] 2.2 [Tool: copilot] 新增 `license-server/lib/admin-session.ts` 實作 HMAC-SHA256 sign/verify、`createSessionToken(secret)`、`verifySessionToken(token, secret)`、cookie name 常數，讓 2.1 紅燈測試轉綠（Password verification with bcrypt + Session token format + Boundary handling）
+- [x] 2.3 [Tool: copilot] 在 `license-server/middleware.ts` 實作 Session validation on every protected request：攔截 `/admin/*`（排除 `/admin/login`）與 `/api/admin/*`（排除 `POST /api/admin/session`），未通過驗證時依路徑回 307 redirect 或 401 JSON
 
 ## 3. admin session API endpoints（TDD）
 
-- [ ] 3.1 [Tool: sonnet] 在 `license-server/app/api/admin/session/__tests__/route.test.ts` 寫紅燈測試：Password verification with bcrypt 三個 scenario（correct/incorrect/missing env）+ Logout clears the session cookie 一個 scenario
-- [ ] 3.2 [Tool: copilot] 新增 `license-server/app/api/admin/session/route.ts`，POST 比對 bcrypt hash 並 Set-Cookie，DELETE 清 cookie，讓 3.1 紅燈測試轉綠（Password verification with bcrypt + Logout clears the session cookie）
+- [x] 3.1 [Tool: sonnet] 在 `license-server/app/api/admin/session/__tests__/route.test.ts` 寫紅燈測試：Password verification with bcrypt 三個 scenario（correct/incorrect/missing env）+ Logout clears the session cookie 一個 scenario
+- [x] 3.2 [Tool: copilot] 新增 `license-server/app/api/admin/session/route.ts`，POST 比對 bcrypt hash 並 Set-Cookie，DELETE 清 cookie，讓 3.1 紅燈測試轉綠（Password verification with bcrypt + Logout clears the session cookie）
 
 ## 4. admin proxy API endpoints（TDD）
 
