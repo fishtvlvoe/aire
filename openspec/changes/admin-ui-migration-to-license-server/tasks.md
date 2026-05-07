@@ -17,14 +17,14 @@
 
 ## 4. admin proxy API endpoints（TDD）
 
-- [ ] 4.1 [Tool: sonnet] 在 `license-server/app/api/admin/licenses/__tests__/` 寫紅燈整合測試覆蓋 Admin proxy list endpoint、Admin proxy create endpoint、Admin proxy revoke endpoint、Admin proxy transfer endpoint、Admin proxy update-info endpoint、Admin proxy unbind-machine endpoint 全部 scenario，落實 Decision 3：admin proxy API 與既有 `lib/store.ts` 共用
-- [ ] 4.2 [P] [Tool: copilot] 實作 `license-server/app/api/admin/licenses/route.ts`（GET list / POST create）薄包裝呼叫 `lib/store.ts`（Admin proxy list endpoint + Admin proxy create endpoint）
-- [ ] 4.3 [P] [Tool: copilot] 實作 `license-server/app/api/admin/licenses/revoke/route.ts`（POST）+ `license-server/app/api/admin/licenses/transfer/route.ts`（POST），呼叫 `lib/store.ts` 的 revokeLicense 與新增的 transferLicense 函式（Admin proxy revoke endpoint + Admin proxy transfer endpoint）
-- [ ] 4.4 [P] [Tool: copilot] 實作 `license-server/app/api/admin/licenses/update-info/route.ts`（PATCH）+ `license-server/app/api/admin/licenses/unbind-machine/route.ts`（POST）（Admin proxy update-info endpoint + Admin proxy unbind-machine endpoint）
+- [x] 4.1 [Tool: sonnet] 在 `license-server/app/api/admin/licenses/__tests__/` 寫紅燈整合測試覆蓋 Admin proxy list endpoint、Admin proxy create endpoint、Admin proxy revoke endpoint、Admin proxy transfer endpoint、Admin proxy update-info endpoint、Admin proxy unbind-machine endpoint 全部 scenario，落實 Decision 3：admin proxy API 與既有 `lib/store.ts` 共用
+- [x] 4.2 [P] [Tool: copilot] 實作 `license-server/app/api/admin/licenses/route.ts`（GET list / POST create）薄包裝呼叫 `lib/store.ts`（Admin proxy list endpoint + Admin proxy create endpoint）
+- [x] 4.3 [P] [Tool: copilot] 實作 `license-server/app/api/admin/licenses/revoke/route.ts`（POST）+ `license-server/app/api/admin/licenses/transfer/route.ts`（POST），呼叫 `lib/store.ts` 的 revokeLicense 與新增的 transferLicense 函式（Admin proxy revoke endpoint + Admin proxy transfer endpoint）
+- [x] 4.4 [P] [Tool: copilot] 實作 `license-server/app/api/admin/licenses/update-info/route.ts`（PATCH）+ `license-server/app/api/admin/licenses/unbind-machine/route.ts`（POST）（Admin proxy update-info endpoint + Admin proxy unbind-machine endpoint）
 
 ## 5. admin UI 頁面
 
-- [ ] 5.1 [Tool: copilot] 新增 `license-server/app/admin/login/page.tsx` 實作密碼輸入表單，submit 後 POST `/api/admin/session`，成功後 navigate `/admin/licenses`（Admin login page）對應 Decision 5：admin UI 移植策略
+- [x] 5.1 [Tool: copilot] 新增 `license-server/app/admin/login/page.tsx` 實作密碼輸入表單，submit 後 POST `/api/admin/session`，成功後 navigate `/admin/licenses`（Admin login page）對應 Decision 5：admin UI 移植策略
 - [ ] 5.2 [Tool: sonnet] 新增 `license-server/app/admin/licenses/page.tsx`：複製 three-ai `src/app/admin/licenses/page.tsx` 並依 Decision 5：admin UI 移植策略 調整：所有 fetch 加 `credentials: 'same-origin'`、移除 `Authorization: Bearer` header、加入 401 偵測 redirect 邏輯（Admin licenses page lists licenses + Admin UI calls admin proxy endpoints + Admin UI handles 401 by redirecting to login + Admin UI provides license actions）
 - [ ] 5.3 [Tool: copilot] 在 `license-server/app/admin/licenses/page.tsx` 與 `globals.css` 補上響應式樣式，符合 Admin UI is responsive on mobile（< 768px 時表格切換為卡片排版）
 
