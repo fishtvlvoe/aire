@@ -3,11 +3,8 @@ import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
 
 const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL ?? 'https://three-ai-license-server.vercel.app';
 
-interface CreateLicenseBody {
-  count?: number;
-  expiresAt?: string | null;
-  features?: string[];
-  issuedBy?: string;
+interface UnbindMachineBody {
+  key?: string;
 }
 
 function getAdminUser(req: NextRequest) {
@@ -40,36 +37,20 @@ async function proxyToLicenseServer(path: string, init: RequestInit) {
   return NextResponse.json(payload, { status: response.status });
 }
 
-export async function GET(req: NextRequest) {
-  const admin = getAdminUser(req);
-  if (!admin) {
-    return NextResponse.json({ error: '權限不足' }, { status: 403 });
-  }
-
-  const page = req.nextUrl.searchParams.get('page') ?? '1';
-  const pageSize = req.nextUrl.searchParams.get('pageSize') ?? '20';
-  const status = req.nextUrl.searchParams.get('status');
-  const search = req.nextUrl.searchParams.get('search');
-
-  const query = new URLSearchParams({ page, pageSize });
-  if (status) query.set('status', status);
-  if (search?.trim()) query.set('search', search.trim());
-
-  return proxyToLicenseServer(`/api/license/list?${query.toString()}`, {
-    method: 'GET',
-  });
-}
-
+// POST 代理 → license-server PATCH /api/license/update-info
+// body: { key }，傳給後端 { key, machineId: null }（清除 machineId）
+// 注意：後端的 update-info API 目前不支援更新 machineId，
+// 所以先用暫時方案：用 PATCH /api/license/update-info 帶 machineId: null
 export async function POST(req: NextRequest) {
   const admin = getAdminUser(req);
   if (!admin) {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }
 
-  const body = (await req.json()) as CreateLicenseBody;
-  return proxyToLicenseServer('/api/license/create', {
-    method: 'POST',
+  const body = (await req.json()) as UnbindMachineBody;
+  return proxyToLicenseServer('/api/license/update-info', {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ key: body.key, machineId: null }),
   });
 }
