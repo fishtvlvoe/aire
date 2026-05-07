@@ -48,5 +48,5 @@
 
 ## 9. 端到端測試
 
-- [ ] 9.1 測試完整安裝流程：Electron 啟動 → Codex CLI 偵測 → License 啟用（含 machineId）→ 建管理員 → Codex 設定 → 登入 → 存取受保護頁面 [Tool: Sonnet]
-- [ ] 9.2 測試後台管理流程：序號列表 → 搜尋 → Inline Edit → 轉讓 → 解綁機器 [Tool: Sonnet]
+- [ ] 9.1 測試完整安裝流程：Electron 啟動 → Codex CLI 偵測 → License 啟用（含 machineId）→ 建管理員 → Codex 設定 → 登入 → 存取受保護頁面（需 Electron 環境）[Tool: Sonnet]
+- [x] 9.2 測試後台管理流程：序號列表 → 搜尋 → Inline Edit → 轉讓 → 解綁機器（修復 admin API 認證從自訂 session 改為 next-auth JWT）[Tool: Sonnet]
