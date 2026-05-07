@@ -223,9 +223,12 @@ export async function updateLicenseInfo(
   key: string,
   field: 'contactName' | 'company' | 'email',
   value: string | null,
-): Promise<LicenseRecord | null> {
+): Promise<
+  | { ok: true; record: LicenseRecord }
+  | { ok: false; error: 'not_found' | 'email_in_use' }
+> {
   const current = await getLicense(key);
-  if (!current) return null;
+  if (!current) return { ok: false, error: 'not_found' };
 
   const normalizedValue = typeof value === 'string' ? value.trim() : null;
   const nextValue = normalizedValue && normalizedValue.length > 0 ? normalizedValue : null;
@@ -234,6 +237,12 @@ export async function updateLicenseInfo(
   if (field === 'email') {
     const oldEmail = current.email;
     const newEmail = nextValue ? nextValue.toLowerCase() : null;
+    if (newEmail) {
+      const existing = await kv.get<string>(emailIndex(newEmail));
+      if (existing && existing !== key) {
+        return { ok: false, error: 'email_in_use' };
+      }
+    }
     if (oldEmail && oldEmail !== newEmail) {
       await kv.del(emailIndex(oldEmail));
     }
@@ -246,7 +255,7 @@ export async function updateLicenseInfo(
 
   const normalized = normalizeLicenseRecord(updated);
   await saveLicense(normalized);
-  return normalized;
+  return { ok: true, record: normalized };
 }
 
 /** IP 在 CIDR 範圍內 */

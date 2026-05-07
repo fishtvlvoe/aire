@@ -546,13 +546,23 @@ export default function AdminLicensesPage() {
     const features = ['disclosure-document'];
     if (allowAdvancedExport) features.push('advanced-export');
     const safeCount = Math.max(1, Math.min(100, Number(count) || 1));
+    let expiresAtIso: string | null = null;
+    if (expiresAt.trim()) {
+      const parsedDate = new Date(expiresAt);
+      if (Number.isNaN(parsedDate.getTime())) {
+        showToast('error', '到期時間格式不正確');
+        setSubmitting(false);
+        return;
+      }
+      expiresAtIso = parsedDate.toISOString();
+    }
 
     const response = await apiCall('/api/admin/licenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         count: safeCount,
-        expiresAt: expiresAt.trim() ? new Date(expiresAt).toISOString() : null,
+        expiresAt: expiresAtIso,
         issuedBy: issuedBy.trim() || 'admin',
         features,
       }),

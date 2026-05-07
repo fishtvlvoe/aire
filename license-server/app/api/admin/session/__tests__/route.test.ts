@@ -79,7 +79,7 @@ describe('POST /api/admin/session', () => {
   });
 
   // -----------------------------------------------------------------
-  // Scenario 3：密碼對 → 200 { ok: true } + Set-Cookie 含 admin_session= / HttpOnly / Max-Age=43200
+  // Scenario 3：密碼對 → 200 { ok: true } + Set-Cookie 含 admin_session= / HttpOnly / Max-Age=14400
   // 對應 spec: "correct password is accepted"
   // -----------------------------------------------------------------
   it('returns 200 ok=true and sets admin_session cookie when password is correct', async () => {
@@ -98,7 +98,7 @@ describe('POST /api/admin/session', () => {
     expect(setCookie).not.toBeNull();
     expect(setCookie).toContain('admin_session=');
     expect(setCookie).toContain('HttpOnly');
-    expect(setCookie).toContain('Max-Age=43200');
+    expect(setCookie).toContain('Max-Age=14400');
   });
 });
 

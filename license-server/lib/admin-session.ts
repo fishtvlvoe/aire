@@ -31,7 +31,7 @@ function signPayload(payloadSegment: string, secret: string): string {
 
 export function createSessionToken(
   secret: string,
-  ttlSeconds = 43_200,
+  ttlSeconds = 14_400,
   now = Math.floor(Date.now() / 1_000),
 ): string {
   const payload: SessionPayload = {
@@ -106,10 +106,9 @@ export async function verifyAdminPassword(
   password: string,
   hash: string | undefined,
 ): Promise<boolean> {
-  if (!hash) {
-    return false;
-  }
-  return bcrypt.compare(password, hash);
+  // 無論 hash 是否存在都執行 compare，避免因早退產生可觀測的 timing 差異。
+  const dummyHash = '$2b$12$Spkg7gpLPeuebd7PMaWKGujYo/jC2EZjfdp7lqBWLowK1keMGqzA.';
+  return bcrypt.compare(password, hash || dummyHash);
 }
 
 export function buildClearCookieHeader(): string {

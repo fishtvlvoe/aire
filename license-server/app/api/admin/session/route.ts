@@ -9,7 +9,7 @@ import {
 // 強制 Node runtime（bcrypt 不能跑 Edge）
 export const runtime = 'nodejs';
 
-const SESSION_TTL_SECONDS = 43_200; // 12 小時
+const SESSION_TTL_SECONDS = 14_400; // 4 小時
 
 export async function POST(req: NextRequest) {
   const passwordHash = process.env.LICENSE_ADMIN_PASSWORD;

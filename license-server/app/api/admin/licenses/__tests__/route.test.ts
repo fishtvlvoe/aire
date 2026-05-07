@@ -460,6 +460,33 @@ describe('PATCH /api/admin/licenses/update-info', () => {
     const body = await res.json();
     expect(body).toEqual({ error: 'invalid_field' });
   });
+
+  // -----------------------------------------------------------------
+  // Scenario 14：更新 email 與其他序號重複 → 409 email_in_use
+  // -----------------------------------------------------------------
+  it('returns 409 email_in_use when updating email to one already used by another license', async () => {
+    const licenseA = seedLicense({
+      licenseKey: 'THREE-UPDT-EMAIL-AAAA',
+      email: 'a@x.com',
+      status: 'activated',
+    });
+    const licenseB = seedLicense({
+      licenseKey: 'THREE-UPDT-EMAIL-BBBB',
+      email: 'b@x.com',
+      status: 'activated',
+    });
+
+    const req = buildJsonRequest('/api/admin/licenses/update-info', 'PATCH', {
+      licenseKey: licenseB.licenseKey,
+      field: 'email',
+      value: licenseA.email,
+    });
+    const res = await updateInfoPATCH(req);
+
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body).toEqual({ error: 'email_in_use' });
+  });
 });
 
 // ===================================================================

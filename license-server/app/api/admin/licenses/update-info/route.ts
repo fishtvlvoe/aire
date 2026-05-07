@@ -33,9 +33,12 @@ export async function PATCH(req: NextRequest) {
 
   const value = field === 'email' ? toNullableEmail(body.value) : toNullableText(body.value);
   const updated = await updateLicenseInfo(licenseKey, field as EditableField, value);
-  if (!updated) {
+  if (!updated.ok) {
+    if (updated.error === 'email_in_use') {
+      return NextResponse.json({ error: 'email_in_use' }, { status: 409 });
+    }
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
 
-  return NextResponse.json(updated);
+  return NextResponse.json(updated.record);
 }
