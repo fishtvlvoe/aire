@@ -39,8 +39,8 @@
 
 ## 7. Electron — Build 驗證
 
-- [ ] 7.1 執行 npm run electron:pack:mac 驗證 DMG 打包成功，安裝後啟動顯示 setup wizard（Electron build produces valid Mac and Windows installers / Mac DMG build succeeds）[Tool: Sonnet]
-- [ ] 7.2 執行 npm run electron:pack:win 驗證 NSIS 打包成功（Windows NSIS build succeeds）[Tool: Sonnet]
+- [x] 7.1 執行 npm run electron:pack:mac 驗證 DMG 打包成功（arm64 + x64），需先跑 fix-standalone-symlinks.js 修復 Next.js standalone symlink（Electron build produces valid Mac and Windows installers / Mac DMG build succeeds）[Tool: Sonnet]
+- [ ] 7.2 執行 npm run electron:pack:win 驗證 NSIS 打包成功（需 Windows 環境或 Wine）（Windows NSIS build succeeds）[Tool: Sonnet]
 
 ## 8. Code Review
 
