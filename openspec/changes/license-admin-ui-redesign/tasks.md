@@ -44,7 +44,7 @@
 
 ## 8. Code Review
 
-- [ ] 8.1 全量 Code Review：Kimi MCP 審查所有新增/修改檔案，三濾鏡（correctness / security / performance）[Tool: Kimi]
+- [x] 8.1 全量 Code Review：Kimi MCP 審查所有新增/修改檔案，三濾鏡（correctness / security / performance）[Tool: Kimi]
 
 ## 9. 端到端測試
 
