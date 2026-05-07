@@ -8,6 +8,7 @@ interface UpdateInfoBody {
   contactName?: string;
   company?: string;
   email?: string;
+  machineId?: string | null;
 }
 
 function emailIndex(email: string): string {
@@ -55,6 +56,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (body.company !== undefined) {
     next.company = normalizeOptionalText(body.company);
+  }
+
+  if (body.machineId !== undefined) {
+    next.machineId = body.machineId === null ? null : normalizeOptionalText(body.machineId);
   }
 
   if (body.email !== undefined) {

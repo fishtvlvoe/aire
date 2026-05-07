@@ -165,7 +165,7 @@ export default function AdminLicensesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         count,
-        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+        expiresAt: expiresAt.trim() ? new Date(expiresAt).toISOString() : null,
         issuedBy: issuedBy.trim() || 'admin',
         features,
       }),
