@@ -1,9 +1,6 @@
 import { BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 
-const UPDATE_CHECK_URL = process.env.LICENSE_SERVER_URL
-  ? `${process.env.LICENSE_SERVER_URL}/api/updates/check`
-  : 'https://license.three-ai.app/api/updates/check';
 const UPDATE_STATUS_CHANNEL = 'update-status';
 let listenersBound = false;
 
@@ -44,8 +41,9 @@ function bindUpdaterListeners(win: BrowserWindow): void {
 
 export async function checkAndApplyUpdate(win: BrowserWindow): Promise<void> {
   autoUpdater.setFeedURL({
-    provider: 'generic',
-    url: UPDATE_CHECK_URL,
+    provider: 'github',
+    owner: 'fishtvlvoe',
+    repo: 'three-ai',
   });
   autoUpdater.autoDownload = true;
   bindUpdaterListeners(win);

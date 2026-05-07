@@ -1,6 +1,6 @@
 {
   "name": "three-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "main": "electron/build/main.js",
   "scripts": {
@@ -58,8 +58,9 @@
   "build": {
     "publish": [
       {
-        "provider": "generic",
-        "url": "https://license.three-ai.app/releases"
+        "provider": "github",
+        "owner": "fishtvlvoe",
+        "repo": "three-ai"
       }
     ]
   }

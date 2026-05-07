@@ -46,7 +46,9 @@
     "shortcutName": "AI 不動產說明書"
   },
   "publish": {
-    "provider": "generic",
-    "url": "https://license.three-ai.app/releases"
+    "provider": "github",
+    "owner": "fishtvlvoe",
+    "repo": "three-ai",
+    "releaseType": "release"
   }
 }
