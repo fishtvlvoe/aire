@@ -7,14 +7,14 @@
 
 ## 2. 後端 API — machineId 綁定
 
-- [ ] 2.1 安裝 node-machine-id 套件，建立 src/lib/machine-id.ts 工具模組，提供取得 machineId + SHA-256 hash 功能（D4: machineId 綁定 / License activation binds to machine ID）[Tool: Copilot]
-- [ ] 2.2 修改 POST /api/license/activate API，接受 machineId 參數，啟用時儲存 hash，已綁定時拒絕不同機器（License activation includes machine ID binding）[Tool: Copilot]
-- [ ] 2.3 修改 GET /api/license/verify API，驗證 machineId 是否與儲存值一致，不符回 403（License verification validates machine ID）[Tool: Copilot]
+- [x] 2.1 安裝 node-machine-id 套件，建立 src/lib/machine-id.ts 工具模組，提供取得 machineId + SHA-256 hash 功能（D4: machineId 綁定 / License activation binds to machine ID）[Tool: Copilot]
+- [x] 2.2 修改 POST /api/license/activate API，接受 machineId 參數，啟用時儲存 hash，已綁定時拒絕不同機器（License activation includes machine ID binding）[Tool: Copilot]
+- [x] 2.3 修改 GET /api/license/verify API，驗證 machineId 是否與儲存值一致，不符回 403（License verification validates machine ID）[Tool: Copilot]
 
 ## 3. 後端 API — 首位管理員建立
 
-- [ ] 3.1 實作 POST /api/setup/create-first-admin API，僅 users 表為空時允許，建立 role=admin 帳號，密碼至少 6 字元（D5: 首位管理員建立（First Admin Setup） / First admin account creation API）[Tool: Copilot]
-- [ ] 3.2 修改 src/middleware.ts 重導向邏輯：License 有效 + users 表為空 → 重導 /setup/admin（Middleware redirects to admin setup when users table is empty）[Tool: Copilot]
+- [x] 3.1 實作 POST /api/setup/create-first-admin API，僅 users 表為空時允許，建立 role=admin 帳號，密碼至少 6 字元（D5: 首位管理員建立（First Admin Setup） / First admin account creation API）[Tool: Copilot]
+- [x] 3.2 修改 src/middleware.ts 重導向邏輯：License 有效 + users 表為空 → 重導 /setup/admin（Middleware redirects to admin setup when users table is empty）[Tool: Copilot]
 
 ## 4. 前端 — 序號管理後台 UI
 
