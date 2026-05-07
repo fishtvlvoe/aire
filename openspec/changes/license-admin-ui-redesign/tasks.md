@@ -18,19 +18,19 @@
 
 ## 4. 前端 — 序號管理後台 UI
 
-- [ ] 4.1 重構序號管理表格元件，五欄排列：編號→序號→狀態→使用者→操作，移除建立日期欄（D1: 表格欄位與排序 / License table displays five columns in fixed order / Creation date column is removed）[Tool: Copilot]
-- [ ] 4.2 使用者欄位三行顯示（姓名/公司/Email），未啟用顯示「—」（User column displays three-line contact info）[Tool: Copilot]
-- [ ] 4.3 編號欄位顯示流水號 001/002...，搜尋結果重新編號（Index column shows sequential numbering）[Tool: Copilot]
-- [ ] 4.4 [P] 操作按鈕加 Tooltip：複製「複製序號到剪貼簿」、停用「停用此序號」，已停用隱藏停用按鈕（Action buttons have tooltips）[Tool: Copilot]
-- [ ] 4.5 [P] 實作 Inline Edit 功能：點擊切換 input、Enter 儲存、Escape 取消，呼叫 PATCH /api/license/update-info（D2: 使用者資料 Inline Edit / User info supports inline editing）[Tool: Copilot]
-- [ ] 4.6 實作轉讓確認 Dialog：顯示舊序號資訊 + 新公司/姓名/Email/理由輸入，呼叫 POST /api/license/transfer（D3: 序號轉讓 / Transfer dialog for license reassignment）[Tool: Copilot]
-- [ ] 4.7 實作搜尋功能：對 index、key、contactName、company、email 全欄位模糊比對，結果帶重新編號（Search includes index and contact info）[Tool: Copilot]
-- [ ] 4.8 新增「解綁機器」操作按鈕，清除序號的 machineId（Admin can unbind machine ID）[Tool: Copilot]
+- [x] 4.1 重構序號管理表格元件，五欄排列：編號→序號→狀態→使用者→操作，移除建立日期欄（D1: 表格欄位與排序 / License table displays five columns in fixed order / Creation date column is removed）[Tool: Copilot]
+- [x] 4.2 使用者欄位三行顯示（姓名/公司/Email），未啟用顯示「—」（User column displays three-line contact info）[Tool: Copilot]
+- [x] 4.3 編號欄位顯示流水號 001/002...，搜尋結果重新編號（Index column shows sequential numbering）[Tool: Copilot]
+- [x] 4.4 [P] 操作按鈕加 Tooltip：複製「複製序號到剪貼簿」、停用「停用此序號」，已停用隱藏停用按鈕（Action buttons have tooltips）[Tool: Copilot]
+- [x] 4.5 [P] 實作 Inline Edit 功能：點擊切換 input、Enter 儲存、Escape 取消，呼叫 PATCH /api/license/update-info（D2: 使用者資料 Inline Edit / User info supports inline editing）[Tool: Copilot]
+- [x] 4.6 實作轉讓確認 Dialog：顯示舊序號資訊 + 新公司/姓名/Email/理由輸入，呼叫 POST /api/license/transfer（D3: 序號轉讓 / Transfer dialog for license reassignment）[Tool: Copilot]
+- [x] 4.7 實作搜尋功能：對 index、key、contactName、company、email 全欄位模糊比對，結果帶重新編號（Search includes index and contact info）[Tool: Copilot]
+- [x] 4.8 新增「解綁機器」操作按鈕，清除序號的 machineId（Admin can unbind machine ID）[Tool: Copilot]
 
 ## 5. 前端 — Setup Wizard 三步流程
 
-- [ ] 5.1 建立 /setup/admin 頁面：Email、顯示名稱、密碼三欄位表單 + 前端驗證，呼叫 POST /api/setup/create-first-admin（D5: 首位管理員建立 / First admin setup page UI / Setup wizard includes admin account creation step）[Tool: Copilot]
-- [ ] 5.2 修改 /setup 頁面完成後重導至 /setup/admin（取代原本直接到 /setup/codex），確保三步順序：License → Admin → Codex（Setup wizard includes admin account creation step）[Tool: Copilot]
+- [x] 5.1 建立 /setup/admin 頁面：Email、顯示名稱、密碼三欄位表單 + 前端驗證，呼叫 POST /api/setup/create-first-admin（D5: 首位管理員建立 / First admin setup page UI / Setup wizard includes admin account creation step）[Tool: Copilot]
+- [x] 5.2 修改 /setup 頁面完成後重導至 /setup/admin（取代原本直接到 /setup/codex），確保三步順序：License → Admin → Codex（Setup wizard includes admin account creation step）[Tool: Copilot]
 
 ## 6. Electron — Codex CLI 偵測
 
