@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import type Database from 'better-sqlite3';
 
 const USERS_SCHEMA = `
@@ -156,12 +155,5 @@ export function initDb(db: Database.Database): void {
       END;
   `);
 
-  // 建立預設 admin 帳號（只在沒有 admin 時才 hash，避免每次初始化都跑 bcrypt）
-  const adminRow = db.prepare("SELECT id FROM users WHERE email = 'admin@local' LIMIT 1").get();
-  if (!adminRow) {
-    const hash = bcrypt.hashSync('admin123', 10);
-    db.prepare(
-      "INSERT OR IGNORE INTO users (email, password_hash, display_name, role) VALUES (?, ?, ?, 'admin')"
-    ).run('admin@local', hash, '系統管理員');
-  }
+  // 不再自動建立預設 admin 帳號；改由 /setup/admin 流程建立首位管理員
 }
