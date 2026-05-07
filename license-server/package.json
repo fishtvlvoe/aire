@@ -7,7 +7,9 @@
     "dev:vercel": "vercel dev",
     "build": "next build",
     "start": "next start",
-    "deploy": "vercel deploy --prod"
+    "deploy": "vercel deploy --prod",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@types/bcryptjs": "latest",
@@ -23,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^20",
     "typescript": "^5",
-    "vercel": "^44"
+    "vercel": "^44",
+    "vitest": "^2"
   }
 }
