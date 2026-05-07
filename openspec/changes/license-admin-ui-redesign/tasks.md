@@ -34,8 +34,8 @@
 
 ## 6. Electron — Codex CLI 偵測
 
-- [ ] 6.1 修改 electron/launcher.ts，啟動 Next.js server 前偵測 Codex CLI（macOS: which codex / Windows: where codex），結果透過 IPC 傳給 renderer（D6: Codex CLI 偵測 / Launcher checks for Codex CLI before starting Next.js server / Electron launcher detects Codex CLI before starting）[Tool: Copilot]
-- [ ] 6.2 建立 Codex CLI 安裝引導畫面 HTML：安裝指令、codex login 說明、「重新偵測」按鈕、手動路徑輸入（Installation guide screen for missing Codex CLI）[Tool: Copilot]
+- [x] 6.1 修改 electron/launcher.ts，啟動 Next.js server 前偵測 Codex CLI（macOS: which codex / Windows: where codex），結果透過 IPC 傳給 renderer（D6: Codex CLI 偵測 / Launcher checks for Codex CLI before starting Next.js server / Electron launcher detects Codex CLI before starting）[Tool: Copilot]
+- [x] 6.2 建立 Codex CLI 安裝引導畫面 HTML：安裝指令、codex login 說明、「重新偵測」按鈕、手動路徑輸入（Installation guide screen for missing Codex CLI）[Tool: Copilot]
 
 ## 7. Electron — Build 驗證
 
