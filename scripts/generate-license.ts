@@ -4,7 +4,7 @@ interface CliDeps {
   fetchImpl: typeof fetch;
 }
 
-function readArg(args: string[], key: '--company' | '--expires'): string | undefined {
+function readArg(args: string[], key: '--company' | '--expires' | '--count'): string | undefined {
   const index = args.indexOf(key);
   if (index === -1) return undefined;
   return args[index + 1];
@@ -19,9 +19,11 @@ function isFutureIsoDate(value: string): boolean {
 export async function runGenerateLicense(args: string[], deps: CliDeps): Promise<number> {
   const company = readArg(args, '--company');
   const expires = readArg(args, '--expires');
+  const countRaw = readArg(args, '--count') ?? '1';
+  const count = Number.parseInt(countRaw, 10);
 
   if (!company || !expires) {
-    deps.error('Usage: tsx scripts/generate-license.ts --company <company> --expires <iso-8601>');
+    deps.error('Usage: tsx scripts/generate-license.ts --company <company> --expires <iso-8601> [--count <n>]');
     return 1;
   }
 
@@ -30,26 +32,47 @@ export async function runGenerateLicense(args: string[], deps: CliDeps): Promise
     return 1;
   }
 
-  const serverUrl = process.env.LICENSE_SERVER_URL ?? 'https://license.three-ai.app';
+  if (!Number.isInteger(count) || count < 1 || count > 500) {
+    deps.error('--count must be an integer between 1 and 500');
+    return 1;
+  }
+
+  const serverUrl = process.env.LICENSE_SERVER_URL ?? 'https://three-ai-license-server.vercel.app';
+  const adminToken = process.env.LICENSE_ADMIN_TOKEN;
+
+  if (!adminToken) {
+    deps.error('LICENSE_ADMIN_TOKEN env var is required (see license-server .env)');
+    return 1;
+  }
+
+  const expiresIso = new Date(expires).toISOString();
 
   const response = await deps.fetchImpl(`${serverUrl}/api/license/create`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ company, expires }),
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${adminToken}`,
+    },
+    body: JSON.stringify({ count, expiresAt: expiresIso, issuedBy: company }),
   });
 
   if (!response.ok) {
-    deps.error(`License Server API error: ${response.status}`);
+    const text = await response.text().catch(() => '');
+    deps.error(`License Server API error: ${response.status} ${text}`);
     return 1;
   }
 
-  const data = (await response.json()) as { serialKey?: string };
-  if (!data.serialKey) {
-    deps.error('License Server API response missing serialKey');
+  const data = (await response.json()) as { items?: Array<{ licenseKey?: string }> };
+  const keys = (data.items ?? []).map((item) => item.licenseKey).filter((key): key is string => !!key);
+
+  if (keys.length === 0) {
+    deps.error('License Server API response missing licenseKey');
     return 1;
   }
 
-  deps.log(data.serialKey);
+  for (const key of keys) {
+    deps.log(key);
+  }
   return 0;
 }
 
