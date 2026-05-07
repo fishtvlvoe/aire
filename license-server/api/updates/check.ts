@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const record = await getLicense(licenseKey);
-  if (!record || !record.active) {
+  if (!record || !record.active || record.status !== 'activated') {
     return res.status(403).json({ error: 'Invalid or inactive license' });
   }
 

@@ -24,6 +24,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(404).json({ valid: false, reason: 'license_not_found' });
   }
 
+  if (record.status === 'issued') {
+    return res.status(403).json({ valid: false, reason: 'license_not_activated' });
+  }
+
   if (record.email !== email.toLowerCase()) {
     return res.status(403).json({ valid: false, reason: 'email_mismatch' });
   }

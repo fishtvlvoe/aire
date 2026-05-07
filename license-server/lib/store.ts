@@ -1,13 +1,20 @@
 import { kv } from '@vercel/kv';
 
+export type LicenseStatus = 'issued' | 'activated' | 'revoked';
+
 export interface LicenseRecord {
   licenseKey: string;
-  email: string;
+  email: string | null;
   allowedCidr: string;      // e.g. "192.168.1.0/24" or "0.0.0.0/0"
   features: string[];       // e.g. ["disclosure-document", "contract"]
-  activatedAt: string;      // ISO 8601
+  createdAt: string;        // ISO 8601
+  activatedAt: string | null; // ISO 8601
   expiresAt: string | null; // ISO 8601 or null for perpetual
   active: boolean;
+  status: LicenseStatus;
+  issuedBy: string | null;
+  revokedAt: string | null;
+  revokedReason: string | null;
 }
 
 function licenseKey(key: string): string {
@@ -18,8 +25,38 @@ function emailIndex(email: string): string {
   return `email-index:${email.toLowerCase()}`;
 }
 
+export function normalizeLicenseRecord(
+  record: Partial<LicenseRecord> & { licenseKey: string },
+): LicenseRecord {
+  const email = record.email ? record.email.toLowerCase() : null;
+  const status =
+    record.status
+    ?? (record.active === false
+      ? 'revoked'
+      : (email ? 'activated' : 'issued'));
+  const createdAt = record.createdAt ?? record.activatedAt ?? new Date().toISOString();
+  const activatedAt = status === 'activated' ? (record.activatedAt ?? createdAt) : null;
+
+  return {
+    licenseKey: record.licenseKey,
+    email,
+    allowedCidr: record.allowedCidr ?? '0.0.0.0/0',
+    features: record.features ?? ['disclosure-document'],
+    createdAt,
+    activatedAt,
+    expiresAt: record.expiresAt ?? null,
+    active: record.active ?? status !== 'revoked',
+    status,
+    issuedBy: record.issuedBy ?? null,
+    revokedAt: record.revokedAt ?? null,
+    revokedReason: record.revokedReason ?? null,
+  };
+}
+
 export async function getLicense(key: string): Promise<LicenseRecord | null> {
-  return kv.get<LicenseRecord>(licenseKey(key));
+  const record = await kv.get<Partial<LicenseRecord> & { licenseKey: string }>(licenseKey(key));
+  if (!record) return null;
+  return normalizeLicenseRecord({ ...record, licenseKey: record.licenseKey ?? key });
 }
 
 export async function getLicenseByEmail(email: string): Promise<LicenseRecord | null> {
@@ -29,13 +66,64 @@ export async function getLicenseByEmail(email: string): Promise<LicenseRecord | 
 }
 
 export async function saveLicense(record: LicenseRecord): Promise<void> {
-  await kv.set(licenseKey(record.licenseKey), record);
-  await kv.set(emailIndex(record.email), record.licenseKey);
+  const normalized = normalizeLicenseRecord(record);
+  await kv.set(licenseKey(normalized.licenseKey), normalized);
+  if (normalized.email) {
+    await kv.set(emailIndex(normalized.email), normalized.licenseKey);
+  }
 }
 
 export async function listAllLicenseKeys(): Promise<string[]> {
   const keys = await kv.keys('license:*');
   return keys.map((k) => k.replace(/^license:/, ''));
+}
+
+export interface ListLicensesOptions {
+  status?: LicenseStatus;
+  page: number;
+  pageSize: number;
+}
+
+export interface ListLicensesResult {
+  items: LicenseRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function listLicenses(options: ListLicensesOptions): Promise<ListLicensesResult> {
+  const keys = await listAllLicenseKeys();
+  const rows = await Promise.all(keys.map(async (key) => getLicense(key)));
+  const normalized = rows.filter((row): row is LicenseRecord => !!row);
+  const filtered = options.status
+    ? normalized.filter((item) => item.status === options.status)
+    : normalized;
+
+  filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const start = (options.page - 1) * options.pageSize;
+  return {
+    items: filtered.slice(start, start + options.pageSize),
+    total: filtered.length,
+    page: options.page,
+    pageSize: options.pageSize,
+  };
+}
+
+export async function revokeLicense(
+  key: string,
+  reason?: string,
+): Promise<LicenseRecord | null> {
+  const current = await getLicense(key);
+  if (!current) return null;
+  const revoked = normalizeLicenseRecord({
+    ...current,
+    active: false,
+    status: 'revoked',
+    revokedAt: new Date().toISOString(),
+    revokedReason: reason ?? null,
+  });
+  await saveLicense(revoked);
+  return revoked;
 }
 
 /** IP 在 CIDR 範圍內 */

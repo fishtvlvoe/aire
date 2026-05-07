@@ -21,27 +21,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const existing = await getLicense(licenseKey);
 
-  if (existing) {
+  if (!existing) {
+    return res.status(404).json({ valid: false, reason: 'license_not_found' });
+  }
+
+  if (!existing.active || existing.status === 'revoked') {
+    return res.status(403).json({ valid: false, reason: 'license_inactive' });
+  }
+
+  if (existing.status === 'activated') {
     if (existing.email !== email.toLowerCase()) {
       return res.status(409).json({ error: 'License already activated for a different email' });
     }
-    // 同一 email 重複啟用：更新 CIDR
-    existing.allowedCidr = allowedCidr ?? existing.allowedCidr;
-    await saveLicense(existing);
-    return res.status(200).json({ ok: true, features: existing.features });
+    return res.status(409).json({ error: 'License already activated' });
   }
 
-  // 首次啟用
+  if (existing.status !== 'issued') {
+    return res.status(409).json({ error: 'License status is not activatable' });
+  }
+
+  const now = new Date().toISOString();
   const record = {
-    licenseKey,
+    ...existing,
     email: email.toLowerCase(),
-    allowedCidr: allowedCidr ?? '0.0.0.0/0',
-    features: DEFAULT_FEATURES,
-    activatedAt: new Date().toISOString(),
-    expiresAt: null,
+    allowedCidr: allowedCidr ?? existing.allowedCidr ?? '0.0.0.0/0',
+    features: existing.features?.length ? existing.features : DEFAULT_FEATURES,
+    activatedAt: now,
+    status: 'activated' as const,
     active: true,
   };
 
   await saveLicense(record);
-  return res.status(201).json({ ok: true, features: record.features });
+  return res.status(200).json({ ok: true, features: record.features });
 }
