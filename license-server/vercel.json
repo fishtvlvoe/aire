@@ -1,12 +1,8 @@
 {
-  "routes": [
-    { "src": "/api/license/update-info", "dest": "/api/license/update-info.ts" },
-    { "src": "/api/license/transfer", "dest": "/api/license/transfer.ts" }
-  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/$1"
-    }
+    { "source": "/license/:path*", "destination": "/api/license/:path*" },
+    { "source": "/features/:path*", "destination": "/api/features/:path*" },
+    { "source": "/updates/:path*", "destination": "/api/updates/:path*" }
   ]
 }
