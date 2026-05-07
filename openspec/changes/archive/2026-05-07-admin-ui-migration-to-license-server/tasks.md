@@ -41,6 +41,6 @@
 
 ## 8. 部署（須 Fish 確認後執行）
 
-- [ ] 8.1 [Tool: main] 整理 deploy checklist 給 Fish 確認：Vercel env 設定 `LICENSE_ADMIN_PASSWORD`（bcrypt hash 用 cost=12 產生）與 `ADMIN_SESSION_SECRET`（`openssl rand -base64 48`）的具體指令；確認後 Fish 親自貼到 Vercel Dashboard
-- [ ] 8.2 [Tool: main] 取得 Fish 同意後執行 `cd license-server && vercel deploy --prod` 部署
-- [ ] 8.3 [Tool: main] 部署後線上 smoke test：用手機瀏覽器訪問 `https://three-ai-license-server.vercel.app/admin/login` 走完登入→列表→建立→停用→登出，回報結果給 Fish
+- [x] 8.1 [Tool: main] 整理 deploy checklist 給 Fish 確認：Vercel env 設定 `LICENSE_ADMIN_PASSWORD`（bcrypt hash 用 cost=12 產生）與 `ADMIN_SESSION_SECRET`（`openssl rand -base64 48`）的具體指令；確認後 Fish 親自貼到 Vercel Dashboard
+- [x] 8.2 [Tool: main] 取得 Fish 同意後執行 `cd license-server && vercel deploy --prod` 部署
+- [x] 8.3 [Tool: main] 部署後線上 smoke test：用手機瀏覽器訪問 `https://three-ai-license-server.vercel.app/admin/login` 走完登入→列表→建立→停用→登出，回報結果給 Fish
