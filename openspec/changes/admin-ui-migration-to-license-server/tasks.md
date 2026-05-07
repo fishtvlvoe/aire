@@ -25,19 +25,19 @@
 ## 5. admin UI 頁面
 
 - [x] 5.1 [Tool: copilot] 新增 `license-server/app/admin/login/page.tsx` 實作密碼輸入表單，submit 後 POST `/api/admin/session`，成功後 navigate `/admin/licenses`（Admin login page）對應 Decision 5：admin UI 移植策略
-- [ ] 5.2 [Tool: sonnet] 新增 `license-server/app/admin/licenses/page.tsx`：複製 three-ai `src/app/admin/licenses/page.tsx` 並依 Decision 5：admin UI 移植策略 調整：所有 fetch 加 `credentials: 'same-origin'`、移除 `Authorization: Bearer` header、加入 401 偵測 redirect 邏輯（Admin licenses page lists licenses + Admin UI calls admin proxy endpoints + Admin UI handles 401 by redirecting to login + Admin UI provides license actions）
-- [ ] 5.3 [Tool: copilot] 在 `license-server/app/admin/licenses/page.tsx` 與 `globals.css` 補上響應式樣式，符合 Admin UI is responsive on mobile（< 768px 時表格切換為卡片排版）
+- [x] 5.2 [Tool: sonnet] 新增 `license-server/app/admin/licenses/page.tsx`：複製 three-ai `src/app/admin/licenses/page.tsx` 並依 Decision 5：admin UI 移植策略 調整：所有 fetch 加 `credentials: 'same-origin'`、移除 `Authorization: Bearer` header、加入 401 偵測 redirect 邏輯（Admin licenses page lists licenses + Admin UI calls admin proxy endpoints + Admin UI handles 401 by redirecting to login + Admin UI provides license actions）
+- [x] 5.3 [Tool: copilot] 在 `license-server/app/admin/licenses/page.tsx` 與 `globals.css` 補上響應式樣式，符合 Admin UI is responsive on mobile（< 768px 時表格切換為卡片排版）
 
 ## 6. vercel.json 改寫與 client API 相容
 
-- [ ] 6.1 [Tool: copilot] 修改 `license-server/vercel.json`：移除 catch-all `"/(.*)" → "/api/$1"`，新增 `/license/:path*`、`/features/:path*`、`/updates/:path*` 三條 rewrite 對應 Decision 4：`vercel.json` 改寫策略（Vercel rewrite changes preserve legacy paths）
-- [ ] 6.2 [Tool: main] grep three-ai 與 license-server 程式碼確認沒有 hardcode 舊 catch-all 路徑（如 `/license/list` 直接呼叫且無 `Authorization` header），列出所有呼叫點供 review，驗證 Existing client API endpoints remain unchanged
+- [x] 6.1 [Tool: copilot] 修改 `license-server/vercel.json`：移除 catch-all `"/(.*)" → "/api/$1"`，新增 `/license/:path*`、`/features/:path*`、`/updates/:path*` 三條 rewrite 對應 Decision 4：`vercel.json` 改寫策略（Vercel rewrite changes preserve legacy paths）
+- [x] 6.2 [Tool: main] grep three-ai 與 license-server 程式碼確認沒有 hardcode 舊 catch-all 路徑（如 `/license/list` 直接呼叫且無 `Authorization` header），列出所有呼叫點供 review，驗證 Existing client API endpoints remain unchanged
 
 ## 7. 整合驗證與 Code Review
 
-- [ ] 7.1 [Tool: copilot] 在 `license-server/` 跑 `npm install && npm run build`，確認 Next.js build 0 錯誤
-- [ ] 7.2 [Tool: sonnet] 用 `vercel dev` 跑本機伺服器執行 design.md Migration Plan 步驟 3 的所有手動驗證情境（client API Bearer 仍正常、admin login flow、cookie 過期 redirect、logout 清 cookie），把每一步的 curl 與預期回應寫成 `license-server/scripts/smoke-admin.sh`
-- [ ] 7.3 [Tool: kimi] 跑 multi-file code review：審 `license-server/lib/admin-session.ts`、`middleware.ts`、`app/api/admin/**/*.ts`、`app/admin/**/*.tsx`，重點檢查 HMAC timing-safe compare、cookie 屬性正確性、bcrypt cost factor、是否漏掉 401 處理、Edge runtime 相容性
+- [x] 7.1 [Tool: copilot] 在 `license-server/` 跑 `npm install && npm run build`，確認 Next.js build 0 錯誤
+- [x] 7.2 [Tool: sonnet] 用 `vercel dev` 跑本機伺服器執行 design.md Migration Plan 步驟 3 的所有手動驗證情境（client API Bearer 仍正常、admin login flow、cookie 過期 redirect、logout 清 cookie），把每一步的 curl 與預期回應寫成 `license-server/scripts/smoke-admin.sh`
+- [x] 7.3 [Tool: kimi] 跑 multi-file code review：審 `license-server/lib/admin-session.ts`、`middleware.ts`、`app/api/admin/**/*.ts`、`app/admin/**/*.tsx`，重點檢查 HMAC timing-safe compare、cookie 屬性正確性、bcrypt cost factor、是否漏掉 401 處理、Edge runtime 相容性
 
 ## 8. 部署（須 Fish 確認後執行）
 
