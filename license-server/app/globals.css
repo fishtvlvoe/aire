@@ -19,3 +19,74 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, "Noto Sans", sans-serif;
 }
+
+.admin-table-mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .admin-license-page {
+    padding: 12px !important;
+    overflow-x: hidden;
+  }
+
+  .admin-content-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .admin-table-desktop {
+    display: none !important;
+  }
+
+  .admin-table-mobile {
+    display: block;
+  }
+
+  .admin-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #ffffff;
+    min-width: 0;
+  }
+
+  .admin-card-empty {
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .admin-card-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    align-items: flex-start;
+  }
+
+  .admin-card-label {
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .admin-card-key {
+    font-weight: 700;
+    word-break: break-all;
+    text-align: right;
+  }
+
+  .admin-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-table-mobile {
+    display: none;
+  }
+}
