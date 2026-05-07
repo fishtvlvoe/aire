@@ -107,14 +107,14 @@ if [[ -z "${SET_COOKIE_LINE}" ]]; then
   exit 1
 fi
 
-# 驗證 cookie 名 + Max-Age=43200（12 小時）
+# 驗證 cookie 名 + Max-Age=14400（4 小時）
 if ! echo "${SET_COOKIE_LINE}" | grep -q 'admin_session='; then
   echo "❌ [4] Set-Cookie 缺 admin_session=" >&2
   echo "${SET_COOKIE_LINE}" >&2
   exit 1
 fi
-if ! echo "${SET_COOKIE_LINE}" | grep -q 'Max-Age=43200'; then
-  echo "❌ [4] Set-Cookie 缺 Max-Age=43200" >&2
+if ! echo "${SET_COOKIE_LINE}" | grep -q 'Max-Age=14400'; then
+  echo "❌ [4] Set-Cookie 缺 Max-Age=14400" >&2
   echo "${SET_COOKIE_LINE}" >&2
   exit 1
 fi
@@ -129,7 +129,7 @@ if [[ -z "${SESSION_COOKIE}" ]]; then
   echo "❌ [4] 無法抽出 SESSION_COOKIE" >&2
   exit 1
 fi
-echo "  ✓ 200 + admin_session= + Max-Age=43200"
+echo "  ✓ 200 + admin_session= + Max-Age=14400"
 
 # ---------- Scenario 5：帶 cookie 訪問 /admin/licenses → 200 ----------
 echo "▶ [5/6] 帶 session cookie 訪問 /admin/licenses 應 200"
