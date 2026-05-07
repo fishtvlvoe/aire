@@ -331,3 +331,86 @@ tests:
   - src/app/api/auth/refresh/route.test.ts
   - src/lib/__tests__/scrapers/tax-calculator.test.ts
 -->
+
+---
+### Requirement: Launcher checks for Codex CLI before starting Next.js server
+
+The Electron launcher SHALL check for the Codex CLI binary availability before spawning the Next.js standalone server. On macOS the check SHALL use "which codex"; on Windows the check SHALL use "where codex". If the check fails, the launcher SHALL display the Codex CLI installation guide screen instead of loading the main application.
+
+#### Scenario: Codex CLI available on macOS
+- **WHEN** the app starts on macOS and "which codex" returns exit code 0
+- **THEN** the launcher proceeds to spawn the Next.js server at localhost:3000
+
+#### Scenario: Codex CLI missing on macOS
+- **WHEN** the app starts on macOS and "which codex" returns exit code 1
+- **THEN** the launcher loads the Codex CLI installation guide HTML instead of splash.html
+
+#### Scenario: Codex CLI available on Windows
+- **WHEN** the app starts on Windows and "where codex" returns exit code 0
+- **THEN** the launcher proceeds to spawn the Next.js server
+
+#### Scenario: Codex CLI missing on Windows
+- **WHEN** the app starts on Windows and "where codex" returns exit code 1
+- **THEN** the launcher loads the Codex CLI installation guide HTML
+
+<!-- @trace
+source: license-admin-ui-redesign
+updated: 2026-05-07
+code:
+  - license-server/api/license/transfer.ts
+  - scripts/fix-standalone-symlinks.js
+  - license-server/api/license/verify.ts
+  - scripts/generate-icons.ts
+  - src/lib/codex-client/key-store.ts
+  - electron/updater.ts
+  - .github/workflows/release.yml
+  - license-server/api/updates/check.ts
+  - vercel.json
+  - src/app/api/admin/licenses/route.ts
+  - scripts/materialize-standalone-symlinks.js
+  - src/app/api/admin/licenses/transfer/route.ts
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - license-server/lib/store.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - src/app/setup/admin/page.tsx
+  - src/app/setup/page.tsx
+  - src/app/api/admin/licenses/revoke/route.ts
+  - electron-builder.json
+  - electron/preload.ts
+  - src/app/api/setup/verify-openai/route.ts
+  - license-server/vercel.json
+  - license-server/lib/machine-id.ts
+  - license-server/api/license/update-info.ts
+  - electron/main.ts
+  - license-server/api/features/index.ts
+  - scripts/generate-license.ts
+  - license-server/api/license/activate.ts
+  - .vercelignore
+  - src/app/admin/licenses/page.tsx
+  - license-server/lib/serial.ts
+  - src/middleware.ts
+  - license-server/api/license/create.ts
+  - src/lib/admin-auth.ts
+  - electron/codex-guide.html
+  - src/lib/db/schema.ts
+  - src/app/api/admin/licenses/update-info/route.ts
+  - license-server/lib/admin-auth.ts
+  - electron/launcher.ts
+  - license-server/api/license/revoke.ts
+  - src/app/setup/codex/page.tsx
+  - package.json
+  - license-server/api/license/list.ts
+tests:
+  - license-server/api/license/__tests__/update-info.test.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - scripts/generate-icons.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - e2e/admin-licenses.spec.ts
+-->

@@ -195,63 +195,128 @@ tests:
 
 ---
 ### Requirement: Middleware license cache
+The system SHALL check license validity in Next.js middleware on every HTTP request. The middleware SHALL use getCachedLicense() from src/lib/license/server-verify.ts which caches the server response for 24 hours locally. When the cache is expired or missing, the middleware SHALL call the License Server API. When the license is invalid or expired, the middleware SHALL redirect to /setup. The middleware SHALL execute license checks before auth checks.
 
-License DB query result SHALL be cached at module level for 60 seconds TTL to avoid per-request SQLite reads.
+#### Scenario: Valid cached license
+- **WHEN** a request arrives and getCachedLicense() returns a valid, non-expired license
+- **THEN** the middleware SHALL pass the request to the auth layer without calling the License Server API
 
-#### Scenario: Cached license within TTL
-- Given: Middleware queried `licenses` table 30 seconds ago and found valid license
-- When: A new HTTP request hits Middleware within 60 seconds
-- Then: System SHALL use the cached result and skip the SQLite query
+##### Example: Cached license hit
+- **GIVEN** license LIC-001 was verified 2 hours ago (within 24h TTL) and stored in local cache
+- **WHEN** GET /listings is requested
+- **THEN** getCachedLicense() returns cached {valid: true, expires: "2027-12-31"} without HTTP call
+- **THEN** middleware proceeds to auth layer
 
-#### Scenario: Cache expired
-- Given: Middleware license cache was last updated 61 seconds ago
-- When: A new HTTP request hits Middleware
-- Then: System SHALL re-query the `licenses` table and refresh the cache
+#### Scenario: Expired cache triggers server call
+- **WHEN** a request arrives and the local cache is older than 24 hours
+- **THEN** the middleware SHALL call the License Server API to re-validate
+- **THEN** the middleware SHALL update the local cache with the response
+
+#### Scenario: Invalid license redirects to setup
+- **WHEN** the License Server returns invalid or the license has expired
+- **THEN** the middleware SHALL redirect the user to /setup with HTTP 302
+
+#### Scenario: Exempt paths bypass license check
+- **WHEN** the request path matches /setup/*, /api/setup/*, /_next/*, or /favicon.ico
+- **THEN** the middleware SHALL skip the license check entirely
+
+##### Example: Setup page accessible without license
+- **GIVEN** no license has been activated yet
+- **WHEN** GET /setup is requested
+- **THEN** middleware skips license check, setup page renders for first-time activation
 
 
 <!-- @trace
-source: fe-software-commercialization
-updated: 2026-05-04
+source: desktop-commercial-complete
+updated: 2026-05-07
 code:
-  - three-ai.db
-  - kimi-statusline-issue-body.md
-  - package.json
-  - src/app/api/listings/[id]/regenerate/route.ts
-  - src/lib/external-links/url-builder.ts
-  - src/lib/parsers/transcript-parser.ts
-  - src/app/api/listings/[id]/generate/route.ts
-  - kimi-statusline-feature-request.md
-  - src/lib/document-generator/build-input.ts
-  - docs/kimi-prompts-wave1-fix-disclosure.md
-  - src/lib/document-generator/pdf/dossier-land.ts
+  - src/app/setup/page.tsx
+  - src/lib/scrapers/tax-calculator.ts
+  - license-server/api/updates/check.ts
+  - license-server/lib/serial.ts
+  - src/types/electron.d.ts
+  - src/middleware.ts
+  - src/lib/codex-client/key-store.ts
+  - src/app/api/admin/licenses/transfer/route.ts
+  - src/lib/db/index.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - src/app/api/setup/verify-openai/route.ts
+  - AGENTS.md
+  - src/lib/pdf-generator/survey-sales.ts
   - src/lib/pdf-generator/dossier.ts
+  - src/lib/auth/db.ts
+  - license-server/api/license/transfer.ts
+  - Dockerfile
+  - license-server/vercel.json
+  - scripts/materialize-standalone-symlinks.js
+  - license-server/lib/machine-id.ts
+  - src/app/api/admin/licenses/route.ts
+  - electron/updater.ts
+  - electron-builder.json
+  - scripts/create-admin.ts
+  - src/app/api/admin/licenses/revoke/route.ts
+  - .vercelignore
+  - src/lib/scrapers/bank-estimator.ts
+  - migrations/004_auth_license.sql
+  - scripts/generate-icons.ts
+  - src/app/api/auth/refresh/route.ts
+  - license-server/api/license/revoke.ts
+  - package.json
+  - src/proxy.ts
+  - electron/preload.ts
+  - src/lib/db/schema.ts
+  - license-server/api/features/index.ts
+  - license-server/api/license/create.ts
   - .env.example
-  - src/lib/codex-client/index.ts
-  - src/lib/document-generator/tax-calculator.ts
-  - src/lib/document-generator/types.ts
-  - src/lib/schemas/supplementary-schema.ts
-  - src/lib/codex-client/adapters/gemini.ts
-  - scripts/e2e-verify-pdf.mjs
-  - src/lib/document-generator/pdf/acroform-overlay.ts
-  - scripts/verify-disclosure-pdf.ts
-  - src/lib/document-generator/pdf/dossier-building.ts
-  - src/lib/ocr/field-mapping.ts
-  - src/app/api/listings/[id]/pdf/route.ts
-  - src/lib/codex-client/types.ts
-  - kimi-usage-ux-issue-body.md
-  - listings.db
-  - src/app/listings/[id]/supplementary/page.tsx
-  - src/lib/pdf-generator/templates/dossier.html
+  - license-server/api/license/list.ts
+  - .github/workflows/release.yml
+  - src/app/login/page.tsx
+  - src/components/UpdateChecker.tsx
+  - src/lib/pdf-generator/chromium-launcher.ts
+  - license-server/api/license/activate.ts
+  - scripts/fix-standalone-symlinks.js
+  - vercel.json
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - electron/launcher.ts
+  - scripts/generate-license.ts
+  - src/app/setup/codex/page.tsx
+  - electron/main.ts
+  - license-server/api/license/verify.ts
+  - src/app/admin/licenses/page.tsx
+  - license-server/lib/store.ts
+  - src/app/setup/admin/page.tsx
+  - src/lib/admin-auth.ts
+  - electron/codex-guide.html
+  - src/app/api/auth/[...nextauth]/route.ts
+  - license-server/api/license/update-info.ts
+  - license-server/lib/admin-auth.ts
+  - src/app/api/admin/licenses/update-info/route.ts
+  - src/app/listings/page.tsx
 tests:
-  - src/lib/document-generator/__tests__/build-input.test.ts
-  - src/lib/document-generator/__tests__/tax-calculator.test.ts
-  - src/lib/codex-client/__tests__/fallback-chain.test.ts
-  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
-  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
-  - src/lib/parsers/__tests__/transcript-parser.test.ts
-  - src/lib/ocr/__tests__/e2e-autofill.spec.ts
-  - src/lib/document-generator/__tests__/acroform-overlay.test.ts
-  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/app/api/auth/[...nextauth]/route.test.ts
+  - src/lib/db/__tests__/auth-license-migration.test.ts
+  - src/middleware.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - license-server/api/license/__tests__/update-info.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - e2e/desktop-first-install.spec.ts
+  - scripts/generate-icons.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/pdf-generator/__tests__/chromium-launcher.test.ts
+  - src/lib/auth/__tests__/db.test.ts
+  - e2e/admin-licenses.spec.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - src/app/login/page.test.ts
+  - src/app/api/auth/refresh/route.test.ts
+  - src/lib/__tests__/scrapers/tax-calculator.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - scripts/create-admin.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - src/lib/__tests__/scrapers/bank-estimator.test.ts
+  - scripts/generate-license.test.ts
 -->
 
 ---
@@ -771,4 +836,328 @@ tests:
   - e2e/desktop-first-install.spec.ts
   - scripts/generate-license.test.ts
   - src/app/api/auth/refresh/route.test.ts
+-->
+
+---
+### Requirement: Consultant handoff uses pre-created serials
+
+The system SHALL support on-site delivery workflow where consultant pre-generates serials and hands one serial to the customer during installation.
+
+#### Scenario: On-site activation with handed serial
+
+- **WHEN** consultant provides one pre-created serial and customer enters it in setup flow
+- **THEN** setup flow SHALL call `POST /api/license/activate` and continue only on HTTP 200
+- **THEN** system SHALL block access when activation response is not successful
+
+##### Example: handoff flow outcome
+
+| Activation API result | Setup result |
+| --- | --- |
+| `200 {"ok":true}` | continue to next setup step |
+| `403 {"reason":"license_inactive"}` | show activation error and stay on setup page |
+| `404 {"reason":"license_not_found"}` | show invalid serial error and stay on setup page |
+
+
+<!-- @trace
+source: license-serial-generator-flow
+updated: 2026-05-07
+code:
+  - electron/launcher.ts
+  - electron/preload.ts
+  - license-server/lib/store.ts
+  - .vercelignore
+  - src/app/setup/admin/page.tsx
+  - scripts/fix-standalone-symlinks.js
+  - scripts/materialize-standalone-symlinks.js
+  - src/app/api/admin/licenses/revoke/route.ts
+  - electron/main.ts
+  - scripts/generate-license.ts
+  - src/lib/admin-auth.ts
+  - license-server/api/license/list.ts
+  - license-server/vercel.json
+  - src/lib/codex-client/key-store.ts
+  - src/app/admin/licenses/page.tsx
+  - src/app/api/setup/verify-openai/route.ts
+  - license-server/lib/machine-id.ts
+  - license-server/api/license/revoke.ts
+  - src/app/api/admin/licenses/route.ts
+  - license-server/api/license/create.ts
+  - electron/codex-guide.html
+  - license-server/api/license/transfer.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - electron/updater.ts
+  - .github/workflows/release.yml
+  - license-server/lib/admin-auth.ts
+  - license-server/lib/serial.ts
+  - src/app/setup/codex/page.tsx
+  - src/app/api/admin/licenses/update-info/route.ts
+  - src/app/api/admin/licenses/transfer/route.ts
+  - scripts/generate-icons.ts
+  - license-server/api/license/activate.ts
+  - src/lib/db/schema.ts
+  - license-server/api/license/update-info.ts
+  - license-server/api/features/index.ts
+  - electron-builder.json
+  - license-server/api/license/verify.ts
+  - license-server/api/updates/check.ts
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - src/app/setup/page.tsx
+  - src/middleware.ts
+  - package.json
+  - vercel.json
+tests:
+  - license-server/api/license/__tests__/update-info.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - e2e/admin-licenses.spec.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - scripts/generate-icons.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+-->
+
+---
+### Requirement: License generation CLI uses create API
+
+The system SHALL provide a CLI command that requests serial creation from `POST /api/license/create` instead of generating unsigned local placeholders.
+
+#### Scenario: Generate 10 serial keys for delivery batch
+
+- **WHEN** operator runs `tsx scripts/generate-license.ts --count 10 --expires 2026-12-31T15:59:59.000Z --output ./output/license-batch.csv`
+- **THEN** CLI SHALL call `POST /api/license/create` with admin token
+- **THEN** CLI SHALL output exactly 10 serial keys to the output file
+
+#### Scenario: Reject missing admin token in CLI
+
+- **WHEN** operator runs generation CLI without `LICENSE_ADMIN_TOKEN`
+- **THEN** CLI SHALL exit with code `1` and print `LICENSE_ADMIN_TOKEN is required`
+
+<!-- @trace
+source: license-serial-generator-flow
+updated: 2026-05-07
+code:
+  - electron/launcher.ts
+  - electron/preload.ts
+  - license-server/lib/store.ts
+  - .vercelignore
+  - src/app/setup/admin/page.tsx
+  - scripts/fix-standalone-symlinks.js
+  - scripts/materialize-standalone-symlinks.js
+  - src/app/api/admin/licenses/revoke/route.ts
+  - electron/main.ts
+  - scripts/generate-license.ts
+  - src/lib/admin-auth.ts
+  - license-server/api/license/list.ts
+  - license-server/vercel.json
+  - src/lib/codex-client/key-store.ts
+  - src/app/admin/licenses/page.tsx
+  - src/app/api/setup/verify-openai/route.ts
+  - license-server/lib/machine-id.ts
+  - license-server/api/license/revoke.ts
+  - src/app/api/admin/licenses/route.ts
+  - license-server/api/license/create.ts
+  - electron/codex-guide.html
+  - license-server/api/license/transfer.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - electron/updater.ts
+  - .github/workflows/release.yml
+  - license-server/lib/admin-auth.ts
+  - license-server/lib/serial.ts
+  - src/app/setup/codex/page.tsx
+  - src/app/api/admin/licenses/update-info/route.ts
+  - src/app/api/admin/licenses/transfer/route.ts
+  - scripts/generate-icons.ts
+  - license-server/api/license/activate.ts
+  - src/lib/db/schema.ts
+  - license-server/api/license/update-info.ts
+  - license-server/api/features/index.ts
+  - electron-builder.json
+  - license-server/api/license/verify.ts
+  - license-server/api/updates/check.ts
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - src/app/setup/page.tsx
+  - src/middleware.ts
+  - package.json
+  - vercel.json
+tests:
+  - license-server/api/license/__tests__/update-info.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - e2e/admin-licenses.spec.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - scripts/generate-icons.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+-->
+
+---
+### Requirement: License activation includes machine ID binding
+
+The POST /api/license/activate endpoint SHALL accept an additional machineId field in the request body. The machineId SHALL be hashed with SHA-256 and stored in the license record. Activation SHALL only succeed for licenses with status "issued" or licenses with status "activated" but null machineId (re-activation after unbind).
+
+#### Scenario: First activation with machine ID
+- **WHEN** client sends POST /api/license/activate with { key: "ABCD-1234", email: "user@test.com", machineId: "uuid-string" }
+- **THEN** the license status changes to "activated" with machineId set to SHA-256("uuid-string")
+
+#### Scenario: Activation of already-bound license
+- **WHEN** license already has a non-null machineId and a different machineId is sent
+- **THEN** the system returns 403 { error: "此序號已綁定其他電腦" }
+
+#### Scenario: Re-activation after unbind
+- **WHEN** license has status "activated" and machineId is null
+- **THEN** activation succeeds and stores the new machineId
+
+
+<!-- @trace
+source: license-admin-ui-redesign
+updated: 2026-05-07
+code:
+  - license-server/api/license/transfer.ts
+  - scripts/fix-standalone-symlinks.js
+  - license-server/api/license/verify.ts
+  - scripts/generate-icons.ts
+  - src/lib/codex-client/key-store.ts
+  - electron/updater.ts
+  - .github/workflows/release.yml
+  - license-server/api/updates/check.ts
+  - vercel.json
+  - src/app/api/admin/licenses/route.ts
+  - scripts/materialize-standalone-symlinks.js
+  - src/app/api/admin/licenses/transfer/route.ts
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - license-server/lib/store.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - src/app/setup/admin/page.tsx
+  - src/app/setup/page.tsx
+  - src/app/api/admin/licenses/revoke/route.ts
+  - electron-builder.json
+  - electron/preload.ts
+  - src/app/api/setup/verify-openai/route.ts
+  - license-server/vercel.json
+  - license-server/lib/machine-id.ts
+  - license-server/api/license/update-info.ts
+  - electron/main.ts
+  - license-server/api/features/index.ts
+  - scripts/generate-license.ts
+  - license-server/api/license/activate.ts
+  - .vercelignore
+  - src/app/admin/licenses/page.tsx
+  - license-server/lib/serial.ts
+  - src/middleware.ts
+  - license-server/api/license/create.ts
+  - src/lib/admin-auth.ts
+  - electron/codex-guide.html
+  - src/lib/db/schema.ts
+  - src/app/api/admin/licenses/update-info/route.ts
+  - license-server/lib/admin-auth.ts
+  - electron/launcher.ts
+  - license-server/api/license/revoke.ts
+  - src/app/setup/codex/page.tsx
+  - package.json
+  - license-server/api/license/list.ts
+tests:
+  - license-server/api/license/__tests__/update-info.test.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - scripts/generate-icons.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - e2e/admin-licenses.spec.ts
+-->
+
+---
+### Requirement: License verification validates machine ID
+
+The GET /api/license/verify endpoint SHALL accept a machineId query parameter. When the license has a stored machineId, the system SHALL compare it against the SHA-256 hash of the provided machineId. Mismatch SHALL return 403.
+
+#### Scenario: Verification with matching machine
+- **WHEN** stored machineId matches hash of provided machineId
+- **THEN** verification succeeds (200)
+
+#### Scenario: Verification with mismatched machine
+- **WHEN** stored machineId does NOT match hash of provided machineId
+- **THEN** the system returns 403 { error: "此序號已綁定其他電腦" }
+
+#### Scenario: Verification for license without machine binding
+- **WHEN** license has null machineId (not yet activated or unbound)
+- **THEN** verification proceeds without machine check
+
+##### Example: Unbound license passes any machine
+- **GIVEN** license ABCD-1234 has machineId = null
+- **WHEN** client sends GET /api/license/verify?key=ABCD-1234&machineId=any-machine-uuid
+- **THEN** verification returns 200 (machine check skipped)
+
+<!-- @trace
+source: license-admin-ui-redesign
+updated: 2026-05-07
+code:
+  - license-server/api/license/transfer.ts
+  - scripts/fix-standalone-symlinks.js
+  - license-server/api/license/verify.ts
+  - scripts/generate-icons.ts
+  - src/lib/codex-client/key-store.ts
+  - electron/updater.ts
+  - .github/workflows/release.yml
+  - license-server/api/updates/check.ts
+  - vercel.json
+  - src/app/api/admin/licenses/route.ts
+  - scripts/materialize-standalone-symlinks.js
+  - src/app/api/admin/licenses/transfer/route.ts
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - license-server/lib/store.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - src/app/setup/admin/page.tsx
+  - src/app/setup/page.tsx
+  - src/app/api/admin/licenses/revoke/route.ts
+  - electron-builder.json
+  - electron/preload.ts
+  - src/app/api/setup/verify-openai/route.ts
+  - license-server/vercel.json
+  - license-server/lib/machine-id.ts
+  - license-server/api/license/update-info.ts
+  - electron/main.ts
+  - license-server/api/features/index.ts
+  - scripts/generate-license.ts
+  - license-server/api/license/activate.ts
+  - .vercelignore
+  - src/app/admin/licenses/page.tsx
+  - license-server/lib/serial.ts
+  - src/middleware.ts
+  - license-server/api/license/create.ts
+  - src/lib/admin-auth.ts
+  - electron/codex-guide.html
+  - src/lib/db/schema.ts
+  - src/app/api/admin/licenses/update-info/route.ts
+  - license-server/lib/admin-auth.ts
+  - electron/launcher.ts
+  - license-server/api/license/revoke.ts
+  - src/app/setup/codex/page.tsx
+  - package.json
+  - license-server/api/license/list.ts
+tests:
+  - license-server/api/license/__tests__/update-info.test.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - scripts/generate-icons.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - e2e/admin-licenses.spec.ts
 -->

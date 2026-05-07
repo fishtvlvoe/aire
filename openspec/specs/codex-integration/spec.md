@@ -107,111 +107,89 @@ tests:
 ---
 ### Requirement: First-time OpenAI authorization setup
 
-The system SHALL provide a guided setup flow for OpenAI authentication on first launch.
-
-#### Scenario: OAuth authorization flow
-
-- **WHEN** user reaches Step 2 of the setup wizard and clicks "登入 OpenAI"
-- **THEN** system SHALL open the default browser to OpenAI's OAuth authorization page
-- **THEN** after user authorizes, the token SHALL be stored securely in the application
+The system SHALL provide a guided setup flow for OpenAI authentication on first launch. The flow SHALL use manual API Key entry with server-side verification (calling OpenAI `GET /v1/models`), NOT OAuth browser redirect.
 
 #### Scenario: Manual API key entry
 
-- **WHEN** user chooses to enter API key manually
-- **THEN** system SHALL accept and store the API key after validating it with a test API call
-
-##### Example: Valid manual key
-
-- **GIVEN** user is on setup wizard Step 2 and clicks "手動輸入 API Key"
-- **WHEN** user enters "sk-proj-abc123..." and clicks "驗證"
-- **THEN** system SHALL call OpenAI API with a test prompt → receive 200 → display "驗證成功" → proceed to Step 3
+- **WHEN** user reaches Step 2 of the setup wizard on `/setup/codex`
+- **THEN** system SHALL display an API Key input field and "驗證" button
+- **WHEN** user enters a valid API Key and clicks "驗證"
+- **THEN** system SHALL call `POST /api/setup/verify-openai` to validate the key
+- **THEN** on success, the key SHALL be encrypted (AES-256-GCM) and stored in SQLite `settings` table
+- **THEN** system SHALL redirect to homepage `/`
 
 #### Scenario: Invalid API key
 
-- **WHEN** user enters an invalid API key
-- **THEN** system SHALL display "API Key 無效，請確認後重試" and not proceed
+- **WHEN** user enters an invalid API key and clicks "驗證"
+- **THEN** system SHALL display "API Key 無效，請確認後重試" and NOT proceed
+
+##### Example: Valid manual key
+
+- **GIVEN** user is on `/setup/codex` page
+- **WHEN** user enters "sk-proj-abc123..." and clicks "驗證"
+- **THEN** system calls `POST /api/setup/verify-openai` with `{ "apiKey": "sk-proj-abc123..." }` → receives `{ "valid": true }` → stores encrypted key → redirects to `/`
 
 
 <!-- @trace
-source: electron-desktop-app
-updated: 2026-05-04
+source: app-icon-and-codex-setup
+updated: 2026-05-07
 code:
-  - license-server/lib/store.ts
-  - src/app/admin/users/page.tsx
-  - src/app/api/admin/users/[id]/reset-password/route.ts
-  - src/app/api/listings/[id]/folder/route.ts
-  - electron-builder.json
-  - tsconfig.electron.json
-  - license-server/package.json
-  - src/app/admin/audit-logs/page.tsx
-  - src/app/admin/transfer/page.tsx
-  - electron/launcher.ts
-  - src/app/setup/page.tsx
-  - src/app/login/page.tsx
-  - tsconfig.json
-  - src/lib/codex-client/index.ts
-  - src/app/api/auth/login/route.ts
-  - src/app/admin/features/page.tsx
-  - src/lib/db/schema.ts
-  - src/app/api/admin/users/route.ts
+  - scripts/generate-icons.ts
+  - src/app/api/admin/licenses/update-info/route.ts
   - license-server/api/updates/check.ts
-  - src/app/api/listings/[id]/archive/route.ts
-  - src/app/api/admin/audit-logs/route.ts
-  - electron/splash.html
-  - src/app/listings/[id]/supplementary/page.tsx
-  - src/components/UpdateChecker.tsx
+  - src/app/api/setup/verify-openai/route.ts
+  - license-server/lib/store.ts
+  - src/app/admin/licenses/page.tsx
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - scripts/fix-standalone-symlinks.js
+  - src/app/setup/page.tsx
+  - license-server/api/license/update-info.ts
+  - electron/codex-guide.html
+  - electron-builder.json
   - electron/preload.ts
-  - src/app/listings/[id]/fill/page.tsx
-  - license-server/api/license/activate.ts
-  - src/app/api/auth/logout/route.ts
-  - src/app/api/listings/[id]/route.ts
-  - src/app/listings/page.tsx
-  - src/components/Sidebar.tsx
-  - src/app/api/admin/features/route.ts
-  - src/app/listings/[id]/documents/page.tsx
-  - src/lib/auth.ts
-  - src/app/api/listings/route.ts
-  - license-server/api/license/verify.ts
-  - src/components/listings/SupplementStatusIcon.tsx
-  - license-server/api/features/index.ts
-  - src/lib/db/list-recent-helper.ts
-  - src/app/api/listings/folders/[id]/route.ts
-  - src/lib/generators/disclosure-document.ts
-  - src/types/electron.d.ts
-  - scripts/obfuscate-build.js
-  - src/app/api/admin/users/[id]/disable/route.ts
-  - src/components/FolderSidebar.tsx
-  - src/app/listings/[id]/generating/page.tsx
-  - src/app/api/license/features/route.ts
-  - src/components/Stepper.tsx
-  - src/lib/pdf-generator/dossier.ts
-  - src/proxy.ts
-  - src/lib/audit.ts
-  - src/app/api/license/init/route.ts
-  - electron/updater.ts
-  - src/lib/features/client.ts
-  - electron/main.ts
-  - .github/workflows/release.yml
-  - src/app/api/listings/folders/route.ts
   - license-server/vercel.json
-  - src/app/api/listings/[id]/restore/route.ts
-  - src/lib/generators/property-sheet.ts
-  - src/lib/db/index.ts
-  - src/app/api/admin/transfer-cases/route.ts
-  - config/branding.json
-  - src/lib/generators/disclaimer.ts
-  - src/components/SearchBar.tsx
+  - electron/launcher.ts
+  - license-server/api/license/transfer.ts
+  - src/lib/admin-auth.ts
+  - license-server/api/license/verify.ts
+  - src/app/api/admin/licenses/route.ts
+  - license-server/lib/admin-auth.ts
+  - src/lib/db/schema.ts
+  - src/middleware.ts
+  - scripts/materialize-standalone-symlinks.js
+  - src/app/api/admin/licenses/transfer/route.ts
+  - license-server/api/license/activate.ts
+  - license-server/api/license/list.ts
+  - .vercelignore
+  - src/app/setup/admin/page.tsx
+  - license-server/lib/serial.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - vercel.json
+  - src/app/api/admin/licenses/revoke/route.ts
+  - electron/updater.ts
   - package.json
-  - src/lib/pdf-generator/survey-sales.ts
-  - src/app/listings/[id]/supplement/page.tsx
-  - src/app/settings/page.tsx
-  - src/lib/listings/supplementary-status.ts
-  - src/lib/license/server-verify.ts
-  - scripts/upload-release-to-r2.js
+  - electron/main.ts
+  - license-server/api/features/index.ts
+  - src/app/setup/codex/page.tsx
+  - license-server/api/license/create.ts
+  - license-server/api/license/revoke.ts
+  - license-server/lib/machine-id.ts
+  - src/lib/codex-client/key-store.ts
+  - .github/workflows/release.yml
+  - scripts/generate-license.ts
 tests:
-  - e2e/listing-ux.spec.ts
-  - e2e/user-management.spec.ts
-  - src/components/__tests__/Stepper.test.tsx
+  - license-server/api/license/__tests__/update-info.test.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - e2e/admin-licenses.spec.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - scripts/generate-icons.test.ts
 -->
 
 ---
@@ -624,59 +602,83 @@ tests:
 ---
 ### Requirement: 生產模式鎖定
 
-當 NEXT_PUBLIC_APP_MODE=production 時，系統 SHALL 只使用 Codex 後端，隱藏開發者設定 UI。
+當 `NEXT_PUBLIC_APP_MODE=production` 時，系統 SHALL 只使用 Codex 後端，隱藏開發者設定 UI。codex-client 初始化時 SHALL 強制使用 Codex adapter，忽略其他 adapter 設定。
 
 #### Scenario: 生產模式隱藏設定
 
-- **WHEN** app 以 production mode 啟動
-- **THEN** /setup 頁面不顯示「開發者設定」區塊，LLM 後端切換 UI 隱藏
+- **WHEN** app 以 production mode 啟動（`NEXT_PUBLIC_APP_MODE=production`）
+- **THEN** 設定頁面 SHALL NOT 顯示 Gemini/Claude/Ollama 選項
+- **THEN** LLM 後端切換 UI SHALL 隱藏
+
+#### Scenario: 生產模式強制 Codex adapter
+
+- **WHEN** `NEXT_PUBLIC_APP_MODE=production` 且 codex-client 初始化
+- **THEN** system SHALL 使用 Codex adapter，即使 .env 設定其他 adapter
 
 ##### Example: 生產模式 UI
 
-- **GIVEN** 環境變數 NEXT_PUBLIC_APP_MODE=production
-- **WHEN** 客戶瀏覽 /setup 頁面
-- **THEN** 只顯示「ChatGPT 授權狀態」區塊（已授權 ✓ / 未授權），不顯示 Gemini/Claude/Ollama 選項
+- **GIVEN** 環境變數 `NEXT_PUBLIC_APP_MODE=production`
+- **WHEN** 客戶瀏覽 `/setup/codex` 頁面
+- **THEN** 只顯示 API Key 輸入區塊和授權狀態（已授權 / 未授權），不顯示其他 LLM provider 選項
 
 <!-- @trace
-source: electron-desktop-shell
-updated: 2026-05-06
+source: app-icon-and-codex-setup
+updated: 2026-05-07
 code:
-  - src/lib/pdf-generator/survey-sales.ts
-  - electron/updater.ts
-  - src/app/login/page.tsx
-  - src/lib/auth/db.ts
-  - src/lib/pdf-generator/dossier.ts
-  - scripts/create-admin.ts
-  - src/lib/scrapers/tax-calculator.ts
-  - src/proxy.ts
-  - src/middleware.ts
-  - src/lib/pdf-generator/chromium-launcher.ts
-  - AGENTS.md
-  - src/lib/db/index.ts
+  - scripts/generate-icons.ts
+  - src/app/api/admin/licenses/update-info/route.ts
+  - license-server/api/updates/check.ts
+  - src/app/api/setup/verify-openai/route.ts
+  - license-server/lib/store.ts
+  - src/app/admin/licenses/page.tsx
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - scripts/fix-standalone-symlinks.js
+  - src/app/setup/page.tsx
+  - license-server/api/license/update-info.ts
+  - electron/codex-guide.html
+  - electron-builder.json
   - electron/preload.ts
-  - src/app/api/auth/refresh/route.ts
-  - src/types/electron.d.ts
-  - src/app/listings/page.tsx
-  - Dockerfile
-  - scripts/generate-license.ts
-  - src/app/api/auth/[...nextauth]/route.ts
-  - migrations/004_auth_license.sql
-  - electron/main.ts
+  - license-server/vercel.json
+  - electron/launcher.ts
+  - license-server/api/license/transfer.ts
+  - src/lib/admin-auth.ts
+  - license-server/api/license/verify.ts
+  - src/app/api/admin/licenses/route.ts
+  - license-server/lib/admin-auth.ts
+  - src/lib/db/schema.ts
+  - src/middleware.ts
+  - scripts/materialize-standalone-symlinks.js
+  - src/app/api/admin/licenses/transfer/route.ts
+  - license-server/api/license/activate.ts
+  - license-server/api/license/list.ts
+  - .vercelignore
+  - src/app/setup/admin/page.tsx
+  - license-server/lib/serial.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - vercel.json
+  - src/app/api/admin/licenses/revoke/route.ts
+  - electron/updater.ts
   - package.json
-  - src/components/UpdateChecker.tsx
-  - src/lib/scrapers/bank-estimator.ts
-  - .env.example
+  - electron/main.ts
+  - license-server/api/features/index.ts
+  - src/app/setup/codex/page.tsx
+  - license-server/api/license/create.ts
+  - license-server/api/license/revoke.ts
+  - license-server/lib/machine-id.ts
+  - src/lib/codex-client/key-store.ts
+  - .github/workflows/release.yml
+  - scripts/generate-license.ts
 tests:
-  - scripts/generate-license.test.ts
-  - src/lib/__tests__/scrapers/bank-estimator.test.ts
-  - src/middleware.test.ts
-  - src/app/login/page.test.ts
-  - src/app/api/auth/[...nextauth]/route.test.ts
-  - src/lib/pdf-generator/__tests__/chromium-launcher.test.ts
-  - src/lib/auth/__tests__/db.test.ts
-  - src/lib/db/__tests__/auth-license-migration.test.ts
-  - scripts/create-admin.test.ts
-  - e2e/desktop-first-install.spec.ts
-  - src/app/api/auth/refresh/route.test.ts
-  - src/lib/__tests__/scrapers/tax-calculator.test.ts
+  - license-server/api/license/__tests__/update-info.test.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - e2e/admin-licenses.spec.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - scripts/generate-icons.test.ts
 -->

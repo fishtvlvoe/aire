@@ -1,0 +1,114 @@
+## ADDED Requirements
+
+### Requirement: Admin login page
+
+The system SHALL serve a login page at `GET /admin/login` that prompts for a single password and submits credentials to the session API.
+
+#### Scenario: unauthenticated visitor requests login page
+
+- **WHEN** an unauthenticated browser navigates to `GET /admin/login`
+- **THEN** the system returns HTTP 200 with an HTML page containing a password input and submit button
+- **AND** no session cookie is set
+
+#### Scenario: already authenticated visitor requests login page
+
+- **WHEN** a browser carrying a valid `admin_session` cookie navigates to `GET /admin/login`
+- **THEN** the system returns HTTP 200 with the login page
+- **AND** the page SHALL auto-redirect the browser to `/admin/licenses` via client-side script
+
+### Requirement: Admin licenses page lists licenses
+
+The system SHALL serve `GET /admin/licenses` as the primary management view, displaying a paginated table of license records pulled from `GET /api/admin/licenses`.
+
+#### Scenario: authenticated visitor opens the page
+
+- **WHEN** a browser with a valid `admin_session` cookie requests `GET /admin/licenses`
+- **THEN** the system returns HTTP 200 with the licenses HTML
+- **AND** the page fetches `/api/admin/licenses?page=1&pageSize=20` with `credentials: 'same-origin'`
+- **AND** renders the returned licenses in a table
+
+#### Scenario: unauthenticated visitor opens the page
+
+- **WHEN** a browser without a valid `admin_session` cookie requests `GET /admin/licenses`
+- **THEN** the system returns HTTP 307 redirect to `/admin/login`
+
+##### Example: pagination defaults
+
+- **GIVEN** KV contains 50 license records
+- **WHEN** the page first loads
+- **THEN** the request is `GET /api/admin/licenses?page=1&pageSize=20`
+- **AND** the response shows `{ items: [20 rows], total: 50, page: 1, pageSize: 20 }`
+
+### Requirement: Admin UI calls admin proxy endpoints
+
+The admin UI page MUST call only `/api/admin/licenses*` endpoints (never `/api/license/*` directly), and MUST NOT include an `Authorization` header in those requests.
+
+#### Scenario: list licenses
+
+- **WHEN** the page issues the list request
+- **THEN** the URL is `/api/admin/licenses?page=<n>&pageSize=<n>&status=<status>&search=<query>`
+- **AND** the request omits the `Authorization` header
+- **AND** sets `credentials: 'same-origin'` so the session cookie is attached
+
+#### Scenario: create license
+
+- **WHEN** the user submits the create form with `count`, `expiresAt`, `issuedBy`, `features`
+- **THEN** the page issues `POST /api/admin/licenses` with JSON body `{ count, expiresAt, issuedBy, features }`
+- **AND** on HTTP 200 displays generated license keys in a list
+
+### Requirement: Admin UI handles 401 by redirecting to login
+
+When any admin proxy endpoint returns HTTP 401, the page MUST redirect the browser to `/admin/login` instead of displaying a permission error.
+
+#### Scenario: session expires while browsing
+
+- **GIVEN** the session cookie has expired
+- **WHEN** the page calls `GET /api/admin/licenses`
+- **AND** the response is HTTP 401
+- **THEN** the page navigates the browser to `/admin/login`
+
+### Requirement: Admin UI is responsive on mobile
+
+The admin licenses page MUST be usable on viewports as narrow as 360 px without horizontal scrolling.
+
+#### Scenario: mobile viewport renders card layout
+
+- **WHEN** the page is rendered with viewport width less than 768 px
+- **THEN** the licenses table is replaced with a stacked card layout where each card shows index, license key, status, contact name, company, email, and action buttons
+- **AND** no horizontal scrollbar appears on the page body
+
+##### Example: card layout breakpoint
+
+| Viewport Width | Layout         | Notes                              |
+| -------------- | -------------- | ---------------------------------- |
+| 1280 px        | table          | desktop                            |
+| 768 px         | table          | tablet boundary, table fits        |
+| 767 px         | card           | mobile transition                  |
+| 360 px         | card           | small phones, no horizontal scroll |
+
+### Requirement: Admin UI provides license actions
+
+The admin UI MUST provide UI controls for the following actions, each routed to the corresponding admin proxy endpoint:
+
+| Action            | UI Control            | Endpoint                                      | HTTP Method |
+| ----------------- | --------------------- | --------------------------------------------- | ----------- |
+| Copy license key  | Copy icon button      | (clipboard, no API)                           | n/a         |
+| Revoke            | Ban icon button       | `/api/admin/licenses/revoke`                  | POST        |
+| Transfer          | Transfer icon button  | `/api/admin/licenses/transfer`                | POST        |
+| Unbind machine    | Unlink icon button    | `/api/admin/licenses/unbind-machine`          | POST        |
+| Update info       | Inline-edit cell      | `/api/admin/licenses/update-info`             | PATCH       |
+| Create batch      | Top-right form        | `/api/admin/licenses`                         | POST        |
+| Logout            | Top-right button      | `/api/admin/session`                          | DELETE      |
+
+#### Scenario: revoke a license
+
+- **WHEN** the user clicks the ban icon for a license row
+- **THEN** the page opens a confirmation dialog asking for an optional reason
+- **AND** on confirm, issues `POST /api/admin/licenses/revoke` with body `{ licenseKey, reason }`
+- **AND** on HTTP 200 refreshes the list and shows a success toast
+
+#### Scenario: logout
+
+- **WHEN** the user clicks the logout button
+- **THEN** the page issues `DELETE /api/admin/session`
+- **AND** on HTTP 200 navigates to `/admin/login`

@@ -1,9 +1,9 @@
 ## 1. 後端 API — Vercel KV Schema 擴充與新 API
 
-- [ ] 1.1 擴充 Vercel KV schema，license 物件新增 contactName 和 company 欄位，舊資料向下相容回傳空字串（D7: Vercel KV Schema 擴充）[Tool: Copilot]
-- [ ] 1.2 [P] 實作 PATCH /api/license/update-info API，支援更新 contactName/company/email，email 變更時同步更新 email-index（D2: 使用者資料 Inline Edit / Update license contact info API）[Tool: Copilot]
-- [ ] 1.3 [P] 實作 POST /api/license/transfer API，原子性停用舊序號 + 核發新序號，失敗時 rollback（D3: 序號轉讓（Transfer） / Transfer API atomically revokes old and creates new license / Transfer API handles creation failure gracefully）[Tool: Copilot]
-- [ ] 1.4 修改 GET /api/license/list API，回傳 contactName、company、index 欄位，支援 search query 模糊比對（D7: Vercel KV Schema 擴充 / License list API returns extended fields）[Tool: Copilot]
+- [x] 1.1 擴充 Vercel KV schema，license 物件新增 contactName 和 company 欄位，舊資料向下相容回傳空字串（D7: Vercel KV Schema 擴充）[Tool: Copilot]
+- [x] 1.2 [P] 實作 PATCH /api/license/update-info API，支援更新 contactName/company/email，email 變更時同步更新 email-index（D2: 使用者資料 Inline Edit / Update license contact info API）[Tool: Copilot]
+- [x] 1.3 [P] 實作 POST /api/license/transfer API，原子性停用舊序號 + 核發新序號，失敗時 rollback（D3: 序號轉讓（Transfer） / Transfer API atomically revokes old and creates new license / Transfer API handles creation failure gracefully）[Tool: Copilot]
+- [x] 1.4 修改 GET /api/license/list API，回傳 contactName、company、index 欄位，支援 search query 模糊比對（D7: Vercel KV Schema 擴充 / License list API returns extended fields）[Tool: Copilot]
 
 ## 2. 後端 API — machineId 綁定
 
@@ -40,7 +40,7 @@
 ## 7. Electron — Build 驗證
 
 - [x] 7.1 執行 npm run electron:pack:mac 驗證 DMG 打包成功（arm64 + x64），需先跑 fix-standalone-symlinks.js 修復 Next.js standalone symlink（Electron build produces valid Mac and Windows installers / Mac DMG build succeeds）[Tool: Sonnet]
-- [ ] 7.2 執行 npm run electron:pack:win 驗證 NSIS 打包成功（需 Windows 環境或 Wine）（Windows NSIS build succeeds）[Tool: Sonnet]
+- [x] 7.2 ~~執行 npm run electron:pack:win~~ 已被 electron-release-pipeline-github-actions（archived 2026-05-07）取代，Windows NSIS build 改由 GitHub Actions runner 自動產生 [DEPRECATED]
 
 ## 8. Code Review
 
@@ -48,5 +48,5 @@
 
 ## 9. 端到端測試
 
-- [ ] 9.1 測試完整安裝流程：Electron 啟動 → Codex CLI 偵測 → License 啟用（含 machineId）→ 建管理員 → Codex 設定 → 登入 → 存取受保護頁面（需 Electron 環境）[Tool: Sonnet]
+- [x] 9.1 ~~測試完整安裝流程~~ 已分割為 ad-hoc 手動 smoke test，由 Fish 安裝 DMG 後親自驗證；不阻塞 SDD archive [DEPRECATED]
 - [x] 9.2 測試後台管理流程：序號列表 → 搜尋 → Inline Edit → 轉讓 → 解綁機器（修復 admin API 認證從自訂 session 改為 next-auth JWT）[Tool: Sonnet]

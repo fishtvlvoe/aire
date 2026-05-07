@@ -7,188 +7,123 @@ TBD - created by archiving change 'containerized-three-stage-automation-v3'. Upd
 ## Requirements
 
 ### Requirement: Docker image builds successfully for linux/amd64
+The Dockerfile SHALL remove the puppeteer full installation and replace it with puppeteer-core. The runner stage SHALL set ENV CHROMIUM_MODE=local. The deps and builder stages SHALL maintain PUPPETEER_SKIP_DOWNLOAD=true. The Dockerfile SHALL install system Chromium (chromium or chromium-browser package) in the runner stage for local PDF generation.
 
-The system SHALL provide a Dockerfile that builds a production-ready image including Next.js app, Node.js runtime, Puppeteer + Chromium, Codex CLI, Chinese fonts (Noto Sans TC, Noto Serif TC), and all runtime dependencies.
+#### Scenario: Docker build with puppeteer-core
+- **WHEN** running docker build -t jianan-ai:latest .
+- **THEN** the build SHALL complete successfully without downloading Chromium during npm install
+- **THEN** the container SHALL have system Chromium available at /usr/bin/chromium or /usr/bin/chromium-browser
 
-#### Scenario: Build image on developer Mac
-- **WHEN** developer runs `docker build -t jianan-ai:latest .`
-- **THEN** image builds within 10 minutes without error
-- **AND** image size SHALL be under 2GB
+##### Example: Docker build output
+- **GIVEN** Dockerfile has RUN apk add chromium in runner stage and PUPPETEER_SKIP_DOWNLOAD=true in deps stage
+- **WHEN** running docker build -t jianan-ai:latest .
+- **THEN** build completes in under 5 minutes, image size under 600MB
+- **THEN** docker run jianan-ai which chromium returns /usr/bin/chromium
 
-#### Scenario: Image runs on Windows Docker Desktop (WSL2)
-- **WHEN** customer runs `docker compose up -d` on Windows Docker Desktop with WSL2 backend
-- **THEN** container starts successfully within 60 seconds
-- **AND** HTTP endpoint http://localhost:3000 responds with 200 status
+#### Scenario: PDF generation in container
+- **WHEN** a PDF generation request is made inside the container
+- **THEN** chromium-launcher SHALL detect CHROMIUM_MODE=local
+- **THEN** chromium-launcher SHALL use the system Chromium binary
+- **THEN** the PDF SHALL be generated successfully
+
+##### Example: Container PDF generation
+- **GIVEN** container running with CHROMIUM_MODE=local and a listing with id "test-001"
+- **WHEN** POST /api/listings/test-001/pdf is called
+- **THEN** chromium-launcher launches /usr/bin/chromium via puppeteer-core
+- **THEN** a PDF file is returned with HTTP 200
 
 
 <!-- @trace
-source: containerized-three-stage-automation-v3
-updated: 2026-04-19
+source: desktop-commercial-complete
+updated: 2026-05-07
 code:
-  - src/app/api/listings/[id]/documents/route.ts
-  - src/app/listings/new/page.tsx
-  - src/app/listings/[id]/documents/page.tsx
-  - src/app/api/pre-commission/route.ts
-  - docs/0417-old/不動產說明書11.pdf
-  - docs/dossier-implementation-spec.md
-  - src/app/api/listings/[id]/advance-to-field-visit/route.ts
-  - docs/0417-old/其他土地_秘書後補清單.docx
-  - src/app/api/pre-commission/[id]/lookup/route.ts
-  - src/lib/codex-client/types.ts
-  - src/lib/storage/index.ts
-  - src/lib/property-types/schemas/farmhouse.ts
-  - docs/0417-old/大樓華廈_秘書後補清單.docx
-  - docs/0417-old/商業地_秘書後補清單.docx
-  - docs/0417-old/店面_現場必問清單.docx
-  - src/lib/document-generator/codex-provider.ts
-  - src/app/api/listings/route.ts
-  - .spectra.yaml
-  - src/components/outputs/index.ts
-  - docs/handoff/2026-04-17-v3-handoff.md
-  - src/app/api/listings/[id]/route.ts
-  - next.config.ts
-  - docs/0417-old/建物物調表-母版.dot
-  - docs/0417-old/商業地_現場必問清單.docx
-  - src/lib/document-generator/md/survey.ts
-  - docs/0417-old/不動產說明書5.pdf
-  - src/lib/property-types/schemas/residential-land.ts
-  - docs/0417-old/農地_秘書後補清單.docx
-  - src/components/forms/FieldVisitForm.tsx
-  - src/lib/codex-client/adapters/ollama.ts
-  - src/lib/property-types/schemas/apartment.ts
-  - src/components/outputs/SocialPostTabs.tsx
-  - docs/0417-old/套房_現場必問清單.docx
-  - src/lib/codex-client/adapters/claude-code.ts
-  - docs/0417-old/不動產說明書6.pdf
-  - docs/0417-old/農舍_現場必問清單.docx
-  - docs/0417-old/建地_住宅地_現場必問清單.docx
-  - docs/0417-old/不動產說明書14.pdf
-  - docs/0417-old/不動產書說明說7.pdf
-  - docker/start.sh
-  - src/components/Stepper.tsx
-  - docs/release-note-v3.0.0.md
-  - src/app/page.tsx
-  - src/lib/property-types/schemas/highrise.ts
-  - docs/0417-old/不動產書說明書10.pdf
-  - src/lib/pre-commission/lookup.ts
-  - src/lib/codex-client/adapters/gemini.ts
-  - docs/0417-old/鄉村區建地_秘書後補清單.docx
-  - docs/0417-old/不動產說明書8.pdf
-  - src/lib/document-generator/md/dm.ts
-  - src/lib/property-types/schemas/commercial-land.ts
-  - src/components/forms/navigation-helpers.ts
-  - docs/0417-old/農舍_秘書後補清單.docx
-  - docker/first-login.sh
-  - docs/0417-old/廠房_秘書後補清單.docx
-  - src/lib/pdf-generator/templates/dossier.css
-  - docs/0417-old/不動產說明說16.pdf
-  - src/lib/codex-client/index.ts
-  - docs/0417-old/不動產說明書2.pdf
-  - src/app/api/listings/[id]/photos/route.ts
-  - docker/first-login.bat
-  - docs/0417-new/建安不動產欄位總表_建物版.docx
-  - src/lib/document-generator/types.ts
-  - src/components/outputs/MarketingFlowGuide.tsx
-  - docs/0417-old/公寓_現場必問清單.docx
-  - src/components/outputs/RegenerateButton.tsx
-  - src/lib/property-types/schemas/factory.ts
-  - Dockerfile
-  - docs/0417-old/店面_秘書後補清單.docx
-  - docker/compose.yaml
-  - docs/0417-old/土地物調表-母版.docx
-  - src/lib/property-types/schemas/other-land.ts
-  - docs/0417-old/周遭.pdf
-  - docs/0417-old/不動產說明書9.pdf
-  - docs/0417-old/不動產說明書3.pdf
-  - docs/0417-old/大樓華廈_現場必問清單.docx
-  - docs/0417-old/套房_秘書後補清單.docx
-  - src/lib/property-types/schemas/suite.ts
-  - docker/start.bat
-  - package.json
-  - vitest.config.ts
-  - src/lib/codex-client/adapters/codex.ts
-  - docs/dossier-chapter-structure.md
-  - docs/0417-old/建地_住宅地_秘書後補清單.docx
-  - src/lib/db/list-recent-helper.ts
-  - src/app/api/health/route.ts
-  - src/lib/form-renderer/index.ts
-  - src/app/api/pre-commission/[id]/parse-paste/route.ts
-  - src/lib/document-generator/md/listing591.ts
-  - src/app/listings/[id]/fill/page.tsx
-  - docs/0417-new/建安不動產欄位總表.md
-  - docs/0417-old/鄉村區建地_現場必問清單.docx
-  - scripts/cleanup-empty-drafts.ts
-  - src/app/listings/[id]/supplementary/page.tsx
-  - src/lib/form-renderer/chapter-grouper.ts
-  - docs/0417-old/廠房_現場必問清單.docx
-  - src/app/api/listings/[id]/generate/route.ts
-  - docker/安裝說明.md
-  - src/lib/property-types/schemas/industrial-land.ts
-  - docs/0417-old/不動產說明書4.pdf
-  - docs/release-note-v3.md
-  - src/lib/db/schema.ts
-  - docs/0417-old/不動產說明書1.pdf
-  - src/lib/pdf-generator/dossier.ts
-  - src/lib/property-types/schemas/shop.ts
-  - docs/0417-old/農地_現場必問清單.docx
-  - docs/0417-old/透明房價一覽表成交行情.pdf
-  - docs/0417-old/不動產說明書12.pdf
-  - src/components/forms/SupplementaryForm.tsx
-  - docs/0417-old/工業地_秘書後補清單.docx
-  - src/app/api/listings/[id]/regenerate/route.ts
-  - src/lib/document-generator/md/social.ts
-  - docs/0417-new/建安不動產欄位總表_土地版.docx
-  - docs/0417-old/透天別墅_現場必問清單.docx
-  - src/app/pre-commission/[id]/page.tsx
-  - docs/0417-old/透天別墅_秘書後補清單.docx
-  - src/lib/document-generator/pdf/dossier-building.ts
-  - src/lib/listing-routes.ts
-  - src/lib/property-types/schemas/farmland.ts
-  - src/lib/property-types/schemas/townhouse.ts
-  - src/app/api/listings/[id]/pdf/route.ts
-  - src/components/Sidebar.tsx
-  - docs/0417-old/其他土地_現場必問清單.docx
-  - src/lib/document-generator/pdf/dossier-land.ts
-  - docs/extracted-dossier-schema.md
+  - src/app/setup/page.tsx
+  - src/lib/scrapers/tax-calculator.ts
+  - license-server/api/updates/check.ts
+  - license-server/lib/serial.ts
+  - src/types/electron.d.ts
+  - src/middleware.ts
+  - src/lib/codex-client/key-store.ts
+  - src/app/api/admin/licenses/transfer/route.ts
   - src/lib/db/index.ts
-  - docs/0417-old/不動產說明說15.pdf
-  - docs/0417-old/公寓_秘書後補清單.docx
-  - src/components/outputs/ShortVideoScript.tsx
-  - src/lib/property-types/index.ts
-  - src/lib/pdf-generator/templates/dossier.html
-  - src/lib/property-types/schemas/rural-land.ts
+  - src/app/api/setup/create-first-admin/route.ts
+  - src/app/api/setup/verify-openai/route.ts
+  - AGENTS.md
+  - src/lib/pdf-generator/survey-sales.ts
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/auth/db.ts
+  - license-server/api/license/transfer.ts
+  - Dockerfile
+  - license-server/vercel.json
+  - scripts/materialize-standalone-symlinks.js
+  - license-server/lib/machine-id.ts
+  - src/app/api/admin/licenses/route.ts
+  - electron/updater.ts
+  - electron-builder.json
+  - scripts/create-admin.ts
+  - src/app/api/admin/licenses/revoke/route.ts
+  - .vercelignore
+  - src/lib/scrapers/bank-estimator.ts
+  - migrations/004_auth_license.sql
+  - scripts/generate-icons.ts
+  - src/app/api/auth/refresh/route.ts
+  - license-server/api/license/revoke.ts
+  - package.json
+  - src/proxy.ts
+  - electron/preload.ts
+  - src/lib/db/schema.ts
+  - license-server/api/features/index.ts
+  - license-server/api/license/create.ts
+  - .env.example
+  - license-server/api/license/list.ts
+  - .github/workflows/release.yml
+  - src/app/login/page.tsx
+  - src/components/UpdateChecker.tsx
+  - src/lib/pdf-generator/chromium-launcher.ts
+  - license-server/api/license/activate.ts
+  - scripts/fix-standalone-symlinks.js
+  - vercel.json
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - electron/launcher.ts
+  - scripts/generate-license.ts
+  - src/app/setup/codex/page.tsx
+  - electron/main.ts
+  - license-server/api/license/verify.ts
+  - src/app/admin/licenses/page.tsx
+  - license-server/lib/store.ts
+  - src/app/setup/admin/page.tsx
+  - src/lib/admin-auth.ts
+  - electron/codex-guide.html
+  - src/app/api/auth/[...nextauth]/route.ts
+  - license-server/api/license/update-info.ts
+  - license-server/lib/admin-auth.ts
+  - src/app/api/admin/licenses/update-info/route.ts
   - src/app/listings/page.tsx
-  - docs/0417-old/不動產說明書13.pdf
-  - src/app/listings/[id]/generating/page.tsx
-  - docs/0417-old/工業地_現場必問清單.docx
-  - src/app/pre-commission/new/page.tsx
 tests:
-  - src/app/api/__tests__/listings-photos.test.ts
-  - src/app/api/__tests__/listings.test.ts
-  - src/lib/document-generator/__tests__/generate-regenerate.test.ts
-  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
-  - src/components/__tests__/Stepper.test.tsx
-  - src/lib/codex-client/__tests__/adapters/claude-code.test.ts
-  - src/lib/codex-client/__tests__/codex-client.test.ts
-  - src/lib/db/__tests__/state-machine.test.ts
-  - src/lib/form-renderer/__tests__/supplementary-form.test.ts
-  - src/lib/codex-client/__tests__/adapters/ollama.test.ts
-  - src/lib/document-generator/__tests__/five-documents.test.ts
-  - src/lib/db/__tests__/list-recent.test.ts
-  - src/lib/pdf-generator/__tests__/dossier.test.ts
-  - src/lib/document-generator/__tests__/land-type.test.ts
-  - src/lib/db/__tests__/e2e-residential.test.ts
-  - src/lib/__tests__/cleanup-empty-drafts.test.ts
-  - src/lib/__tests__/listing-routes.test.ts
-  - src/lib/property-types/__tests__/all-types.test.ts
-  - src/lib/db/__tests__/e2e-farmland.test.ts
-  - src/lib/property-types/__tests__/index.test.ts
-  - src/lib/db/__tests__/listing-workflow.test.ts
-  - src/lib/form-renderer/__tests__/field-visit-form.test.ts
-  - src/components/forms/__tests__/field-visit-navigation.test.ts
-  - src/app/api/__tests__/listings-delete.test.ts
-  - src/lib/form-renderer/__tests__/all-property-types.test.ts
-  - src/lib/property-types/schemas/__tests__/required-fields.test.ts
+  - src/app/api/auth/[...nextauth]/route.test.ts
+  - src/lib/db/__tests__/auth-license-migration.test.ts
+  - src/middleware.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - license-server/api/license/__tests__/update-info.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - e2e/desktop-first-install.spec.ts
+  - scripts/generate-icons.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/pdf-generator/__tests__/chromium-launcher.test.ts
+  - src/lib/auth/__tests__/db.test.ts
+  - e2e/admin-licenses.spec.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - src/app/login/page.test.ts
+  - src/app/api/auth/refresh/route.test.ts
+  - src/lib/__tests__/scrapers/tax-calculator.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - scripts/create-admin.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - src/lib/__tests__/scrapers/bank-estimator.test.ts
+  - scripts/generate-license.test.ts
 -->
 
 ---

@@ -7,106 +7,113 @@ TBD - created by archiving change 'electron-desktop-app'. Update Purpose after a
 ## Requirements
 
 ### Requirement: Automatic update check on startup
+The system SHALL use the electron-updater package instead of custom HTTP download logic. The electron/updater.ts SHALL be refactored to use autoUpdater API from electron-updater. The update source SHALL use a generic provider pointing to the License Server /api/updates/check endpoint. The system SHALL preserve existing IPC event names (update-status) to maintain frontend compatibility.
 
-The system SHALL automatically check for updates when the application starts.
+#### Scenario: Update available on startup
+- **WHEN** the Electron app starts and electron-updater detects a newer version from the update server
+- **THEN** the system SHALL emit an update-status IPC event with type "available" and version info
+- **THEN** the system SHALL begin downloading the update automatically
 
-#### Scenario: New version available
+#### Scenario: No update available
+- **WHEN** electron-updater checks and the current version matches the latest
+- **THEN** the system SHALL emit an update-status IPC event with type "up-to-date"
 
-- **WHEN** application starts and server reports a newer version exists
-- **THEN** system SHALL display a notification: "發現新版本 v{version}，要更新嗎？" with "立即更新" and "稍後" buttons
-
-#### Scenario: Already on latest version
-
-- **WHEN** application starts and current version matches server's latest
-- **THEN** no update notification SHALL be displayed
-
-##### Example: No update needed
-
-- **GIVEN** installed version is 1.2.0 and server latest.json has version "1.2.0"
-- **WHEN** application starts and calls GET /api/updates/check
-- **THEN** server returns { "latest": "1.2.0", "current_is_latest": true } → no notification shown
+#### Scenario: Download progress
+- **WHEN** an update is being downloaded
+- **THEN** the system SHALL emit update-status IPC events with type "progress" and percentage
 
 
 <!-- @trace
-source: electron-desktop-app
-updated: 2026-05-04
+source: desktop-commercial-complete
+updated: 2026-05-07
 code:
-  - license-server/lib/store.ts
-  - src/app/admin/users/page.tsx
-  - src/app/api/admin/users/[id]/reset-password/route.ts
-  - src/app/api/listings/[id]/folder/route.ts
-  - electron-builder.json
-  - tsconfig.electron.json
-  - license-server/package.json
-  - src/app/admin/audit-logs/page.tsx
-  - src/app/admin/transfer/page.tsx
-  - electron/launcher.ts
   - src/app/setup/page.tsx
-  - src/app/login/page.tsx
-  - tsconfig.json
-  - src/lib/codex-client/index.ts
-  - src/app/api/auth/login/route.ts
-  - src/app/admin/features/page.tsx
-  - src/lib/db/schema.ts
-  - src/app/api/admin/users/route.ts
+  - src/lib/scrapers/tax-calculator.ts
   - license-server/api/updates/check.ts
-  - src/app/api/listings/[id]/archive/route.ts
-  - src/app/api/admin/audit-logs/route.ts
-  - electron/splash.html
-  - src/app/listings/[id]/supplementary/page.tsx
-  - src/components/UpdateChecker.tsx
-  - electron/preload.ts
-  - src/app/listings/[id]/fill/page.tsx
-  - license-server/api/license/activate.ts
-  - src/app/api/auth/logout/route.ts
-  - src/app/api/listings/[id]/route.ts
-  - src/app/listings/page.tsx
-  - src/components/Sidebar.tsx
-  - src/app/api/admin/features/route.ts
-  - src/app/listings/[id]/documents/page.tsx
-  - src/lib/auth.ts
-  - src/app/api/listings/route.ts
-  - license-server/api/license/verify.ts
-  - src/components/listings/SupplementStatusIcon.tsx
-  - license-server/api/features/index.ts
-  - src/lib/db/list-recent-helper.ts
-  - src/app/api/listings/folders/[id]/route.ts
-  - src/lib/generators/disclosure-document.ts
+  - license-server/lib/serial.ts
   - src/types/electron.d.ts
-  - scripts/obfuscate-build.js
-  - src/app/api/admin/users/[id]/disable/route.ts
-  - src/components/FolderSidebar.tsx
-  - src/app/listings/[id]/generating/page.tsx
-  - src/app/api/license/features/route.ts
-  - src/components/Stepper.tsx
-  - src/lib/pdf-generator/dossier.ts
-  - src/proxy.ts
-  - src/lib/audit.ts
-  - src/app/api/license/init/route.ts
-  - electron/updater.ts
-  - src/lib/features/client.ts
-  - electron/main.ts
-  - .github/workflows/release.yml
-  - src/app/api/listings/folders/route.ts
-  - license-server/vercel.json
-  - src/app/api/listings/[id]/restore/route.ts
-  - src/lib/generators/property-sheet.ts
+  - src/middleware.ts
+  - src/lib/codex-client/key-store.ts
+  - src/app/api/admin/licenses/transfer/route.ts
   - src/lib/db/index.ts
-  - src/app/api/admin/transfer-cases/route.ts
-  - config/branding.json
-  - src/lib/generators/disclaimer.ts
-  - src/components/SearchBar.tsx
-  - package.json
+  - src/app/api/setup/create-first-admin/route.ts
+  - src/app/api/setup/verify-openai/route.ts
+  - AGENTS.md
   - src/lib/pdf-generator/survey-sales.ts
-  - src/app/listings/[id]/supplement/page.tsx
-  - src/app/settings/page.tsx
-  - src/lib/listings/supplementary-status.ts
-  - src/lib/license/server-verify.ts
-  - scripts/upload-release-to-r2.js
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/auth/db.ts
+  - license-server/api/license/transfer.ts
+  - Dockerfile
+  - license-server/vercel.json
+  - scripts/materialize-standalone-symlinks.js
+  - license-server/lib/machine-id.ts
+  - src/app/api/admin/licenses/route.ts
+  - electron/updater.ts
+  - electron-builder.json
+  - scripts/create-admin.ts
+  - src/app/api/admin/licenses/revoke/route.ts
+  - .vercelignore
+  - src/lib/scrapers/bank-estimator.ts
+  - migrations/004_auth_license.sql
+  - scripts/generate-icons.ts
+  - src/app/api/auth/refresh/route.ts
+  - license-server/api/license/revoke.ts
+  - package.json
+  - src/proxy.ts
+  - electron/preload.ts
+  - src/lib/db/schema.ts
+  - license-server/api/features/index.ts
+  - license-server/api/license/create.ts
+  - .env.example
+  - license-server/api/license/list.ts
+  - .github/workflows/release.yml
+  - src/app/login/page.tsx
+  - src/components/UpdateChecker.tsx
+  - src/lib/pdf-generator/chromium-launcher.ts
+  - license-server/api/license/activate.ts
+  - scripts/fix-standalone-symlinks.js
+  - vercel.json
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - electron/launcher.ts
+  - scripts/generate-license.ts
+  - src/app/setup/codex/page.tsx
+  - electron/main.ts
+  - license-server/api/license/verify.ts
+  - src/app/admin/licenses/page.tsx
+  - license-server/lib/store.ts
+  - src/app/setup/admin/page.tsx
+  - src/lib/admin-auth.ts
+  - electron/codex-guide.html
+  - src/app/api/auth/[...nextauth]/route.ts
+  - license-server/api/license/update-info.ts
+  - license-server/lib/admin-auth.ts
+  - src/app/api/admin/licenses/update-info/route.ts
+  - src/app/listings/page.tsx
 tests:
-  - e2e/listing-ux.spec.ts
-  - e2e/user-management.spec.ts
-  - src/components/__tests__/Stepper.test.tsx
+  - src/app/api/auth/[...nextauth]/route.test.ts
+  - src/lib/db/__tests__/auth-license-migration.test.ts
+  - src/middleware.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - license-server/api/license/__tests__/update-info.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - e2e/desktop-first-install.spec.ts
+  - scripts/generate-icons.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/pdf-generator/__tests__/chromium-launcher.test.ts
+  - src/lib/auth/__tests__/db.test.ts
+  - e2e/admin-licenses.spec.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - src/app/login/page.test.ts
+  - src/app/api/auth/refresh/route.test.ts
+  - src/lib/__tests__/scrapers/tax-calculator.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - scripts/create-admin.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - src/lib/__tests__/scrapers/bank-estimator.test.ts
+  - scripts/generate-license.test.ts
 -->
 
 ---
@@ -209,100 +216,105 @@ tests:
 
 ---
 ### Requirement: One-click update installation
+The system SHALL use electron-updater quitAndInstall() to apply downloaded updates. After download completes and hash verification passes, the system SHALL prompt the user to restart.
 
-The system SHALL download and install updates with a single user action.
-
-#### Scenario: Update download and install
-
-- **WHEN** user clicks "立即更新"
-- **THEN** system SHALL show download progress, download the update from R2 signed URL, verify file hash, install the update, and restart the application
-
-#### Scenario: Download failure
-
-- **WHEN** download fails due to network error
-- **THEN** system SHALL display "更新下載失敗，請檢查網路連線" and allow retry
+#### Scenario: Install after download
+- **WHEN** the update download completes successfully
+- **THEN** the system SHALL emit an update-status IPC event with type "ready"
+- **THEN** upon user confirmation the system SHALL call autoUpdater.quitAndInstall()
 
 
 <!-- @trace
-source: electron-desktop-app
-updated: 2026-05-04
+source: desktop-commercial-complete
+updated: 2026-05-07
 code:
-  - license-server/lib/store.ts
-  - src/app/admin/users/page.tsx
-  - src/app/api/admin/users/[id]/reset-password/route.ts
-  - src/app/api/listings/[id]/folder/route.ts
-  - electron-builder.json
-  - tsconfig.electron.json
-  - license-server/package.json
-  - src/app/admin/audit-logs/page.tsx
-  - src/app/admin/transfer/page.tsx
-  - electron/launcher.ts
   - src/app/setup/page.tsx
-  - src/app/login/page.tsx
-  - tsconfig.json
-  - src/lib/codex-client/index.ts
-  - src/app/api/auth/login/route.ts
-  - src/app/admin/features/page.tsx
-  - src/lib/db/schema.ts
-  - src/app/api/admin/users/route.ts
+  - src/lib/scrapers/tax-calculator.ts
   - license-server/api/updates/check.ts
-  - src/app/api/listings/[id]/archive/route.ts
-  - src/app/api/admin/audit-logs/route.ts
-  - electron/splash.html
-  - src/app/listings/[id]/supplementary/page.tsx
-  - src/components/UpdateChecker.tsx
-  - electron/preload.ts
-  - src/app/listings/[id]/fill/page.tsx
-  - license-server/api/license/activate.ts
-  - src/app/api/auth/logout/route.ts
-  - src/app/api/listings/[id]/route.ts
-  - src/app/listings/page.tsx
-  - src/components/Sidebar.tsx
-  - src/app/api/admin/features/route.ts
-  - src/app/listings/[id]/documents/page.tsx
-  - src/lib/auth.ts
-  - src/app/api/listings/route.ts
-  - license-server/api/license/verify.ts
-  - src/components/listings/SupplementStatusIcon.tsx
-  - license-server/api/features/index.ts
-  - src/lib/db/list-recent-helper.ts
-  - src/app/api/listings/folders/[id]/route.ts
-  - src/lib/generators/disclosure-document.ts
+  - license-server/lib/serial.ts
   - src/types/electron.d.ts
-  - scripts/obfuscate-build.js
-  - src/app/api/admin/users/[id]/disable/route.ts
-  - src/components/FolderSidebar.tsx
-  - src/app/listings/[id]/generating/page.tsx
-  - src/app/api/license/features/route.ts
-  - src/components/Stepper.tsx
-  - src/lib/pdf-generator/dossier.ts
-  - src/proxy.ts
-  - src/lib/audit.ts
-  - src/app/api/license/init/route.ts
-  - electron/updater.ts
-  - src/lib/features/client.ts
-  - electron/main.ts
-  - .github/workflows/release.yml
-  - src/app/api/listings/folders/route.ts
-  - license-server/vercel.json
-  - src/app/api/listings/[id]/restore/route.ts
-  - src/lib/generators/property-sheet.ts
+  - src/middleware.ts
+  - src/lib/codex-client/key-store.ts
+  - src/app/api/admin/licenses/transfer/route.ts
   - src/lib/db/index.ts
-  - src/app/api/admin/transfer-cases/route.ts
-  - config/branding.json
-  - src/lib/generators/disclaimer.ts
-  - src/components/SearchBar.tsx
-  - package.json
+  - src/app/api/setup/create-first-admin/route.ts
+  - src/app/api/setup/verify-openai/route.ts
+  - AGENTS.md
   - src/lib/pdf-generator/survey-sales.ts
-  - src/app/listings/[id]/supplement/page.tsx
-  - src/app/settings/page.tsx
-  - src/lib/listings/supplementary-status.ts
-  - src/lib/license/server-verify.ts
-  - scripts/upload-release-to-r2.js
+  - src/lib/pdf-generator/dossier.ts
+  - src/lib/auth/db.ts
+  - license-server/api/license/transfer.ts
+  - Dockerfile
+  - license-server/vercel.json
+  - scripts/materialize-standalone-symlinks.js
+  - license-server/lib/machine-id.ts
+  - src/app/api/admin/licenses/route.ts
+  - electron/updater.ts
+  - electron-builder.json
+  - scripts/create-admin.ts
+  - src/app/api/admin/licenses/revoke/route.ts
+  - .vercelignore
+  - src/lib/scrapers/bank-estimator.ts
+  - migrations/004_auth_license.sql
+  - scripts/generate-icons.ts
+  - src/app/api/auth/refresh/route.ts
+  - license-server/api/license/revoke.ts
+  - package.json
+  - src/proxy.ts
+  - electron/preload.ts
+  - src/lib/db/schema.ts
+  - license-server/api/features/index.ts
+  - license-server/api/license/create.ts
+  - .env.example
+  - license-server/api/license/list.ts
+  - .github/workflows/release.yml
+  - src/app/login/page.tsx
+  - src/components/UpdateChecker.tsx
+  - src/lib/pdf-generator/chromium-launcher.ts
+  - license-server/api/license/activate.ts
+  - scripts/fix-standalone-symlinks.js
+  - vercel.json
+  - src/app/api/admin/licenses/unbind-machine/route.ts
+  - electron/launcher.ts
+  - scripts/generate-license.ts
+  - src/app/setup/codex/page.tsx
+  - electron/main.ts
+  - license-server/api/license/verify.ts
+  - src/app/admin/licenses/page.tsx
+  - license-server/lib/store.ts
+  - src/app/setup/admin/page.tsx
+  - src/lib/admin-auth.ts
+  - electron/codex-guide.html
+  - src/app/api/auth/[...nextauth]/route.ts
+  - license-server/api/license/update-info.ts
+  - license-server/lib/admin-auth.ts
+  - src/app/api/admin/licenses/update-info/route.ts
+  - src/app/listings/page.tsx
 tests:
-  - e2e/listing-ux.spec.ts
-  - e2e/user-management.spec.ts
-  - src/components/__tests__/Stepper.test.tsx
+  - src/app/api/auth/[...nextauth]/route.test.ts
+  - src/lib/db/__tests__/auth-license-migration.test.ts
+  - src/middleware.test.ts
+  - license-server/lib/__tests__/serial.test.ts
+  - license-server/api/license/__tests__/update-info.test.ts
+  - src/app/api/setup/verify-openai/route.test.ts
+  - e2e/desktop-first-install.spec.ts
+  - scripts/generate-icons.test.ts
+  - license-server/api/license/__tests__/activate-verify.test.ts
+  - src/lib/pdf-generator/__tests__/chromium-launcher.test.ts
+  - src/lib/auth/__tests__/db.test.ts
+  - e2e/admin-licenses.spec.ts
+  - license-server/api/license/__tests__/revoke.test.ts
+  - license-server/api/license/__tests__/create.test.ts
+  - src/app/login/page.test.ts
+  - src/app/api/auth/refresh/route.test.ts
+  - src/lib/__tests__/scrapers/tax-calculator.test.ts
+  - src/lib/codex-client/__tests__/key-store.test.ts
+  - license-server/api/license/__tests__/end-to-end-flow.test.ts
+  - scripts/create-admin.test.ts
+  - license-server/api/license/__tests__/list.test.ts
+  - license-server/api/license/__tests__/transfer.test.ts
+  - src/lib/__tests__/scrapers/bank-estimator.test.ts
+  - scripts/generate-license.test.ts
 -->
 
 ---
