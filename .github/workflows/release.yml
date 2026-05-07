@@ -38,6 +38,9 @@ jobs:
       - name: Build Next.js
         run: npm run build
 
+      - name: Materialize standalone symlinks (fix pdfjs-dist packaging)
+        run: node scripts/materialize-standalone-symlinks.js
+
       - name: Compile Electron TypeScript
         run: npm run electron:compile
 
