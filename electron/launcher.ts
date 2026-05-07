@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from 'child_process';
+import { execSync, spawn, type ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as http from 'http';
 import * as fs from 'fs';
@@ -80,5 +80,29 @@ export function stopNextServer(): void {
   if (serverProcess) {
     serverProcess.kill();
     serverProcess = null;
+  }
+}
+
+/** 偵測 Codex CLI 是否安裝 */
+export function detectCodexCli(
+  customPath?: string,
+): { found: boolean; path: string | null } {
+  // 如果有自訂路徑，檢查該路徑
+  if (customPath) {
+    try {
+      fs.accessSync(customPath, fs.constants.X_OK);
+      return { found: true, path: customPath };
+    } catch {
+      return { found: false, path: null };
+    }
+  }
+
+  // macOS: which codex, Windows: where codex
+  const cmd = process.platform === 'win32' ? 'where codex' : 'which codex';
+  try {
+    const result = execSync(cmd, { encoding: 'utf8', timeout: 5000 }).trim();
+    return { found: true, path: result.split('\n')[0] };
+  } catch {
+    return { found: false, path: null };
   }
 }

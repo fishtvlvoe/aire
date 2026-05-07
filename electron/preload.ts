@@ -34,4 +34,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('openai:tokenReceived', (_e, payload) => callback(payload as Parameters<typeof callback>[0]));
     return () => ipcRenderer.removeAllListeners('openai:tokenReceived');
   },
+
+  detectCodex: (customPath?: string) => ipcRenderer.invoke('codex:detect', customPath),
+  codexProceed: () => ipcRenderer.invoke('codex:proceedToApp'),
 });

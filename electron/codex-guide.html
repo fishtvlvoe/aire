@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>需要安裝 Codex CLI</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 520px;
+      margin: 40px auto;
+      padding: 0 24px;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    p { font-size: 0.875rem; color: #64748b; line-height: 1.6; }
+    .step { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .step-number { display: inline-block; width: 24px; height: 24px; background: #2563eb; color: white; border-radius: 50%; text-align: center; line-height: 24px; font-size: 0.75rem; font-weight: bold; margin-right: 8px; }
+    code { background: #1e293b; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; display: block; font-size: 0.8rem; margin: 8px 0; user-select: all; }
+    .actions { margin-top: 24px; display: flex; gap: 12px; }
+    button { padding: 10px 20px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:disabled { opacity: 0.5; cursor: wait; }
+    .btn-secondary { background: white; border: 1px solid #cbd5e1; color: #475569; }
+    .btn-secondary:hover { background: #f1f5f9; }
+    .manual-path { margin-top: 16px; }
+    .manual-path input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.8rem; }
+    .error { color: #dc2626; font-size: 0.8rem; margin-top: 8px; display: none; }
+    .status { font-size: 0.8rem; margin-top: 8px; color: #16a34a; display: none; }
+  </style>
+</head>
+<body>
+  <h1>需要安裝 Codex CLI</h1>
+  <p>AI 文件生成功能需要 Codex CLI。請依照以下步驟安裝：</p>
+
+  <div class="step">
+    <span class="step-number">1</span>
+    <strong>安裝 Codex CLI</strong>
+    <code>npm install -g @openai/codex</code>
+  </div>
+
+  <div class="step">
+    <span class="step-number">2</span>
+    <strong>登入 OpenAI 帳號</strong>
+    <code>codex login</code>
+    <p style="font-size: 0.75rem; color: #94a3b8; margin: 4px 0 0 0;">需要 ChatGPT Plus 訂閱（$20/月）</p>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" id="redetect">重新偵測</button>
+    <button class="btn-secondary" id="toggle-manual">手動指定路徑</button>
+  </div>
+
+  <div class="manual-path" id="manual-section" style="display: none;">
+    <input type="text" id="manual-input" placeholder="/usr/local/bin/codex" />
+    <button class="btn-secondary" id="manual-confirm" style="margin-top: 8px;">確認路徑</button>
+  </div>
+
+  <div class="error" id="error-msg"></div>
+  <div class="status" id="status-msg"></div>
+
+  <script>
+    const redetectBtn = document.getElementById('redetect');
+    const toggleManualBtn = document.getElementById('toggle-manual');
+    const manualSection = document.getElementById('manual-section');
+    const manualInput = document.getElementById('manual-input');
+    const manualConfirmBtn = document.getElementById('manual-confirm');
+    const errorMsg = document.getElementById('error-msg');
+    const statusMsg = document.getElementById('status-msg');
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = 'block';
+      statusMsg.style.display = 'none';
+    }
+
+    function showStatus(msg) {
+      statusMsg.textContent = msg;
+      statusMsg.style.display = 'block';
+      errorMsg.style.display = 'none';
+    }
+
+    redetectBtn.addEventListener('click', async () => {
+      redetectBtn.disabled = true;
+      redetectBtn.textContent = '偵測中...';
+      const result = await window.electronAPI.detectCodex();
+      if (result.found) {
+        showStatus('已偵測到 Codex CLI，正在啟動...');
+        await window.electronAPI.codexProceed();
+      } else {
+        showError('仍未偵測到 Codex CLI，請確認已安裝');
+        redetectBtn.disabled = false;
+        redetectBtn.textContent = '重新偵測';
+      }
+    });
+
+    toggleManualBtn.addEventListener('click', () => {
+      manualSection.style.display = manualSection.style.display === 'none' ? 'block' : 'none';
+    });
+
+    manualConfirmBtn.addEventListener('click', async () => {
+      const customPath = manualInput.value.trim();
+      if (!customPath) { showError('請輸入路徑'); return; }
+      const result = await window.electronAPI.detectCodex(customPath);
+      if (result.found) {
+        showStatus('路徑有效，正在啟動...');
+        await window.electronAPI.codexProceed();
+      } else {
+        showError('找不到 Codex CLI，請確認路徑正確');
+      }
+    });
+  </script>
+</body>
+</html>

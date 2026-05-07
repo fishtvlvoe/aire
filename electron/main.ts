@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { launchNextServer, stopNextServer, getServerUrl } from './launcher';
+import { launchNextServer, stopNextServer, getServerUrl, detectCodexCli } from './launcher';
 import { checkAndApplyUpdate, installUpdate } from './updater';
 
 const isDev = !app.isPackaged;
@@ -15,6 +15,12 @@ app.setAsDefaultProtocolClient('three-ai');
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
 
+function resolveHtmlPath(fileName: string): string {
+  const inSameDir = path.join(__dirname, fileName);
+  if (fs.existsSync(inSameDir)) return inSameDir;
+  return path.join(__dirname, '..', fileName);
+}
+
 function createSplashWindow(): void {
   splashWindow = new BrowserWindow({
     width: 480,
@@ -26,7 +32,7 @@ function createSplashWindow(): void {
     webPreferences: { nodeIntegration: false, contextIsolation: true },
   });
 
-  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  splashWindow.loadFile(resolveHtmlPath('splash.html'));
 }
 
 function createMainWindow(): void {
@@ -56,6 +62,21 @@ function createMainWindow(): void {
   });
 }
 
+function createCodexGuideWindow(): void {
+  mainWindow = new BrowserWindow({
+    width: 600,
+    height: 500,
+    frame: true,
+    resizable: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+  mainWindow.loadFile(resolveHtmlPath('codex-guide.html'));
+}
+
 // IPC handlers
 ipcMain.handle('app:version', () => app.getVersion());
 
@@ -83,6 +104,25 @@ ipcMain.handle('openai:getToken', () => {
 ipcMain.handle('openai:saveToken', (_e, token: string) => {
   fs.mkdirSync(path.dirname(OPENAI_TOKEN_PATH), { recursive: true });
   fs.writeFileSync(OPENAI_TOKEN_PATH, JSON.stringify({ token }));
+});
+
+ipcMain.handle('codex:detect', (_e, customPath?: string) => {
+  return detectCodexCli(customPath);
+});
+
+ipcMain.handle('codex:proceedToApp', async () => {
+  // 偵測通過後，啟動 Next.js server 並切換到主視窗
+  splashWindow?.destroy();
+  mainWindow?.destroy();
+  createSplashWindow();
+  try {
+    await launchNextServer(APP_ROOT);
+    createMainWindow();
+    checkAndApplyUpdate(mainWindow!);
+  } catch (err) {
+    console.error('Failed to start:', err);
+    app.quit();
+  }
 });
 
 // macOS：從 Dock/URL scheme 被打開時接收 URL
@@ -118,6 +158,18 @@ app.whenReady().then(async () => {
     // 開發模式：直接連 Next.js dev server
     createMainWindow();
   } else {
+    // 偵測 Codex CLI
+    const codexResult = detectCodexCli();
+    if (!codexResult.found) {
+      // 顯示安裝引導畫面（取代 splash）
+      splashWindow?.destroy();
+      splashWindow = null;
+      createCodexGuideWindow();
+      // 等待用戶安裝後重新偵測（透過 IPC）
+      return;
+    }
+
+    // Codex CLI 已安裝，正常啟動
     try {
       await launchNextServer(APP_ROOT);
       createMainWindow();
