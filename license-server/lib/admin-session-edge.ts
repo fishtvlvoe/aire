@@ -21,7 +21,12 @@ function base64UrlToBytes(value: string): Uint8Array {
 }
 
 async function verifyHmac(payloadSegment: string, signatureSegment: string, secret: string): Promise<boolean> {
-  const key = await globalThis.crypto.subtle.importKey(
+  // Web Crypto API 的 BufferSource 型別在 TS strict + Node 18 lib.dom.d.ts 下會跟 Uint8Array 衝突（SharedArrayBuffer 不相容），用 unknown cast 跳過
+  const subtle = globalThis.crypto.subtle as unknown as {
+    importKey: (...args: unknown[]) => Promise<unknown>;
+    verify: (...args: unknown[]) => Promise<boolean>;
+  };
+  const key = await subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
@@ -29,7 +34,7 @@ async function verifyHmac(payloadSegment: string, signatureSegment: string, secr
     ['verify'],
   );
   const signatureBytes = base64UrlToBytes(signatureSegment);
-  return globalThis.crypto.subtle.verify('HMAC', key, signatureBytes, new TextEncoder().encode(payloadSegment));
+  return subtle.verify('HMAC', key, signatureBytes, new TextEncoder().encode(payloadSegment));
 }
 
 export async function verifySessionTokenEdge(
