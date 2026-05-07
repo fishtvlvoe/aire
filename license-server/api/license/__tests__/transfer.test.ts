@@ -5,6 +5,13 @@ const getLicense = vi.fn();
 const revokeLicense = vi.fn();
 const saveLicense = vi.fn();
 const generateSerialKey = vi.fn();
+const kvDel = vi.fn();
+
+vi.mock('@vercel/kv', () => ({
+  kv: {
+    del: kvDel,
+  },
+}), { virtual: true });
 
 vi.mock('../../../lib/admin-auth', () => ({
   hasValidAdminToken,
@@ -86,6 +93,7 @@ describe('POST /api/license/transfer', () => {
         email: 'old-owner@example.com',
         contactName: '舊客戶',
         company: '舊公司',
+        machineId: null,
         allowedCidr: '0.0.0.0/0',
         features: ['disclosure-document'],
         createdAt: '2026-01-01T00:00:00.000Z',
@@ -137,6 +145,7 @@ describe('POST /api/license/transfer', () => {
       email: 'old@example.com',
       contactName: null,
       company: null,
+      machineId: null,
       allowedCidr: '0.0.0.0/0',
       features: ['disclosure-document'],
       createdAt: '2026-01-01T00:00:00.000Z',

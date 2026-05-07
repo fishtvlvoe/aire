@@ -7,6 +7,7 @@ export interface LicenseRecord {
   email: string | null;
   contactName: string | null;  // 客戶姓名
   company: string | null;      // 公司名稱
+  machineId: string | null;  // SHA-256 hash of machine ID
   allowedCidr: string;      // e.g. "192.168.1.0/24" or "0.0.0.0/0"
   features: string[];       // e.g. ["disclosure-document", "contract"]
   createdAt: string;        // ISO 8601
@@ -44,6 +45,7 @@ export function normalizeLicenseRecord(
     email,
     contactName: record.contactName ?? null,
     company: record.company ?? null,
+    machineId: record.machineId ?? null,
     allowedCidr: record.allowedCidr ?? '0.0.0.0/0',
     features: record.features ?? ['disclosure-document'],
     createdAt,

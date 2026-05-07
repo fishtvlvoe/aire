@@ -70,6 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     email: normalizeOptionalEmail(body.newEmail),
     contactName: normalizeOptionalText(body.newContactName),
     company: normalizeOptionalText(body.newCompany),
+    machineId: null,
     allowedCidr: oldLicense.allowedCidr,
     features: oldLicense.features,
     createdAt: now,
@@ -84,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     await saveLicense(newLicense);
-  } catch (error) {
+  } catch {
     // 建立新序號失敗：必須把舊序號狀態還原，避免客戶無法使用
     await saveLicense(oldSnapshot);
     return res.status(500).json({ error: 'transfer_failed' });

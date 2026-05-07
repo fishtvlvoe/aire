@@ -7,6 +7,7 @@ interface LicenseRecord {
   email: string | null;
   contactName: string | null;
   company: string | null;
+  machineId: string | null;
   allowedCidr: string;
   features: string[];
   createdAt: string;
@@ -123,7 +124,7 @@ describe('license flow e2e', () => {
     const { default: activateHandler } = await import('../activate');
     const activateReq = {
       method: 'POST',
-      body: { email: 'customer@example.com', licenseKey },
+      body: { email: 'customer@example.com', licenseKey, machineId: 'machine-1' },
     } as any;
     const activateRes = makeRes();
     await activateHandler(activateReq, activateRes as any);
@@ -132,7 +133,7 @@ describe('license flow e2e', () => {
     const { default: verifyHandler } = await import('../verify');
     const verifyReq = {
       method: 'POST',
-      body: { email: 'customer@example.com', licenseKey },
+      body: { email: 'customer@example.com', licenseKey, machineId: 'machine-1' },
       headers: { 'x-forwarded-for': '203.0.113.10' },
       socket: { remoteAddress: '203.0.113.10' },
     } as any;

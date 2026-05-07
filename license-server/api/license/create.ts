@@ -70,6 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email: null,
       contactName: null,
       company: null,
+      machineId: null,
       allowedCidr: '0.0.0.0/0',
       features,
       createdAt: now,

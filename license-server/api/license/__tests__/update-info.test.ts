@@ -72,6 +72,7 @@ describe('PATCH /api/license/update-info', () => {
         email: 'old@example.com',
         contactName: null,
         company: null,
+        machineId: null,
         allowedCidr: '0.0.0.0/0',
         features: ['disclosure-document'],
         createdAt: '2026-01-01T00:00:00.000Z',
