@@ -5,6 +5,8 @@ export type LicenseStatus = 'issued' | 'activated' | 'revoked';
 export interface LicenseRecord {
   licenseKey: string;
   email: string | null;
+  contactName: string | null;  // 客戶姓名
+  company: string | null;      // 公司名稱
   allowedCidr: string;      // e.g. "192.168.1.0/24" or "0.0.0.0/0"
   features: string[];       // e.g. ["disclosure-document", "contract"]
   createdAt: string;        // ISO 8601
@@ -40,6 +42,8 @@ export function normalizeLicenseRecord(
   return {
     licenseKey: record.licenseKey,
     email,
+    contactName: record.contactName ?? null,
+    company: record.company ?? null,
     allowedCidr: record.allowedCidr ?? '0.0.0.0/0',
     features: record.features ?? ['disclosure-document'],
     createdAt,
@@ -80,6 +84,7 @@ export async function listAllLicenseKeys(): Promise<string[]> {
 
 export interface ListLicensesOptions {
   status?: LicenseStatus;
+  search?: string;
   page: number;
   pageSize: number;
 }
@@ -95,9 +100,22 @@ export async function listLicenses(options: ListLicensesOptions): Promise<ListLi
   const keys = await listAllLicenseKeys();
   const rows = await Promise.all(keys.map(async (key) => getLicense(key)));
   const normalized = rows.filter((row): row is LicenseRecord => !!row);
-  const filtered = options.status
+  const filteredByStatus = options.status
     ? normalized.filter((item) => item.status === options.status)
     : normalized;
+
+  const search = typeof options.search === 'string' ? options.search.trim().toLowerCase() : '';
+  const filtered = search
+    ? filteredByStatus.filter((item) => {
+      const haystack = [
+        item.licenseKey,
+        item.contactName ?? '',
+        item.company ?? '',
+        item.email ?? '',
+      ].join(' ').toLowerCase();
+      return haystack.includes(search);
+    })
+    : filteredByStatus;
 
   filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const start = (options.page - 1) * options.pageSize;

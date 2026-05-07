@@ -33,7 +33,7 @@ describe('GET /api/license/list', () => {
     vi.clearAllMocks();
     hasValidAdminToken.mockReturnValue(true);
     listLicenses.mockResolvedValue({
-      items: [{ licenseKey: 'THREE-AAAA-BBBB-CCCC', status: 'issued' }],
+      items: [{ licenseKey: 'THREE-AAAA-BBBB-CCCC', status: 'issued', email: null, contactName: null, company: null }],
       total: 1,
       page: 1,
       pageSize: 20,
@@ -51,6 +51,7 @@ describe('GET /api/license/list', () => {
 
     await handler(req, res as any);
     expect(res.statusCode).toBe(200);
+    expect((res.body as any).items[0].index).toBe(1);
     expect((res.body as any).items[0].status).toBe('issued');
   });
 

@@ -5,6 +5,8 @@ type LicenseStatus = 'issued' | 'activated' | 'revoked';
 interface LicenseRecord {
   licenseKey: string;
   email: string | null;
+  contactName: string | null;
+  company: string | null;
   allowedCidr: string;
   features: string[];
   createdAt: string;
@@ -24,7 +26,7 @@ const saveLicense = vi.fn(async (record: LicenseRecord) => {
   store.set(record.licenseKey, record);
 });
 const isIpInCidr = vi.fn(() => true);
-const listLicenses = vi.fn(async ({ status, page, pageSize }: { status?: LicenseStatus; page: number; pageSize: number }) => {
+const listLicenses = vi.fn(async ({ status, page, pageSize }: { status?: LicenseStatus; search?: string; page: number; pageSize: number }) => {
   const rows = [...store.values()]
     .filter((item) => !status || item.status === status)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -115,8 +117,8 @@ describe('license flow e2e', () => {
     await listHandler(listReq, listRes as any);
 
     expect(listRes.statusCode).toBe(200);
-    const listBody = listRes.body as { items: Array<{ licenseKey: string; status: string }> };
-    expect(listBody.items.some((item) => item.licenseKey === licenseKey && item.status === 'issued')).toBe(true);
+    const listBody = listRes.body as { items: Array<{ licenseKey: string; status: string; index: number }> };
+    expect(listBody.items.some((item) => item.licenseKey === licenseKey && item.status === 'issued' && item.index === 1)).toBe(true);
 
     const { default: activateHandler } = await import('../activate');
     const activateReq = {

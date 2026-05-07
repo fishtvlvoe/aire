@@ -34,7 +34,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'invalid_status' });
   }
 
-  const result = await listLicenses({ status, page, pageSize });
-  return res.status(200).json(result);
+  const searchRaw = req.query.search;
+  const search = typeof searchRaw === 'string' ? searchRaw.trim().toLowerCase() : '';
+
+  const result = await listLicenses({ status, search: search || undefined, page, pageSize });
+
+  return res.status(200).json({
+    ...result,
+    items: result.items.map((item, idx) => ({ index: idx + 1, ...item })),
+  });
 }
 

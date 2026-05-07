@@ -1,4 +1,8 @@
 {
+  "routes": [
+    { "src": "/api/license/update-info", "dest": "/api/license/update-info.ts" },
+    { "src": "/api/license/transfer", "dest": "/api/license/transfer.ts" }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

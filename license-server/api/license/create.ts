@@ -68,6 +68,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     serials.map((key) => saveLicense({
       licenseKey: key,
       email: null,
+      contactName: null,
+      company: null,
       allowedCidr: '0.0.0.0/0',
       features,
       createdAt: now,
