@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
   "rewrites": [
     { "source": "/license/:path*", "destination": "/api/license/:path*" },
     { "source": "/features/:path*", "destination": "/api/features/:path*" },
