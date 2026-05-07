@@ -32,7 +32,8 @@
   ],
   "mac": {
     "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
-    "category": "public.app-category.business"
+    "category": "public.app-category.business",
+    "artifactName": "${name}-${version}-${arch}.${ext}"
   },
   "win": {
     "target": [{ "target": "nsis", "arch": ["x64"] }],
