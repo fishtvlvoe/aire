@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { getAdminUser } from '@/lib/admin-auth';
 
 const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL ?? 'https://three-ai-license-server.vercel.app';
 
@@ -8,14 +8,8 @@ interface RevokeBody {
   reason?: string;
 }
 
-function getAdminUser(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const currentUser = sessionId ? getSessionUser(sessionId) : null;
-  return currentUser?.role === 'admin' ? currentUser : null;
-}
-
 export async function POST(req: NextRequest) {
-  const admin = getAdminUser(req);
+  const admin = await getAdminUser(req);
   if (!admin) {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }

@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { getAdminUser } from '@/lib/admin-auth';
 
 const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL ?? 'https://three-ai-license-server.vercel.app';
 
 interface UnbindMachineBody {
   key?: string;
-}
-
-function getAdminUser(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const currentUser = sessionId ? getSessionUser(sessionId) : null;
-  return currentUser?.role === 'admin' ? currentUser : null;
 }
 
 function getAdminToken(): string | null {
@@ -42,7 +36,7 @@ async function proxyToLicenseServer(path: string, init: RequestInit) {
 // 注意：後端的 update-info API 目前不支援更新 machineId，
 // 所以先用暫時方案：用 PATCH /api/license/update-info 帶 machineId: null
 export async function POST(req: NextRequest) {
-  const admin = getAdminUser(req);
+  const admin = await getAdminUser(req);
   if (!admin) {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }
