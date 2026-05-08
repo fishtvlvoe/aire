@@ -12,7 +12,7 @@
     "cleanup:drafts": "tsx scripts/cleanup-empty-drafts.ts",
     "electron:compile": "tsc -p tsconfig.electron.json",
     "electron:dev": "npm run electron:compile && electron .",
-    "electron:build": "npm run build && node scripts/obfuscate-build.js && npm run electron:compile && electron-builder --config electron-builder.json",
+    "electron:build": "npm run build && node scripts/obfuscate-build.js && npm run electron:compile && node -e \"if(!require('fs').existsSync('.next/standalone/server.js')){console.error('ERROR: .next/standalone/server.js not found. Run next build first.');process.exit(1)}\" && electron-builder --config electron-builder.json",
     "electron:pack:mac": "electron-builder --mac --config electron-builder.json",
     "electron:pack:win": "electron-builder --win --config electron-builder.json",
     "postinstall": "node -e \"console.log('skip: chromium download managed externally')\""

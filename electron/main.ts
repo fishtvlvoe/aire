@@ -15,6 +15,23 @@ app.setAsDefaultProtocolClient('three-ai');
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  // Windows/Linux：second-instance 時從 argv 取 URL
+  app.on('second-instance', (_event, argv) => {
+    const url = argv.find((arg) => arg.startsWith('three-ai://'));
+    if (url) handleOAuthCallback(url);
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 function resolveHtmlPath(fileName: string): string {
   const inSameDir = path.join(__dirname, fileName);
   if (fs.existsSync(inSameDir)) return inSameDir;
@@ -128,13 +145,6 @@ ipcMain.handle('codex:proceedToApp', async () => {
 // macOS：從 Dock/URL scheme 被打開時接收 URL
 app.on('open-url', (_event, url) => {
   handleOAuthCallback(url);
-});
-
-// Windows/Linux：second-instance 時從 argv 取 URL
-app.on('second-instance', (_event, argv) => {
-  const url = argv.find((arg) => arg.startsWith('three-ai://'));
-  if (url) handleOAuthCallback(url);
-  if (mainWindow) { mainWindow.focus(); }
 });
 
 function handleOAuthCallback(url: string): void {

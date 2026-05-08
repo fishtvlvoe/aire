@@ -8,10 +8,13 @@
   },
   "files": [
     "electron/build/**",
-    ".next/standalone/**",
+    ".next/standalone/**/*",
     ".next/static/**",
     "public/**",
     "node_modules/**"
+  ],
+  "asarUnpack": [
+    ".next/standalone/node_modules/**/*"
   ],
   "extraResources": [
     {
