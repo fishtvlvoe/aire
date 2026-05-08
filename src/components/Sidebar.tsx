@@ -12,6 +12,12 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/listings/new', label: '新增物件', feature: 'disclosure-document' },
 ];
 
+// admin 區塊導覽項目，僅 admin 角色可見
+const ADMIN_NAV_ITEMS: NavItem[] = [
+  { href: '/admin/users', label: '用戶管理' },
+  { href: '/admin/features', label: '功能設定' },
+];
+
 type Listing = {
   id: number
   status: string
@@ -67,6 +73,8 @@ export default function Sidebar() {
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [features, setFeatures] = useState<Features>([])
+  // 當前登入用戶的角色，用於控制 admin 區塊的顯示
+  const [userRole, setUserRole] = useState<'admin' | 'agent' | null>(null)
 
   const navItems = ALL_NAV_ITEMS.filter(
     (item) => !item.feature || hasFeature(features, item.feature),
@@ -74,6 +82,22 @@ export default function Sidebar() {
 
   useEffect(() => {
     void syncFeatures().then(setFeatures)
+  }, [])
+
+  // 取得當前登入用戶角色，決定是否顯示 admin 區塊
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch('/api/me')
+        if (res.ok) {
+          const data = (await res.json()) as { user: { role: 'admin' | 'agent' } | null }
+          setUserRole(data.user?.role ?? null)
+        }
+      } catch {
+        // 取得失敗時不顯示 admin 區塊，靜默處理
+      }
+    }
+    void fetchMe()
   }, [])
 
   useEffect(() => {
@@ -114,6 +138,24 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
+
+      {/* admin 區塊：僅 admin 角色才顯示 */}
+      {userRole === 'admin' && (
+        <div className="border-t border-white/20 pt-6 mt-6">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-2 px-3">管理</h3>
+          <nav className="flex flex-col gap-1">
+            {ADMIN_NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-md px-3 py-2 text-sm font-semibold transition hover:bg-white/15"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
 
       <div className="border-t border-white/20 pt-6 mt-8">
         <h3 className="text-sm font-semibold mb-4">最近物件</h3>

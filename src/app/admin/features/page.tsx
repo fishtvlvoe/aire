@@ -1,17 +1,44 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { LicenseEntry } from '@/app/api/admin/features/route';
+import type { DocFlagsMap } from '@/app/api/admin/doc-flags/route';
 
 interface FeatureDef { key: string; label: string }
 
+// 5 種文件類型的顯示定義
+const DOC_FLAG_LABELS: Array<{ key: keyof DocFlagsMap; label: string; desc: string }> = [
+  { key: 'disclosure',   label: '不動產說明書', desc: '自動生成不動產說明書文件' },
+  { key: 'inspection',   label: '物調表',       desc: '物件現況調查表' },
+  { key: 'sales_dm',     label: '銷售 DM',      desc: '列印用銷售傳單' },
+  { key: 'listing_591',  label: '591 文案',     desc: '591 房屋平台刊登文案' },
+  { key: 'social_post',  label: '社群貼文',     desc: 'Instagram / Facebook 貼文' },
+];
+
 export default function AdminFeaturesPage() {
+  const router = useRouter();
   const [licenses, setLicenses] = useState<LicenseEntry[]>([]);
   const [allFeatures, setAllFeatures] = useState<FeatureDef[]>([]);
   const [loading, setLoading] = useState(true);
+  // 文件功能 flags 狀態
+  const [docFlags, setDocFlags] = useState<DocFlagsMap | null>(null);
+  const [docFlagsLoading, setDocFlagsLoading] = useState(true);
+  const [docFlagsMsg, setDocFlagsMsg] = useState('');
   const [msg, setMsg] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newEntry, setNewEntry] = useState<Partial<LicenseEntry>>({ active: true, features: ['disclosure-document'] });
+
+  // 頁面載入時檢查 admin 角色，非 admin 導回物件列表
+  useEffect(() => {
+    const checkRole = async () => {
+      const res = await fetch('/api/me');
+      if (!res.ok) { router.push('/listings'); return; }
+      const data = (await res.json()) as { user: { role: string } | null };
+      if (data.user?.role !== 'admin') router.push('/listings');
+    };
+    void checkRole();
+  }, [router]);
 
   const load = async () => {
     const res = await fetch('/api/admin/features');
@@ -23,7 +50,35 @@ export default function AdminFeaturesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { void load(); }, []);
+  // 載入文件功能 flags
+  const loadDocFlags = async () => {
+    const res = await fetch('/api/admin/doc-flags');
+    if (res.ok) {
+      setDocFlags((await res.json()) as DocFlagsMap);
+    }
+    setDocFlagsLoading(false);
+  };
+
+  useEffect(() => { void load(); void loadDocFlags(); }, []);
+
+  // 切換單一文件功能 flag
+  const toggleDocFlag = async (key: keyof DocFlagsMap) => {
+    if (!docFlags) return;
+    const newVal = !docFlags[key];
+    const updated = { ...docFlags, [key]: newVal };
+    setDocFlags(updated);
+
+    const res = await fetch('/api/admin/doc-flags', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: newVal }),
+    });
+    if (res.ok) {
+      setDocFlags((await res.json()) as DocFlagsMap);
+      setDocFlagsMsg('已儲存');
+      setTimeout(() => setDocFlagsMsg(''), 2000);
+    }
+  };
 
   const toggleFeature = async (entry: LicenseEntry, featureKey: string) => {
     const hasIt = entry.features.includes(featureKey);
@@ -148,6 +203,50 @@ export default function AdminFeaturesPage() {
         </table>
         {licenses.length === 0 && (
           <div className="py-8 text-center text-sm text-slate-400">尚無 License 記錄</div>
+        )}
+      </div>
+
+      {/* 文件功能設定區塊 */}
+      <div className="mt-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-slate-800">文件功能設定</h2>
+          {docFlagsMsg && (
+            <span className="text-sm text-emerald-600">{docFlagsMsg}</span>
+          )}
+        </div>
+        <p className="text-sm text-slate-500 mb-5">
+          控制各類文件的生成功能是否對所有用戶開放。關閉後用戶將無法生成該類型文件。
+        </p>
+
+        {docFlagsLoading ? (
+          <div className="text-sm text-slate-400">載入中...</div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div className="divide-y divide-slate-100">
+              {DOC_FLAG_LABELS.map(({ key, label, desc }) => {
+                const enabled = docFlags?.[key] ?? true;
+                return (
+                  <div key={key} className="flex items-center justify-between px-5 py-4">
+                    <div>
+                      <div className="text-sm font-medium text-slate-800">{label}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">{desc}</div>
+                    </div>
+                    {/* Toggle 開關 */}
+                    <button
+                      role="switch"
+                      aria-checked={enabled}
+                      onClick={() => void toggleDocFlag(key)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${enabled ? 'bg-blue-600' : 'bg-slate-200'}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -155,5 +155,27 @@ export function initDb(db: Database.Database): void {
       END;
   `);
 
+  // feature_flags 表：儲存文件類型的啟用/停用設定
+  // 若表不存在才建立，不影響既有資料
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS feature_flags (
+      key TEXT PRIMARY KEY,
+      enabled INTEGER NOT NULL DEFAULT 1
+    );
+  `);
+
+  // 確保 5 種預設文件類型都有初始值（INSERT OR IGNORE 不覆蓋已存在的設定）
+  const defaultFlags = [
+    'disclosure',    // 不動產說明書
+    'inspection',    // 物調表
+    'sales_dm',      // 銷售 DM
+    'listing_591',   // 591 文案
+    'social_post',   // 社群貼文
+  ];
+  const insertFlag = db.prepare('INSERT OR IGNORE INTO feature_flags (key, enabled) VALUES (?, 1)');
+  for (const key of defaultFlags) {
+    insertFlag.run(key);
+  }
+
   // 不再自動建立預設 admin 帳號；改由 /setup/admin 流程建立首位管理員
 }
