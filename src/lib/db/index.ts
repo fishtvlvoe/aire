@@ -42,6 +42,22 @@ initDb(db);
 runAuthLicenseMigration(db);
 runVendorAccountMigration(db);
 
+// 建立 templates 表（若不存在）
+const _tables = (db.pragma('table_list') as Array<{ name: string }>).map(t => t.name);
+if (!_tables.includes('templates')) {
+  db.exec(`
+    CREATE TABLE templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      doc_type TEXT NOT NULL DEFAULT 'disclosure',
+      is_default INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+}
+
 // Enable WAL mode for better concurrent read performance
 // (WAL is not supported for in-memory DBs used in tests)
 if (DB_PATH !== ':memory:') {
@@ -466,4 +482,49 @@ export function restoreListing(id: number, userId?: number): boolean {
     writeAuditLog({ action: "restore_listing", targetType: "listing", targetId: id, userId, detail: `還原封存物件 #${id}` });
   }
   return result.changes > 0;
+}
+
+// ─── Templates ───────────────────────────────────────────────────────────────
+
+export interface Template {
+  id: number;
+  name: string;
+  description: string | null;
+  doc_type: string;
+  is_default: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 依 id 取得單一模板 */
+export function getTemplate(id: number): Template | undefined {
+  return db.prepare('SELECT * FROM templates WHERE id = ?').get(id) as Template | undefined;
+}
+
+/** 取得所有模板，可依 doc_type 篩選 */
+export function getAllTemplates(docType?: string): Template[] {
+  if (docType) {
+    return db.prepare('SELECT * FROM templates WHERE doc_type = ? ORDER BY created_at DESC').all(docType) as Template[];
+  }
+  return db.prepare('SELECT * FROM templates ORDER BY created_at DESC').all() as Template[];
+}
+
+/** 建立新模板記錄 */
+export function createTemplate(meta: { name: string; description?: string; doc_type: string }): Template {
+  const result = db.prepare(
+    'INSERT INTO templates (name, description, doc_type) VALUES (?, ?, ?) RETURNING *'
+  ).get(meta.name, meta.description ?? null, meta.doc_type) as Template;
+  return result;
+}
+
+/** 刪除模板，回傳是否成功 */
+export function deleteTemplate(id: number): boolean {
+  const result = db.prepare('DELETE FROM templates WHERE id = ?').run(id);
+  return result.changes > 0;
+}
+
+/** 將指定模板設為該 doc_type 的預設（同時清除同類型其他預設） */
+export function setDefaultTemplate(id: number, docType: string): void {
+  db.prepare('UPDATE templates SET is_default = 0 WHERE doc_type = ?').run(docType);
+  db.prepare('UPDATE templates SET is_default = 1 WHERE id = ?').run(id);
 }
