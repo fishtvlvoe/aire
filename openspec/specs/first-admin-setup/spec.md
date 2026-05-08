@@ -331,3 +331,59 @@ tests:
   - src/lib/codex-client/__tests__/key-store.test.ts
   - e2e/admin-licenses.spec.ts
 -->
+
+---
+### Requirement: license-init-handles-vendor-credentials
+
+The license init API handler SHALL check the License Server response for a `vendorCredentials` field. When present, it SHALL call `provisionVendorAccount()` to create or update the vendor account before proceeding with the normal license activation flow.
+
+#### Scenario: license init with vendor credentials
+
+- **WHEN** the License Server responds with `{ valid: true, features: [...], vendorCredentials: { username, passwordHash, displayName } }`
+- **THEN** the license init API calls `provisionVendorAccount()` with the vendor credentials, then continues to write the license cache and return success to the client
+
+#### Scenario: license init without vendor credentials
+
+- **WHEN** the License Server responds with `{ valid: true, features: [...] }` without `vendorCredentials`
+- **THEN** the license init API proceeds normally without creating any vendor account
+
+<!-- @trace
+source: vendor-account
+updated: 2026-05-08
+code:
+  - src/app/api/license/init/route.ts
+  - src/lib/license/server-verify.ts
+  - migrations/005_vendor_account.sql
+  - src/app/api/documents/export-pdf/route.ts
+  - design-system/three-ai/pages/admin.md
+  - src/components/Sidebar.tsx
+  - src/app/api/auth/[...nextauth]/route.ts
+  - src/lib/auth/vendor.ts
+  - src/app/admin/layout.tsx
+  - src/lib/db/schema.ts
+  - src/components/UpdateChecker.tsx
+  - src/lib/db/index.ts
+  - src/app/api/admin/templates/route.ts
+  - src/components/TemplatePreview.tsx
+  - src/app/api/admin/users/route.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - src/app/admin/users/page.tsx
+  - src/app/api/me/route.ts
+  - package.json
+  - src/app/api/documents/preview/route.ts
+  - src/app/admin/features/page.tsx
+  - design-system/three-ai/MASTER.md
+  - src/app/api/admin/templates/logo/route.ts
+  - src/lib/template-engine.ts
+  - src/app/admin/templates/page.tsx
+  - src/components/AdminBreadcrumb.tsx
+  - src/app/api/admin/templates/[id]/route.ts
+  - src/app/listings/page.tsx
+  - src/lib/branding/color-schemes.ts
+  - src/components/LogoUploader.tsx
+  - src/components/ColorSchemeSelector.tsx
+  - src/app/api/admin/doc-flags/route.ts
+  - src/app/listings/[id]/documents/page.tsx
+tests:
+  - src/lib/auth/__tests__/vendor.test.ts
+-->

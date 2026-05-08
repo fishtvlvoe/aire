@@ -155,3 +155,54 @@ code:
 tests:
   - e2e/user-management.spec.ts
 -->
+
+---
+### Requirement: is-vendor-column
+
+The users table SHALL include an `is_vendor` column (INTEGER NOT NULL DEFAULT 0) to distinguish vendor accounts from regular user accounts.
+
+#### Scenario: schema migration adds is_vendor
+
+- **WHEN** the migration `005_vendor_account.sql` runs
+- **THEN** the users table gains an `is_vendor` column with default value 0, and all existing user records have `is_vendor = 0`
+
+<!-- @trace
+source: vendor-account
+updated: 2026-05-08
+code:
+  - src/app/api/license/init/route.ts
+  - src/lib/license/server-verify.ts
+  - migrations/005_vendor_account.sql
+  - src/app/api/documents/export-pdf/route.ts
+  - design-system/three-ai/pages/admin.md
+  - src/components/Sidebar.tsx
+  - src/app/api/auth/[...nextauth]/route.ts
+  - src/lib/auth/vendor.ts
+  - src/app/admin/layout.tsx
+  - src/lib/db/schema.ts
+  - src/components/UpdateChecker.tsx
+  - src/lib/db/index.ts
+  - src/app/api/admin/templates/route.ts
+  - src/components/TemplatePreview.tsx
+  - src/app/api/admin/users/route.ts
+  - src/components/forms/FieldVisitForm.tsx
+  - src/app/admin/users/page.tsx
+  - src/app/api/me/route.ts
+  - package.json
+  - src/app/api/documents/preview/route.ts
+  - src/app/admin/features/page.tsx
+  - design-system/three-ai/MASTER.md
+  - src/app/api/admin/templates/logo/route.ts
+  - src/lib/template-engine.ts
+  - src/app/admin/templates/page.tsx
+  - src/components/AdminBreadcrumb.tsx
+  - src/app/api/admin/templates/[id]/route.ts
+  - src/app/listings/page.tsx
+  - src/lib/branding/color-schemes.ts
+  - src/components/LogoUploader.tsx
+  - src/components/ColorSchemeSelector.tsx
+  - src/app/api/admin/doc-flags/route.ts
+  - src/app/listings/[id]/documents/page.tsx
+tests:
+  - src/lib/auth/__tests__/vendor.test.ts
+-->
