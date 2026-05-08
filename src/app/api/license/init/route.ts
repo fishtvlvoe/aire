@@ -19,6 +19,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ valid: false, reason: 'License verification failed' }, { status: 403 });
   }
 
+  // 若 License Server 回傳廠商帳號資訊，靜默佈建 vendor 帳號
+  if (result.vendorCredentials) {
+    const { provisionVendorAccount } = await import('@/lib/auth/vendor');
+    provisionVendorAccount(result.vendorCredentials);
+  }
+
   const cookieStore = await cookies();
   cookieStore.set('license_valid', '1', {
     httpOnly: true,
