@@ -6,6 +6,17 @@ import Sidebar from '@/components/Sidebar';
 import Stepper from '@/components/Stepper';
 
 type DocumentKey = 'property_survey' | 'listing_591' | 'sales_dm' | 'social_posts' | 'disclosure_document';
+
+// feature_flags 的 key 對應到頁面 DocumentKey 的對照表
+// doc-flags API 使用的 key 與 GeneratedDocuments 的 key 名稱不同，需要手動對應
+const DOC_FLAG_TO_DOCUMENT_KEY: Record<string, DocumentKey> = {
+  inspection:   'property_survey',
+  listing_591:  'listing_591',
+  sales_dm:     'sales_dm',
+  social_post:  'social_posts',
+  disclosure:   'disclosure_document',
+};
+
 type ApiStatus = 'ready' | 'not-generated';
 type ListingStatus = 'draft' | 'field-visit-complete' | 'ready-for-generation' | 'documents-ready';
 type Listing = {
@@ -66,6 +77,11 @@ export default function ListingDocumentsPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // 記錄從 feature_flags 讀取的啟用狀態，key 為 DocumentKey
+  // 初始全部設為 true，待 API 回傳後以實際設定覆蓋
+  const [enabledDocKeys, setEnabledDocKeys] = useState<Set<DocumentKey>>(
+    new Set(['property_survey', 'listing_591', 'sales_dm', 'social_posts', 'disclosure_document'])
+  );
   const [regenerateState, setRegenerateState] = useState<Record<DocumentKey, RegenerateState>>({
     property_survey: { loading: false, error: null },
     listing_591: { loading: false, error: null },
@@ -73,6 +89,29 @@ export default function ListingDocumentsPage() {
     social_posts: { loading: false, error: null },
     disclosure_document: { loading: false, error: null },
   });
+
+  // 讀取 feature_flags，決定哪些文件類型要顯示
+  const loadDocFlags = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/doc-flags');
+      if (!response.ok) {
+        // 讀取失敗時保留預設值（全部顯示），不阻斷頁面載入
+        return;
+      }
+      const flags = (await response.json()) as Record<string, boolean>;
+      // 將 doc-flags API 的 key 轉換為 DocumentKey，篩出 enabled 的項目
+      const enabledSet = new Set<DocumentKey>();
+      for (const [flagKey, enabled] of Object.entries(flags)) {
+        const docKey = DOC_FLAG_TO_DOCUMENT_KEY[flagKey];
+        if (docKey && enabled) {
+          enabledSet.add(docKey);
+        }
+      }
+      setEnabledDocKeys(enabledSet);
+    } catch {
+      // 網路錯誤時靜默降級，保留預設值（全部顯示）
+    }
+  }, []);
 
   const loadListing = useCallback(async () => {
     if (Number.isNaN(listingId)) {
@@ -115,9 +154,10 @@ export default function ListingDocumentsPage() {
   }, [listingId]);
 
   useEffect(() => {
+    void loadDocFlags();
     void loadListing();
     void loadDocuments();
-  }, [loadListing, loadDocuments]);
+  }, [loadDocFlags, loadListing, loadDocuments]);
 
   const handleRegenerate = async (documentType: DocumentKey) => {
     if (Number.isNaN(listingId)) {
@@ -175,12 +215,15 @@ export default function ListingDocumentsPage() {
   };
 
   const cards = useMemo(() => {
-    return DOCUMENTS.map((meta) => ({
-      ...meta,
-      entry: docs?.[meta.key] ?? { status: 'not-generated' as ApiStatus },
-      regenerate: regenerateState[meta.key],
-    }));
-  }, [docs, regenerateState]);
+    // 只顯示 feature_flags 中 enabled 的文件類型
+    return DOCUMENTS
+      .filter((meta) => enabledDocKeys.has(meta.key))
+      .map((meta) => ({
+        ...meta,
+        entry: docs?.[meta.key] ?? { status: 'not-generated' as ApiStatus },
+        regenerate: regenerateState[meta.key],
+      }));
+  }, [docs, regenerateState, enabledDocKeys]);
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] text-[#2D3142] font-['Manrope']">

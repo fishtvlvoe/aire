@@ -43,8 +43,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }
 
+  // 排除 vendor 帳號（is_vendor = 1），只顯示一般業務與管理員帳號
+  // is_vendor IS NULL 兼容未設定此欄位的舊帳號
   const users = db.prepare(
-    'SELECT id, username, email, display_name, role, is_active, created_at FROM users ORDER BY created_at ASC'
+    'SELECT id, username, email, display_name, role, is_active, created_at FROM users WHERE (is_vendor = 0 OR is_vendor IS NULL) ORDER BY created_at ASC'
   ).all();
   return NextResponse.json(users);
 }
