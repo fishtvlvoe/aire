@@ -90,14 +90,14 @@ export default function SetupPage() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
               <input
                 type="text"
                 placeholder="License Key (例：THREE-XXXX-XXXX-XXXX)"
                 value={licenseKey}
                 onChange={(e) => setLicenseKey(e.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
             </div>
             {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
@@ -134,7 +134,7 @@ export default function SetupPage() {
                 placeholder="sk-..."
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
               />
               <button
                 onClick={() => void handleManualKey()}
