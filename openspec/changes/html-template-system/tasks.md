@@ -19,12 +19,12 @@
 
 ## 5. 文件產出頁面整合
 
-- [ ] 5.1 修改 src/app/listings/[id]/documents/page.tsx：(a) 新增模板選擇 dropdown（呼叫 GET /api/admin/templates?doc_type=disclosure 取得列表，預設選中 is_default=1 的模板）；(b) 選擇模板後呼叫 preview API 取得渲染 HTML；(c) 用 iframe srcdoc 顯示預覽結果；(d) 預覽下方顯示「下載 PDF」按鈕，點擊後呼叫 export-pdf API 觸發瀏覽器檔案下載。無自訂模板時隱藏 dropdown 使用內建 fallback 模板 [Design: D3, D4, D6] [Spec: template-preview, template-pdf-export, document-generation] [Tool: Copilot]
+- [x] 5.1 修改 src/app/listings/[id]/documents/page.tsx：(a) 新增模板選擇 dropdown（呼叫 GET /api/admin/templates?doc_type=disclosure 取得列表，預設選中 is_default=1 的模板）；(b) 選擇模板後呼叫 preview API 取得渲染 HTML；(c) 用 iframe srcdoc 顯示預覽結果；(d) 預覽下方顯示「下載 PDF」按鈕，點擊後呼叫 export-pdf API 觸發瀏覽器檔案下載。無自訂模板時隱藏 dropdown 使用內建 fallback 模板 [Design: D3, D4, D6] [Spec: template-preview, template-pdf-export, document-generation] [Tool: Copilot]
 - [x] 5.2 建立 src/components/TemplatePreview.tsx：接收 html string prop，用 iframe sandbox="allow-same-origin" + srcdoc 屬性渲染，自動調整 iframe 高度配合內容。元件提供 loading 狀態顯示 [Design: D3] [Spec: template-preview] [Tool: Copilot]
 
 ## 6. Sidebar 導航更新
 
-- [ ] 6.1 在 src/components/Sidebar.tsx 的 admin 區塊新增「模板管理」連結指向 /admin/templates，僅 admin 角色可見 [Spec: template-management] [Tool: Copilot]
+- [x] 6.1 在 src/components/Sidebar.tsx 的 admin 區塊新增「模板管理」連結指向 /admin/templates，僅 admin 角色可見 [Spec: template-management] [Tool: Copilot]
 
 ## 7. 驗證
 
