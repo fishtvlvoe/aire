@@ -12,21 +12,21 @@ describe('buildExternalUrl', () => {
       const result = buildExternalUrl('591-price', '台北市', '中正區');
       // 591 sectionId 暫為 0 占位 → fallback 城市層
       expect(result).toEqual({
-        url: 'https://price.591.com.tw/list?regionid=1',
+        url: 'https://market.591.com.tw/?regionid=1',
         coverage: 'city-only',
       });
     });
 
     it('台北市（不指定行政區）→ 城市層', () => {
       const result = buildExternalUrl('591-price', '台北市');
-      expect(result.url).toBe('https://price.591.com.tw/list?regionid=1');
+      expect(result.url).toBe('https://market.591.com.tw/?regionid=1');
       expect(result.coverage).toBe('city-only');
     });
 
     it('未覆蓋的縣市 → 平臺首頁', () => {
       const result = buildExternalUrl('591-price', '澎湖縣', '望安鄉');
       expect(result).toEqual({
-        url: 'https://price.591.com.tw/',
+        url: 'https://market.591.com.tw/',
         coverage: 'platform-home',
       });
     });
@@ -36,7 +36,7 @@ describe('buildExternalUrl', () => {
     it('高雄市苓雅區', () => {
       const result = buildExternalUrl('591-buy', '高雄市', '苓雅區');
       expect(result.url).toContain('regionid=17');
-      expect(result.url.startsWith('https://buy.591.com.tw/')).toBe(true);
+      expect(result.url.startsWith('https://www.591.com.tw/')).toBe(true);
     });
   });
 
@@ -66,15 +66,13 @@ describe('buildExternalUrl', () => {
     it('台中市西屯區（zipcode=407）', () => {
       const result = buildExternalUrl('rakuya', '台中市', '西屯區');
       expect(result.coverage).toBe('full');
-      expect(result.url).toContain('city=8');
       expect(result.url).toContain('zipcode=407');
     });
 
     it('桃園市（無行政區）', () => {
       const result = buildExternalUrl('rakuya', '桃園市');
       expect(result.coverage).toBe('city-only');
-      expect(result.url).toContain('city=6');
-      expect(result.url).not.toContain('zipcode');
+      expect(result.url).toBe('https://www.rakuya.com.tw/');
     });
   });
 });

@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db, updateListingFieldVisit, getListing, type FieldVisitStatus } from '@/lib/db';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { getAllFieldsForVisit } from '@/lib/form-renderer';
 import type { PropertyType } from '@/lib/property-types';
 import type { ExtractedDataPayload } from '@/lib/ocr';
+import { fieldVisitSchema, validationError } from '@/lib/validation/schemas';
 
 import type { NextRequest } from 'next/server';
 
@@ -26,23 +29,30 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     );
   }
 
-  const listing = getListing(numId);
-  if (!listing) {
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, numId);
+  if (!access.allowed) {
     return NextResponse.json<ErrorPayload>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: access.message, code: access.code },
+      { status: access.status },
     );
   }
+  const listing = access.listing;
 
-  let body: { data: Record<string, unknown>; isComplete: boolean };
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return NextResponse.json<ErrorPayload>(
       { error: 'invalid json', code: 'INVALID_REQUEST' },
       { status: 400 },
     );
   }
+  const parsed = fieldVisitSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(validationError(parsed.error), { status: 400 });
+  }
+  const body = parsed.data;
   const { data, isComplete } = body;
 
   // 後端二次驗證：前端 isComplete 可被 DOM 竄改，
@@ -68,7 +78,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   }
 
   const newStatus: FieldVisitStatus = isComplete ? 'field-visit-complete' : 'field-visit-incomplete';
-  updateListingFieldVisit(numId, data, newStatus);
+  updateListingFieldVisit(numId, data, newStatus, user!.id);
 
   // ─────────────────────────────────────────────
   // 若 extracted_data 存在，將業務修改過的欄位的 provenance 標記為 'manual-edit'
@@ -102,4 +112,3 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
   return NextResponse.json({ ok: true, status: newStatus });
 }
-

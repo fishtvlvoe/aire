@@ -190,6 +190,13 @@ export function createListing(propertyType: string, initialStatus: ListingStatus
       'INSERT INTO listings (propertyType, property_type, status, field_visit_status, owner_id) VALUES (?, ?, ?, ?, ?) RETURNING *'
     )
     .get(propertyType, propertyType, initialStatus, 'draft', ownerId ?? null) as Listing;
+  writeAuditLog({
+    action: 'create_listing',
+    targetType: 'listing',
+    targetId: result.id,
+    userId: ownerId,
+    detail: `建立物件：${propertyType}`,
+  });
   return result;
 }
 
@@ -243,20 +250,40 @@ export function advanceToFieldVisit(id: number): void {
 export function updateListingFieldVisit(
   id: number,
   data: Record<string, unknown>,
-  status: FieldVisitStatus
+  status: FieldVisitStatus,
+  userId?: number,
 ): void {
-  db.prepare(
+  const result = db.prepare(
     'UPDATE listings SET field_visit_data = ?, field_visit_status = ?, status = ? WHERE id = ?'
   ).run(JSON.stringify(data), status, status === 'field-visit-complete' ? 'field-visit-complete' : 'draft', id);
+  if (result.changes > 0) {
+    writeAuditLog({
+      action: 'update_field_visit',
+      targetType: 'listing',
+      targetId: id,
+      userId,
+      detail: `現勘狀態：${status}`,
+    });
+  }
 }
 
 export function updateSupplementaryData(
   id: number,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  userId?: number,
 ): void {
-  db.prepare(
+  const result = db.prepare(
     'UPDATE listings SET supplementary_data = ?, status = ? WHERE id = ?'
   ).run(JSON.stringify(data), 'ready-for-generation', id);
+  if (result.changes > 0) {
+    writeAuditLog({
+      action: 'update_supplementary',
+      targetType: 'listing',
+      targetId: id,
+      userId,
+      detail: '更新補充資料',
+    });
+  }
 }
 
 export function updateDocuments(
@@ -273,8 +300,17 @@ export function updateStatus(id: number, status: ListingStatus): void {
 }
 
 /** 更新周邊行情摘要欄位（500 字元上限由 caller 驗證） */
-export function updateMarketSummary(id: number, summary: string | null): void {
-  db.prepare('UPDATE listings SET market_summary = ? WHERE id = ?').run(summary, id);
+export function updateMarketSummary(id: number, summary: string | null, userId?: number): void {
+  const result = db.prepare('UPDATE listings SET market_summary = ? WHERE id = ?').run(summary, id);
+  if (result.changes > 0) {
+    writeAuditLog({
+      action: 'update_market_summary',
+      targetType: 'listing',
+      targetId: id,
+      userId,
+      detail: summary === null ? '清除周邊行情摘要' : '更新周邊行情摘要',
+    });
+  }
 }
 
 /** 取得物件附件清單（解析 JSON；無資料回空陣列） */
@@ -315,10 +351,8 @@ export function removeAttachment(id: number, attachmentId: string): boolean {
 }
 
 export function deleteListing(id: number): boolean {
-  // 硬刪除。listings 表無 FK 引用（已確認），直接 DELETE 即可。
-  // changes > 0 表示有找到並刪除該筆；false 表示 id 不存在。
-  const result = db.prepare('DELETE FROM listings WHERE id = ?').run(id);
-  return result.changes > 0;
+  // Backward-compatible alias: public listing deletion must preserve the row.
+  return archiveListing(id);
 }
 
 // ─── Folders ─────────────────────────────────────────────────────────────────
@@ -387,18 +421,38 @@ export function moveListingToFolder(listingId: number, folderId: number | null):
   return result.changes > 0;
 }
 
+// ─── Audit Log ──────────────────────────────────────────────────────────────
+
+export function writeAuditLog(entry: {
+  action: string;
+  targetType: string;
+  targetId?: number;
+  userId?: number;
+  detail?: string;
+}): void {
+  db.prepare(
+    "INSERT INTO audit_logs (action, target_type, target_id, user_id, detail) VALUES (?, ?, ?, ?, ?)"
+  ).run(entry.action, entry.targetType, entry.targetId ?? null, entry.userId ?? null, entry.detail ?? null);
+}
+
 // ─── Archive / Restore ───────────────────────────────────────────────────────
 
-export function archiveListing(id: number): boolean {
+export function archiveListing(id: number, userId?: number): boolean {
   const result = db.prepare(
     "UPDATE listings SET archived_at = datetime('now') WHERE id = ? AND archived_at IS NULL"
   ).run(id);
+  if (result.changes > 0) {
+    writeAuditLog({ action: "archive_listing", targetType: "listing", targetId: id, userId, detail: `封存物件 #${id}` });
+  }
   return result.changes > 0;
 }
 
-export function restoreListing(id: number): boolean {
+export function restoreListing(id: number, userId?: number): boolean {
   const result = db.prepare(
     "UPDATE listings SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL"
   ).run(id);
+  if (result.changes > 0) {
+    writeAuditLog({ action: "restore_listing", targetType: "listing", targetId: id, userId, detail: `還原封存物件 #${id}` });
+  }
   return result.changes > 0;
 }

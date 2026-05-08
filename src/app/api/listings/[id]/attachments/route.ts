@@ -4,7 +4,9 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import {
   db,
   addAttachment,
@@ -36,7 +38,7 @@ function isAttachmentType(value: unknown): value is AttachmentMeta['type'] {
  * GET /api/listings/[id]/attachments?type=market_research
  * 列出附件（可選用 type 篩選）。回傳 `{ attachments: AttachmentMeta[] }`。
  */
-export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const listingId = Number(id);
   if (Number.isNaN(listingId)) {
@@ -45,10 +47,12 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
       { status: 400 },
     );
   }
-  if (!getListing(listingId)) {
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, listingId);
+  if (!access.allowed) {
     return NextResponse.json<{ error: string; code: string }>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: access.message, code: access.code },
+      { status: access.status },
     );
   }
 
@@ -67,7 +71,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
  *   - type: 'market_research' | 'field_visit'（form field）
  * 限制：單檔 5MB；jpg/png/pdf；同 type 最多 10 個。
  */
-export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const listingId = Number(id);
   if (Number.isNaN(listingId)) {
@@ -76,10 +80,12 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
       { status: 400 },
     );
   }
-  if (!getListing(listingId)) {
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, listingId);
+  if (!access.allowed) {
     return NextResponse.json<{ error: string; code: string }>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: access.message, code: access.code },
+      { status: access.status },
     );
   }
 
@@ -168,6 +174,11 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     void fetch(`${baseUrl}/api/listings/${listingId}/extract`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: req.headers.get('cookie') || '',
+      },
+      body: JSON.stringify({ attachmentId }),
     }).catch(() => {
       // fire-and-forget：忽略失敗，不影響上傳回應
     });
@@ -180,7 +191,7 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
  * DELETE /api/listings/[id]/attachments?attachmentId=xxx
  * 移除單一附件（不刪實體檔，避免跨 process race；實體檔由清理 job 負責）。
  */
-export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const listingId = Number(id);
   if (Number.isNaN(listingId)) {
@@ -189,10 +200,12 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
       { status: 400 },
     );
   }
-  if (!getListing(listingId)) {
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, listingId);
+  if (!access.allowed) {
     return NextResponse.json<{ error: string; code: string }>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: access.message, code: access.code },
+      { status: access.status },
     );
   }
 

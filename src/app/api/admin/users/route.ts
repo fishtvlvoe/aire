@@ -1,31 +1,34 @@
 import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { writeAuditLog } from '@/lib/audit';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { db } from '@/lib/db';
+import { adminUserCreateSchema, validationError } from '@/lib/validation/schemas';
 
 export async function POST(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const currentUser = sessionId ? getSessionUser(sessionId) : null;
+  const currentUser = await resolveCurrentUser(req);
   if (!currentUser || currentUser.role !== 'admin') {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }
 
-  const { email, display_name, password } = (await req.json()) as {
-    email?: string;
-    display_name?: string;
-    password?: string;
-  };
-
-  if (!email || !display_name || !password) {
-    return NextResponse.json({ error: '請填寫完整資訊' }, { status: 400 });
+  let rawBody: unknown;
+  try {
+    rawBody = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'invalid json', code: 'INVALID_REQUEST' }, { status: 400 });
   }
+  const parsed = adminUserCreateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(validationError(parsed.error), { status: 400 });
+  }
+  const { email, display_name, password } = parsed.data;
+  const username = parsed.data.username ?? email;
 
   const hash = bcrypt.hashSync(password, 10);
   try {
     const result = db.prepare(
-      "INSERT INTO users (email, password_hash, display_name, role) VALUES (?, ?, ?, 'agent') RETURNING id, email, display_name, role"
-    ).get(email, hash, display_name) as { id: number; email: string; display_name: string; role: string };
+      "INSERT INTO users (username, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, 'agent') RETURNING id, username, email, display_name, role"
+    ).get(username, email, hash, display_name) as { id: number; username: string; email: string; display_name: string; role: string };
 
     writeAuditLog(currentUser.id, 'create_user', 'user', result.id, `建立業務帳號：${email}`);
     return NextResponse.json(result, { status: 201 });
@@ -35,14 +38,13 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const currentUser = sessionId ? getSessionUser(sessionId) : null;
+  const currentUser = await resolveCurrentUser(req);
   if (!currentUser || currentUser.role !== 'admin') {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }
 
   const users = db.prepare(
-    'SELECT id, email, display_name, role, is_active, created_at FROM users ORDER BY created_at ASC'
+    'SELECT id, username, email, display_name, role, is_active, created_at FROM users ORDER BY created_at ASC'
   ).all();
   return NextResponse.json(users);
 }

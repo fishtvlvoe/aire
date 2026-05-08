@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getListing } from '@/lib/db';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { generateDossierPDF } from '@/lib/pdf-generator/dossier';
 import {
   generateSurveySalesPDF,
@@ -12,8 +13,12 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   const { id } = await context.params;
   const numId = Number(id);
   if (isNaN(numId)) return NextResponse.json({ error: 'not found' }, { status: 404 });
-  const listing = getListing(numId);
-  if (!listing) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, numId);
+  if (!access.allowed) {
+    return NextResponse.json({ error: access.message, code: access.code }, { status: access.status });
+  }
+  const listing = access.listing;
   if (!listing.generated_documents) return NextResponse.json({ error: 'documents not generated yet' }, { status: 422 });
 
   const { searchParams } = new URL(req.url);

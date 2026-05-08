@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { getFolder, getListing, moveListingToFolder } from '@/lib/db';
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -11,15 +12,10 @@ export async function PATCH(req: NextRequest, context: Ctx) {
     return NextResponse.json({ error: 'invalid id', code: 'INVALID_REQUEST' }, { status: 400 });
   }
 
-  const listing = getListing(listingId);
-  if (!listing) {
-    return NextResponse.json({ error: 'listing not found', code: 'LISTING_NOT_FOUND' }, { status: 404 });
-  }
-
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
-  if (user?.role === 'agent' && listing.owner_id !== user.id) {
-    return NextResponse.json({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, listingId);
+  if (!access.allowed) {
+    return NextResponse.json({ error: access.message, code: access.code }, { status: access.status });
   }
 
   let body: { folder_id?: unknown };

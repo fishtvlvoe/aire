@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeAuditLog } from '@/lib/audit';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
-import { deleteListing, getListing, updateMarketSummary } from '@/lib/db';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
+import { archiveListing, getListing, updateMarketSummary } from '@/lib/db';
 import type { ExtractedDataPayload } from '@/lib/ocr';
+import { listingUpdateSchema, validationError } from '@/lib/validation/schemas';
 
 const MARKET_SUMMARY_MAX_LENGTH = 500;
 
@@ -26,20 +27,15 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     );
   }
 
-  const listing = getListing(listingId);
-  if (!listing) {
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, listingId);
+  if (!access.allowed) {
     return NextResponse.json<ErrorPayload>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: access.message, code: access.code },
+      { status: access.status },
     );
   }
-
-  // agent 只能看自己的物件
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
-  if (user?.role === 'agent' && listing.owner_id !== user.id) {
-    return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
-  }
+  const listing = access.listing;
 
   // 將 extracted_data 字串轉為物件後一起回傳（null 保持 null）
   let extractedData: ExtractedDataPayload | null = null;
@@ -71,29 +67,29 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
     );
   }
 
-  const listing = getListing(listingId);
-  if (!listing) {
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, listingId);
+  if (!access.allowed) {
     return NextResponse.json<ErrorPayload>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: access.message, code: access.code },
+      { status: access.status },
     );
   }
 
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
-  if (user?.role === 'agent' && listing.owner_id !== user.id) {
-    return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
-  }
-
-  let body: { market_summary?: unknown };
+  let rawBody: unknown;
   try {
-    body = (await req.json()) as { market_summary?: unknown };
+    rawBody = await req.json();
   } catch {
     return NextResponse.json<ErrorPayload>(
       { error: 'invalid json', code: 'INVALID_REQUEST' },
       { status: 400 },
     );
   }
+  const parsed = listingUpdateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(validationError(parsed.error), { status: 400 });
+  }
+  const body = parsed.data;
 
   if ('market_summary' in body) {
     const value = body.market_summary;
@@ -113,14 +109,14 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       );
     }
     const normalized = typeof value === 'string' && value.trim() === '' ? null : (value as string | null);
-    updateMarketSummary(listingId, normalized);
+    updateMarketSummary(listingId, normalized, user!.id);
   }
 
   const updated = getListing(listingId);
   return NextResponse.json({ listing: updated });
 }
 
-// 需求（Requirement）：Listings 支援透過 DELETE API 進行硬刪除（hard delete）。
+// DELETE uses archive semantics so the listing remains auditable.
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const listingId = Number(id);
@@ -132,30 +128,22 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     );
   }
 
-  const listing = getListing(listingId);
-  if (!listing) {
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, listingId);
+  if (!access.allowed) {
     return NextResponse.json<ErrorPayload>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: access.message, code: access.code },
+      { status: access.status },
     );
   }
 
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
-  if (user?.role === 'agent' && listing.owner_id !== user.id) {
-    return NextResponse.json<ErrorPayload>({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
-  }
-
-  const success = deleteListing(listingId);
+  const success = archiveListing(listingId, user!.id);
   if (!success) {
     return NextResponse.json<ErrorPayload>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: 'listing already archived', code: 'ALREADY_ARCHIVED' },
+      { status: 409 },
     );
   }
 
-  if (user) {
-    writeAuditLog(user.id, 'delete_listing', 'listing', listingId, `刪除物件 #${listingId}`);
-  }
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, listing: getListing(listingId) });
 }

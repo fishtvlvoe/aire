@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { deleteFolder, getFolder, renameFolder } from '@/lib/db';
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: NextRequest, context: Ctx) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
+  const user = await resolveCurrentUser(req);
   if (!user) {
     return NextResponse.json({ error: '未登入', code: 'UNAUTHORIZED' }, { status: 401 });
   }
@@ -46,8 +45,7 @@ export async function PATCH(req: NextRequest, context: Ctx) {
 }
 
 export async function DELETE(req: NextRequest, context: Ctx) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
+  const user = await resolveCurrentUser(req);
   if (!user) {
     return NextResponse.json({ error: '未登入', code: 'UNAUTHORIZED' }, { status: 401 });
   }

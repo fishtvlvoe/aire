@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeAuditLog } from '@/lib/audit';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { db } from '@/lib/db';
+import { transferCaseSchema, validationError } from '@/lib/validation/schemas';
 
 export async function POST(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const currentUser = sessionId ? getSessionUser(sessionId) : null;
+  const currentUser = await resolveCurrentUser(req);
   if (!currentUser || currentUser.role !== 'admin') {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }
 
-  const { from_user_id, to_user_id } = (await req.json()) as {
-    from_user_id?: number;
-    to_user_id?: number;
-  };
-
-  if (!from_user_id || !to_user_id) {
-    return NextResponse.json({ error: '請選擇來源與目標業務' }, { status: 400 });
+  const rawBody = await req.json().catch(() => null);
+  const parsed = transferCaseSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(validationError(parsed.error), { status: 400 });
   }
+  const { from_user_id, to_user_id } = parsed.data;
 
   if (from_user_id === to_user_id) {
     return NextResponse.json({ error: '來源與目標不可相同' }, { status: 400 });
@@ -45,8 +43,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const currentUser = sessionId ? getSessionUser(sessionId) : null;
+  const currentUser = await resolveCurrentUser(req);
   if (!currentUser || currentUser.role !== 'admin') {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }

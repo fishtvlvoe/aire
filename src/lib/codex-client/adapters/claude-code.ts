@@ -1,11 +1,8 @@
-import { exec, spawn } from "child_process";
+import { spawn } from "child_process";
 import { createReadStream, promises as fs } from "fs";
 import os from "os";
 import path from "path";
-import { promisify } from "util";
 import type { CodexStatus, LlmAdapter } from "../types";
-
-const execAsync = promisify(exec);
 
 async function execPromptFromFileViaStdin(
   bin: string,
@@ -61,6 +58,49 @@ async function execPromptFromFileViaStdin(
   });
 }
 
+async function execPromptFromStringViaStdin(
+  bin: string,
+  args: string[],
+  prompt: string,
+  timeoutMs: number,
+): Promise<{ stdout: string; stderr: string }> {
+  return await new Promise((resolve, reject) => {
+    const child = spawn(bin, args, { stdio: ["pipe", "pipe", "pipe"] });
+
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+
+    let didTimeout = false;
+    const timeout = setTimeout(() => {
+      didTimeout = true;
+      child.kill("SIGKILL");
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+
+    child.on("error", (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+
+    child.on("close", () => {
+      clearTimeout(timeout);
+      if (didTimeout) {
+        reject(new Error("Command timed out"));
+        return;
+      }
+      resolve({
+        stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+        stderr: Buffer.concat(stderrChunks).toString("utf8"),
+      });
+    });
+
+    child.stdin.write(prompt);
+    child.stdin.end();
+  });
+}
+
 function classifyClaudeError(stderr: string): CodexStatus {
   const lower = stderr.toLowerCase();
   if (lower.includes("not logged in") || lower.includes("auth")) {
@@ -71,11 +111,8 @@ function classifyClaudeError(stderr: string): CodexStatus {
 
 export const claudeCodeAdapter: LlmAdapter = {
   async run(prompt, timeoutMs) {
-    const escaped = prompt.replace(/"/g, '\\"');
-    const command = `claude -p "${escaped}"`;
-
     try {
-      const { stdout, stderr } = await execAsync(command, { timeout: timeoutMs });
+      const { stdout, stderr } = await execPromptFromStringViaStdin("claude", ["-p", "-"], prompt, timeoutMs);
       if (stderr && !stdout) {
         const status = classifyClaudeError(stderr);
         return { success: false, error: stderr.trim(), status };
@@ -139,7 +176,10 @@ export const claudeCodeAdapter: LlmAdapter = {
 
   async check() {
     try {
-      await execAsync("claude --version", { timeout: 5000 });
+      const { stdout, stderr } = await execPromptFromStringViaStdin("claude", ["--version"], "", 5000);
+      if (stderr && !stdout) {
+        return classifyClaudeError(stderr);
+      }
       return "ready";
     } catch (err: unknown) {
       const error = err as { stderr?: string; message?: string };

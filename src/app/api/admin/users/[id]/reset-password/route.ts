@@ -1,13 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { writeAuditLog } from '@/lib/audit';
-import { SESSION_COOKIE, deleteUserSessions, getSessionUser } from '@/lib/auth';
+import { deleteUserSessions } from '@/lib/auth';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { db } from '@/lib/db';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const currentUser = sessionId ? getSessionUser(sessionId) : null;
+  const currentUser = await resolveCurrentUser(req);
   if (!currentUser || currentUser.role !== 'admin') {
     return NextResponse.json({ error: '權限不足' }, { status: 403 });
   }

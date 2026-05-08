@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { createFolder, getAllFolders } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
+  const user = await resolveCurrentUser(req);
   if (!user) {
     return NextResponse.json({ error: '未登入', code: 'UNAUTHORIZED' }, { status: 401 });
   }
@@ -13,8 +12,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
+  const user = await resolveCurrentUser(req);
   if (!user) {
     return NextResponse.json({ error: '未登入', code: 'UNAUTHORIZED' }, { status: 401 });
   }

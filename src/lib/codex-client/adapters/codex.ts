@@ -1,8 +1,48 @@
-import { exec } from "child_process";
+import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import type { CodexStatus, LlmAdapter } from "../types";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+async function runProcessWithPrompt(
+  bin: string,
+  args: string[],
+  prompt: string,
+  timeoutMs: number,
+): Promise<{ stdout: string; stderr: string }> {
+  return await new Promise((resolve, reject) => {
+    const child = spawn(bin, args, { stdio: ["pipe", "pipe", "pipe"] });
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    let didTimeout = false;
+
+    const timer = setTimeout(() => {
+      didTimeout = true;
+      child.kill("SIGKILL");
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on("close", () => {
+      clearTimeout(timer);
+      if (didTimeout) {
+        reject(new Error(`Command timed out after ${timeoutMs}ms`));
+        return;
+      }
+      resolve({
+        stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+        stderr: Buffer.concat(stderrChunks).toString("utf8"),
+      });
+    });
+
+    child.stdin.write(prompt);
+    child.stdin.end();
+  });
+}
 
 function classifyCodexError(stderr: string): CodexStatus {
   const lower = stderr.toLowerCase();
@@ -25,17 +65,8 @@ function classifyCodexError(stderr: string): CodexStatus {
 
 export const codexAdapter: LlmAdapter = {
   async run(prompt, timeoutMs) {
-    const escaped = prompt.replace(/"/g, '\\"');
-    const command = `codex exec "${escaped}"`;
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-
     try {
-      const { stdout, stderr } = await execAsync(command, {
-        signal: controller.signal as NodeJS.Signals & AbortSignal,
-        timeout: timeoutMs,
-      });
+      const { stdout, stderr } = await runProcessWithPrompt("codex", ["exec"], prompt, timeoutMs);
 
       if (stderr && !stdout) {
         const status = classifyCodexError(stderr);
@@ -46,7 +77,7 @@ export const codexAdapter: LlmAdapter = {
     } catch (err: unknown) {
       const error = err as { stderr?: string; message?: string; code?: string };
 
-      if (error.code === "ABORT_ERR" || error.message?.includes("AbortError")) {
+      if (error.code === "ABORT_ERR" || error.message?.includes("timed out") || error.message?.includes("AbortError")) {
         return {
           success: false,
           error: `Codex exec timed out after ${timeoutMs}ms`,
@@ -57,8 +88,6 @@ export const codexAdapter: LlmAdapter = {
       const stderr = error.stderr ?? error.message ?? "";
       const status = classifyCodexError(stderr);
       return { success: false, error: stderr.trim() || error.message, status };
-    } finally {
-      clearTimeout(timer);
     }
   },
 
@@ -72,13 +101,13 @@ export const codexAdapter: LlmAdapter = {
 
   async check() {
     try {
-      await execAsync("codex --version", { timeout: 5000 });
+      await execFileAsync("codex", ["--version"], { timeout: 5000 });
     } catch {
       return "error";
     }
 
     try {
-      await execAsync('codex exec "echo __health_check__"', { timeout: 15000 });
+      await runProcessWithPrompt("codex", ["exec"], "echo __health_check__", 15000);
       return "ready";
     } catch (err: unknown) {
       const error = err as { stderr?: string; message?: string };

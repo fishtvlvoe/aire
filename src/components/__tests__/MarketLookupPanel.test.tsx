@@ -113,18 +113,18 @@ describe('外部連結按鈕', () => {
     }
   })
 
-  it('591 實價登錄按鈕 URL 指向 price.591.com.tw', () => {
+  it('591 實價登錄按鈕 URL 指向 market.591.com.tw', () => {
     render(<MarketLookupPanel {...DEFAULT_PROPS} />)
 
     const link = document.querySelector('[data-platform="591-price"]')
-    expect(link).toHaveAttribute('href', expect.stringContaining('price.591.com.tw'))
+    expect(link).toHaveAttribute('href', expect.stringContaining('market.591.com.tw'))
   })
 
-  it('591 待售物件按鈕 URL 指向 buy.591.com.tw', () => {
+  it('591 待售物件按鈕 URL 指向 www.591.com.tw', () => {
     render(<MarketLookupPanel {...DEFAULT_PROPS} />)
 
     const link = document.querySelector('[data-platform="591-buy"]')
-    expect(link).toHaveAttribute('href', expect.stringContaining('buy.591.com.tw'))
+    expect(link).toHaveAttribute('href', expect.stringContaining('www.591.com.tw'))
   })
 
   it('信義房屋按鈕 URL 指向 sinyi.com.tw', () => {

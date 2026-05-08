@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeAuditLog } from '@/lib/audit';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { createListing, searchListings } from '@/lib/db';
+import { listingCreateSchema, validationError } from '@/lib/validation/schemas';
 
 export async function GET(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
-  const ownerId = user?.role === 'agent' ? user.id : undefined;
+  const user = await resolveCurrentUser(req);
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  }
+  const ownerId = user.role !== 'admin' ? user.id : undefined;
 
   const { searchParams } = req.nextUrl;
   const q = searchParams.get('q') ?? undefined;
@@ -22,21 +24,24 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
+  const user = await resolveCurrentUser(req);
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+  }
 
-  let body: { propertyType: string };
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return NextResponse.json({ error: 'invalid json' }, { status: 400 });
   }
-  const { propertyType } = body;
+  const parsed = listingCreateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(validationError(parsed.error), { status: 400 });
+  }
+  const { propertyType } = parsed.data;
   try {
-    const listing = createListing(propertyType, 'draft', user?.id);
-    if (user) {
-      writeAuditLog(user.id, 'create_listing', 'listing', listing.id, `建立物件：${propertyType}`);
-    }
+    const listing = createListing(propertyType, 'draft', user.id);
     return NextResponse.json({ listing }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown error';

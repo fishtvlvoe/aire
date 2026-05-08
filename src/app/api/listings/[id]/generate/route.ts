@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getListing, updateDocuments } from '@/lib/db';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
+import { updateDocuments } from '@/lib/db';
 import { createDefaultGenerator } from '@/lib/document-generator';
 import { buildDocumentInput } from '@/lib/document-generator/build-input';
 import type { GeneratedDocuments } from '@/lib/document-generator/types';
+import { generateSchema, validationError } from '@/lib/validation/schemas';
 
 const statusMessages: Record<string, string> = {
   draft: '請先完成現場勘查資料（業務填寫），再回到產出頁',
@@ -15,16 +18,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   const numId = Number(id);
   if (isNaN(numId)) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
-  const listing = getListing(numId);
-  if (!listing) return NextResponse.json({ error: 'not found' }, { status: 404 });
-
-  const body = await req.json().catch(() => ({}));
-  const VALID_DOC_TYPES = new Set<string>(['property_survey', 'listing_591', 'sales_dm', 'social_posts', 'disclosure_document']);
-  const rawType = body.documentType;
-  if (rawType !== undefined && !VALID_DOC_TYPES.has(rawType)) {
-    return NextResponse.json({ error: 'invalid documentType' }, { status: 400 });
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, numId);
+  if (!access.allowed) {
+    return NextResponse.json({ error: access.message, code: access.code }, { status: access.status });
   }
-  const documentType = rawType as keyof GeneratedDocuments | undefined;
+  const listing = access.listing;
+
+  const rawBody = await req.json().catch(() => ({}));
+  const parsed = generateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(validationError(parsed.error), { status: 400 });
+  }
+  const documentType = parsed.data.documentType as keyof GeneratedDocuments | undefined;
 
   // 補充資料章節所有欄位皆為 optional（apartment.supplementary_specific: management_fee/insurance_notes
   // 都 required: false），因此 'field-visit-complete' 應該允許產文件。

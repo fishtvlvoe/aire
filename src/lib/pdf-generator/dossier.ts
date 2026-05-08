@@ -3,6 +3,7 @@ import path from 'path';
 import { marked } from 'marked';
 import type { DocumentGeneratorInput } from '../document-generator/types';
 import { launchBrowser } from './chromium-launcher';
+import { sanitizeHtml } from './sanitize';
 // Next.js 16 + Turbopack 下 __dirname 會解析為 /ROOT/ 假路徑（造成 ENOENT）
 // 改用 process.cwd() 定位專案根目錄的 template（dev / start 皆為專案根，行為一致）
 const TEMPLATES_DIR = path.join(process.cwd(), 'src/lib/pdf-generator/templates');
@@ -104,7 +105,7 @@ export async function generateDossierPDF(
   input?: DocumentGeneratorInput
 ): Promise<Uint8Array> {
   // Convert Markdown to HTML and mark pending fields as fillable blanks
-  let contentHtml = await marked(markdown) as string;
+  let contentHtml = sanitizeHtml(await marked(markdown) as string);
   contentHtml = replacePendingPlaceholders(contentHtml);
 
   // Load templates

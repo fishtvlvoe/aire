@@ -8,6 +8,10 @@ export interface AuthUser {
   id: number;
   username: string;
   password_hash: string;
+  email?: string;
+  display_name?: string;
+  role?: 'admin' | 'agent';
+  is_active?: number;
 }
 
 export interface RefreshTokenRecord {
@@ -31,8 +35,37 @@ function hashRefreshToken(token: string): string {
 
 export function getUserByUsername(username: string): AuthUser | null {
   const row = db
-    .prepare('SELECT id, username, password_hash FROM users WHERE username = ? LIMIT 1')
+    .prepare(`
+      SELECT id, username, email, display_name, password_hash, role, is_active
+      FROM users
+      WHERE username = ? AND COALESCE(is_active, 1) = 1
+      LIMIT 1
+    `)
     .get(username) as AuthUser | undefined;
+  return row ?? null;
+}
+
+export function getUserByEmail(email: string): AuthUser | null {
+  const row = db
+    .prepare(`
+      SELECT id, username, email, display_name, password_hash, role, is_active
+      FROM users
+      WHERE email = ? AND COALESCE(is_active, 1) = 1
+      LIMIT 1
+    `)
+    .get(email) as AuthUser | undefined;
+  return row ?? null;
+}
+
+export function getUserById(id: number): AuthUser | null {
+  const row = db
+    .prepare(`
+      SELECT id, username, email, display_name, password_hash, role, is_active
+      FROM users
+      WHERE id = ? AND COALESCE(is_active, 1) = 1
+      LIMIT 1
+    `)
+    .get(id) as AuthUser | undefined;
   return row ?? null;
 }
 

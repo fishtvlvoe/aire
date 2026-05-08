@@ -2,12 +2,20 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import * as crypto from 'crypto';
 import { launchNextServer, stopNextServer, getServerUrl, detectCodexCli } from './launcher';
 import { checkAndApplyUpdate, installUpdate } from './updater';
 
 const isDev = !app.isPackaged;
 const APP_ROOT = isDev ? path.join(__dirname, '..') : path.join(process.resourcesPath, 'app');
 const OPENAI_TOKEN_PATH = path.join(os.homedir(), '.three-ai', 'openai-token.json');
+const TOKEN_KEY_SALT = 'three-ai-openai-token';
+
+interface EncryptedTokenPayload {
+  iv: string;
+  tag: string;
+  data: string;
+}
 
 // 自訂 URL Scheme：three-ai://oauth-callback?token=...
 app.setAsDefaultProtocolClient('three-ai');
@@ -30,6 +38,56 @@ if (!gotSingleInstanceLock) {
       mainWindow.focus();
     }
   });
+}
+
+function getTokenEncryptionKey(): Buffer {
+  return crypto.scryptSync(app.getPath('userData'), TOKEN_KEY_SALT, 32);
+}
+
+function encryptToken(token: string): EncryptedTokenPayload {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', getTokenEncryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(token, 'utf8'), cipher.final()]);
+  return {
+    iv: iv.toString('base64'),
+    tag: cipher.getAuthTag().toString('base64'),
+    data: encrypted.toString('base64'),
+  };
+}
+
+function decryptToken(payload: EncryptedTokenPayload): string {
+  const decipher = crypto.createDecipheriv(
+    'aes-256-gcm',
+    getTokenEncryptionKey(),
+    Buffer.from(payload.iv, 'base64'),
+  );
+  decipher.setAuthTag(Buffer.from(payload.tag, 'base64'));
+  return Buffer.concat([
+    decipher.update(Buffer.from(payload.data, 'base64')),
+    decipher.final(),
+  ]).toString('utf8');
+}
+
+function saveOpenAIToken(token: string): void {
+  fs.mkdirSync(path.dirname(OPENAI_TOKEN_PATH), { recursive: true });
+  fs.writeFileSync(OPENAI_TOKEN_PATH, JSON.stringify(encryptToken(token)), { mode: 0o600 });
+}
+
+function readOpenAIToken(): { token: string } | null {
+  try {
+    const raw = fs.readFileSync(OPENAI_TOKEN_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as Partial<EncryptedTokenPayload> & { token?: string };
+    if (typeof parsed.token === 'string') {
+      saveOpenAIToken(parsed.token);
+      return { token: parsed.token };
+    }
+    if (parsed.iv && parsed.tag && parsed.data) {
+      return { token: decryptToken(parsed as EncryptedTokenPayload) };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function resolveHtmlPath(fileName: string): string {
@@ -110,17 +168,11 @@ ipcMain.handle('updater:install', () => {
 });
 
 ipcMain.handle('openai:getToken', () => {
-  try {
-    const raw = fs.readFileSync(OPENAI_TOKEN_PATH, 'utf8');
-    return JSON.parse(raw) as { token: string };
-  } catch {
-    return null;
-  }
+  return readOpenAIToken();
 });
 
 ipcMain.handle('openai:saveToken', (_e, token: string) => {
-  fs.mkdirSync(path.dirname(OPENAI_TOKEN_PATH), { recursive: true });
-  fs.writeFileSync(OPENAI_TOKEN_PATH, JSON.stringify({ token }));
+  saveOpenAIToken(token);
 });
 
 ipcMain.handle('codex:detect', (_e, customPath?: string) => {
@@ -152,8 +204,7 @@ function handleOAuthCallback(url: string): void {
     const parsed = new URL(url);
     const token = parsed.searchParams.get('token');
     if (token && mainWindow && !mainWindow.isDestroyed()) {
-      fs.mkdirSync(path.dirname(OPENAI_TOKEN_PATH), { recursive: true });
-      fs.writeFileSync(OPENAI_TOKEN_PATH, JSON.stringify({ token }));
+      saveOpenAIToken(token);
       mainWindow.webContents.send('openai:tokenReceived', { token });
     }
   } catch {

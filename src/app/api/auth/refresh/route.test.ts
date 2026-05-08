@@ -1,13 +1,18 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '@/lib/db';
 import { createRefreshToken, createUser, getValidRefreshToken } from '@/lib/auth/db';
 import { POST } from './route';
 
 describe('POST /api/auth/refresh', () => {
   beforeEach(async () => {
+    vi.stubEnv('NODE_ENV', 'production');
     db.prepare('DELETE FROM refresh_tokens').run();
     db.prepare('DELETE FROM users').run();
     await createUser('admin', 'secret123');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('returns 401 when refresh token is missing or invalid', async () => {

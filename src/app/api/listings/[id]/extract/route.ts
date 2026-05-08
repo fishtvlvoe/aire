@@ -10,8 +10,10 @@
  */
 
 import path from 'node:path'
-import { NextResponse } from 'next/server'
-import { db, getListing, getAttachments } from '@/lib/db'
+import { NextResponse, type NextRequest } from 'next/server'
+import { requireListingAccess } from '@/lib/auth/require-listing-access'
+import { resolveCurrentUser } from '@/lib/auth/resolve-user'
+import { db, getAttachments } from '@/lib/db'
 import { runOcrPipeline } from '@/lib/ocr'
 import type {
   AttachmentCategory,
@@ -61,19 +63,9 @@ const inferProvenance = (confidence: number): FieldProvenance =>
 // ─────────────────────────────────────────────
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  let llmVisionOptIn = request.headers.get('x-llm-vision-opt-in') === 'true'
-  if (!llmVisionOptIn) {
-    try {
-      const body = (await request.json()) as { llmVisionOptIn?: unknown }
-      llmVisionOptIn = body?.llmVisionOptIn === true
-    } catch {
-      // ignore non-JSON body
-    }
-  }
-
   const { id } = await context.params
   const listingId = Number(id)
 
@@ -85,13 +77,23 @@ export async function POST(
     )
   }
 
-  // 驗證 listing 存在
-  const listing = getListing(listingId)
-  if (!listing) {
+  const user = await resolveCurrentUser(request)
+  const access = requireListingAccess(user, listingId)
+  if (!access.allowed) {
     return NextResponse.json<ErrorPayload>(
-      { error: 'listing not found', code: 'LISTING_NOT_FOUND' },
-      { status: 404 },
+      { error: access.message, code: access.code },
+      { status: access.status },
     )
+  }
+
+  let llmVisionOptIn = request.headers.get('x-llm-vision-opt-in') === 'true'
+  if (!llmVisionOptIn) {
+    try {
+      const body = (await request.json()) as { llmVisionOptIn?: unknown }
+      llmVisionOptIn = body?.llmVisionOptIn === true
+    } catch {
+      // ignore non-JSON body
+    }
   }
 
   // 讀取附件清單並過濾 PDF
@@ -117,7 +119,7 @@ export async function POST(
     pdfAttachments.map(async (attachment) => {
       // path 欄位儲存的是 public URL（/uploads/...），轉換為磁碟絕對路徑
       const diskPath = path.join(process.cwd(), 'public', attachment.path)
-      const category = inferAttachmentCategory(attachment as any)
+      const category = inferAttachmentCategory(attachment)
 
       try {
         const result = await runOcrPipeline(diskPath, category, llmVisionOptIn)

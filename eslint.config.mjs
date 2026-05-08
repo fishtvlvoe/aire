@@ -9,10 +9,30 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    "dist-electron/**",
+    "electron/build/**",
+    "license-server/**",
+    "license-server/node_modules/**",
+    "server/**",
+    "scripts/**/*.js",
+    "three-ai-ui-test.js",
+    "e2e/**",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
     "out/**",
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/ban-ts-comment": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

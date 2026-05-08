@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getListing } from '@/lib/db';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 
 type DocumentStatus = 'ready' | 'not-generated';
 
@@ -29,17 +30,19 @@ const DOCUMENT_KEYS = [
 
 type DocumentKey = typeof DOCUMENT_KEYS[number];
 
-export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const numId = Number(id);
   if (isNaN(numId)) {
     return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
 
-  const listing = getListing(numId);
-  if (!listing) {
-    return NextResponse.json({ error: 'not found' }, { status: 404 });
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, numId);
+  if (!access.allowed) {
+    return NextResponse.json({ error: access.message, code: access.code }, { status: access.status });
   }
+  const listing = access.listing;
 
   let storedDocs: Record<string, unknown> = {};
   try {

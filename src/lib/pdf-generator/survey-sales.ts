@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { marked } from 'marked';
 import { launchBrowser } from './chromium-launcher';
+import { sanitizeHtml } from './sanitize';
 
 /**
  * 物調表 / 銷售 DM 的專用 PDF 模板渲染器，取代舊版 `<pre>` 直接輸出純文字的做法。
@@ -80,7 +81,7 @@ export async function generateSurveySalesPDF(
   template: SurveySalesTemplateId,
   input: SurveySalesPDFInput
 ): Promise<Uint8Array> {
-  let contentHtml = (await marked(input.markdown ?? '')) as string;
+  let contentHtml = sanitizeHtml((await marked(input.markdown ?? '')) as string);
   contentHtml = contentHtml.replace(/待補/g, '<span class="pending">待補</span>');
 
   const { html: templateHtml, css } = loadTemplate(template);

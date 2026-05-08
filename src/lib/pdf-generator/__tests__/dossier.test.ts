@@ -3,10 +3,9 @@ import { generateDossierPDF, buildFullHtml } from '../dossier';
 import fs from 'fs';
 import path from 'path';
 
-// Mock puppeteer to avoid launching actual browser in tests
-vi.mock('puppeteer', () => ({
-  default: {
-    launch: vi.fn().mockResolvedValue({
+// Mock browser launcher to avoid requiring /usr/bin/chromium in tests
+vi.mock('../chromium-launcher', () => ({
+  launchBrowser: vi.fn().mockResolvedValue({
       newPage: vi.fn().mockResolvedValue({
         setViewport: vi.fn().mockResolvedValue(undefined),
         setContent: vi.fn().mockResolvedValue(undefined),
@@ -14,8 +13,7 @@ vi.mock('puppeteer', () => ({
         evaluate: vi.fn().mockResolvedValue([]), // returns empty coord array in tests
       }),
       close: vi.fn().mockResolvedValue(undefined),
-    }),
-  },
+  }),
 }));
 
 describe('property-dossier PDF generation', () => {

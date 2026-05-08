@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeAuditLog } from '@/lib/audit';
-import { SESSION_COOKIE, getSessionUser } from '@/lib/auth';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { getListing, restoreListing } from '@/lib/db';
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -12,24 +12,16 @@ export async function POST(req: NextRequest, context: Ctx) {
     return NextResponse.json({ error: 'invalid id', code: 'INVALID_REQUEST' }, { status: 400 });
   }
 
-  const listing = getListing(listingId);
-  if (!listing) {
-    return NextResponse.json({ error: 'listing not found', code: 'LISTING_NOT_FOUND' }, { status: 404 });
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, listingId);
+  if (!access.allowed) {
+    return NextResponse.json({ error: access.message, code: access.code }, { status: access.status });
   }
 
-  const sessionId = req.cookies?.get(SESSION_COOKIE)?.value;
-  const user = sessionId ? getSessionUser(sessionId) : null;
-  if (user?.role === 'agent' && listing.owner_id !== user.id) {
-    return NextResponse.json({ error: 'forbidden', code: 'FORBIDDEN' }, { status: 403 });
-  }
-
-  const ok = restoreListing(listingId);
+  const ok = restoreListing(listingId, user!.id);
   if (!ok) {
     return NextResponse.json({ error: '物件未封存', code: 'NOT_ARCHIVED' }, { status: 409 });
   }
 
-  if (user) {
-    writeAuditLog(user.id, 'restore_listing', 'listing', listingId, `還原封存物件 #${listingId}`);
-  }
   return NextResponse.json({ listing: getListing(listingId) });
 }

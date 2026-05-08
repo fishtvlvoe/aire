@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getListing, updateDocuments } from '@/lib/db';
+import { requireListingAccess } from '@/lib/auth/require-listing-access';
+import { resolveCurrentUser } from '@/lib/auth/resolve-user';
+import { updateDocuments } from '@/lib/db';
 import { buildDocumentInput } from '@/lib/document-generator/build-input';
 import { generateSurvey } from '@/lib/document-generator/md/survey';
 import { generateListing591 } from '@/lib/document-generator/md/listing591';
@@ -7,6 +9,7 @@ import { generateDm } from '@/lib/document-generator/md/dm';
 import { generateSocialPosts } from '@/lib/document-generator/md/social';
 import { generateBuildingDossier } from '@/lib/document-generator/pdf/dossier-building';
 import { generateLandDossier } from '@/lib/document-generator/pdf/dossier-land';
+import { regenerateSchema, validationError } from '@/lib/validation/schemas';
 
 const VALID_TYPES = [
   'property_survey',
@@ -38,15 +41,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
 
-  const { documentType } = await req.json();
-  if (!documentType || !VALID_TYPES.includes(documentType as DocumentType)) {
-    return NextResponse.json({ error: 'Invalid documentType', validTypes: VALID_TYPES }, { status: 422 });
+  const rawBody = await req.json().catch(() => null);
+  const parsed = regenerateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(validationError(parsed.error), { status: 400 });
   }
+  const { documentType } = parsed.data;
 
-  const listing = getListing(numId);
-  if (!listing) {
-    return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+  const user = await resolveCurrentUser(req);
+  const access = requireListingAccess(user, numId);
+  if (!access.allowed) {
+    return NextResponse.json({ error: access.message, code: access.code }, { status: access.status });
   }
+  const listing = access.listing;
   if (listing.status !== 'documents-ready') {
     return NextResponse.json({ error: 'Listing status must be documents-ready' }, { status: 422 });
   }
