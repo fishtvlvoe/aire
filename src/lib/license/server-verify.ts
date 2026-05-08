@@ -41,7 +41,7 @@ function writeCache(data: LicenseCache): void {
 export async function verifyLicense(
   email: string,
   licenseKey: string,
-): Promise<{ valid: boolean; features: string[] }> {
+): Promise<{ valid: boolean; features: string[]; vendorCredentials?: { username: string; passwordHash: string; displayName: string } }> {
   try {
     const res = await fetch(`${LICENSE_SERVER_URL}/api/license/verify`, {
       method: 'POST',
@@ -54,7 +54,7 @@ export async function verifyLicense(
       return { valid: false, features: [] };
     }
 
-    const data = (await res.json()) as { valid: boolean; features: string[] };
+    const data = (await res.json()) as { valid: boolean; features: string[]; vendorCredentials?: { username: string; passwordHash: string; displayName: string } };
 
     if (data.valid) {
       writeCache({
