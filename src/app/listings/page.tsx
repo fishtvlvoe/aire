@@ -147,7 +147,7 @@ export default function ListingsPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] font-['Manrope'] text-[#2D3142]">
-      <div className="mx-auto flex w-full max-w-[1440px]">
+      <div className="mx-auto flex w-full">
         <Sidebar />
 
         <FolderSidebar

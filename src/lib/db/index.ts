@@ -27,9 +27,20 @@ export function runAuthLicenseMigration(database: Database.Database): void {
   }
 }
 
+export function runVendorAccountMigration(database: Database.Database): void {
+  // 檢查 users 表是否已有 is_vendor 欄位，避免重複 ALTER TABLE
+  const userColumns = (database.pragma('table_info(users)') as Array<{ name: string }>).map((column) => column.name);
+  if (!userColumns.includes('is_vendor')) {
+    const migrationPath = path.join(process.cwd(), 'migrations', '005_vendor_account.sql');
+    const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
+    database.exec(migrationSql);
+  }
+}
+
 // Run schema on initialization
 initDb(db);
 runAuthLicenseMigration(db);
+runVendorAccountMigration(db);
 
 // Enable WAL mode for better concurrent read performance
 // (WAL is not supported for in-memory DBs used in tests)

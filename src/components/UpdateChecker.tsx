@@ -5,11 +5,17 @@ import { useEffect, useState } from 'react';
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'progress' | 'ready' | 'up-to-date' | 'error';
 
 export default function UpdateChecker() {
-  const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
+  // 用 state 延遲到 CSR 才判斷，避免 SSR/CSR hydration mismatch
+  const [isElectron, setIsElectron] = useState(false);
   const [status, setStatus] = useState<UpdateStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
   const [version, setVersion] = useState('');
+
+  useEffect(() => {
+    // 在 client side 才偵測 Electron 環境
+    setIsElectron(typeof window !== 'undefined' && !!window.electronAPI);
+  }, []);
 
   useEffect(() => {
     if (!isElectron) return;

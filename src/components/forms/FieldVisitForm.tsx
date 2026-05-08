@@ -448,6 +448,8 @@ const FieldVisitForm = forwardRef<FieldVisitFormHandle, FieldVisitFormProps>(
                     checked={utilityType === opt}
                     onChange={() => {
                       updateField("utility_type", opt);
+                      // 同步寫入 usage 欄位，讓計數器能正確偵測到非空值
+                      updateField("usage", opt);
                       if (opt !== "其他") updateField("utility_other", "");
                     }}
                     className="h-4 w-4"
