@@ -51,6 +51,16 @@ function buildTestDb(): Database.Database {
     );
   `);
 
+  // sessions 表（authorizeCredentials 現在也建立自建 session）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id         TEXT    PRIMARY KEY,
+      user_id    INTEGER NOT NULL REFERENCES users(id),
+      expires_at TEXT    NOT NULL,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
   return db;
 }
 

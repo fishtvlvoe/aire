@@ -7,6 +7,7 @@ import {
   generateRefreshToken,
   getUserByUsername,
 } from '@/lib/auth/db';
+import { createSession, SESSION_COOKIE } from '@/lib/auth';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -33,6 +34,8 @@ export async function authorizeCredentials(
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_SECONDS * 1000).toISOString();
   createRefreshToken(user.id, refreshToken, expiresAt);
 
+  const sessionId = createSession(user.id);
+
   const cookieStore = await cookies();
   cookieStore.set(REFRESH_COOKIE_NAME, refreshToken, {
     httpOnly: true,
@@ -40,6 +43,13 @@ export async function authorizeCredentials(
     sameSite: 'strict',
     path: '/',
     maxAge: REFRESH_TOKEN_TTL_SECONDS,
+  });
+  cookieStore.set(SESSION_COOKIE, sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 8 * 60 * 60,
   });
 
   return { id: String(user.id), name: user.username };
