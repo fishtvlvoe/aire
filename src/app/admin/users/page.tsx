@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import AdminBreadcrumb from '@/components/AdminBreadcrumb';
 
 interface User {
   id: number;
@@ -69,10 +70,18 @@ export default function AdminUsersPage() {
     setResetPassword('');
   }
 
-  if (loading) return <div className="p-8 text-gray-500">載入中...</div>;
+  if (loading) {
+    return (
+      <>
+        <AdminBreadcrumb />
+        <div className="text-gray-500">載入中...</div>
+      </>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <>
+      <AdminBreadcrumb />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">帳號管理</h1>
         <button
@@ -178,6 +187,6 @@ export default function AdminUsersPage() {
           </form>
         </div>
       )}
-    </div>
+    </>
   );
 }

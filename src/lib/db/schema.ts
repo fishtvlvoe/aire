@@ -160,9 +160,19 @@ export function initDb(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS feature_flags (
       key TEXT PRIMARY KEY,
-      enabled INTEGER NOT NULL DEFAULT 1
+      enabled INTEGER NOT NULL DEFAULT 1,
+      value TEXT
     );
   `);
+
+  const featureFlagColumns = (db.pragma('table_info(feature_flags)') as Array<{ name: string }>).map((c) => c.name);
+  if (!featureFlagColumns.includes('value')) {
+    try {
+      db.exec('ALTER TABLE feature_flags ADD COLUMN value TEXT');
+    } catch {
+      // column was added by a concurrent process; safe to ignore
+    }
+  }
 
   // 確保 5 種預設文件類型都有初始值（INSERT OR IGNORE 不覆蓋已存在的設定）
   const defaultFlags = [
@@ -176,6 +186,8 @@ export function initDb(db: Database.Database): void {
   for (const key of defaultFlags) {
     insertFlag.run(key);
   }
+
+  db.prepare('INSERT OR IGNORE INTO feature_flags (key, enabled, value) VALUES (?, 1, ?)').run('doc_color_scheme', 'navy');
 
   // 不再自動建立預設 admin 帳號；改由 /setup/admin 流程建立首位管理員
 }

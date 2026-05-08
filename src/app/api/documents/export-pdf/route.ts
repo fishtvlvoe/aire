@@ -1,63 +1,72 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-// NextResponse 接受 ArrayBuffer（BodyInit），避免 Uint8Array TS 型別衝突
-import path from 'path';
-import { getListing, getTemplate } from '@/lib/db';
-import { assembleContext, renderTemplate } from '@/lib/template-engine';
+import { marked } from 'marked';
+import { db, getListing } from '@/lib/db';
+import { getColorSchemeById } from '@/lib/branding/color-schemes';
 import { launchBrowser } from '@/lib/pdf-generator/chromium-launcher';
 
-export async function POST(req: Request) {
-  const body = (await req.json()) as { listingId?: unknown; templateId?: unknown };
-  const { listingId, templateId } = body;
+function getCurrentColorSchemeId(): string {
+  const row = db.prepare('SELECT value FROM feature_flags WHERE key = ?').get('doc_color_scheme') as { value?: string } | undefined;
+  return row?.value || 'navy';
+}
 
-  // 驗證並解析 listingId
-  const listingIdNum = Number(listingId);
-  if (!listingId || isNaN(listingIdNum)) {
+async function buildHtml(markdown: string, schemeId: string): Promise<string> {
+  const scheme = getColorSchemeById(schemeId);
+  const bodyHtml = await marked.parse(`# 文件輸出\n\n${markdown}`);
+  return `<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body { margin: 0; font-family: 'Noto Sans TC', sans-serif; color: #1e293b; }
+      .wrapper { width: 100%; }
+      .header { padding: 20px 28px; background: ${scheme.headerBg}; color: ${scheme.headerText}; border-bottom: 5px solid ${scheme.accentColor}; }
+      .content { padding: 28px; line-height: 1.75; }
+      h1, h2, h3 { color: #1f2937; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="header">不動產說明書（${scheme.name}）</div>
+      <div class="content">${bodyHtml}</div>
+    </div>
+  </body>
+</html>`;
+}
+
+export async function POST(req: Request) {
+  const body = (await req.json().catch(() => null)) as { listingId?: unknown } | null;
+  const listingIdNum = Number(body?.listingId);
+  if (!body?.listingId || Number.isNaN(listingIdNum)) {
     return NextResponse.json({ error: 'Invalid listingId' }, { status: 400 });
   }
 
-  // 驗證並解析 templateId
-  const templateIdNum = Number(templateId);
-  if (!templateId || isNaN(templateIdNum)) {
-    return NextResponse.json({ error: 'Invalid templateId' }, { status: 400 });
-  }
-
-  // 查詢物件
   const listing = getListing(listingIdNum);
   if (!listing) {
     return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
   }
 
-  // 查詢模板 metadata
-  const template = getTemplate(templateIdNum);
-  if (!template) {
-    return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+  const docs = listing.generated_documents
+    ? (JSON.parse(listing.generated_documents) as Record<string, unknown>)
+    : {};
+  const markdown = String(docs.disclosure_document ?? '').trim();
+  if (!markdown) {
+    return NextResponse.json({ error: 'Disclosure document not generated yet' }, { status: 422 });
   }
 
-  // 確認模板 HTML 檔案存在
-  const templatePath = path.join(process.cwd(), 'data', 'templates', `${templateIdNum}.html`);
-  if (!fs.existsSync(templatePath)) {
-    return NextResponse.json({ error: 'Template file not found' }, { status: 404 });
-  }
-
-  // 讀取模板、合併物件資料、渲染
-  const htmlContent = fs.readFileSync(templatePath, 'utf-8');
-  const context = assembleContext(listing);
-  const renderedHtml = renderTemplate(htmlContent, context);
-
-  // 用既有的 chromium-launcher 啟動瀏覽器（支援本機與 serverless 兩種模式）
+  const html = await buildHtml(markdown, getCurrentColorSchemeId());
   const browser = await launchBrowser();
   let pdfBuffer: ArrayBuffer;
 
   try {
     const page = await browser.newPage();
-    await page.setContent(renderedHtml, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'networkidle0' });
     const raw = await page.pdf({
       format: 'A4',
       margin: { top: '15mm', right: '15mm', bottom: '15mm', left: '15mm' },
       printBackground: true,
     });
-    // puppeteer-core 回傳 Uint8Array，取 .buffer 轉成 ArrayBuffer（符合 NextResponse BodyInit）
     pdfBuffer = raw.buffer as ArrayBuffer;
   } finally {
     await browser.close();
@@ -66,7 +75,7 @@ export async function POST(req: Request) {
   return new NextResponse(pdfBuffer, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="listing-${listingIdNum}.pdf"`,
+      'Content-Disposition': `attachment; filename="disclosure-${listingIdNum}.pdf"`,
     },
   });
 }

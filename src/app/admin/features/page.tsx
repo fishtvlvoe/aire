@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import type { LicenseEntry } from '@/app/api/admin/features/route';
 import type { DocFlagsMap } from '@/app/api/admin/doc-flags/route';
+import AdminBreadcrumb from '@/components/AdminBreadcrumb';
 
 interface FeatureDef { key: string; label: string }
 
@@ -17,7 +17,6 @@ const DOC_FLAG_LABELS: Array<{ key: keyof DocFlagsMap; label: string; desc: stri
 ];
 
 export default function AdminFeaturesPage() {
-  const router = useRouter();
   const [licenses, setLicenses] = useState<LicenseEntry[]>([]);
   const [allFeatures, setAllFeatures] = useState<FeatureDef[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,17 +27,6 @@ export default function AdminFeaturesPage() {
   const [msg, setMsg] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newEntry, setNewEntry] = useState<Partial<LicenseEntry>>({ active: true, features: ['disclosure-document'] });
-
-  // 頁面載入時檢查 admin 角色，非 admin 導回物件列表
-  useEffect(() => {
-    const checkRole = async () => {
-      const res = await fetch('/api/me');
-      if (!res.ok) { router.push('/listings'); return; }
-      const data = (await res.json()) as { user: { role: string } | null };
-      if (data.user?.role !== 'admin') router.push('/listings');
-    };
-    void checkRole();
-  }, [router]);
 
   const load = async () => {
     const res = await fetch('/api/admin/features');
@@ -120,10 +108,18 @@ export default function AdminFeaturesPage() {
     void load();
   };
 
-  if (loading) return <div className="p-8 text-slate-500">載入中...</div>;
+  if (loading) {
+    return (
+      <>
+        <AdminBreadcrumb />
+        <div className="text-slate-500">載入中...</div>
+      </>
+    );
+  }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <>
+      <AdminBreadcrumb />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-800">License 功能管理</h1>
         <div className="flex items-center gap-3">
@@ -249,6 +245,6 @@ export default function AdminFeaturesPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
