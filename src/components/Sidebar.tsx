@@ -16,6 +16,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
 const ADMIN_NAV_ITEMS: NavItem[] = [
   { href: '/admin/users', label: '用戶管理' },
   { href: '/admin/features', label: '功能設定' },
+  { href: '/admin/templates', label: '模板管理' },
 ];
 
 type Listing = {

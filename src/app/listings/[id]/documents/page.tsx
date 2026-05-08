@@ -4,8 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Stepper from '@/components/Stepper';
+import TemplatePreview from '@/components/TemplatePreview';
 
 type DocumentKey = 'property_survey' | 'listing_591' | 'sales_dm' | 'social_posts' | 'disclosure_document';
+
+// 模板資料型別
+type Template = {
+  id: number;
+  name: string;
+  doc_type: string;
+  is_default: number;
+};
 
 // feature_flags 的 key 對應到頁面 DocumentKey 的對照表
 // doc-flags API 使用的 key 與 GeneratedDocuments 的 key 名稱不同，需要手動對應
@@ -77,6 +86,13 @@ export default function ListingDocumentsPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // 模板選擇器相關狀態
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+
   // 記錄從 feature_flags 讀取的啟用狀態，key 為 DocumentKey
   // 初始全部設為 true，待 API 回傳後以實際設定覆蓋
   const [enabledDocKeys, setEnabledDocKeys] = useState<Set<DocumentKey>>(
@@ -89,6 +105,76 @@ export default function ListingDocumentsPage() {
     social_posts: { loading: false, error: null },
     disclosure_document: { loading: false, error: null },
   });
+
+  // 載入不動產說明書模板列表，並自動選取預設模板
+  const loadTemplates = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/templates?doc_type=disclosure');
+      if (!response.ok) {
+        return;
+      }
+      const data = (await response.json()) as { templates: Template[] };
+      const list = data.templates ?? [];
+      setTemplates(list);
+      // 預設選取 is_default=1 的模板，沒有則選第一個
+      const defaultTemplate = list.find((t) => t.is_default === 1) ?? list[0];
+      if (defaultTemplate) {
+        setSelectedTemplateId(defaultTemplate.id);
+      }
+    } catch {
+      // 載入失敗靜默降級，隱藏模板選擇器
+    }
+  }, []);
+
+  // 呼叫預覽 API，取得渲染後的 HTML
+  const loadPreview = useCallback(async (templateId: number) => {
+    if (Number.isNaN(listingId)) return;
+    setPreviewLoading(true);
+    try {
+      const response = await fetch('/api/documents/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, templateId }),
+      });
+      if (!response.ok) {
+        throw new Error('預覽載入失敗');
+      }
+      const data = (await response.json()) as { html: string };
+      setPreviewHtml(data.html ?? null);
+    } catch {
+      setPreviewHtml(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [listingId]);
+
+  // 下載 PDF
+  const handleDownloadPdf = async () => {
+    if (Number.isNaN(listingId) || selectedTemplateId === null) return;
+    setPdfDownloading(true);
+    try {
+      const response = await fetch('/api/documents/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, templateId: selectedTemplateId }),
+      });
+      if (!response.ok) {
+        throw new Error('PDF 下載失敗');
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `disclosure-${listingId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : 'PDF 下載失敗';
+      alert(message);
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
 
   // 讀取 feature_flags，決定哪些文件類型要顯示
   const loadDocFlags = useCallback(async () => {
@@ -157,7 +243,15 @@ export default function ListingDocumentsPage() {
     void loadDocFlags();
     void loadListing();
     void loadDocuments();
-  }, [loadDocFlags, loadListing, loadDocuments]);
+    void loadTemplates();
+  }, [loadDocFlags, loadListing, loadDocuments, loadTemplates]);
+
+  // 模板切換時自動載入預覽
+  useEffect(() => {
+    if (selectedTemplateId !== null) {
+      void loadPreview(selectedTemplateId);
+    }
+  }, [selectedTemplateId, loadPreview]);
 
   const handleRegenerate = async (documentType: DocumentKey) => {
     if (Number.isNaN(listingId)) {
@@ -242,6 +336,59 @@ export default function ListingDocumentsPage() {
           <section className="rounded-lg bg-white p-6 shadow-[0_8px_24px_rgba(45,49,66,0.08)]">
             <h1 className="text-2xl font-bold text-[#1B3A6B]">文件輸出</h1>
             <p className="mt-2 text-sm text-slate-600">物件編號：#{Number.isNaN(listingId) ? '-' : listingId}</p>
+
+            {/* 模板選擇器與預覽區塊：只在有自訂模板時顯示 */}
+            {templates.length > 0 && (
+              <div className="mt-6 rounded-lg border border-slate-200 bg-[#F9FAFB] p-5">
+                <div className="mb-4 flex flex-wrap items-center gap-4">
+                  <label htmlFor="template-select" className="text-sm font-semibold text-[#1B3A6B]">
+                    不動產說明書模板
+                  </label>
+                  <select
+                    id="template-select"
+                    value={selectedTemplateId ?? ''}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      setSelectedTemplateId(id);
+                    }}
+                    className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-[#2D3142] shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B]"
+                  >
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}{t.is_default === 1 ? '（預設）' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {previewLoading && (
+                  <p className="text-sm text-slate-500">預覽載入中...</p>
+                )}
+
+                {!previewLoading && previewHtml && (
+                  <div className="rounded-md border border-slate-200 bg-white overflow-hidden">
+                    <TemplatePreview html={previewHtml} />
+                  </div>
+                )}
+
+                {!previewLoading && !previewHtml && (
+                  <p className="text-sm text-slate-400">尚無預覽內容</p>
+                )}
+
+                {selectedTemplateId !== null && (
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={() => { void handleDownloadPdf(); }}
+                      disabled={pdfDownloading || previewLoading}
+                      className="rounded-md bg-[#F5882B] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {pdfDownloading ? '下載中...' : '下載 PDF'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="mt-6 mb-4 rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
               若修改過現勘/補件欄位，請點『重新產生文件』讓內容反映最新輸入
