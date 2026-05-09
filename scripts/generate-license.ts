@@ -37,7 +37,7 @@ export async function runGenerateLicense(args: string[], deps: CliDeps): Promise
     return 1;
   }
 
-  const serverUrl = process.env.LICENSE_SERVER_URL ?? 'https://three-ai-license-server.vercel.app';
+  const serverUrl = process.env.LICENSE_SERVER_URL ?? 'https://aire-license-server.vercel.app';
   const adminToken = process.env.LICENSE_ADMIN_TOKEN;
 
   if (!adminToken) {

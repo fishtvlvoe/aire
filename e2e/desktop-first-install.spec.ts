@@ -5,7 +5,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 function seedValidLicenseCache(): void {
-  const cachePath = path.join(os.homedir(), '.three-ai', 'license-cache.json');
+  const cachePath = path.join(os.homedir(), '.aire', 'license-cache.json');
   fs.mkdirSync(path.dirname(cachePath), { recursive: true });
   fs.writeFileSync(
     cachePath,
@@ -13,7 +13,7 @@ function seedValidLicenseCache(): void {
       valid: true,
       features: ['disclosure-document'],
       cachedAt: new Date().toISOString(),
-      email: 'e2e@three-ai.local',
+      email: 'e2e@aire.local',
       licenseKey: 'LIC-E2E-001',
     })
   );

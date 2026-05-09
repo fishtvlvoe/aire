@@ -17,7 +17,7 @@ function fakePngWithSize(width: number, height: number): Buffer {
 }
 
 describe('generate-icons script', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'three-ai-icon-test-'));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aire-icon-test-'));
 
   afterEach(() => {
     fs.rmSync(tempRoot, { recursive: true, force: true });

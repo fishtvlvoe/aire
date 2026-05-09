@@ -6,7 +6,7 @@
 
 ---
 
-**Project:** three-ai
+**Project:** aire
 **Generated:** 2026-05-08 16:10:55
 **Category:** Financial Dashboard
 

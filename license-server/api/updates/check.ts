@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getLicense } from '../../lib/store';
 
 /** R2 bucket 公開路徑 */
-const R2_BASE_URL = process.env.R2_PUBLIC_URL ?? 'https://r2.three-ai.app/releases';
+const R2_BASE_URL = process.env.R2_PUBLIC_URL ?? 'https://r2.aire.app/releases';
 
 interface LatestInfo {
   version: string;

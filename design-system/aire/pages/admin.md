@@ -1,6 +1,6 @@
 # Admin Page Overrides
 
-> **PROJECT:** three-ai
+> **PROJECT:** aire
 > **Generated:** 2026-05-08 16:10:55
 > **Page Type:** Dashboard / Data View
 
