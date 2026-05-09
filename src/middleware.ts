@@ -32,6 +32,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // 開發模式：跳過 License 檢查，但仍須建管理員和登入
+  if (process.env.SKIP_LICENSE === 'true') {
+    if (isSetupOrPublicApiPath(pathname) || pathname === '/login') {
+      return NextResponse.next();
+    }
+    let usersExist = false;
+    try { usersExist = hasUsers(); } catch { /* users 表尚未建立 */ }
+    if (!usersExist) {
+      return NextResponse.redirect(new URL('/setup/admin', request.url));
+    }
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    if (!token && !pathname.startsWith('/api/')) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    return NextResponse.next();
+  }
+
   const license = getCachedLicense();
 
   // License 尚未有效：只允許進入 setup 流程與 license 初始化 API（避免 setup UI fetch 被重導）
