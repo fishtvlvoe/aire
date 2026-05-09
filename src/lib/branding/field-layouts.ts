@@ -12,17 +12,17 @@ export interface FieldPosition {
   page: FieldPage;
 }
 
-export const DEFAULT_COVER_FIELDS: FieldPosition[] = [
-  { fieldKey: 'object-id', label: '物件編號', x: 28, y: 24, width: 40, height: 3, fontSize: 14, textAlign: 'left', page: 'cover' },
-  { fieldKey: 'object-name', label: '物件名稱', x: 28, y: 28, width: 55, height: 3, fontSize: 14, textAlign: 'left', page: 'cover' },
-  { fieldKey: 'agent-name', label: '委託人', x: 15, y: 65, width: 18, height: 3, fontSize: 13, textAlign: 'center', page: 'cover' },
-  { fieldKey: 'store-name', label: '店名', x: 33, y: 65, width: 18, height: 3, fontSize: 13, textAlign: 'center', page: 'cover' },
-  { fieldKey: 'broker-name', label: '經紀人', x: 51, y: 65, width: 18, height: 3, fontSize: 13, textAlign: 'center', page: 'cover' },
-  { fieldKey: 'broker-cert', label: '經紀人證書', x: 69, y: 65, width: 18, height: 3, fontSize: 13, textAlign: 'center', page: 'cover' },
-  { fieldKey: 'company-name', label: '公司名稱', x: 28, y: 78, width: 55, height: 3, fontSize: 13, textAlign: 'left', page: 'cover' },
-  { fieldKey: 'company-address', label: '地址', x: 28, y: 82, width: 55, height: 3, fontSize: 13, textAlign: 'left', page: 'cover' },
-  { fieldKey: 'company-phone', label: '電話', x: 28, y: 86, width: 30, height: 3, fontSize: 13, textAlign: 'left', page: 'cover' },
-  { fieldKey: 'document-date', label: '日期', x: 28, y: 90, width: 30, height: 3, fontSize: 13, textAlign: 'left', page: 'cover' },
-];
+export const DEFAULT_COVER_FIELDS: FieldPosition[] = [];
 
-export const DEFAULT_CONTENT_FIELDS: FieldPosition[] = [];
+export const DEFAULT_CONTENT_FIELDS: FieldPosition[] = [
+  { fieldKey: 'object-id', label: '物件編號', x: 24, y: 14.5, width: 58, height: 2.8, fontSize: 13, textAlign: 'left', page: 'content' },
+  { fieldKey: 'object-name', label: '物件名稱', x: 20, y: 18.5, width: 65, height: 2.8, fontSize: 13, textAlign: 'left', page: 'content' },
+  { fieldKey: 'agent-name', label: '委託人', x: 14, y: 69, width: 16, height: 3, fontSize: 12, textAlign: 'center', page: 'content' },
+  { fieldKey: 'store-name', label: '店名', x: 30, y: 69, width: 16, height: 3, fontSize: 12, textAlign: 'center', page: 'content' },
+  { fieldKey: 'broker-name', label: '經紀人', x: 46, y: 69, width: 16, height: 3, fontSize: 12, textAlign: 'center', page: 'content' },
+  { fieldKey: 'broker-cert', label: '經紀人證書', x: 62, y: 69, width: 22, height: 3, fontSize: 12, textAlign: 'center', page: 'content' },
+  { fieldKey: 'company-name', label: '公司名稱', x: 24, y: 80, width: 58, height: 2.8, fontSize: 12, textAlign: 'left', page: 'content' },
+  { fieldKey: 'company-address', label: '地址', x: 20, y: 84, width: 62, height: 2.8, fontSize: 12, textAlign: 'left', page: 'content' },
+  { fieldKey: 'company-phone', label: '電話', x: 20, y: 88, width: 35, height: 2.8, fontSize: 12, textAlign: 'left', page: 'content' },
+  { fieldKey: 'document-date', label: '日期', x: 20, y: 92, width: 40, height: 2.8, fontSize: 12, textAlign: 'left', page: 'content' },
+];
