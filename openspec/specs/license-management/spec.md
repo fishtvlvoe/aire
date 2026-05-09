@@ -8,72 +8,110 @@ TBD - created by archiving change 'fe-software-commercialization'. Update Purpos
 
 ### Requirement: License serial key validation
 
-The system SHALL validate a license serial key using Ed25519 asymmetric signature verification via Next.js Middleware on every HTTP request.
+The license serial key validation SHALL be performed during the customer login API call instead of in Next.js Middleware. The login API SHALL accept a `licenseKey` field in the request body and validate it using Ed25519 asymmetric signature verification. The middleware SHALL no longer perform license validation on every HTTP request.
 
-**Scenario: Valid license present**
-- Given: A license serial key has been activated in the `licenses` SQLite table and current date is before `expires_at` (Asia/Taipei timezone)
-- When: Any HTTP request hits Next.js Middleware
-- Then: The request proceeds normally
+#### Scenario: License validated during login
 
-**Scenario: No license activated**
-- Given: The `licenses` table is empty
-- When: Any HTTP request hits a non-setup path
-- Then: Middleware SHALL redirect to `/setup/license` with HTTP 301
+- **WHEN** customer submits login form with `{ email, password, licenseKey }`
+- **THEN** the login API SHALL validate the license key signature and expiration before authenticating credentials
 
-**Scenario: Expired license**
-- Given: A license key exists but `expires_at` is past current date (Asia/Taipei)
-- When: Any HTTP request hits Middleware
-- Then: Middleware SHALL redirect to `/setup/license` with HTTP 301
+##### Example: Login API license validation flow
 
-**Scenario: Tampered serial key**
-- Given: A serial key string has been modified after issuance
-- When: `/api/setup/activate` attempts Ed25519 verification
-- Then: API SHALL return HTTP 400 with error code `INVALID_SIGNATURE`
+- **GIVEN** customer submits licenseKey "RE-AI-abc123..." with valid Ed25519 signature and expires "2027-12-31"
+- **WHEN** POST `/api/auth/login` processes the request
+- **THEN** license validation passes → credential authentication proceeds
+
+#### Scenario: License validation moved out of middleware
+
+- **WHEN** any HTTP request hits Next.js Middleware
+- **THEN** the middleware SHALL NOT perform license validation
+- **THEN** the middleware SHALL only check JWT token presence for protected routes
+
+##### Example: Middleware no longer checks license
+
+- **GIVEN** user has valid JWT token but no license key was submitted in this session
+- **WHEN** GET `/listings` is requested
+- **THEN** middleware checks JWT only (valid) → request passes through without any license verification
 
 
 <!-- @trace
-source: fe-software-commercialization
-updated: 2026-05-04
+source: login-page-redesign
+updated: 2026-05-09
 code:
-  - AIRE.db
-  - kimi-statusline-issue-body.md
-  - package.json
-  - src/app/api/listings/[id]/regenerate/route.ts
-  - src/lib/external-links/url-builder.ts
-  - src/lib/parsers/transcript-parser.ts
-  - src/app/api/listings/[id]/generate/route.ts
-  - kimi-statusline-feature-request.md
-  - src/lib/document-generator/build-input.ts
-  - docs/kimi-prompts-wave1-fix-disclosure.md
-  - src/lib/document-generator/pdf/dossier-land.ts
-  - src/lib/pdf-generator/dossier.ts
+  - e2e/playwright.forgot.config.ts
+  - .opencode/skills/spectra-apply/SKILL.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/app/admin/(dashboard)/layout.tsx
+  - src/app/forgot-password/page.tsx
+  - src/app/admin/login/page.tsx
+  - src/app/api/setup/create-first-admin/route.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/app/api/auth/reset-password/route.ts
+  - src/lib/auth/credentials-login.ts
+  - src/app/setup/admin/page.tsx
+  - src/app/api/auth/forgot-password/route.ts
+  - src/lib/auth/password-reset-token.ts
+  - src/instrumentation.ts
+  - .github/skills/spectra-propose/SKILL.md
+  - src/app/layout.tsx
+  - src/app/admin/(dashboard)/transfer/page.tsx
+  - .github/prompts/spectra-drift.prompt.md
+  - .github/skills/spectra-apply/SKILL.md
+  - src/app/globals.css
   - .env.example
-  - src/lib/codex-client/index.ts
-  - src/lib/document-generator/tax-calculator.ts
-  - src/lib/document-generator/types.ts
-  - src/lib/schemas/supplementary-schema.ts
-  - src/lib/codex-client/adapters/gemini.ts
-  - scripts/e2e-verify-pdf.mjs
-  - src/lib/document-generator/pdf/acroform-overlay.ts
-  - scripts/verify-disclosure-pdf.ts
-  - src/lib/document-generator/pdf/dossier-building.ts
-  - src/lib/ocr/field-mapping.ts
-  - src/app/api/listings/[id]/pdf/route.ts
-  - src/lib/codex-client/types.ts
-  - kimi-usage-ux-issue-body.md
-  - listings.db
-  - src/app/listings/[id]/supplementary/page.tsx
-  - src/lib/pdf-generator/templates/dossier.html
+  - .opencode/commands/spectra-ingest.md
+  - src/app/admin/audit-logs/page.tsx
+  - src/middleware.ts
+  - src/app/admin/(dashboard)/users/page.tsx
+  - src/app/setup/page.tsx
+  - src/app/admin/(dashboard)/features/page.tsx
+  - .github/skills/spectra-discuss/SKILL.md
+  - src/app/api/admin/login/route.ts
+  - .github/prompts/spectra-discuss.prompt.md
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-ingest.prompt.md
+  - .opencode/skills/spectra-propose/SKILL.md
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-drift/SKILL.md
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/lib/email.ts
+  - src/app/admin/features/page.tsx
+  - src/app/admin/users/page.tsx
+  - src/app/admin/(dashboard)/audit-logs/page.tsx
+  - src/app/admin/licenses/page.tsx
+  - src/app/admin/transfer/page.tsx
+  - .github/skills/spectra-drift/SKILL.md
+  - src/app/admin/(dashboard)/licenses/page.tsx
+  - src/app/admin/templates/page.tsx
+  - src/app/login/page.tsx
+  - src/lib/seed-admin.ts
+  - .github/prompts/spectra-propose.prompt.md
+  - .opencode/commands/spectra-apply.md
+  - src/app/admin/layout.tsx
+  - .opencode/commands/spectra-propose.md
+  - .opencode/commands/spectra-drift.md
+  - src/app/api/auth/[...nextauth]/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/admin/(dashboard)/templates/page.tsx
+  - src/app/reset-password/page.tsx
+  - src/lib/license/serial-key.ts
+  - src/lib/db/schema.ts
 tests:
-  - src/lib/document-generator/__tests__/build-input.test.ts
-  - src/lib/document-generator/__tests__/tax-calculator.test.ts
-  - src/lib/codex-client/__tests__/fallback-chain.test.ts
-  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
-  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
-  - src/lib/parsers/__tests__/transcript-parser.test.ts
-  - src/lib/ocr/__tests__/e2e-autofill.spec.ts
-  - src/lib/document-generator/__tests__/acroform-overlay.test.ts
-  - src/lib/pdf-generator/__tests__/dossier.test.ts
+  - src/app/api/auth/login/route.test.ts
+  - src/lib/auth/__tests__/vendor.test.ts
+  - src/app/api/auth/forgot-password/route.test.ts
+  - src/app/reset-password/page.test.tsx
+  - src/app/api/auth/reset-password/route.test.ts
+  - src/app/api/auth/[...nextauth]/route.test.ts
+  - src/lib/email.test.ts
+  - src/app/forgot-password/page.test.tsx
+  - src/app/api/admin/login/route.test.ts
+  - src/middleware.test.ts
+  - src/lib/license/serial-key.test.ts
+  - src/lib/seed-admin.test.ts
+  - src/lib/auth/password-reset-token.test.ts
+  - e2e/forgot-password-flow.spec.ts
+  - src/app/login/page.test.ts
 -->
 
 ---
@@ -195,128 +233,95 @@ tests:
 
 ---
 ### Requirement: Middleware license cache
-The system SHALL check license validity in Next.js middleware on every HTTP request. The middleware SHALL use getCachedLicense() from src/lib/license/server-verify.ts which caches the server response for 24 hours locally. When the cache is expired or missing, the middleware SHALL call the License Server API. When the license is invalid or expired, the middleware SHALL redirect to /setup. The middleware SHALL execute license checks before auth checks.
 
-#### Scenario: Valid cached license
-- **WHEN** a request arrives and getCachedLicense() returns a valid, non-expired license
-- **THEN** the middleware SHALL pass the request to the auth layer without calling the License Server API
+This requirement is MODIFIED to remove license checking from middleware. The middleware SHALL no longer call `getCachedLicense()` or redirect to `/setup` based on license status. License validity is verified at login time, not on every request.
 
-##### Example: Cached license hit
-- **GIVEN** license LIC-001 was verified 2 hours ago (within 24h TTL) and stored in local cache
-- **WHEN** GET /listings is requested
-- **THEN** getCachedLicense() returns cached {valid: true, expires: "2027-12-31"} without HTTP call
-- **THEN** middleware proceeds to auth layer
+#### Scenario: Middleware skips license check
 
-#### Scenario: Expired cache triggers server call
-- **WHEN** a request arrives and the local cache is older than 24 hours
-- **THEN** the middleware SHALL call the License Server API to re-validate
-- **THEN** the middleware SHALL update the local cache with the response
-
-#### Scenario: Invalid license redirects to setup
-- **WHEN** the License Server returns invalid or the license has expired
-- **THEN** the middleware SHALL redirect the user to /setup with HTTP 302
-
-#### Scenario: Exempt paths bypass license check
-- **WHEN** the request path matches /setup/*, /api/setup/*, /_next/*, or /favicon.ico
-- **THEN** the middleware SHALL skip the license check entirely
-
-##### Example: Setup page accessible without license
-- **GIVEN** no license has been activated yet
-- **WHEN** GET /setup is requested
-- **THEN** middleware skips license check, setup page renders for first-time activation
+- **WHEN** any HTTP request arrives at the middleware
+- **THEN** the middleware SHALL NOT call `getCachedLicense()`
+- **THEN** the middleware SHALL NOT redirect to `/setup` based on license status
+- **THEN** the middleware SHALL only verify JWT token and redirect to `/login` if missing
 
 
 <!-- @trace
-source: desktop-commercial-complete
-updated: 2026-05-07
+source: login-page-redesign
+updated: 2026-05-09
 code:
-  - src/app/setup/page.tsx
-  - src/lib/scrapers/tax-calculator.ts
-  - license-server/api/updates/check.ts
-  - license-server/lib/serial.ts
-  - src/types/electron.d.ts
-  - src/middleware.ts
-  - src/lib/codex-client/key-store.ts
-  - src/app/api/admin/licenses/transfer/route.ts
-  - src/lib/db/index.ts
+  - e2e/playwright.forgot.config.ts
+  - .opencode/skills/spectra-apply/SKILL.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/app/admin/(dashboard)/layout.tsx
+  - src/app/forgot-password/page.tsx
+  - src/app/admin/login/page.tsx
   - src/app/api/setup/create-first-admin/route.ts
-  - src/app/api/setup/verify-openai/route.ts
-  - AGENTS.md
-  - src/lib/pdf-generator/survey-sales.ts
-  - src/lib/pdf-generator/dossier.ts
-  - src/lib/auth/db.ts
-  - license-server/api/license/transfer.ts
-  - Dockerfile
-  - license-server/vercel.json
-  - scripts/materialize-standalone-symlinks.js
-  - license-server/lib/machine-id.ts
-  - src/app/api/admin/licenses/route.ts
-  - electron/updater.ts
-  - electron-builder.json
-  - scripts/create-admin.ts
-  - src/app/api/admin/licenses/revoke/route.ts
-  - .vercelignore
-  - src/lib/scrapers/bank-estimator.ts
-  - migrations/004_auth_license.sql
-  - scripts/generate-icons.ts
-  - src/app/api/auth/refresh/route.ts
-  - license-server/api/license/revoke.ts
-  - package.json
-  - src/proxy.ts
-  - electron/preload.ts
-  - src/lib/db/schema.ts
-  - license-server/api/features/index.ts
-  - license-server/api/license/create.ts
-  - .env.example
-  - license-server/api/license/list.ts
-  - .github/workflows/release.yml
-  - src/app/login/page.tsx
-  - src/components/UpdateChecker.tsx
-  - src/lib/pdf-generator/chromium-launcher.ts
-  - license-server/api/license/activate.ts
-  - scripts/fix-standalone-symlinks.js
-  - vercel.json
-  - src/app/api/admin/licenses/unbind-machine/route.ts
-  - electron/launcher.ts
-  - scripts/generate-license.ts
-  - src/app/setup/codex/page.tsx
-  - electron/main.ts
-  - license-server/api/license/verify.ts
-  - src/app/admin/licenses/page.tsx
-  - license-server/lib/store.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/app/api/auth/reset-password/route.ts
+  - src/lib/auth/credentials-login.ts
   - src/app/setup/admin/page.tsx
-  - src/lib/admin-auth.ts
-  - electron/codex-guide.html
+  - src/app/api/auth/forgot-password/route.ts
+  - src/lib/auth/password-reset-token.ts
+  - src/instrumentation.ts
+  - .github/skills/spectra-propose/SKILL.md
+  - src/app/layout.tsx
+  - src/app/admin/(dashboard)/transfer/page.tsx
+  - .github/prompts/spectra-drift.prompt.md
+  - .github/skills/spectra-apply/SKILL.md
+  - src/app/globals.css
+  - .env.example
+  - .opencode/commands/spectra-ingest.md
+  - src/app/admin/audit-logs/page.tsx
+  - src/middleware.ts
+  - src/app/admin/(dashboard)/users/page.tsx
+  - src/app/setup/page.tsx
+  - src/app/admin/(dashboard)/features/page.tsx
+  - .github/skills/spectra-discuss/SKILL.md
+  - src/app/api/admin/login/route.ts
+  - .github/prompts/spectra-discuss.prompt.md
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-ingest.prompt.md
+  - .opencode/skills/spectra-propose/SKILL.md
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-drift/SKILL.md
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/lib/email.ts
+  - src/app/admin/features/page.tsx
+  - src/app/admin/users/page.tsx
+  - src/app/admin/(dashboard)/audit-logs/page.tsx
+  - src/app/admin/licenses/page.tsx
+  - src/app/admin/transfer/page.tsx
+  - .github/skills/spectra-drift/SKILL.md
+  - src/app/admin/(dashboard)/licenses/page.tsx
+  - src/app/admin/templates/page.tsx
+  - src/app/login/page.tsx
+  - src/lib/seed-admin.ts
+  - .github/prompts/spectra-propose.prompt.md
+  - .opencode/commands/spectra-apply.md
+  - src/app/admin/layout.tsx
+  - .opencode/commands/spectra-propose.md
+  - .opencode/commands/spectra-drift.md
   - src/app/api/auth/[...nextauth]/route.ts
-  - license-server/api/license/update-info.ts
-  - license-server/lib/admin-auth.ts
-  - src/app/api/admin/licenses/update-info/route.ts
-  - src/app/listings/page.tsx
+  - src/app/api/auth/login/route.ts
+  - src/app/admin/(dashboard)/templates/page.tsx
+  - src/app/reset-password/page.tsx
+  - src/lib/license/serial-key.ts
+  - src/lib/db/schema.ts
 tests:
+  - src/app/api/auth/login/route.test.ts
+  - src/lib/auth/__tests__/vendor.test.ts
+  - src/app/api/auth/forgot-password/route.test.ts
+  - src/app/reset-password/page.test.tsx
+  - src/app/api/auth/reset-password/route.test.ts
   - src/app/api/auth/[...nextauth]/route.test.ts
-  - src/lib/db/__tests__/auth-license-migration.test.ts
+  - src/lib/email.test.ts
+  - src/app/forgot-password/page.test.tsx
+  - src/app/api/admin/login/route.test.ts
   - src/middleware.test.ts
-  - license-server/lib/__tests__/serial.test.ts
-  - license-server/api/license/__tests__/update-info.test.ts
-  - src/app/api/setup/verify-openai/route.test.ts
-  - e2e/desktop-first-install.spec.ts
-  - scripts/generate-icons.test.ts
-  - license-server/api/license/__tests__/activate-verify.test.ts
-  - src/lib/pdf-generator/__tests__/chromium-launcher.test.ts
-  - src/lib/auth/__tests__/db.test.ts
-  - e2e/admin-licenses.spec.ts
-  - license-server/api/license/__tests__/revoke.test.ts
-  - license-server/api/license/__tests__/create.test.ts
+  - src/lib/license/serial-key.test.ts
+  - src/lib/seed-admin.test.ts
+  - src/lib/auth/password-reset-token.test.ts
+  - e2e/forgot-password-flow.spec.ts
   - src/app/login/page.test.ts
-  - src/app/api/auth/refresh/route.test.ts
-  - src/lib/__tests__/scrapers/tax-calculator.test.ts
-  - src/lib/codex-client/__tests__/key-store.test.ts
-  - license-server/api/license/__tests__/end-to-end-flow.test.ts
-  - scripts/create-admin.test.ts
-  - license-server/api/license/__tests__/list.test.ts
-  - license-server/api/license/__tests__/transfer.test.ts
-  - src/lib/__tests__/scrapers/bank-estimator.test.ts
-  - scripts/generate-license.test.ts
 -->
 
 ---
@@ -1160,4 +1165,101 @@ tests:
   - license-server/api/license/__tests__/activate-verify.test.ts
   - src/lib/codex-client/__tests__/key-store.test.ts
   - e2e/admin-licenses.spec.ts
+-->
+
+---
+### Requirement: Login requires valid license as precondition
+
+License validation SHALL occur within the login API endpoint when the customer submits a license key, not as a middleware precondition. The login API SHALL validate the license key before authenticating credentials.
+
+#### Scenario: Invalid license key at login
+
+- **WHEN** customer submits login with an invalid or expired license key
+- **THEN** the login API SHALL return an error message specific to the license issue
+- **THEN** the login API SHALL NOT attempt credential authentication
+
+##### Example: Expired license at login
+
+- **GIVEN** license key "RE-AI-expired..." has expires "2024-01-01T00:00:00+08:00"
+- **WHEN** customer submits this key with valid credentials on `/login`
+- **THEN** login API returns 403 `{ error: "授權序號已過期" }` without checking credentials
+
+<!-- @trace
+source: login-page-redesign
+updated: 2026-05-09
+code:
+  - e2e/playwright.forgot.config.ts
+  - .opencode/skills/spectra-apply/SKILL.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/app/admin/(dashboard)/layout.tsx
+  - src/app/forgot-password/page.tsx
+  - src/app/admin/login/page.tsx
+  - src/app/api/setup/create-first-admin/route.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/app/api/auth/reset-password/route.ts
+  - src/lib/auth/credentials-login.ts
+  - src/app/setup/admin/page.tsx
+  - src/app/api/auth/forgot-password/route.ts
+  - src/lib/auth/password-reset-token.ts
+  - src/instrumentation.ts
+  - .github/skills/spectra-propose/SKILL.md
+  - src/app/layout.tsx
+  - src/app/admin/(dashboard)/transfer/page.tsx
+  - .github/prompts/spectra-drift.prompt.md
+  - .github/skills/spectra-apply/SKILL.md
+  - src/app/globals.css
+  - .env.example
+  - .opencode/commands/spectra-ingest.md
+  - src/app/admin/audit-logs/page.tsx
+  - src/middleware.ts
+  - src/app/admin/(dashboard)/users/page.tsx
+  - src/app/setup/page.tsx
+  - src/app/admin/(dashboard)/features/page.tsx
+  - .github/skills/spectra-discuss/SKILL.md
+  - src/app/api/admin/login/route.ts
+  - .github/prompts/spectra-discuss.prompt.md
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-ingest.prompt.md
+  - .opencode/skills/spectra-propose/SKILL.md
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-drift/SKILL.md
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/lib/email.ts
+  - src/app/admin/features/page.tsx
+  - src/app/admin/users/page.tsx
+  - src/app/admin/(dashboard)/audit-logs/page.tsx
+  - src/app/admin/licenses/page.tsx
+  - src/app/admin/transfer/page.tsx
+  - .github/skills/spectra-drift/SKILL.md
+  - src/app/admin/(dashboard)/licenses/page.tsx
+  - src/app/admin/templates/page.tsx
+  - src/app/login/page.tsx
+  - src/lib/seed-admin.ts
+  - .github/prompts/spectra-propose.prompt.md
+  - .opencode/commands/spectra-apply.md
+  - src/app/admin/layout.tsx
+  - .opencode/commands/spectra-propose.md
+  - .opencode/commands/spectra-drift.md
+  - src/app/api/auth/[...nextauth]/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/admin/(dashboard)/templates/page.tsx
+  - src/app/reset-password/page.tsx
+  - src/lib/license/serial-key.ts
+  - src/lib/db/schema.ts
+tests:
+  - src/app/api/auth/login/route.test.ts
+  - src/lib/auth/__tests__/vendor.test.ts
+  - src/app/api/auth/forgot-password/route.test.ts
+  - src/app/reset-password/page.test.tsx
+  - src/app/api/auth/reset-password/route.test.ts
+  - src/app/api/auth/[...nextauth]/route.test.ts
+  - src/lib/email.test.ts
+  - src/app/forgot-password/page.test.tsx
+  - src/app/api/admin/login/route.test.ts
+  - src/middleware.test.ts
+  - src/lib/license/serial-key.test.ts
+  - src/lib/seed-admin.test.ts
+  - src/lib/auth/password-reset-token.test.ts
+  - e2e/forgot-password-flow.spec.ts
+  - src/app/login/page.test.ts
 -->

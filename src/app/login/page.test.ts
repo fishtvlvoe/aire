@@ -11,15 +11,21 @@ describe('loginWithCredentials', () => {
   it('returns false for failed credentials', async () => {
     signInMock.mockResolvedValueOnce({ ok: false, error: 'CredentialsSignin' });
 
-    const result = await loginWithCredentials('admin', 'wrong456');
+    const result = await loginWithCredentials('admin', 'wrong456', 'SERIAL-KEY');
     expect(result).toBe(false);
+    expect(signInMock).toHaveBeenCalledWith('credentials', {
+      username: 'admin',
+      password: 'wrong456',
+      licenseKey: 'SERIAL-KEY',
+      mode: 'customer',
+      redirect: false,
+    });
   });
 
   it('returns true for valid credentials', async () => {
     signInMock.mockResolvedValueOnce({ ok: true });
 
-    const result = await loginWithCredentials('admin', 'correct123');
+    const result = await loginWithCredentials('admin', 'correct123', 'SERIAL-KEY');
     expect(result).toBe(true);
   });
 });
-

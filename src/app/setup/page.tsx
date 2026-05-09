@@ -37,7 +37,7 @@ export default function SetupPage() {
         setError(`License 驗證失敗：${data.reason ?? '請確認 License Key 正確'}`);
         return;
       }
-      window.location.href = '/setup/admin';
+      window.location.href = '/login';
       return;
     } catch {
       setError('網路錯誤，請確認已連上網路');

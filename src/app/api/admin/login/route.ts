@@ -4,18 +4,13 @@ import { validateLoginInput } from '@/lib/auth/credentials-login';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, licenseKey } = (await req.json()) as {
-      email?: string;
-      password?: string;
-      licenseKey?: string;
-    };
+    const { email, password } = (await req.json()) as { email?: string; password?: string };
 
     const result = await validateLoginInput({
       email: email ?? '',
       password: password ?? '',
-      licenseKey,
-      requireLicense: true,
-      requireAdmin: false,
+      requireLicense: false,
+      requireAdmin: true,
     });
 
     if (!result.ok) {
@@ -23,15 +18,15 @@ export async function POST(req: NextRequest) {
     }
 
     const sessionId = createSession(result.user.id);
-
-    const res = NextResponse.json({ success: true, ok: true });
-    res.cookies.set(SESSION_COOKIE, sessionId, {
+    const response = NextResponse.json({ success: true, ok: true });
+    response.cookies.set(SESSION_COOKIE, sessionId, {
       httpOnly: true,
       sameSite: 'lax',
       path: '/',
       maxAge: 8 * 60 * 60,
     });
-    return res;
+
+    return response;
   } catch {
     return NextResponse.json({ error: '伺服器錯誤' }, { status: 500 });
   }

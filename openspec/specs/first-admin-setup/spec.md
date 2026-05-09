@@ -6,333 +6,6 @@ TBD - created by archiving change 'license-admin-ui-redesign'. Update Purpose af
 
 ## Requirements
 
-### Requirement: Setup wizard includes admin account creation step
-
-The setup wizard SHALL consist of three sequential steps: Step 1 License activation (/setup), Step 2 Admin account creation (/setup/admin), Step 3 Codex API Key (/setup/codex). Step 2 SHALL only be accessible after Step 1 completes successfully.
-
-#### Scenario: Navigate through three-step setup
-- **WHEN** user completes license activation on /setup
-- **THEN** the system redirects to /setup/admin
-
-##### Example: Full setup sequence
-- **GIVEN** fresh install with no license cache and no users in database
-- **WHEN** user enters valid license key on /setup and clicks submit
-- **THEN** browser redirects to /setup/admin showing admin account creation form
-
-#### Scenario: Step 2 redirects back if license not activated
-- **WHEN** user directly navigates to /setup/admin without completing Step 1
-- **THEN** the system redirects to /setup
-
-
-<!-- @trace
-source: license-admin-ui-redesign
-updated: 2026-05-07
-code:
-  - license-server/api/license/transfer.ts
-  - scripts/fix-standalone-symlinks.js
-  - license-server/api/license/verify.ts
-  - scripts/generate-icons.ts
-  - src/lib/codex-client/key-store.ts
-  - electron/updater.ts
-  - .github/workflows/release.yml
-  - license-server/api/updates/check.ts
-  - vercel.json
-  - src/app/api/admin/licenses/route.ts
-  - scripts/materialize-standalone-symlinks.js
-  - src/app/api/admin/licenses/transfer/route.ts
-  - src/app/api/admin/licenses/unbind-machine/route.ts
-  - license-server/lib/store.ts
-  - src/app/api/setup/create-first-admin/route.ts
-  - src/app/setup/admin/page.tsx
-  - src/app/setup/page.tsx
-  - src/app/api/admin/licenses/revoke/route.ts
-  - electron-builder.json
-  - electron/preload.ts
-  - src/app/api/setup/verify-openai/route.ts
-  - license-server/vercel.json
-  - license-server/lib/machine-id.ts
-  - license-server/api/license/update-info.ts
-  - electron/main.ts
-  - license-server/api/features/index.ts
-  - scripts/generate-license.ts
-  - license-server/api/license/activate.ts
-  - .vercelignore
-  - src/app/admin/licenses/page.tsx
-  - license-server/lib/serial.ts
-  - src/middleware.ts
-  - license-server/api/license/create.ts
-  - src/lib/admin-auth.ts
-  - electron/codex-guide.html
-  - src/lib/db/schema.ts
-  - src/app/api/admin/licenses/update-info/route.ts
-  - license-server/lib/admin-auth.ts
-  - electron/launcher.ts
-  - license-server/api/license/revoke.ts
-  - src/app/setup/codex/page.tsx
-  - package.json
-  - license-server/api/license/list.ts
-tests:
-  - license-server/api/license/__tests__/update-info.test.ts
-  - license-server/api/license/__tests__/revoke.test.ts
-  - license-server/api/license/__tests__/list.test.ts
-  - scripts/generate-icons.test.ts
-  - license-server/lib/__tests__/serial.test.ts
-  - license-server/api/license/__tests__/end-to-end-flow.test.ts
-  - license-server/api/license/__tests__/transfer.test.ts
-  - src/app/api/setup/verify-openai/route.test.ts
-  - license-server/api/license/__tests__/create.test.ts
-  - license-server/api/license/__tests__/activate-verify.test.ts
-  - src/lib/codex-client/__tests__/key-store.test.ts
-  - e2e/admin-licenses.spec.ts
--->
-
----
-### Requirement: First admin account creation API
-
-The system SHALL provide POST /api/setup/create-first-admin that creates the first admin user. This endpoint SHALL only succeed when the users table is empty. The created user SHALL have role "admin".
-
-#### Scenario: Successful first admin creation
-- **WHEN** users table is empty and request body is { email: "boss@company.tw", displayName: "陳老闆", password: "secure123" }
-- **THEN** the system returns 201 with { success: true, user: { id: 1, email: "boss@company.tw", displayName: "陳老闆", role: "admin" } }
-
-#### Scenario: Reject if admin already exists
-- **WHEN** users table already has one or more records
-- **THEN** the system returns 409 { error: "管理員帳號已存在" }
-
-#### Scenario: Reject short password
-- **WHEN** password is fewer than 6 characters
-- **THEN** the system returns 400 { error: "密碼至少 6 字元" }
-
-
-<!-- @trace
-source: license-admin-ui-redesign
-updated: 2026-05-07
-code:
-  - license-server/api/license/transfer.ts
-  - scripts/fix-standalone-symlinks.js
-  - license-server/api/license/verify.ts
-  - scripts/generate-icons.ts
-  - src/lib/codex-client/key-store.ts
-  - electron/updater.ts
-  - .github/workflows/release.yml
-  - license-server/api/updates/check.ts
-  - vercel.json
-  - src/app/api/admin/licenses/route.ts
-  - scripts/materialize-standalone-symlinks.js
-  - src/app/api/admin/licenses/transfer/route.ts
-  - src/app/api/admin/licenses/unbind-machine/route.ts
-  - license-server/lib/store.ts
-  - src/app/api/setup/create-first-admin/route.ts
-  - src/app/setup/admin/page.tsx
-  - src/app/setup/page.tsx
-  - src/app/api/admin/licenses/revoke/route.ts
-  - electron-builder.json
-  - electron/preload.ts
-  - src/app/api/setup/verify-openai/route.ts
-  - license-server/vercel.json
-  - license-server/lib/machine-id.ts
-  - license-server/api/license/update-info.ts
-  - electron/main.ts
-  - license-server/api/features/index.ts
-  - scripts/generate-license.ts
-  - license-server/api/license/activate.ts
-  - .vercelignore
-  - src/app/admin/licenses/page.tsx
-  - license-server/lib/serial.ts
-  - src/middleware.ts
-  - license-server/api/license/create.ts
-  - src/lib/admin-auth.ts
-  - electron/codex-guide.html
-  - src/lib/db/schema.ts
-  - src/app/api/admin/licenses/update-info/route.ts
-  - license-server/lib/admin-auth.ts
-  - electron/launcher.ts
-  - license-server/api/license/revoke.ts
-  - src/app/setup/codex/page.tsx
-  - package.json
-  - license-server/api/license/list.ts
-tests:
-  - license-server/api/license/__tests__/update-info.test.ts
-  - license-server/api/license/__tests__/revoke.test.ts
-  - license-server/api/license/__tests__/list.test.ts
-  - scripts/generate-icons.test.ts
-  - license-server/lib/__tests__/serial.test.ts
-  - license-server/api/license/__tests__/end-to-end-flow.test.ts
-  - license-server/api/license/__tests__/transfer.test.ts
-  - src/app/api/setup/verify-openai/route.test.ts
-  - license-server/api/license/__tests__/create.test.ts
-  - license-server/api/license/__tests__/activate-verify.test.ts
-  - src/lib/codex-client/__tests__/key-store.test.ts
-  - e2e/admin-licenses.spec.ts
--->
-
----
-### Requirement: First admin setup page UI
-
-The /setup/admin page SHALL display a form with three fields: email (required, email format), display name (required), and password (required, minimum 6 characters). A "建立管理員帳號" submit button SHALL trigger the API call.
-
-#### Scenario: Form validation
-- **WHEN** user submits with empty email field
-- **THEN** the form shows inline validation error "請輸入 Email"
-
-#### Scenario: Successful creation redirects to next step
-- **WHEN** admin account is created successfully
-- **THEN** the system redirects to /setup/codex
-
-##### Example: Admin created then redirect
-- **GIVEN** user filled email="boss@company.tw", displayName="陳老闆", password="secure123"
-- **WHEN** user clicks "建立管理員帳號" and API returns 201
-- **THEN** browser redirects to /setup/codex showing OpenAI API Key input form
-
-
-<!-- @trace
-source: license-admin-ui-redesign
-updated: 2026-05-07
-code:
-  - license-server/api/license/transfer.ts
-  - scripts/fix-standalone-symlinks.js
-  - license-server/api/license/verify.ts
-  - scripts/generate-icons.ts
-  - src/lib/codex-client/key-store.ts
-  - electron/updater.ts
-  - .github/workflows/release.yml
-  - license-server/api/updates/check.ts
-  - vercel.json
-  - src/app/api/admin/licenses/route.ts
-  - scripts/materialize-standalone-symlinks.js
-  - src/app/api/admin/licenses/transfer/route.ts
-  - src/app/api/admin/licenses/unbind-machine/route.ts
-  - license-server/lib/store.ts
-  - src/app/api/setup/create-first-admin/route.ts
-  - src/app/setup/admin/page.tsx
-  - src/app/setup/page.tsx
-  - src/app/api/admin/licenses/revoke/route.ts
-  - electron-builder.json
-  - electron/preload.ts
-  - src/app/api/setup/verify-openai/route.ts
-  - license-server/vercel.json
-  - license-server/lib/machine-id.ts
-  - license-server/api/license/update-info.ts
-  - electron/main.ts
-  - license-server/api/features/index.ts
-  - scripts/generate-license.ts
-  - license-server/api/license/activate.ts
-  - .vercelignore
-  - src/app/admin/licenses/page.tsx
-  - license-server/lib/serial.ts
-  - src/middleware.ts
-  - license-server/api/license/create.ts
-  - src/lib/admin-auth.ts
-  - electron/codex-guide.html
-  - src/lib/db/schema.ts
-  - src/app/api/admin/licenses/update-info/route.ts
-  - license-server/lib/admin-auth.ts
-  - electron/launcher.ts
-  - license-server/api/license/revoke.ts
-  - src/app/setup/codex/page.tsx
-  - package.json
-  - license-server/api/license/list.ts
-tests:
-  - license-server/api/license/__tests__/update-info.test.ts
-  - license-server/api/license/__tests__/revoke.test.ts
-  - license-server/api/license/__tests__/list.test.ts
-  - scripts/generate-icons.test.ts
-  - license-server/lib/__tests__/serial.test.ts
-  - license-server/api/license/__tests__/end-to-end-flow.test.ts
-  - license-server/api/license/__tests__/transfer.test.ts
-  - src/app/api/setup/verify-openai/route.test.ts
-  - license-server/api/license/__tests__/create.test.ts
-  - license-server/api/license/__tests__/activate-verify.test.ts
-  - src/lib/codex-client/__tests__/key-store.test.ts
-  - e2e/admin-licenses.spec.ts
--->
-
----
-### Requirement: Middleware redirects to admin setup when users table is empty
-
-The middleware SHALL check if the users table is empty after license validation passes. If empty, all routes except /setup/admin and /api/setup/create-first-admin SHALL redirect to /setup/admin.
-
-#### Scenario: License valid but no users
-- **WHEN** license is valid and users table is empty and user navigates to /login
-- **THEN** the system redirects to /setup/admin
-
-##### Example: Redirect on empty users table
-- **GIVEN** license-cache.json is valid (not expired) and SQLite users table has 0 rows
-- **WHEN** user navigates to /login
-- **THEN** middleware returns 302 redirect to /setup/admin
-
-#### Scenario: License valid and users exist
-- **WHEN** license is valid and users table has records
-- **THEN** normal routing proceeds (no redirect to /setup/admin)
-
-##### Example: Normal routing with existing admin
-- **GIVEN** license-cache.json is valid and SQLite users table has 1 row (admin@local)
-- **WHEN** user navigates to /login
-- **THEN** middleware allows the request through to /login page (no redirect)
-
-<!-- @trace
-source: license-admin-ui-redesign
-updated: 2026-05-07
-code:
-  - license-server/api/license/transfer.ts
-  - scripts/fix-standalone-symlinks.js
-  - license-server/api/license/verify.ts
-  - scripts/generate-icons.ts
-  - src/lib/codex-client/key-store.ts
-  - electron/updater.ts
-  - .github/workflows/release.yml
-  - license-server/api/updates/check.ts
-  - vercel.json
-  - src/app/api/admin/licenses/route.ts
-  - scripts/materialize-standalone-symlinks.js
-  - src/app/api/admin/licenses/transfer/route.ts
-  - src/app/api/admin/licenses/unbind-machine/route.ts
-  - license-server/lib/store.ts
-  - src/app/api/setup/create-first-admin/route.ts
-  - src/app/setup/admin/page.tsx
-  - src/app/setup/page.tsx
-  - src/app/api/admin/licenses/revoke/route.ts
-  - electron-builder.json
-  - electron/preload.ts
-  - src/app/api/setup/verify-openai/route.ts
-  - license-server/vercel.json
-  - license-server/lib/machine-id.ts
-  - license-server/api/license/update-info.ts
-  - electron/main.ts
-  - license-server/api/features/index.ts
-  - scripts/generate-license.ts
-  - license-server/api/license/activate.ts
-  - .vercelignore
-  - src/app/admin/licenses/page.tsx
-  - license-server/lib/serial.ts
-  - src/middleware.ts
-  - license-server/api/license/create.ts
-  - src/lib/admin-auth.ts
-  - electron/codex-guide.html
-  - src/lib/db/schema.ts
-  - src/app/api/admin/licenses/update-info/route.ts
-  - license-server/lib/admin-auth.ts
-  - electron/launcher.ts
-  - license-server/api/license/revoke.ts
-  - src/app/setup/codex/page.tsx
-  - package.json
-  - license-server/api/license/list.ts
-tests:
-  - license-server/api/license/__tests__/update-info.test.ts
-  - license-server/api/license/__tests__/revoke.test.ts
-  - license-server/api/license/__tests__/list.test.ts
-  - scripts/generate-icons.test.ts
-  - license-server/lib/__tests__/serial.test.ts
-  - license-server/api/license/__tests__/end-to-end-flow.test.ts
-  - license-server/api/license/__tests__/transfer.test.ts
-  - src/app/api/setup/verify-openai/route.test.ts
-  - license-server/api/license/__tests__/create.test.ts
-  - license-server/api/license/__tests__/activate-verify.test.ts
-  - src/lib/codex-client/__tests__/key-store.test.ts
-  - e2e/admin-licenses.spec.ts
--->
-
----
 ### Requirement: license-init-handles-vendor-credentials
 
 The license init API handler SHALL check the License Server response for a `vendorCredentials` field. When present, it SHALL call `provisionVendorAccount()` to create or update the vendor account before proceeding with the normal license activation flow.
@@ -386,4 +59,219 @@ code:
   - src/app/listings/[id]/documents/page.tsx
 tests:
   - src/lib/auth/__tests__/vendor.test.ts
+-->
+
+---
+### Requirement: Admin account seed from environment variables
+
+The system SHALL read `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables at application startup. When both variables are present, the system SHALL upsert a user record in the SQLite users table with `role='admin'`. The password SHALL be hashed with bcryptjs at cost factor 10. If the email already exists in the users table, the system SHALL update the password hash and ensure the role is set to "admin". If either environment variable is missing, the seed function SHALL skip account creation and log a warning to console using `console.warn("ADMIN_EMAIL / ADMIN_PASSWORD 環境變數未設定，未建立管理員帳號")`.
+
+#### Scenario: First startup with environment variables set
+
+- **WHEN** the application starts with `ADMIN_EMAIL=admin@aire.com` and `ADMIN_PASSWORD=securepass`
+- **THEN** the system SHALL create a user record: `{ email: "admin@aire.com", password_hash: bcrypt("securepass", 10), role: "admin" }`
+
+##### Example: Seed creates admin record
+
+- **GIVEN** users table is empty
+- **GIVEN** `ADMIN_EMAIL=admin@aire.com` and `ADMIN_PASSWORD=MySecret123`
+- **WHEN** application starts
+- **THEN** users table contains one record: email="admin@aire.com", role="admin", password_hash is bcrypt hash of "MySecret123"
+
+#### Scenario: Subsequent startup updates password
+
+- **WHEN** the application starts with `ADMIN_EMAIL=admin@aire.com` and a different `ADMIN_PASSWORD` than what is stored
+- **THEN** the system SHALL update the password hash for the existing admin record
+
+##### Example: Password update on restart
+
+- **GIVEN** users table has email="admin@aire.com" with old password hash
+- **GIVEN** `ADMIN_PASSWORD=NewPassword456`
+- **WHEN** application restarts
+- **THEN** the password_hash for "admin@aire.com" is updated to bcrypt hash of "NewPassword456"
+
+#### Scenario: Missing environment variables
+
+- **WHEN** the application starts without `ADMIN_EMAIL` or without `ADMIN_PASSWORD`
+- **THEN** the seed function SHALL skip account creation
+- **THEN** the system SHALL log `console.warn("ADMIN_EMAIL / ADMIN_PASSWORD 環境變數未設定，未建立管理員帳號")`
+- **THEN** the application SHALL still start normally
+
+
+<!-- @trace
+source: login-page-redesign
+updated: 2026-05-09
+code:
+  - e2e/playwright.forgot.config.ts
+  - .opencode/skills/spectra-apply/SKILL.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/app/admin/(dashboard)/layout.tsx
+  - src/app/forgot-password/page.tsx
+  - src/app/admin/login/page.tsx
+  - src/app/api/setup/create-first-admin/route.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/app/api/auth/reset-password/route.ts
+  - src/lib/auth/credentials-login.ts
+  - src/app/setup/admin/page.tsx
+  - src/app/api/auth/forgot-password/route.ts
+  - src/lib/auth/password-reset-token.ts
+  - src/instrumentation.ts
+  - .github/skills/spectra-propose/SKILL.md
+  - src/app/layout.tsx
+  - src/app/admin/(dashboard)/transfer/page.tsx
+  - .github/prompts/spectra-drift.prompt.md
+  - .github/skills/spectra-apply/SKILL.md
+  - src/app/globals.css
+  - .env.example
+  - .opencode/commands/spectra-ingest.md
+  - src/app/admin/audit-logs/page.tsx
+  - src/middleware.ts
+  - src/app/admin/(dashboard)/users/page.tsx
+  - src/app/setup/page.tsx
+  - src/app/admin/(dashboard)/features/page.tsx
+  - .github/skills/spectra-discuss/SKILL.md
+  - src/app/api/admin/login/route.ts
+  - .github/prompts/spectra-discuss.prompt.md
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-ingest.prompt.md
+  - .opencode/skills/spectra-propose/SKILL.md
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-drift/SKILL.md
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/lib/email.ts
+  - src/app/admin/features/page.tsx
+  - src/app/admin/users/page.tsx
+  - src/app/admin/(dashboard)/audit-logs/page.tsx
+  - src/app/admin/licenses/page.tsx
+  - src/app/admin/transfer/page.tsx
+  - .github/skills/spectra-drift/SKILL.md
+  - src/app/admin/(dashboard)/licenses/page.tsx
+  - src/app/admin/templates/page.tsx
+  - src/app/login/page.tsx
+  - src/lib/seed-admin.ts
+  - .github/prompts/spectra-propose.prompt.md
+  - .opencode/commands/spectra-apply.md
+  - src/app/admin/layout.tsx
+  - .opencode/commands/spectra-propose.md
+  - .opencode/commands/spectra-drift.md
+  - src/app/api/auth/[...nextauth]/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/admin/(dashboard)/templates/page.tsx
+  - src/app/reset-password/page.tsx
+  - src/lib/license/serial-key.ts
+  - src/lib/db/schema.ts
+tests:
+  - src/app/api/auth/login/route.test.ts
+  - src/lib/auth/__tests__/vendor.test.ts
+  - src/app/api/auth/forgot-password/route.test.ts
+  - src/app/reset-password/page.test.tsx
+  - src/app/api/auth/reset-password/route.test.ts
+  - src/app/api/auth/[...nextauth]/route.test.ts
+  - src/lib/email.test.ts
+  - src/app/forgot-password/page.test.tsx
+  - src/app/api/admin/login/route.test.ts
+  - src/middleware.test.ts
+  - src/lib/license/serial-key.test.ts
+  - src/lib/seed-admin.test.ts
+  - src/lib/auth/password-reset-token.test.ts
+  - e2e/forgot-password-flow.spec.ts
+  - src/app/login/page.test.ts
+-->
+
+---
+### Requirement: Seed function execution point
+
+The admin seed function SHALL be called during Next.js application initialization via `instrumentation.ts` (Next.js Instrumentation API). The function SHALL be idempotent — safe to call on every application start.
+
+#### Scenario: Seed runs on every startup
+
+- **WHEN** the application starts
+- **THEN** the seed function runs exactly once during initialization
+- **THEN** no duplicate records are created if the admin already exists
+
+##### Example: Idempotent seed on restart
+
+- **GIVEN** users table already has email="admin@aire.com" with role="admin"
+- **GIVEN** `ADMIN_EMAIL=admin@aire.com` and `ADMIN_PASSWORD=SamePass`
+- **WHEN** application restarts
+- **THEN** users table still has exactly one record for "admin@aire.com" (no duplicate)
+
+<!-- @trace
+source: login-page-redesign
+updated: 2026-05-09
+code:
+  - e2e/playwright.forgot.config.ts
+  - .opencode/skills/spectra-apply/SKILL.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/app/admin/(dashboard)/layout.tsx
+  - src/app/forgot-password/page.tsx
+  - src/app/admin/login/page.tsx
+  - src/app/api/setup/create-first-admin/route.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - src/app/api/auth/reset-password/route.ts
+  - src/lib/auth/credentials-login.ts
+  - src/app/setup/admin/page.tsx
+  - src/app/api/auth/forgot-password/route.ts
+  - src/lib/auth/password-reset-token.ts
+  - src/instrumentation.ts
+  - .github/skills/spectra-propose/SKILL.md
+  - src/app/layout.tsx
+  - src/app/admin/(dashboard)/transfer/page.tsx
+  - .github/prompts/spectra-drift.prompt.md
+  - .github/skills/spectra-apply/SKILL.md
+  - src/app/globals.css
+  - .env.example
+  - .opencode/commands/spectra-ingest.md
+  - src/app/admin/audit-logs/page.tsx
+  - src/middleware.ts
+  - src/app/admin/(dashboard)/users/page.tsx
+  - src/app/setup/page.tsx
+  - src/app/admin/(dashboard)/features/page.tsx
+  - .github/skills/spectra-discuss/SKILL.md
+  - src/app/api/admin/login/route.ts
+  - .github/prompts/spectra-discuss.prompt.md
+  - .github/prompts/spectra-apply.prompt.md
+  - .github/prompts/spectra-ingest.prompt.md
+  - .opencode/skills/spectra-propose/SKILL.md
+  - .opencode/commands/spectra-discuss.md
+  - .opencode/skills/spectra-drift/SKILL.md
+  - .github/skills/spectra-ingest/SKILL.md
+  - src/lib/email.ts
+  - src/app/admin/features/page.tsx
+  - src/app/admin/users/page.tsx
+  - src/app/admin/(dashboard)/audit-logs/page.tsx
+  - src/app/admin/licenses/page.tsx
+  - src/app/admin/transfer/page.tsx
+  - .github/skills/spectra-drift/SKILL.md
+  - src/app/admin/(dashboard)/licenses/page.tsx
+  - src/app/admin/templates/page.tsx
+  - src/app/login/page.tsx
+  - src/lib/seed-admin.ts
+  - .github/prompts/spectra-propose.prompt.md
+  - .opencode/commands/spectra-apply.md
+  - src/app/admin/layout.tsx
+  - .opencode/commands/spectra-propose.md
+  - .opencode/commands/spectra-drift.md
+  - src/app/api/auth/[...nextauth]/route.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/admin/(dashboard)/templates/page.tsx
+  - src/app/reset-password/page.tsx
+  - src/lib/license/serial-key.ts
+  - src/lib/db/schema.ts
+tests:
+  - src/app/api/auth/login/route.test.ts
+  - src/lib/auth/__tests__/vendor.test.ts
+  - src/app/api/auth/forgot-password/route.test.ts
+  - src/app/reset-password/page.test.tsx
+  - src/app/api/auth/reset-password/route.test.ts
+  - src/app/api/auth/[...nextauth]/route.test.ts
+  - src/lib/email.test.ts
+  - src/app/forgot-password/page.test.tsx
+  - src/app/api/admin/login/route.test.ts
+  - src/middleware.test.ts
+  - src/lib/license/serial-key.test.ts
+  - src/lib/seed-admin.test.ts
+  - src/lib/auth/password-reset-token.test.ts
+  - e2e/forgot-password-flow.spec.ts
+  - src/app/login/page.test.ts
 -->

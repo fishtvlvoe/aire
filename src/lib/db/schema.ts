@@ -189,5 +189,5 @@ export function initDb(db: Database.Database): void {
 
   db.prepare('INSERT OR IGNORE INTO feature_flags (key, enabled, value) VALUES (?, 1, ?)').run('doc_color_scheme', 'navy');
 
-  // 不再自動建立預設 admin 帳號；改由 /setup/admin 流程建立首位管理員
+  // 不在 schema 初始化時建立預設 admin；改由 instrumentation 的 env seed 建立
 }

@@ -10,6 +10,7 @@
 
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
+import { generateKeyPairSync, sign } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // mock next/headers（必須在頂層宣告，Vitest hoisting 才能正確攔截）
@@ -80,10 +81,24 @@ const { provisionVendorAccount } = await import('@/lib/auth/vendor');
 const { getUserByUsername, createRefreshToken, generateRefreshToken } = await import('@/lib/auth/db');
 const { authorizeCredentials } = await import('@/app/api/auth/[...nextauth]/route');
 
+const keyPair = generateKeyPairSync('ed25519');
+const publicKeyPem = keyPair.publicKey.export({ type: 'spki', format: 'pem' }).toString();
+const privateKeyPem = keyPair.privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+
+function createLicenseKey(expires: string): string {
+  const payload = Buffer.from(
+    JSON.stringify({ company: 'AIRE', expires, version: 1 }),
+    'utf8'
+  ).toString('base64url');
+  const signature = sign(null, Buffer.from(payload, 'utf8'), privateKeyPem);
+  return `${payload}.${Buffer.from(signature).toString('base64url')}`;
+}
+
 // ─── 每個 describe 前重建乾淨的 DB ──────────────────────────────────────────
 
 beforeEach(() => {
   testDb = buildTestDb();
+  process.env.LICENSE_PUBLIC_KEY = publicKeyPem;
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -276,6 +291,8 @@ describe('4.4 vendor 帳號可通過 authorizeCredentials 登入', () => {
     const result = await authorizeCredentials({
       username: VENDOR_USERNAME,
       password: PLAIN_PASSWORD,
+      licenseKey: createLicenseKey('2027-12-31T00:00:00+08:00'),
+      mode: 'customer',
     });
 
     expect(result).not.toBeNull();
@@ -287,6 +304,8 @@ describe('4.4 vendor 帳號可通過 authorizeCredentials 登入', () => {
     const result = await authorizeCredentials({
       username: VENDOR_USERNAME,
       password: 'wrong_password',
+      licenseKey: createLicenseKey('2027-12-31T00:00:00+08:00'),
+      mode: 'customer',
     });
 
     expect(result).toBeNull();
@@ -296,6 +315,8 @@ describe('4.4 vendor 帳號可通過 authorizeCredentials 登入', () => {
     const result = await authorizeCredentials({
       username: 'non_existent_vendor',
       password: PLAIN_PASSWORD,
+      licenseKey: createLicenseKey('2027-12-31T00:00:00+08:00'),
+      mode: 'customer',
     });
 
     expect(result).toBeNull();
