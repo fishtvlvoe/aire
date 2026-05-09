@@ -30,23 +30,43 @@ export default function DisclosureFieldOverlay({
 }: DisclosureFieldOverlayProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [showPlaceholder, setShowPlaceholder] = useState(!value);
 
   useEffect(() => {
     if (ref.current && ref.current.innerText !== value) {
       ref.current.innerText = value;
     }
+    setShowPlaceholder(!value);
   }, [value]);
 
   useEffect(() => {
-    if (saveState !== 'success') {
-      return;
-    }
+    if (saveState !== 'success') return;
     const timer = setTimeout(() => setSaveState('idle'), 1000);
     return () => clearTimeout(timer);
   }, [saveState]);
 
   return (
-    <div className="relative">
+    <>
+      {showPlaceholder && (
+        <span
+          aria-hidden
+          style={{
+            position: 'absolute',
+            left: `${position.x}%`,
+            top: `${position.y}%`,
+            width: `${position.width}%`,
+            height: `${position.height}%`,
+            fontSize: `${position.fontSize}px`,
+            textAlign: position.textAlign,
+            zIndex: 1,
+            color: '#94a3b8',
+            pointerEvents: 'none',
+            padding: '0 4px',
+          }}
+        >
+          {label}
+        </span>
+      )}
       <div
         ref={ref}
         contentEditable
@@ -69,11 +89,11 @@ export default function DisclosureFieldOverlay({
           'focus:border focus:border-blue-500',
           saveState === 'error' ? 'border border-red-500' : '',
         ].join(' ')}
+        onFocus={() => setShowPlaceholder(false)}
         onBlur={async (event) => {
           const nextValue = event.currentTarget.innerText;
-          if (nextValue === value) {
-            return;
-          }
+          setShowPlaceholder(!nextValue);
+          if (nextValue === value) return;
           setSaveState('saving');
           try {
             await onSave(fieldKey, nextValue);
@@ -84,7 +104,7 @@ export default function DisclosureFieldOverlay({
           }
         }}
       />
-      {saveState === 'success' ? (
+      {saveState === 'success' && (
         <span
           style={{
             position: 'absolute',
@@ -96,8 +116,8 @@ export default function DisclosureFieldOverlay({
         >
           ✓
         </span>
-      ) : null}
-    </div>
+      )}
+    </>
   );
 }
 

@@ -117,13 +117,15 @@ export default function DisclosurePreview({
         scale={scale}
         onSave={onSave}
       />
-      <PreviewPage
-        page="content"
-        fields={contentFields}
-        backgroundUrl={backgrounds.content}
-        scale={scale}
-        onSave={onSave}
-      />
+      {(contentFields.length > 0 || backgrounds.content) && (
+        <PreviewPage
+          page="content"
+          fields={contentFields}
+          backgroundUrl={backgrounds.content}
+          scale={scale}
+          onSave={onSave}
+        />
+      )}
     </div>
   );
 }

@@ -69,9 +69,10 @@ export default function DisclosureDocumentPreviewPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F6FA] text-[#2D3142] font-['Manrope']">
-      <div className="mx-auto flex w-full max-w-[1440px]">
+      <div className="flex w-full">
         <Sidebar />
-        <main className="flex-1 p-8">
+        {/* 預覽主區域：移除 max-w 限制與 p-8，讓說明書有完整展示空間 */}
+        <main className="flex-1 p-4">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-[#1B3A6B]">不動產說明書預覽</h1>
