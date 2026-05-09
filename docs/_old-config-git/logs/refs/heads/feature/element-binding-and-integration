@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 d259da69ad23578583f1182bf05443832a7729e6 fish老魚 <fish@fishot.com> 1775112030 +0800	branch: Created from HEAD
+d259da69ad23578583f1182bf05443832a7729e6 4549924479ab4c8853ba69d8c488646668978ee6 fish老魚 <fish@fishot.com> 1775117307 +0800	commit: feat: 10 段情緒表情測試 — Element Binding + 表情參考照
+4549924479ab4c8853ba69d8c488646668978ee6 decb69af6de8e9c3ede03ceef4f060afac7e6a6c fish老魚 <fish@fishot.com> 1775128113 +0800	commit: feat: 最終影片生成流程確認 — 4 步驟標準化
+decb69af6de8e9c3ede03ceef4f060afac7e6a6c 2bff93cb377441414a65d5e2e8167906c555d6f3 fish老魚 <fish@fishot.com> 1775142546 +0800	commit: feat: v14 明星偶包 prompt 驗證完美 + API 文件本地化
+2bff93cb377441414a65d5e2e8167906c555d6f3 aeb7e77773814cc75ce39ef0f82f7ce148966fcd fish老魚 <fish@fishot.com> 1775142954 +0800	commit: feat: v14 明星偶包 prompt 寫入程式碼 + 保留原始檔

@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# 影片產出（太大，不進 Git）
+影片專區/
+
+# 測試產出
+test/e2e-output/
+videogo/test/e2e-output/
+
+# 客戶素材（含個資/大檔）
+0328新素材/
+
+# 影片檔案
+*.mp4
+*.wav
+*.mp3
+
+# 素材（人物照由客戶提供，不進 Git）
+素材/主角/faces/
+
+# Spectra app data
+.spectra/
+openspec/.vector-search.db*
+.env
+data/*.db
+output/

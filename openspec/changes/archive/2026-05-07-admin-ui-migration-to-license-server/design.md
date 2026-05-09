@@ -1,14 +1,14 @@
 ## Context
 
-three-ai 主 App 為 Electron 桌面版（資料庫 `better-sqlite3`），admin UI（`src/app/admin/licenses/page.tsx`，840 行 React）僅能在 Fish 自己電腦執行。當 Fish 不在電腦前，無法即時核發、停用、轉讓序號。
+AIRE 主 App 為 Electron 桌面版（資料庫 `better-sqlite3`），admin UI（`src/app/admin/licenses/page.tsx`，840 行 React）僅能在 Fish 自己電腦執行。當 Fish 不在電腦前，無法即時核發、停用、轉讓序號。
 
-license-server 是獨立 Vercel 專案（`https://three-ai-license-server.vercel.app`），目前為純 Vercel Functions（`@vercel/node` 風格 `api/*.ts`），用 Vercel KV 作後端儲存，已穩定運作。現有 API：`activate` / `create` / `list` / `revoke` / `transfer` / `update-info` / `verify` / `features` / `updates`。Admin auth 機制為 `LICENSE_ADMIN_TOKEN` 環境變數 + `Authorization: Bearer ...` header。
+license-server 是獨立 Vercel 專案（`https://AIRE-license-server.vercel.app`），目前為純 Vercel Functions（`@vercel/node` 風格 `api/*.ts`），用 Vercel KV 作後端儲存，已穩定運作。現有 API：`activate` / `create` / `list` / `revoke` / `transfer` / `update-info` / `verify` / `features` / `updates`。Admin auth 機制為 `LICENSE_ADMIN_TOKEN` 環境變數 + `Authorization: Bearer ...` header。
 
 `vercel.json` 目前的 rewrite 為 `"/(.*)" → "/api/$1"`，把所有路徑都導向 API；要加入 Web UI 必須調整。
 
 利害關係人：
 - Fish（唯一管理員，需要手機/桌機隨時管理序號）
-- Client App（three-ai Electron）— 仍需呼叫 license-server 既有 API 不受影響
+- Client App（AIRE Electron）— 仍需呼叫 license-server 既有 API 不受影響
 - 未來可能新增 agent 角色，但本 change 不處理
 
 ## Goals / Non-Goals
@@ -18,13 +18,13 @@ license-server 是獨立 Vercel 專案（`https://three-ai-license-server.vercel
 - license-server 部署後，網址 `/admin/licenses` 為可從任意瀏覽器（含手機）登入操作的 admin UI
 - 現有 `/api/license/*` 端點（client app 用）行為完全不變
 - admin session 採 HTTP-only secure cookie，避免 token 在前端可被 JS 讀取
-- 升級為 Next.js 14 App Router，與 three-ai 主 App 框架一致，便於日後再搬程式碼
+- 升級為 Next.js 14 App Router，與 AIRE 主 App 框架一致，便於日後再搬程式碼
 - middleware 強制保護 `/admin/*` 與 `/api/admin/*` 路徑
 
 **Non-Goals:**
 
 - 不重寫現有 `api/license/*.ts`（保留 `@vercel/node` 風格，繼續運作）
-- 不刪除 three-ai 端的 `src/app/admin/licenses/page.tsx`
+- 不刪除 AIRE 端的 `src/app/admin/licenses/page.tsx`
 - 不做多管理員、角色分權、2FA、OAuth、SSO
 - 不做手機原生 App
 - 不做密碼自助修改／找回密碼（密碼變更直接改 Vercel env 後重啟）
@@ -71,7 +71,7 @@ license-server/
 
 **Alternatives Considered:**
 
-- **A. 純靜態 SPA（HTML + esm.sh React，放 `public/admin/index.html`）**：優點是不引入 Next.js；缺點是無 SSR、難用 middleware 保護路徑，登入頁要靠 `<script>` 自己處理 redirect，且無 React 生態（要自己手寫 fetch / state，無法直接抄 three-ai 的 React 元件）。否決。
+- **A. 純靜態 SPA（HTML + esm.sh React，放 `public/admin/index.html`）**：優點是不引入 Next.js；缺點是無 SSR、難用 middleware 保護路徑，登入頁要靠 `<script>` 自己處理 redirect，且無 React 生態（要自己手寫 fetch / state，無法直接抄 AIRE 的 React 元件）。否決。
 - **B. 改寫所有 `api/*.ts` 為 Next.js Route Handler**：要改的檔案多（7+ 端點），破壞 client app 風險高，須重跑全部端對端測試。否決。
 
 ### Decision 2：admin 認證採 HTTP-only Cookie + HMAC-signed session
@@ -136,7 +136,7 @@ middleware 驗證：
 
 ### Decision 5：admin UI 移植策略
 
-three-ai 端 `src/app/admin/licenses/page.tsx` 維持原檔不動。新檔 `license-server/app/admin/licenses/page.tsx` 由原檔複製＋以下調整：
+AIRE 端 `src/app/admin/licenses/page.tsx` 維持原檔不動。新檔 `license-server/app/admin/licenses/page.tsx` 由原檔複製＋以下調整：
 - 把所有 `fetch('/api/admin/licenses*', ...)` 改為 `fetch('/api/admin/licenses*', { credentials: 'same-origin' })`（同源，cookie 自動帶）
 - 移除 `Authorization: Bearer` header（cookie 取代）
 - 加入 `useEffect` 偵測 401 → `router.push('/admin/login')`
@@ -144,13 +144,13 @@ three-ai 端 `src/app/admin/licenses/page.tsx` 維持原檔不動。新檔 `lice
 
 **Alternatives Considered:**
 
-- **A. 寫個共用 `@three-ai/admin-ui` npm 套件兩邊引用**：對單一畫面而言過度工程化。否決。
-- **B. iframe 嵌入 three-ai 的本機 admin UI**：手機沒法跑本機 three-ai。否決。
+- **A. 寫個共用 `@AIRE/admin-ui` npm 套件兩邊引用**：對單一畫面而言過度工程化。否決。
+- **B. iframe 嵌入 AIRE 的本機 admin UI**：手機沒法跑本機 AIRE。否決。
 
 ## Risks / Trade-offs
 
 - [Next.js 14 與既有 Vercel Functions 混用相容性問題] → 部署前先 `vercel dev` 本機驗證；分兩次 commit（先升級框架且不動既有功能、再加新 admin UI），方便回滾
-- [`vercel.json` rewrite 改動破壞 client app 呼叫] → 部署前 `grep -r "license-server" three-ai/src` 列出所有呼叫路徑，逐一驗證；保留 `/license/*` 等 rewrite 作為相容層
+- [`vercel.json` rewrite 改動破壞 client app 呼叫] → 部署前 `grep -r "license-server" AIRE/src` 列出所有呼叫路徑，逐一驗證；保留 `/license/*` 等 rewrite 作為相容層
 - [`bcryptjs` 在 Edge Runtime 跑不動] → middleware 強制 `runtime = 'nodejs'`；session 驗證用 Node `crypto.createHmac` 而非 bcrypt（bcrypt 只在 `/api/admin/session` POST 比密碼時用）
 - [`ADMIN_SESSION_SECRET` 外洩或弱密碼] → README 註明用 `openssl rand -base64 48` 產 ≥48 byte 密鑰，存 Vercel env，禁止 commit；本次不寫業務測試 fixture 用真 secret
 - [手機瀏覽器 cookie 被擋（safari ITP）] → cookie 設 `SameSite=Lax`，且 admin UI 與 API 同源（同 `*.vercel.app`）不會被視為 third-party
@@ -174,8 +174,8 @@ three-ai 端 `src/app/admin/licenses/page.tsx` 維持原檔不動。新檔 `lice
 5. **取得 Fish 同意後**：
    - 在 Vercel Dashboard 設定環境變數 `LICENSE_ADMIN_PASSWORD`（bcrypt hash） 與 `ADMIN_SESSION_SECRET`（48 byte base64）
    - `cd license-server && vercel deploy --prod` 部署
-6. 部署後線上驗證：手機開瀏覽器訪問 `https://three-ai-license-server.vercel.app/admin/login`，登入流程完整測試一次
-7. three-ai client app 端 smoke test：開啟 Electron App，驗證序號 verify 流程仍正常
+6. 部署後線上驗證：手機開瀏覽器訪問 `https://AIRE-license-server.vercel.app/admin/login`，登入流程完整測試一次
+7. AIRE client app 端 smoke test：開啟 Electron App，驗證序號 verify 流程仍正常
 
 **回滾策略：**
 

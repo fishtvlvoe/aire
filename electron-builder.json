@@ -1,5 +1,5 @@
 {
-  "appId": "com.aiver.three-ai",
+  "appId": "com.aiver.AIRE",
   "productName": "AI 不動產說明書",
   "copyright": "Copyright © 2026 核流有限公司",
   "directories": {
@@ -52,7 +52,7 @@
   "publish": {
     "provider": "github",
     "owner": "fishtvlvoe",
-    "repo": "three-ai",
+    "repo": "aire",
     "releaseType": "release"
   }
 }

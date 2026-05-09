@@ -1,4 +1,4 @@
-# Code Review — three-ai
+# Code Review — AIRE
 
 Date: 2026-05-08
 
@@ -205,7 +205,7 @@ Files:
 
 Evidence:
 
-- Electron stores `~/.three-ai/openai-token.json` as raw JSON `{ token }`.
+- Electron stores `~/.AIRE/openai-token.json` as raw JSON `{ token }`.
 - There is already an encrypted key-store implementation elsewhere.
 
 Impact:

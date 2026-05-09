@@ -774,7 +774,7 @@ The supplementary form page SHALL display four collapsible sections for the new 
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts
@@ -807,7 +807,7 @@ The sale_price_text field in the form SHALL be labeled "成交價（萬元）" a
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts

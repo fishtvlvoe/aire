@@ -54,7 +54,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -148,7 +148,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -230,7 +230,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -324,7 +324,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -387,7 +387,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -481,7 +481,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -571,7 +571,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -665,7 +665,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -731,7 +731,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -825,7 +825,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -902,7 +902,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -996,7 +996,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -1057,7 +1057,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -1151,7 +1151,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -1215,7 +1215,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -1309,7 +1309,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -1377,7 +1377,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -1471,7 +1471,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts

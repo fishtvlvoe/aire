@@ -20,4 +20,4 @@
 
 ## 5. Review
 
-- [ ] 5.1 Review change scope，確認沒有把 three-ai 專案規則複製到全域 Skill，對應 D3: 專案事實留在專案，全域 Skill 只保存方法 [Tool: kimi]
+- [ ] 5.1 Review change scope，確認沒有把 AIRE 專案規則複製到全域 Skill，對應 D3: 專案事實留在專案，全域 Skill 只保存方法 [Tool: kimi]

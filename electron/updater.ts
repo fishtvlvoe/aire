@@ -43,7 +43,7 @@ export async function checkAndApplyUpdate(win: BrowserWindow): Promise<void> {
   autoUpdater.setFeedURL({
     provider: 'github',
     owner: 'fishtvlvoe',
-    repo: 'three-ai',
+    repo: 'AIRE',
   });
   autoUpdater.autoDownload = true;
   bindUpdaterListeners(win);

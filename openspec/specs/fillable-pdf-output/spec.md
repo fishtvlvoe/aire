@@ -20,7 +20,7 @@ The disclosure PDF SHALL contain AcroForm text fields at the position of every r
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts
@@ -62,7 +62,7 @@ The system SHALL extract field bounding box coordinates from the rendered HTML b
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts
@@ -96,7 +96,7 @@ Fields that already have a value from supplementary_data or extracted_data SHALL
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts
@@ -129,7 +129,7 @@ The PDF cover page header table (物件名稱 / 案件編號 / 地址) SHALL be 
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts

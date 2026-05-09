@@ -8,7 +8,7 @@ export interface VendorCredentials {
 
 /**
  * 佈建廠商帳號：若帳號已存在則更新密碼與顯示名稱，否則新建廠商用戶。
- * 廠商帳號的 email 格式固定為 {username}@vendor.three-ai.app，role 固定為 'admin'。
+ * 廠商帳號的 email 格式固定為 {username}@vendor.AIRE.app，role 固定為 'admin'。
  */
 export function provisionVendorAccount(credentials: VendorCredentials): void {
   const { username, passwordHash, displayName } = credentials;
@@ -25,7 +25,7 @@ export function provisionVendorAccount(credentials: VendorCredentials): void {
     ).run(passwordHash, displayName, existing.id);
   } else {
     // 帳號不存在：新建廠商用戶，email 使用系統保留網域
-    const email = `${username}@vendor.three-ai.app`;
+    const email = `${username}@vendor.AIRE.app`;
     db.prepare(
       'INSERT INTO users (username, email, password_hash, display_name, role, is_vendor) VALUES (?, ?, ?, ?, ?, ?)'
     ).run(username, email, passwordHash, displayName, 'admin', 1);

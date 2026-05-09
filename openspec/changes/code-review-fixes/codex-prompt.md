@@ -249,7 +249,7 @@ export function sanitizeHtml(html: string): string {
 檔案：`scripts/backfill-username.ts`（新建）
 ```typescript
 import Database from 'better-sqlite3';
-const db = new Database('./data/three-ai.db');
+const db = new Database('./data/AIRE.db');
 db.prepare('UPDATE users SET username = email WHERE username IS NULL').run();
 console.log('Backfill complete');
 ```
@@ -262,7 +262,7 @@ console.log('Backfill complete');
 - 如果 key-store 是前端模組不能在 Electron 主進程用，就用 Node.js crypto：
   ```typescript
   import crypto from 'crypto';
-  const KEY = crypto.scryptSync(app.getPath('userData'), 'three-ai-salt', 32);
+  const KEY = crypto.scryptSync(app.getPath('userData'), 'AIRE-salt', 32);
   function encrypt(text: string) { /* aes-256-gcm */ }
   function decrypt(data: Buffer) { /* aes-256-gcm */ }
   ```

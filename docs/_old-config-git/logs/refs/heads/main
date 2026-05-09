@@ -1,0 +1,75 @@
+0000000000000000000000000000000000000000 36e5d619f3e13c641cfd022139161a3633cc1c04 fish老魚 <fish@fishot.com> 1773918943 +0800	commit (initial): init: 不動產 AI 自動化系統初始化
+36e5d619f3e13c641cfd022139161a3633cc1c04 36e5d619f3e13c641cfd022139161a3633cc1c04 fish老魚 <fish@fishot.com> 1773918954 +0800	Branch: renamed refs/heads/master to refs/heads/main
+36e5d619f3e13c641cfd022139161a3633cc1c04 f422ac83b764fa1bfb9073ee434ea5a84396c08b fish老魚 <fish@fishot.com> 1773920272 +0800	commit: docs: 建立需求摘要與 grill-me 第一輪討論記錄
+f422ac83b764fa1bfb9073ee434ea5a84396c08b 9de6c07ee9c5974e80757b9c4468adbac9614116 fish老魚 <fish@fishot.com> 1773921040 +0800	commit: docs: 第一輪對焦紀錄 — 客戶畫像、核心場景、優先級確認
+9de6c07ee9c5974e80757b9c4468adbac9614116 849d738130f92d7e6b8080c8eafcc73261d7a265 fish老魚 <fish@fishot.com> 1773922035 +0800	commit: docs: 第二輪深度對焦 — 修正系統定位、新增需求、待問客戶清單
+849d738130f92d7e6b8080c8eafcc73261d7a265 6f279e42635fe499599c9ea8ce95d9b69e6e4516 fish老魚 <fish@fishot.com> 1773922614 +0800	commit: docs: 第三輪對焦 — 產品定位確認、協作流程、待問客戶清單整合
+6f279e42635fe499599c9ea8ce95d9b69e6e4516 4a6cf512a56d552330d77636b8e99ab131f3fc48 fish老魚 <fish@fishot.com> 1773922782 +0800	commit: docs: 報價與時程方案 — 10 萬 / 2 個月，含 SaaS 擴展路徑
+4a6cf512a56d552330d77636b8e99ab131f3fc48 28108ce93d2a6c72cca56d54064475bd65fe9127 fish老魚 <fish@fishot.com> 1773923302 +0800	commit: docs: 第四輪對焦 — Web App、串流式報告、開發模式確認
+28108ce93d2a6c72cca56d54064475bd65fe9127 95b5a309f1d99660a3b4df6bc4d4f6978dd7771d fish老魚 <fish@fishot.com> 1773924095 +0800	commit: docs: 批判分析（SWOT+BWPA+喬哈里）+ 實價登錄 API 技術調研
+95b5a309f1d99660a3b4df6bc4d4f6978dd7771d 93842635156bf9af369b413150cbe97d238ff7c8 fish老魚 <fish@fishot.com> 1773924166 +0800	commit: docs: 市場調研 — 台灣房仲 AI 競品分析 + 國際參考
+93842635156bf9af369b413150cbe97d238ff7c8 e5d055a41bc49f5c2b7b674cb9560d429a7894e4 fish老魚 <fish@fishot.com> 1773925032 +0800	commit: docs: 反方拷問六大問題 + 待問客戶清單累計 22 題
+e5d055a41bc49f5c2b7b674cb9560d429a7894e4 1d6af9fb6a93a42a2e65cb94e522fe60dc1f8042 fish老魚 <fish@fishot.com> 1773925250 +0800	commit: docs: 地政 API 費用調研 + 客戶自行提供資料策略
+1d6af9fb6a93a42a2e65cb94e522fe60dc1f8042 f05672ae60aa84ebf6c6ed86dca7f60b5a05ff65 fish老魚 <fish@fishot.com> 1773926769 +0800	commit: docs: 失敗清單熵減倒推分析 — 24 個失敗可能性 + 排除狀態
+f05672ae60aa84ebf6c6ed86dca7f60b5a05ff65 9a6c4fe147470a3388cea377b36aff8f5d793821 fish老魚 <fish@fishot.com> 1773927193 +0800	commit: docs: 需求蔓延防護調研 — 合約條款、付款結構、PRD 防護設計
+9a6c4fe147470a3388cea377b36aff8f5d793821 c7b8995965a75f2838fe2b099a564e60968701fd fish老魚 <fish@fishot.com> 1773927296 +0800	commit: docs: AI 幻覺防護 + SaaS 留存率根因分析
+c7b8995965a75f2838fe2b099a564e60968701fd 37e886bd07f5698a5d1f9131d5eca36709ee2070 fish老魚 <fish@fishot.com> 1773927867 +0800	commit: docs: 失敗清單深挖 — 7 個未排除項目全部找到排除方案
+37e886bd07f5698a5d1f9131d5eca36709ee2070 087c7c44e596d5d5dd0d83acd59d21435916b3e3 fish老魚 <fish@fishot.com> 1773929294 +0800	commit: docs: 產品規劃定案 — 兩條產品線、排程、費用、合約條件
+087c7c44e596d5d5dd0d83acd59d21435916b3e3 080a47eed8fa5fe004f3ee1431a1f06d0abaf43f fish老魚 <fish@fishot.com> 1773929651 +0800	commit: docs: 技術驗證 — 9 個線上查詢管道程式化可行性
+080a47eed8fa5fe004f3ee1431a1f06d0abaf43f 5ffcd4a24c422d584c6068b5ea3a0d0f907a227b fish老魚 <fish@fishot.com> 1773930348 +0800	commit: docs: 房屋網站搜尋連結 URL 結構調研
+5ffcd4a24c422d584c6068b5ea3a0d0f907a227b dc742fa618d02d2db9f037c1aa16b607eda8fc4e fish老魚 <fish@fishot.com> 1773930591 +0800	commit: docs: 最終產品規格定稿 — PRD 前最後確認版
+dc742fa618d02d2db9f037c1aa16b607eda8fc4e 9ee7d1fbe5db1b6048e0c5e9987882923b87ce67 fish老魚 <fish@fishot.com> 1773931908 +0800	commit: docs: PRD 初稿 + 客戶簡報資料夾（4 份文件）
+9ee7d1fbe5db1b6048e0c5e9987882923b87ce67 da60382ff321f7b388f76edd3b54885484b8a1a3 fish老魚 <fish@fishot.com> 1773933372 +0800	commit: docs: 客戶提案簡報 HTML 頁面
+da60382ff321f7b388f76edd3b54885484b8a1a3 a9a8814613420ca7156b3971fab7d72a8340c916 fish老魚 <fish@fishot.com> 1773938090 +0800	commit: docs: 客戶簡報擴充至 12 頁，補入所有討論細節
+a9a8814613420ca7156b3971fab7d72a8340c916 feef600974b5b443b7f49b1a27f04be1395c017f fish老魚 <fish@fishot.com> 1773938310 +0800	commit: fix: 修復簡報 PDF 輸出內容被切掉的問題
+feef600974b5b443b7f49b1a27f04be1395c017f 02ee140fd85bb429e4c41bc7e8f141e6f356e532 fish老魚 <fish@fishot.com> 1773938667 +0800	commit: docs: 新增 PDF 版簡報（12 頁完整）
+02ee140fd85bb429e4c41bc7e8f141e6f356e532 3b8a2728d861b8b31779b1778e03bf6d0ced6114 fish老魚 <fish@fishot.com> 1773939600 +0800	commit: docs: PPTX 簡報（12 頁 Corporate Blue）+ Markdown 原稿
+3b8a2728d861b8b31779b1778e03bf6d0ced6114 0d97a9b68caca394cfe39df85ad99178588b3b23 fish老魚 <fish@fishot.com> 1773940670 +0800	commit: docs: PDF 簡報修正 — 截圖合成方式，12 頁完整顯示
+0d97a9b68caca394cfe39df85ad99178588b3b23 9aac011f6515a3d0d3edb1cda6ad5aa068626296 fish老魚 <fish@fishot.com> 1773940853 +0800	commit: docs: PDF 簡報高解析度版（3x, 300 DPI, 3.7MB）
+9aac011f6515a3d0d3edb1cda6ad5aa068626296 caecee4d49b134382b9b78b1903620f19ec5f049 fish老魚 <fish@fishot.com> 1773941248 +0800	commit: docs: 待問客戶清單 — 27 題，分 8 大類，帶去現場用
+caecee4d49b134382b9b78b1903620f19ec5f049 e3d1d37c1d46c7c783216ac3bd32a7d5b43ed0f2 fish老魚 <fish@fishot.com> 1774458343 +0800	commit: feat(rev-cli): Day 1 TDD — 類型定義與 Prompt Builder，10 tests 全綠
+e3d1d37c1d46c7c783216ac3bd32a7d5b43ed0f2 a4f0513a63c54fc735d2ada747a0476450e26d9f fish老魚 <fish@fishot.com> 1774458356 +0800	commit: chore: 補 .gitignore，排除 node_modules / dist / .DS_Store
+a4f0513a63c54fc735d2ada747a0476450e26d9f 81e49c776b6a29bb3cb87a4575d51dddccc286ae fish老魚 <fish@fishot.com> 1774460009 +0800	commit: feat(rev-cli): Day 2 TDD — FFmpeg command builders，13 tests 全綠
+81e49c776b6a29bb3cb87a4575d51dddccc286ae 648f1e043127ccaded8a9d21eda7227c0f5f026f fish老魚 <fish@fishot.com> 1774460253 +0800	commit: feat(rev-cli): adapters + templates + pipeline integration tests，16 tests 全綠
+648f1e043127ccaded8a9d21eda7227c0f5f026f d3d0c39e9bfee1adce2b5e2841e7411c05df1a21 fish老魚 <fish@fishot.com> 1774460645 +0800	commit: feat(rev-cli): auth 模組 — API Key + Google OAuth，26 tests 全綠
+d3d0c39e9bfee1adce2b5e2841e7411c05df1a21 0ca8259382c4114f79e6525f74a5eba3ddefe489 fish老魚 <fish@fishot.com> 1774714466 +0800	commit: feat(rev-cli): Pipeline V2 — FLUX Kontext 人物一致性 + Edge TTS + 閘門審核機制
+0ca8259382c4114f79e6525f74a5eba3ddefe489 5c8465a20d9e3775341fb5f90dcbf05e15af81dd fish老魚 <fish@fishot.com> 1774714588 +0800	commit: docs: Pipeline V2 復盤記錄 + 客戶接案流程（7 題需求收集 + 審核閘門流程）
+5c8465a20d9e3775341fb5f90dcbf05e15af81dd b2479c27f7f3c1ff4485b96644b936b732d328e1 fish老魚 <fish@fishot.com> 1774726418 +0800	commit: feat(rev-cli): Pipeline O3 — Kling O3 一步到位 + Queue 批次系統
+b2479c27f7f3c1ff4485b96644b936b732d328e1 7d804924cbcebe8b639c5ec6e180dc616b5c1eaa fish老魚 <fish@fishot.com> 1774728860 +0800	commit: feat(rev-cli): VideoProvider 統一介面 + 架構文件
+7d804924cbcebe8b639c5ec6e180dc616b5c1eaa 7595b5b91548b9913fd8542a52be488b8692016c fish老魚 <fish@fishot.com> 1774729168 +0800	commit: docs: 完整開發歷程復盤（17 個坑 + 全模型測試記錄 + 系統架構 + 待辦）
+7595b5b91548b9913fd8542a52be488b8692016c 2ed433475e2adc5ab482e0a9645e922490e7e482 fish老魚 <fish@fishot.com> 1774729385 +0800	commit: fix: 跨平台路徑修正 + setup 環境檢查腳本
+2ed433475e2adc5ab482e0a9645e922490e7e482 329ec548e3c81539077d5309f379d1b087410bc9 fish老魚 <fish@fishot.com> 1774729470 +0800	commit: chore: 更新 .gitignore 排除大檔案（影片/素材/測試產出）
+329ec548e3c81539077d5309f379d1b087410bc9 c64ea621f46539985e81f98b3d79a1497ea15b98 fish老魚 <fish@fishot.com> 1774729609 +0800	commit: feat: 一鍵安裝腳本（Windows setup.bat + Mac setup.sh）
+c64ea621f46539985e81f98b3d79a1497ea15b98 6c16e3fa41198da881ca053bf731789310448bf2 fish老魚 <fish@fishot.com> 1774729722 +0800	commit: docs: README.md 中英文安裝說明 + 使用指南
+6c16e3fa41198da881ca053bf731789310448bf2 e2133a5df8afd49f19d8ad36f65b4df97e6b690a fish老魚 <fish@fishot.com> 1774730234 +0800	commit: feat: LLM 三選一（Gemini 免費 / OpenAI / Claude）自動偵測
+e2133a5df8afd49f19d8ad36f65b4df97e6b690a f0eebe9a776bf5e7183e30d1e4b38663673b72f3 fish老魚 <fish@fishot.com> 1774730677 +0800	commit: docs: 客戶安裝指南（含 token clone + API Key 設定 + 常見問題）
+f0eebe9a776bf5e7183e30d1e4b38663673b72f3 9793c61c06f3b698f0a4e3a78c0124110d4eabbe fish老魚 <fish@fishot.com> 1774730873 +0800	commit: chore: 補齊文件 + 測試腳本（HANDOFF、產品規格、客戶簡報）
+9793c61c06f3b698f0a4e3a78c0124110d4eabbe 5d266e0bbfaeccdff76f6122efcb5a52070e0e5f fish老魚 <fish@fishot.com> 1774954383 +0800	commit: docs: Workflow V3 對話式影片製作流程 + 三層模板系統
+5d266e0bbfaeccdff76f6122efcb5a52070e0e5f 5b66fa81e62908babef12c624480f2782fac6b1d fish老魚 <fish@fishot.com> 1775058461 +0800	commit: feat: voice_id 支援 + AGENTS.md + 角色包架構
+5b66fa81e62908babef12c624480f2782fac6b1d c5dd09ee3ff119e7a338366e928eb7256402f8ba fish老魚 <fish@fishot.com> 1775058468 +0800	commit: chore: 初始化 spec-kit（constitution + skills）
+c5dd09ee3ff119e7a338366e928eb7256402f8ba fc9f1e6213bf12fcd1cf032ac533e105e92093d9 fish老魚 <fish@fishot.com> 1775069251 +0800	commit: docs: 完整系統規格（spec + plan + tasks）— 角色包、Pipeline、Preview、SaaS
+fc9f1e6213bf12fcd1cf032ac533e105e92093d9 9f609edf937590513314431147d4e78d73f13bd3 fish老魚 <fish@fishot.com> 1775069565 +0800	commit: feat: Phase 1-2 完成 — 目錄結構 + Foundational schemas
+9f609edf937590513314431147d4e78d73f13bd3 15470ed8de165bd3d6ef6dab43a111fdfb21702d fish老魚 <fish@fishot.com> 1775071071 +0800	commit: feat: Phase 3 完成 — 角色包建立、驗證、載入（US1 MVP）
+15470ed8de165bd3d6ef6dab43a111fdfb21702d 28785b1c91491b641366b7a0fd9cf672f097e62d fish老魚 <fish@fishot.com> 1775074618 +0800	commit: feat: Phase 4 完成 — Preview 模式 + PipelineState 管理（US2）
+28785b1c91491b641366b7a0fd9cf672f097e62d 0b28d1d2a695e202de7115bd2961e97a3099402b fish老魚 <fish@fishot.com> 1775078284 +0800	commit: feat: Phase 5 完成 — 完整 Pipeline 引擎 + 中斷續跑（US3）
+0b28d1d2a695e202de7115bd2961e97a3099402b 2298bed7874882f332c42733429fb241f650feb5 fish老魚 <fish@fishot.com> 1775081824 +0800	commit: feat: Phase 6 完成 — 單段重跑功能（US4）
+2298bed7874882f332c42733429fb241f650feb5 0a973704ad3fa6760d73050c8f67a8c410d7b1e8 fish老魚 <fish@fishot.com> 1775097696 +0800	commit: feat: Phase 7 完成 — SaaS 多租戶 + HTTP API（T031-T038）
+0a973704ad3fa6760d73050c8f67a8c410d7b1e8 b08036c729db17f85e100bdf865cfbfabd1579aa fish老魚 <fish@fishot.com> 1775100528 +0800	commit: feat: Phase 8+9 完成 — CLI 入口層 + Polish
+b08036c729db17f85e100bdf865cfbfabd1579aa c03bcebf722316ee331096525e9629ab78444445 fish老魚 <fish@fishot.com> 1775103096 +0800	commit: feat: Voice 架構改為 Kling create-voice + 建立沈知序角色包
+c03bcebf722316ee331096525e9629ab78444445 5147d9d48038d58974e2faa2d4f647de906a61a5 fish老魚 <fish@fishot.com> 1775105422 +0800	commit: feat: 整合 /rev-video Skill 與 core/ 架構 — 統一成一套系統
+5147d9d48038d58974e2faa2d4f647de906a61a5 d259da69ad23578583f1182bf05443832a7729e6 fish老魚 <fish@fishot.com> 1775111872 +0800	merge feature/element-binding-scale: Fast-forward
+d259da69ad23578583f1182bf05443832a7729e6 aeb7e77773814cc75ce39ef0f82f7ce148966fcd fish老魚 <fish@fishot.com> 1775142955 +0800	merge feature/element-binding-and-integration: Fast-forward
+aeb7e77773814cc75ce39ef0f82f7ce148966fcd e4f76987378dd45b3b2b3d4d25e8e6a51598b335 fish老魚 <fish@fishot.com> 1775144572 +0800	commit: feat: 新增 /create-character Skill + 整理素材到舊/
+e4f76987378dd45b3b2b3d4d25e8e6a51598b335 95ed4f883de70b8928e0a2451ea500b1d45495c2 fish老魚 <fish@fishot.com> 1775185900 +0800	commit: refactor: 統一角色包 — 合併 xiao-zhi 到 shen-zhi-xu（同一人）
+95ed4f883de70b8928e0a2451ea500b1d45495c2 9cb0bbfe8dae9a99edef662dfd78789d89b671ea fish老魚 <fish@fishot.com> 1775190196 +0800	commit: docs: VideoGo SaaS 規劃討論紀錄 — 產品定位、商業模式、技術架構、用戶體驗
+9cb0bbfe8dae9a99edef662dfd78789d89b671ea d24ef6d9b232fa748def1cbdfd9867f0872e320a fish老魚 <fish@fishot.com> 1775203274 +0800	commit: refactor: 改名 rev-cli → VideoGo
+d24ef6d9b232fa748def1cbdfd9867f0872e320a 2a5302863cbc9a43d61fa066394f42b2884289c8 fish老魚 <fish@fishot.com> 1775203284 +0800	commit: docs: VideoGo SaaS 技術架構規格初版
+2a5302863cbc9a43d61fa066394f42b2884289c8 358709e1feeaa4221ed70e45841d04c11c63448c fish老魚 <fish@fishot.com> 1775211327 +0800	commit: docs: AI 影片生成領域競品分析與市場調查報告
+358709e1feeaa4221ed70e45841d04c11c63448c cc929eb15e9135360d5bcf019e0f2b4a7968d439 fish老魚 <fish@fishot.com> 1775213222 +0800	commit: docs: VideoGo 討論紀錄（定位/人群/競品/模型調研）
+cc929eb15e9135360d5bcf019e0f2b4a7968d439 af0af9cb033151fae0c525bc6413cbe96b335591 fish老魚 <fish@fishot.com> 1775213281 +0800	commit: docs: 補 commit 先前討論紀錄（BYOK橋接 + 多模型分工）
+af0af9cb033151fae0c525bc6413cbe96b335591 183ad2554173b747e63a32a3906d5b256d7ab3b6 fish老魚 <fish@fishot.com> 1775217030 +0800	commit: docs: 新增使用者流程設計 + MV 測試結果
+183ad2554173b747e63a32a3906d5b256d7ab3b6 bacfa22587f6dad7327d0631f732f43e2ade4c86 fish老魚 <fish@fishot.com> 1775217357 +0800	commit: docs: VideoGo SaaS MVP 開發規格
+bacfa22587f6dad7327d0631f732f43e2ade4c86 335c376395d760daf2e60034f8ab58856b5724d1 fish老魚 <fish@fishot.com> 1775218961 +0800	commit: feat: 新增互動式引導指令 new-character / new-video
+335c376395d760daf2e60034f8ab58856b5724d1 fd15323098b19f5d35e099cc7f3d68cbc3d2ac51 fish老魚 <fish@fishot.com> 1775223501 +0800	commit: fix: 修復 4 個 TS 編譯錯誤 + 完善 character wizard
+fd15323098b19f5d35e099cc7f3d68cbc3d2ac51 a90e19c2856912bc43d8019c70438116ca37b370 fish老魚 <fish@fishot.com> 1775475260 +0800	commit: feat: pipeline-o3 CLI 參數化 + ScriptJSON 型別統一 + TDD 測試
+a90e19c2856912bc43d8019c70438116ca37b370 7484cba7536e2cf59e363d7b2ad6e26b047a9f86 fish老魚 <fish@fishot.com> 1776593477 +0800	commit: docs: enforce UI visual verification (L045/L046)

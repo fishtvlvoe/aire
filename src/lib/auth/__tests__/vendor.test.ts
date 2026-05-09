@@ -107,7 +107,7 @@ describe('4.1 provisionVendorAccount', () => {
     expect(row).toBeDefined();
     expect(row!.is_vendor).toBe(1);
     expect(row!.role).toBe('admin');
-    expect(row!.email).toBe(`${credentials.username}@vendor.three-ai.app`);
+    expect(row!.email).toBe(`${credentials.username}@vendor.AIRE.app`);
     expect(row!.password_hash).toBe(credentials.passwordHash);
     expect(row!.display_name).toBe(credentials.displayName);
   });
@@ -148,7 +148,7 @@ describe('4.1 provisionVendorAccount', () => {
     expect(row.password_hash).toBe('hashed_pw_v2');
     expect(row.display_name).toBe('廠商（改名）');
     // email / role / is_vendor 不應改變
-    expect(row.email).toBe(`${credentials.username}@vendor.three-ai.app`);
+    expect(row.email).toBe(`${credentials.username}@vendor.AIRE.app`);
     expect(row.role).toBe('admin');
     expect(row.is_vendor).toBe(1);
   });
@@ -180,7 +180,7 @@ describe('4.2 用戶列表 SQL 排除 vendor', () => {
       .prepare(
         "INSERT INTO users (username, email, password_hash, display_name, role, is_vendor) VALUES (?, ?, ?, ?, 'admin', 1)"
       )
-      .run('vendor_acc', 'vendor_acc@vendor.three-ai.app', 'hash', '廠商帳號');
+      .run('vendor_acc', 'vendor_acc@vendor.AIRE.app', 'hash', '廠商帳號');
 
     // 插入 is_vendor IS NULL（舊資料，視同一般帳號）
     testDb

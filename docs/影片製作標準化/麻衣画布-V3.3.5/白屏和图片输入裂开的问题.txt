@@ -1,0 +1,8 @@
+更新显卡驱动（80%的问题都能解决）
+
+NVIDIA: https://www.nvidia.com/Download/index.aspx
+Intel: https://www.intel.com/content/www/us/en/download-center/home.html
+
+更新WebView2运行时
+
+下载地址: https://developer.microsoft.com/microsoft-edge/webview2/

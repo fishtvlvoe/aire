@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Qiaodoumayijiang</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部工具栏 -->
+        <div class="toolbar">
+            <div class="toolbar-row">
+                <span class="label">素材目录:</span>
+                <input type="text" id="assetsDir" class="dir-input" readonly>
+                <button id="browseDirBtn" class="btn btn-small">...</button>
+            </div>
+        <div class="toolbar-row">
+            <select id="filterSelect">
+                <option value="all">全部</option>
+                <option value="image">图片</option>
+                <option value="video">视频</option>
+                <option value="audio">音频</option>
+            </select>
+            <button id="scanFolderBtn" class="btn">📂 扫描文件夹</button>
+            <span id="autoRefreshIndicator" class="auto-refresh-indicator">● 自动监听中</span>
+        </div>
+        </div>
+
+        <!-- 素材网格 -->
+        <div class="assets-container">
+            <div id="assetsGrid" class="assets-grid">
+                <!-- 素材卡片将动态生成 -->
+                <div class="empty-state" id="emptyState">
+                    <p>暂无素材</p>
+                    <p class="hint">点击「刷新」或「扫描文件夹」</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部操作栏 -->
+        <div class="action-bar">
+            <div class="selection-info">
+                <span id="selectionCount">已选择 0 个</span>
+                <span class="hint-text">（Shift+点击 范围多选）</span>
+            </div>
+            <div class="action-buttons">
+                <button id="deleteBtn" class="btn btn-danger">🗑️ 删除</button>
+                <button id="importProjectBtn" class="btn btn-primary">导入到项目</button>
+                <button id="importCompBtn" class="btn btn-primary">导入到合成</button>
+            </div>
+        </div>
+
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <span id="statusText">就绪</span>
+        </div>
+    </div>
+
+    <script src="js/CSInterface.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,2533 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>不動產物件分析助手 — 提案簡報</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1a365d;
+    --navy-dark: #0f2440;
+    --navy-light: #2a4a7f;
+    --accent: #e8a838;
+    --accent-warm: #d4873e;
+    --white: #ffffff;
+    --gray-50: #f8f9fa;
+    --gray-100: #f0f2f5;
+    --gray-200: #e2e6eb;
+    --gray-300: #cdd3db;
+    --gray-400: #9ca8b8;
+    --gray-500: #6b7a8d;
+    --gray-600: #4a5568;
+    --gray-700: #2d3748;
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-muted: #718096;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --card-shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: var(--gray-100);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 頁面容器 ── */
+  .page {
+    width: 1122px;
+    height: 793px;
+    margin: 0 auto;
+    background: var(--white);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page + .page {
+    margin-top: 2px;
+  }
+
+  .page--dark {
+    background: var(--navy);
+    color: var(--white);
+  }
+
+  /* ── 共用元素 ── */
+  .page-inner {
+    padding: 40px 60px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .page-number {
+    position: absolute;
+    bottom: 24px;
+    right: 40px;
+    font-size: 12px;
+    color: var(--gray-400);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .page--dark .page-number {
+    color: rgba(255,255,255,0.35);
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--navy-light);
+    margin-bottom: 8px;
+  }
+
+  .page--dark .section-label {
+    color: var(--accent);
+  }
+
+  .section-title {
+    font-size: 36px;
+    font-weight: 900;
+    line-height: 1.3;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+
+  .page--dark .section-title {
+    color: var(--white);
+  }
+
+  .section-subtitle {
+    font-size: 17px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    font-weight: 400;
+  }
+
+  .page--dark .section-subtitle {
+    color: rgba(255,255,255,0.6);
+  }
+
+  .divider {
+    width: 48px;
+    height: 3px;
+    background: var(--accent);
+    margin-bottom: 32px;
+    border-radius: 2px;
+  }
+
+  .brand-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--navy-light) 100%);
+  }
+
+  .page--dark .brand-bar {
+    background: linear-gradient(90deg, var(--accent) 0%, rgba(255,255,255,0.2) 100%);
+  }
+
+  /* ── 第 1 頁：封面 ── */
+  .cover {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 0;
+    position: relative;
+  }
+
+  .cover-bg-pattern {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    opacity: 0.04;
+    background-image:
+      radial-gradient(circle at 20% 30%, var(--white) 1px, transparent 1px),
+      radial-gradient(circle at 80% 70%, var(--white) 1px, transparent 1px);
+    background-size: 60px 60px, 45px 45px;
+  }
+
+  .cover-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .cover-icon {
+    margin-bottom: 40px;
+  }
+
+  .cover-icon svg {
+    width: 120px;
+    height: 120px;
+  }
+
+  .cover-title {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .cover-subtitle {
+    font-size: 22px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 64px;
+    letter-spacing: 1px;
+  }
+
+  .cover-meta {
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    line-height: 2;
+  }
+
+  .cover-meta-line {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 4px 48px;
+    display: inline-block;
+  }
+
+  .cover-accent-line {
+    width: 64px;
+    height: 3px;
+    background: var(--accent);
+    margin: 0 auto 48px;
+    border-radius: 2px;
+  }
+
+  /* ── 第 2 頁：痛點 ── */
+  .pain-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    flex: 1;
+    align-content: center;
+  }
+
+  .pain-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 2px;
+    padding: 36px 28px;
+    text-align: center;
+    position: relative;
+  }
+
+  .pain-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent);
+  }
+
+  .pain-card-number {
+    font-size: 64px;
+    font-weight: 900;
+    color: var(--gray-200);
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+
+  .pain-card-icon {
+    margin-bottom: 20px;
+  }
+
+  .pain-card-icon svg {
+    width: 48px;
+    height: 48px;
+    color: var(--navy);
+  }
+
+  .pain-card-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+
+  .pain-card-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
+
+  .pain-card-stat {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-warm);
+    background: rgba(232,168,56,0.1);
+    border: 1px solid rgba(232,168,56,0.3);
+    padding: 4px 14px;
+    border-radius: 2px;
+  }
+
+  /* ── 第 3 頁：解決方案 ── */
+  .solution-flow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    margin: 20px 0;
+    flex: 1;
+    align-content: center;
+    flex-wrap: wrap;
+  }
+
+  .flow-step {
+    text-align: center;
+    flex: 1;
+    max-width: 220px;
+    position: relative;
+  }
+
+  .flow-step-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+  }
+
+  .flow-step-icon svg {
+    width: 36px;
+    height: 36px;
+    color: var(--white);
+  }
+
+  .flow-step-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+
+  .flow-step-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    padding-top: 28px;
+    color: var(--gray-300);
+  }
+
+  .flow-arrow svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .solution-highlights {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 36px;
+  }
+
+  .highlight-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--navy);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: 2px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .highlight-badge span {
+    color: var(--accent);
+    font-size: 24px;
+    font-weight: 900;
+  }
+
+  /* ── 第 4 頁：報告內容 ── */
+  .report-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    flex: 1;
+    align-content: center;
+  }
+
+  .report-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 2px;
+    padding: 20px 16px;
+    position: relative;
+  }
+
+  .report-card-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--navy);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .report-card-icon svg {
+    width: 22px;
+    height: 22px;
+    color: var(--white);
+  }
+
+  .report-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .report-card-fields {
+    margin: 8px 0;
+  }
+
+  .report-card-fields li {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .report-card-fields li::before {
+    content: '· ';
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .report-card-badge {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  .report-card-badge--auto {
+    background: var(--navy);
+    color: var(--white);
+  }
+
+  .report-card-badge--manual {
+    background: var(--gray-200);
+    color: var(--gray-600);
+  }
+
+  .report-header-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: var(--navy-dark);
+    padding: 6px 20px;
+    border-radius: 2px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+
+  .report-header-stat span {
+    font-size: 24px;
+    font-weight: 900;
+  }
+
+  /* ── 第 5 頁：實價登錄詳細 ── */
+  .detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    flex: 1;
+    align-content: center;
+  }
+
+  .detail-panel {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 2px;
+    padding: 28px;
+  }
+
+  .detail-panel-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .detail-panel-subtitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--navy);
+  }
+
+  .detail-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .detail-stat-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .detail-stat-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .detail-stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .detail-stat-value--down {
+    color: #e53e3e;
+  }
+
+  .detail-confidence {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    background: #c6f6d5;
+    color: #276749;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 2px;
+  }
+
+  .detail-records-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 10px;
+  }
+
+  .detail-records-note {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .detail-expand-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+
+  /* ── 第 6 頁：議價策略 + SWOT ── */
+  .nego-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+    flex: 1;
+    align-content: center;
+  }
+
+  .nego-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .nego-price-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fed7d7;
+    color: #c53030;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 2px;
+    margin-bottom: 4px;
+  }
+
+  .nego-suggest-block {
+    background: var(--navy);
+    color: var(--white);
+    padding: 20px 24px;
+    border-radius: 2px;
+  }
+
+  .nego-suggest-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+
+  .nego-suggest-price {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1.2;
+  }
+
+  .nego-suggest-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 4px;
+  }
+
+  .nego-warn-block {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-left: 3px solid #e53e3e;
+    padding: 14px 18px;
+    border-radius: 2px;
+  }
+
+  .nego-warn-label {
+    font-size: 12px;
+    color: #e53e3e;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .nego-warn-text {
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .nego-script-block {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    padding: 14px 18px;
+    border-radius: 2px;
+  }
+
+  .nego-script-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+
+  .nego-script-item {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .nego-script-item::before {
+    content: '▶';
+    position: absolute;
+    left: 0;
+    font-size: 8px;
+    color: var(--accent);
+    top: 5px;
+  }
+
+  .swot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .swot-cell {
+    padding: 16px;
+    border-radius: 2px;
+  }
+
+  .swot-cell--s {
+    background: rgba(26,54,93,0.07);
+    border: 1px solid rgba(26,54,93,0.15);
+  }
+
+  .swot-cell--w {
+    background: rgba(229,62,62,0.06);
+    border: 1px solid rgba(229,62,62,0.15);
+  }
+
+  .swot-cell--o {
+    background: rgba(56,161,105,0.06);
+    border: 1px solid rgba(56,161,105,0.15);
+  }
+
+  .swot-cell--t {
+    background: rgba(214,158,46,0.08);
+    border: 1px solid rgba(214,158,46,0.2);
+  }
+
+  .swot-letter {
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .swot-cell--s .swot-letter { color: var(--navy); }
+  .swot-cell--w .swot-letter { color: #c53030; }
+  .swot-cell--o .swot-letter { color: #276749; }
+  .swot-cell--t .swot-letter { color: var(--accent-warm); }
+
+  .swot-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .swot-item {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .swot-item::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    font-weight: 900;
+    color: var(--text-muted);
+  }
+
+  /* ── 第 7 頁：平台連結 ── */
+  .platform-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .platform-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .platform-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: var(--white);
+    border: 2px solid var(--gray-200);
+    border-radius: 2px;
+    padding: 20px 28px;
+    min-width: 160px;
+    text-align: center;
+    transition: none;
+  }
+
+  .platform-btn-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 900;
+  }
+
+  .platform-btn-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .platform-btn-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .platform-btn--591 .platform-btn-icon { background: #e8f4fd; color: #2b6cb0; }
+  .platform-btn--houseplus .platform-btn-icon { background: #f0fff4; color: #276749; }
+  .platform-btn--yc .platform-btn-icon { background: #fff5f5; color: #c53030; }
+  .platform-btn--sy .platform-btn-icon { background: #fffbeb; color: #975a16; }
+  .platform-btn--google .platform-btn-icon { background: #f7f7f7; color: #555; }
+
+  .platform-note {
+    background: var(--navy);
+    color: var(--white);
+    padding: 24px 32px;
+    border-radius: 2px;
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  .platform-note-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .platform-legal-note {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 12px 20px;
+    border-radius: 2px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* ── 第 8 頁：產品畫面 ── */
+  .mockup-row {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    align-items: flex-start;
+    flex: 1;
+    align-content: center;
+    flex-wrap: wrap;
+  }
+
+  .phone-mockup {
+    width: 280px;
+    height: 500px;
+    border: 2px solid var(--gray-700);
+    border-radius: 28px;
+    position: relative;
+    background: var(--white);
+    overflow: hidden;
+    box-shadow: var(--card-shadow-md);
+  }
+
+  .phone-notch {
+    width: 120px;
+    height: 24px;
+    background: var(--gray-700);
+    border-radius: 0 0 14px 14px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  .phone-screen {
+    padding: 16px;
+    height: calc(100% - 24px);
+    overflow: hidden;
+    font-size: 12px;
+  }
+
+  .phone-label {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 16px;
+  }
+
+  /* 手機內容樣式 */
+  .mock-header {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--navy);
+  }
+
+  .mock-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    background: var(--gray-50);
+  }
+
+  .mock-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    cursor: default;
+  }
+
+  .mock-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .mock-card-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .mock-card-stat {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--navy);
+    line-height: 1.2;
+  }
+
+  .mock-card-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .mock-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mock-trend-down {
+    color: #e53e3e;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .mock-trend-tag {
+    font-size: 10px;
+    background: var(--gray-200);
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+  }
+
+  .mock-list-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mock-list-item:last-child {
+    border-bottom: none;
+  }
+
+  .mock-list-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .mock-list-addr {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .mock-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .mock-tag--done {
+    background: #c6f6d5;
+    color: #276749;
+  }
+
+  .mock-tag--pending {
+    background: #fefcbf;
+    color: #975a16;
+  }
+
+  .mock-tag--signed {
+    background: #bee3f8;
+    color: #2a4365;
+  }
+
+  /* ── 第 9 頁：資料來源 ── */
+  .source-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .source-note {
+    background: var(--navy);
+    color: var(--white);
+    padding: 22px 28px;
+    border-radius: 2px;
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  .source-note-highlight {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ── 第 6 頁：市場分析（保留用）── */
+  .market-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    flex: 1;
+    align-content: center;
+  }
+
+  .market-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .market-table th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--navy);
+  }
+
+  .market-table td {
+    padding: 12px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: middle;
+  }
+
+  .market-table td:last-child {
+    text-align: left;
+    font-size: 14px;
+  }
+
+  .market-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    justify-content: center;
+  }
+
+  .market-stat-card {
+    background: var(--navy);
+    color: var(--white);
+    padding: 28px;
+    border-radius: 2px;
+  }
+
+  .market-stat-number {
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .market-stat-label {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .market-opportunity {
+    background: var(--accent);
+    color: var(--navy-dark);
+    padding: 28px;
+    border-radius: 2px;
+  }
+
+  .market-opportunity-title {
+    font-size: 18px;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+
+  .market-opportunity-desc {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  /* ── 第 10 頁：風險管理 ── */
+  .risk-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    flex: 1;
+    align-content: center;
+  }
+
+  .risk-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .risk-panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--gray-200);
+  }
+
+  .risk-panel-title--can {
+    color: #276749;
+    border-bottom-color: #276749;
+  }
+
+  .risk-panel-title--cannot {
+    color: #c53030;
+    border-bottom-color: #c53030;
+  }
+
+  .risk-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 2px;
+    font-size: 14px;
+  }
+
+  .risk-item--can {
+    background: #f0fff4;
+    border: 1px solid #9ae6b4;
+  }
+
+  .risk-item--cannot {
+    background: #fff5f5;
+    border: 1px solid #feb2b2;
+  }
+
+  .risk-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .risk-text {
+    flex: 1;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .risk-workaround {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .risk-footer-note {
+    background: rgba(232,168,56,0.1);
+    border: 1px solid rgba(232,168,56,0.3);
+    padding: 16px 20px;
+    border-radius: 2px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-top: 16px;
+  }
+
+  /* ── 第 11 頁：費用與時程 ── */
+  .pricing-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-bottom: 24px;
+  }
+
+  .pricing-box {
+    border: 2px solid var(--navy);
+    border-radius: 2px;
+    padding: 28px;
+  }
+
+  .pricing-box--highlight {
+    background: var(--navy);
+    color: var(--white);
+  }
+
+  .pricing-box-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .pricing-box--highlight .pricing-box-label {
+    color: rgba(255,255,255,0.5);
+  }
+
+  .pricing-box-product {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .pricing-amount {
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--navy);
+    line-height: 1.1;
+  }
+
+  .pricing-box--highlight .pricing-amount {
+    color: var(--white);
+  }
+
+  .pricing-unit {
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .pricing-box--highlight .pricing-unit {
+    color: rgba(255,255,255,0.5);
+  }
+
+  .pricing-detail {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    line-height: 1.8;
+  }
+
+  .pricing-box--highlight .pricing-detail {
+    color: rgba(255,255,255,0.7);
+  }
+
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin-bottom: 20px;
+  }
+
+  .timeline-step {
+    text-align: center;
+    padding: 18px 12px;
+    position: relative;
+    border-top: 3px solid var(--navy);
+  }
+
+  .timeline-step::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 10px;
+    background: var(--navy);
+    border-radius: 50%;
+  }
+
+  .timeline-week {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-warm);
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+
+  .timeline-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .guarantee-row {
+    display: flex;
+    gap: 16px;
+  }
+
+  .guarantee-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    padding: 12px 16px;
+    border-radius: 2px;
+  }
+
+  .guarantee-check {
+    width: 26px;
+    height: 26px;
+    background: var(--navy);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .guarantee-check svg {
+    width: 14px;
+    height: 14px;
+    color: var(--white);
+  }
+
+  .guarantee-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .contract-terms {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    padding: 16px 20px;
+    border-radius: 2px;
+    margin-top: 14px;
+  }
+
+  .contract-terms-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .contract-terms-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .contract-term-item {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .contract-term-item strong {
+    display: block;
+    font-size: 13px;
+    color: var(--navy);
+    margin-bottom: 2px;
+  }
+
+  /* ── 第 12 頁：CTA ── */
+  .cta-page {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .cta-title {
+    font-size: 48px;
+    font-weight: 900;
+    margin-bottom: 16px;
+    line-height: 1.3;
+  }
+
+  .cta-subtitle {
+    font-size: 20px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 56px;
+    letter-spacing: 1px;
+  }
+
+  .cta-steps {
+    display: flex;
+    gap: 0;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .cta-step {
+    text-align: center;
+    width: 200px;
+  }
+
+  .cta-step-number {
+    width: 56px;
+    height: 56px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 900;
+    margin: 0 auto 14px;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .cta-step--done .cta-step-number {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--navy-dark);
+  }
+
+  .cta-step-label {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .cta-step-status {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .cta-step--done .cta-step-status {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .cta-connector {
+    width: 48px;
+    height: 2px;
+    background: rgba(255,255,255,0.15);
+    margin-bottom: 30px;
+  }
+
+  .cta-footer {
+    margin-top: 64px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  /* ── 列印樣式 ── */
+  @media print {
+    html, body {
+      background: white;
+    }
+
+    .page {
+      page-break-after: always;
+      page-break-inside: avoid;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      box-shadow: none;
+      margin: 0;
+    }
+
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    .brand-bar {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page--dark {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page--dark * {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .flow-step-icon,
+    .report-card-icon,
+    .pain-card::before,
+    .timeline-step,
+    .guarantee-check,
+    .market-stat-card,
+    .market-opportunity,
+    .highlight-badge,
+    .cta-step--done .cta-step-number,
+    .mock-btn,
+    .phone-notch,
+    .report-header-stat,
+    .nego-suggest-block,
+    .swot-cell,
+    .risk-item,
+    .platform-note,
+    .source-note,
+    .pricing-box--highlight {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================================== -->
+<!-- 第 1 頁：封面                              -->
+<!-- ======================================== -->
+<div class="page page--dark">
+  <div class="page-inner cover">
+    <div class="cover-bg-pattern"></div>
+    <div class="cover-content">
+      <div class="cover-icon">
+        <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M60 12L10 52h12v48h76V52h12L60 12z" fill="rgba(255,255,255,0.1)" stroke="white" stroke-width="2"/>
+          <rect x="45" y="68" width="16" height="32" rx="1" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.5"/>
+          <rect x="28" y="58" width="14" height="14" rx="1" fill="rgba(255,255,255,0.08)" stroke="white" stroke-width="1.5"/>
+          <rect x="64" y="58" width="14" height="14" rx="1" fill="rgba(255,255,255,0.08)" stroke="white" stroke-width="1.5"/>
+          <circle cx="92" cy="28" r="18" fill="rgba(232,168,56,0.2)" stroke="#e8a838" stroke-width="2"/>
+          <text x="92" y="34" text-anchor="middle" fill="#e8a838" font-size="16" font-weight="900" font-family="Noto Sans TC, sans-serif">AI</text>
+          <line x1="78" y1="38" x2="68" y2="50" stroke="#e8a838" stroke-width="1.5" stroke-dasharray="4 3"/>
+        </svg>
+      </div>
+
+      <h1 class="cover-title">不動產物件分析助手</h1>
+      <div class="cover-accent-line"></div>
+      <p class="cover-subtitle">打一個地址，3 分鐘出報告</p>
+
+      <div class="cover-meta">
+        <div class="cover-meta-line">提案人：＿＿＿＿＿＿＿＿</div><br>
+        <div class="cover-meta-line">日期：＿＿＿＿年＿＿月＿＿日</div>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">01 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 2 頁：痛點                              -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">THE PROBLEM</div>
+    <h2 class="section-title">房仲每天面對的三個痛點</h2>
+    <div class="divider"></div>
+    <div class="section-subtitle">物件太多、資訊太少、決策太慢——每一個都在燒時間和收入</div>
+
+    <div class="pain-cards">
+      <!-- 痛點 1 -->
+      <div class="pain-card">
+        <div class="pain-card-number">01</div>
+        <div class="pain-card-icon">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="24" cy="24" r="20"/>
+            <polyline points="24 14 24 24 32 28"/>
+          </svg>
+        </div>
+        <h3 class="pain-card-title">物件太多<br>沒時間逐一分析</h3>
+        <p class="pain-card-desc">每個物件手動分析要花 1-2 小時。手頭 10-20 個物件，一天 8 小時根本不夠用，只能篩掉大部分、隨便看幾個。</p>
+        <div class="pain-card-stat">每個物件損失 1-2 小時</div>
+      </div>
+
+      <!-- 痛點 2 -->
+      <div class="pain-card">
+        <div class="pain-card-number">02</div>
+        <div class="pain-card-icon">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="40 36 40 12 32 24 24 16 16 28 8 20 8 36"/>
+            <line x1="6" y1="36" x2="42" y2="36"/>
+          </svg>
+        </div>
+        <h3 class="pain-card-title">缺少數據支撐<br>全靠人工東拼西湊</h3>
+        <p class="pain-card-desc">實價登錄要手動查、591 要手動比、周邊環境要手動看。每一步都是重複勞動，沒有整合、沒有效率。</p>
+        <div class="pain-card-stat">3-5 個平台來回切換</div>
+      </div>
+
+      <!-- 痛點 3 -->
+      <div class="pain-card">
+        <div class="pain-card-number">03</div>
+        <div class="pain-card-icon">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 6C18 6 12 10 12 18c0 6 4 8 4 14h16c0-6 4-8 4-14 0-8-6-12-12-12z"/>
+            <line x1="16" y1="36" x2="32" y2="36"/>
+            <line x1="18" y1="40" x2="30" y2="40"/>
+            <line x1="24" y1="2" x2="24" y2="6"/>
+            <line x1="38" y1="8" x2="36" y2="10"/>
+            <line x1="10" y1="8" x2="12" y2="10"/>
+          </svg>
+        </div>
+        <h3 class="pain-card-title">開價不合理<br>簽了爛單賠半年</h3>
+        <p class="pain-card-desc">屋主開價高於行情 10-30%，沒有數據說服他降價。簽了爛單，物件掛半年賣不出去，白白損失機會成本。</p>
+        <div class="pain-card-stat">高價物件平均掛牌 8-12 個月</div>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">02 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 3 頁：解決方案                          -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">THE SOLUTION</div>
+    <h2 class="section-title">一個地址，完整分析</h2>
+    <div class="divider"></div>
+    <div class="section-subtitle">從輸入地址到帶著報告去談判，全程不超過 3 分鐘</div>
+
+    <div class="solution-flow">
+      <div class="flow-step">
+        <div class="flow-step-icon">
+          <svg viewBox="0 0 36 36" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+            <rect x="6" y="8" width="24" height="20" rx="2"/>
+            <line x1="10" y1="16" x2="26" y2="16"/>
+            <line x1="10" y1="22" x2="18" y2="22"/>
+          </svg>
+        </div>
+        <h4 class="flow-step-title">輸入地址</h4>
+        <p class="flow-step-desc">貼上物件地址<br>一鍵送出</p>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="16" x2="26" y2="16"/>
+          <polyline points="20 10 26 16 20 22"/>
+        </svg>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-icon">
+          <svg viewBox="0 0 36 36" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+            <circle cx="18" cy="18" r="12"/>
+            <path d="M18 10v8l6 4"/>
+            <circle cx="18" cy="18" r="3" fill="white" stroke="none"/>
+          </svg>
+        </div>
+        <h4 class="flow-step-title">自動分析</h4>
+        <p class="flow-step-desc">AI 串接多個資料源<br>交叉比對</p>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="16" x2="26" y2="16"/>
+          <polyline points="20 10 26 16 20 22"/>
+        </svg>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-icon">
+          <svg viewBox="0 0 36 36" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+            <rect x="6" y="4" width="24" height="28" rx="2"/>
+            <line x1="10" y1="10" x2="26" y2="10"/>
+            <line x1="10" y1="16" x2="26" y2="16"/>
+            <line x1="10" y1="22" x2="20" y2="22"/>
+            <polyline points="16 28 20 32 28 24" stroke-width="2.5"/>
+          </svg>
+        </div>
+        <h4 class="flow-step-title">產出報告</h4>
+        <p class="flow-step-desc">47 個數據點<br>一頁看完</p>
+      </div>
+
+      <div class="flow-arrow">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="16" x2="26" y2="16"/>
+          <polyline points="20 10 26 16 20 22"/>
+        </svg>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-step-icon">
+          <svg viewBox="0 0 36 36" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+            <circle cx="18" cy="14" r="8"/>
+            <path d="M8 32c0-6 4-10 10-10s10 4 10 10"/>
+            <path d="M22 12l-6 6-3-3" stroke-width="2.5"/>
+          </svg>
+        </div>
+        <h4 class="flow-step-title">帶去談判</h4>
+        <p class="flow-step-desc">有數據有底氣<br>專業又自信</p>
+      </div>
+    </div>
+
+    <div class="solution-highlights">
+      <div class="highlight-badge">
+        <span>3</span> 分鐘完成分析
+      </div>
+      <div class="highlight-badge">
+        <span>47</span> 個數據點
+      </div>
+      <div class="highlight-badge">
+        全自動執行
+      </div>
+      <div class="highlight-badge">
+        每個數字有<span style="font-size:18px; color:var(--accent);">來源</span>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">03 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 4 頁：報告內容總覽                      -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">DELIVERABLES</div>
+    <h2 class="section-title">每份報告包含什麼</h2>
+    <div class="divider"></div>
+    <div class="report-header-stat">涵蓋 <span>47</span> 個數據點</div>
+
+    <div class="report-grid">
+      <!-- 卡片 1 -->
+      <div class="report-card">
+        <div class="report-card-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <path d="M3 11L11 3l8 8"/>
+            <path d="M5 10v9h12v-9"/>
+            <rect x="9" y="13" width="4" height="6"/>
+          </svg>
+        </div>
+        <h4 class="report-card-title">實價登錄分析</h4>
+        <ul class="report-card-fields">
+          <li>成交均價、中位數</li>
+          <li>每坪單價、近季趨勢</li>
+          <li>信心度（成交筆數）</li>
+        </ul>
+        <span class="report-card-badge report-card-badge--auto">自動</span>
+      </div>
+
+      <!-- 卡片 2 -->
+      <div class="report-card">
+        <div class="report-card-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="9" r="3"/>
+            <path d="M11 1C6 1 2 5 2 9c0 6 9 12 9 12s9-6 9-12c0-4-4-8-9-8z"/>
+          </svg>
+        </div>
+        <h4 class="report-card-title">周邊設施</h4>
+        <ul class="report-card-fields">
+          <li>學校、醫院、公園</li>
+          <li>捷運/車站步行分鐘</li>
+          <li>便利商店、超市</li>
+        </ul>
+        <span class="report-card-badge report-card-badge--auto">自動</span>
+      </div>
+
+      <!-- 卡片 3 -->
+      <div class="report-card">
+        <div class="report-card-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <rect x="2" y="2" width="18" height="18" rx="2"/>
+            <line x1="2" y1="8" x2="20" y2="8"/>
+            <line x1="8" y1="8" x2="8" y2="20"/>
+            <text x="13" y="16" text-anchor="middle" fill="white" font-size="8" font-weight="700" stroke="none">$</text>
+          </svg>
+        </div>
+        <h4 class="report-card-title">價格預估</h4>
+        <ul class="report-card-fields">
+          <li>AI 建議售價區間</li>
+          <li>信心指數（低/中/高）</li>
+          <li>高估偏離百分比</li>
+        </ul>
+        <span class="report-card-badge report-card-badge--auto">自動</span>
+      </div>
+
+      <!-- 卡片 4 -->
+      <div class="report-card">
+        <div class="report-card-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 16c0 0 0-4 7-4s7 4 7 4"/>
+            <path d="M18 6c0 0 0 4-7 4S4 6 4 6"/>
+            <ellipse cx="11" cy="10" rx="3" ry="2"/>
+          </svg>
+        </div>
+        <h4 class="report-card-title">議價策略</h4>
+        <ul class="report-card-fields">
+          <li>建議出價區間</li>
+          <li>3 種情境話術</li>
+          <li>堅持高價風險評估</li>
+        </ul>
+        <span class="report-card-badge report-card-badge--auto">自動</span>
+      </div>
+
+      <!-- 卡片 5 -->
+      <div class="report-card">
+        <div class="report-card-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <rect x="2" y="2" width="8" height="8" rx="1"/>
+            <rect x="12" y="2" width="8" height="8" rx="1"/>
+            <rect x="2" y="12" width="8" height="8" rx="1"/>
+            <rect x="12" y="12" width="8" height="8" rx="1"/>
+          </svg>
+        </div>
+        <h4 class="report-card-title">SWOT 分析</h4>
+        <ul class="report-card-fields">
+          <li>優勢、劣勢（物件本身）</li>
+          <li>機會、威脅（市場面）</li>
+          <li>各 2-3 條重點</li>
+        </ul>
+        <span class="report-card-badge report-card-badge--auto">自動</span>
+      </div>
+
+      <!-- 卡片 6 -->
+      <div class="report-card">
+        <div class="report-card-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <path d="M11 2v4M11 16v4"/>
+            <path d="M4 11H2M20 11h-2"/>
+            <circle cx="11" cy="11" r="5"/>
+            <path d="M7 7l3 4 5-3"/>
+          </svg>
+        </div>
+        <h4 class="report-card-title">屋主溝通指南</h4>
+        <ul class="report-card-fields">
+          <li>開場白建議</li>
+          <li>數據引導話術</li>
+          <li>常見反對意見回應</li>
+        </ul>
+        <span class="report-card-badge report-card-badge--auto">自動</span>
+      </div>
+
+      <!-- 卡片 7 -->
+      <div class="report-card">
+        <div class="report-card-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <path d="M9 17H4a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v5"/>
+            <polyline points="12 15 16 19 20 13"/>
+          </svg>
+        </div>
+        <h4 class="report-card-title">平台搜尋連結</h4>
+        <ul class="report-card-fields">
+          <li>591、好房網、永慶</li>
+          <li>信義、Google 地圖</li>
+          <li>同區物件一鍵查</li>
+        </ul>
+        <span class="report-card-badge report-card-badge--auto">自動</span>
+      </div>
+
+      <!-- 卡片 8 -->
+      <div class="report-card">
+        <div class="report-card-icon">
+          <svg viewBox="0 0 22 22" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <path d="M11 2L3 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6L11 2z"/>
+            <polyline points="8 11 10 13 14 9"/>
+          </svg>
+        </div>
+        <h4 class="report-card-title">風險檢查</h4>
+        <ul class="report-card-fields">
+          <li>抵押權、假扣押警示</li>
+          <li>增建/違建提醒</li>
+          <li>謄本查詢引導</li>
+        </ul>
+        <span class="report-card-badge report-card-badge--manual">手動補充</span>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">04 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 5 頁：實價登錄分析詳細展示               -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">FEATURE DEEP-DIVE</div>
+    <h2 class="section-title">實價登錄分析——每個數字有出處</h2>
+    <div class="divider"></div>
+    <div class="section-subtitle">不是 AI 猜的，是內政部真實成交資料</div>
+
+    <div class="detail-layout">
+      <!-- 左側：模擬分析結果 -->
+      <div class="detail-panel">
+        <div class="detail-panel-title">分析結果</div>
+        <div class="detail-panel-subtitle">臺南市東區裕農路 500m 內 · 2025-Q2 ~ Q4</div>
+
+        <div class="detail-stat-row">
+          <span class="detail-stat-label">成交均價</span>
+          <span class="detail-stat-value">850 萬</span>
+        </div>
+        <div class="detail-stat-row">
+          <span class="detail-stat-label">中位數</span>
+          <span class="detail-stat-value">830 萬</span>
+        </div>
+        <div class="detail-stat-row">
+          <span class="detail-stat-label">每坪單價</span>
+          <span class="detail-stat-value">18.5 - 22.3 萬/坪</span>
+        </div>
+        <div class="detail-stat-row">
+          <span class="detail-stat-label">近 3 季趨勢</span>
+          <span class="detail-stat-value detail-stat-value--down">↓ 5.2%</span>
+        </div>
+        <div class="detail-stat-row">
+          <span class="detail-stat-label">資料期間</span>
+          <span class="detail-stat-value" style="font-size:14px; font-weight:500;">2025-Q2 ~ 2025-Q4</span>
+        </div>
+
+        <div class="detail-confidence">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="14" height="14"><polyline points="3 8 7 12 13 4"/></svg>
+          信心度：高（23 筆成交）
+        </div>
+      </div>
+
+      <!-- 右側：原始紀錄展開 -->
+      <div>
+        <div class="detail-records-title">每個數字都能點開看原始成交紀錄</div>
+        <div class="detail-records-note">點擊均價數字，展開該範圍內的所有成交明細。資料直接來自內政部實價登錄公開資料，不經過任何加工。</div>
+        <div class="detail-expand-hint">▼ 點擊「850 萬」展開 23 筆成交明細</div>
+
+        <table class="market-table">
+          <thead>
+            <tr>
+              <th>交易地址（簡略）</th>
+              <th>坪數</th>
+              <th>總價</th>
+              <th>成交日期</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>裕農路 3xx 號 5F</td>
+              <td>38.5 坪</td>
+              <td><strong>870 萬</strong></td>
+              <td>2025-11-12</td>
+            </tr>
+            <tr>
+              <td>裕農路 2xx 號 3F</td>
+              <td>32.1 坪</td>
+              <td><strong>810 萬</strong></td>
+              <td>2025-10-08</td>
+            </tr>
+            <tr>
+              <td>裕農路 4xx 號 8F</td>
+              <td>45.2 坪</td>
+              <td><strong>980 萬</strong></td>
+              <td>2025-09-21</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 16px; background: var(--gray-50); border: 1px solid var(--gray-200); padding: 16px; border-radius: 2px;">
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+            系統自動計算 500m 範圍內、同類型物件、近 3 季的成交紀錄。<br>
+            <strong style="color: var(--navy);">信心度指標</strong>：筆數越多，均價越可靠。23 筆以上為「高」，10 筆以下為「低」，並附上提醒。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">05 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 6 頁：議價策略 + SWOT                   -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">FEATURE DEEP-DIVE</div>
+    <h2 class="section-title">議價策略 + SWOT——帶著數據去談判</h2>
+    <div class="divider"></div>
+    <div class="section-subtitle">不是感覺，是根據實際成交行情算出來的建議</div>
+
+    <div class="nego-layout">
+      <!-- 左半：議價策略 -->
+      <div class="nego-panel">
+        <div>
+          <div class="nego-price-tag">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M8 2v4M8 10v4M2 8h4M10 8h4"/></svg>
+            開價 1,000 萬，高於行情 12%
+          </div>
+        </div>
+
+        <div class="nego-suggest-block">
+          <div class="nego-suggest-label">AI 建議出價區間</div>
+          <div class="nego-suggest-price">830 — 900 萬</div>
+          <div class="nego-suggest-sub">基於近 3 季 23 筆成交均值</div>
+        </div>
+
+        <div class="nego-warn-block">
+          <div class="nego-warn-label">堅持 1,000 萬的風險</div>
+          <div class="nego-warn-text">預估掛牌 8-12 個月仍難成交。同區物件平均 45 天成交，高溢價物件延長 4-6 倍。</div>
+        </div>
+
+        <div class="nego-script-block">
+          <div class="nego-script-title">三種話術（精簡版）</div>
+          <div class="nego-script-item">「這是近半年 23 筆實際成交的均價，不是我的意見。」</div>
+          <div class="nego-script-item">「您的要求跟同區新案相近，但屋齡差了 10 年。」</div>
+          <div class="nego-script-item">「用這個數字快速成交，比掛 1 年多拿到 30 萬好。」</div>
+        </div>
+      </div>
+
+      <!-- 右半：SWOT -->
+      <div>
+        <div style="font-size: 13px; font-weight: 700; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px;">SWOT 分析模擬</div>
+        <div class="swot-grid">
+          <div class="swot-cell swot-cell--s">
+            <div class="swot-letter">S</div>
+            <div class="swot-label">優勢</div>
+            <div class="swot-item">屋齡 5 年（比同區平均 15 年新）</div>
+            <div class="swot-item">距捷運站步行 8 分鐘</div>
+            <div class="swot-item">公設比 23%（低於平均）</div>
+          </div>
+          <div class="swot-cell swot-cell--w">
+            <div class="swot-letter">W</div>
+            <div class="swot-label">劣勢</div>
+            <div class="swot-item">3 樓，無電梯（降低受眾）</div>
+            <div class="swot-item">面向主幹道，噪音較大</div>
+            <div class="swot-item">車位需另外承租</div>
+          </div>
+          <div class="swot-cell swot-cell--o">
+            <div class="swot-letter">O</div>
+            <div class="swot-label">機會</div>
+            <div class="swot-item">周邊重劃區開發中，地段升值</div>
+            <div class="swot-item">學區內，吸引家長族群</div>
+          </div>
+          <div class="swot-cell swot-cell--t">
+            <div class="swot-letter">T</div>
+            <div class="swot-label">威脅</div>
+            <div class="swot-item">近 3 季價格下跌 5.2%</div>
+            <div class="swot-item">同區新建案預計明年完工</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">06 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 7 頁：平台搜尋連結功能                  -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">FEATURE</div>
+    <h2 class="section-title">一鍵跳轉，快速掌握市場行情</h2>
+    <div class="divider"></div>
+    <div class="section-subtitle">系統根據物件地址，自動生成同區域搜尋連結</div>
+
+    <div class="platform-layout">
+      <div class="platform-buttons">
+        <div class="platform-btn platform-btn--591">
+          <div class="platform-btn-icon">591</div>
+          <div class="platform-btn-name">591 售屋</div>
+          <div class="platform-btn-desc">同區在售物件</div>
+        </div>
+        <div class="platform-btn platform-btn--houseplus">
+          <div class="platform-btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div class="platform-btn-name">好房網</div>
+          <div class="platform-btn-desc">開價比較</div>
+        </div>
+        <div class="platform-btn platform-btn--yc">
+          <div class="platform-btn-icon">永慶</div>
+          <div class="platform-btn-name">永慶房屋</div>
+          <div class="platform-btn-desc">區域行情</div>
+        </div>
+        <div class="platform-btn platform-btn--sy">
+          <div class="platform-btn-icon">信義</div>
+          <div class="platform-btn-name">信義房屋</div>
+          <div class="platform-btn-desc">實價登錄查詢</div>
+        </div>
+        <div class="platform-btn platform-btn--google">
+          <div class="platform-btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="22" height="22"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="platform-btn-name">Google 地圖</div>
+          <div class="platform-btn-desc">周邊環境確認</div>
+        </div>
+      </div>
+
+      <div class="platform-note">
+        <div class="platform-note-title">如何使用</div>
+        系統根據物件地址，自動生成同區域搜尋連結。你只要點一下，就能看到同區目前在售的物件和開價。看完截圖傳回來，系統會幫你做比較分析，標出哪些物件定價合理、哪些明顯高估。
+
+        <div class="platform-legal-note">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18" style="flex-shrink:0;"><path d="M10 2L3 6v5c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6L10 2z"/><polyline points="7 10 9 12 13 8"/></svg>
+          不爬蟲、不違法。你自己看，系統幫你分析。所有資料由用戶自行取得，系統僅提供分析框架。
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">07 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 8 頁：產品畫面預覽                      -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">PRODUCT PREVIEW</div>
+    <h2 class="section-title">實際操作畫面</h2>
+    <div class="divider"></div>
+    <div class="section-subtitle">手機即可操作，隨時隨地查詢物件資料</div>
+
+    <div class="mockup-row">
+      <!-- 手機 1：輸入畫面 -->
+      <div>
+        <div class="phone-mockup">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="mock-header">物件分析</div>
+            <div style="margin-top: 32px;">
+              <p style="font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 20px;">請輸入物件地址</p>
+              <div class="mock-input">臺南市東區裕農路 3xx 號...</div>
+              <div style="height: 12px;"></div>
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">物件類型</p>
+              <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+                <span style="padding: 6px 14px; background: var(--navy); color: white; border-radius: 2px; font-size: 12px; font-weight: 600;">公寓</span>
+                <span style="padding: 6px 14px; background: var(--gray-100); border: 1px solid var(--gray-300); border-radius: 2px; font-size: 12px; color: var(--text-secondary);">大樓</span>
+                <span style="padding: 6px 14px; background: var(--gray-100); border: 1px solid var(--gray-300); border-radius: 2px; font-size: 12px; color: var(--text-secondary);">透天</span>
+              </div>
+              <div class="mock-btn">開始分析</div>
+            </div>
+          </div>
+        </div>
+        <p class="phone-label">輸入地址</p>
+      </div>
+
+      <!-- 手機 2：報告畫面 -->
+      <div>
+        <div class="phone-mockup">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="mock-header">分析報告</div>
+
+            <div class="mock-card">
+              <div class="mock-card-title">實價登錄分析</div>
+              <div class="mock-card-row">
+                <div>
+                  <div class="mock-card-stat">850<span style="font-size: 14px; font-weight: 400;">萬</span></div>
+                  <div class="mock-card-sub">周邊成交均價</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="mock-trend-down">↓ 5.2%</div>
+                  <div class="mock-trend-tag">23 筆成交</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mock-card">
+              <div class="mock-card-title">議價策略</div>
+              <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                <span style="background: #fed7d7; color: #c53030; font-size: 10px; padding: 2px 8px; border-radius: 2px; font-weight: 600;">高於行情 12%</span>
+              </div>
+              <div class="mock-card-sub" style="line-height: 1.6;">建議出價區間<br><strong style="color: var(--navy); font-size: 16px;">830 - 900 萬</strong></div>
+            </div>
+
+            <div class="mock-card">
+              <div class="mock-card-title">風險檢查</div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <span style="background: #c6f6d5; color: #276749; font-size: 10px; padding: 2px 8px; border-radius: 2px; font-weight: 600;">無抵押</span>
+                <span style="background: #c6f6d5; color: #276749; font-size: 10px; padding: 2px 8px; border-radius: 2px; font-weight: 600;">無假扣押</span>
+                <span style="background: #fefcbf; color: #975a16; font-size: 10px; padding: 2px 8px; border-radius: 2px; font-weight: 600;">增建待確認</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="phone-label">分析報告</p>
+      </div>
+
+      <!-- 手機 3：物件列表 -->
+      <div>
+        <div class="phone-mockup">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="mock-header">我的物件</div>
+
+            <div class="mock-list-item">
+              <div>
+                <div class="mock-list-name">裕農路 3xx 號 5F</div>
+                <div class="mock-list-addr">東區・38.5坪・公寓</div>
+              </div>
+              <span class="mock-tag mock-tag--done">已分析</span>
+            </div>
+
+            <div class="mock-list-item">
+              <div>
+                <div class="mock-list-name">長榮路三段 12F</div>
+                <div class="mock-list-addr">南區・42坪・大樓</div>
+              </div>
+              <span class="mock-tag mock-tag--pending">未分析</span>
+            </div>
+
+            <div class="mock-list-item">
+              <div>
+                <div class="mock-list-name">東門路二段 8F</div>
+                <div class="mock-list-addr">東區・35坪・大樓</div>
+              </div>
+              <span class="mock-tag mock-tag--signed">已簽委託</span>
+            </div>
+
+            <div style="margin-top: 16px;">
+              <div class="mock-btn" style="background: var(--gray-100); color: var(--navy); border: 1px solid var(--gray-300); font-size: 13px;">+ 新增物件</div>
+            </div>
+          </div>
+        </div>
+        <p class="phone-label">物件管理</p>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">08 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 9 頁：資料來源與技術可行性               -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">DATA & COMPLIANCE</div>
+    <h2 class="section-title">數據從哪來？全部合法、免費</h2>
+    <div class="divider"></div>
+    <div class="section-subtitle">每個數字都來自真實成交紀錄，不是 AI 猜的</div>
+
+    <div class="source-layout">
+      <table class="market-table">
+        <thead>
+          <tr>
+            <th>資料類型</th>
+            <th>來源</th>
+            <th>費用</th>
+            <th>更新頻率</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>實價登錄成交</strong></td>
+            <td>內政部公開資料</td>
+            <td style="color: #276749; font-weight: 700;">免費</td>
+            <td>每 10 天更新</td>
+          </tr>
+          <tr>
+            <td><strong>周邊設施距離</strong></td>
+            <td>Google Maps API</td>
+            <td style="color: #276749; font-weight: 700;">免費（用量內）</td>
+            <td>即時</td>
+          </tr>
+          <tr>
+            <td><strong>行政區 / 地段定位</strong></td>
+            <td>國土測繪中心</td>
+            <td style="color: #276749; font-weight: 700;">免費</td>
+            <td>即時</td>
+          </tr>
+          <tr>
+            <td><strong>同區目前開價</strong></td>
+            <td>你自己查（系統提供連結）</td>
+            <td style="color: #276749; font-weight: 700;">免費</td>
+            <td>即時</td>
+          </tr>
+          <tr>
+            <td><strong>抵押 / 假扣押</strong></td>
+            <td>你自己查謄本</td>
+            <td style="color: var(--text-secondary);">免費 ~ $20</td>
+            <td>即時</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="source-note">
+        <span class="source-note-highlight">核心原則：</span>AI 只負責整理和分析，數字全部可追溯。<br>
+        每一筆數據顯示時都附上「資料來源」和「更新日期」。你看到的 850 萬，可以點開看是哪 23 筆成交算出來的。<br>
+        <span style="color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 8px; display: block;">注意：實價登錄資料有 1-3 個月申報延遲。系統在快速下跌市場中會標示資料新舊，並提醒謹慎參考。</span>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">09 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 10 頁：風險管理與限制                   -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">TRANSPARENCY</div>
+    <h2 class="section-title">我們主動告訴你：系統不能做什麼</h2>
+    <div class="divider"></div>
+    <div class="section-subtitle">清楚說明邊界，才能建立信任</div>
+
+    <div class="risk-layout">
+      <!-- 左側：能做 -->
+      <div class="risk-panel">
+        <div class="risk-panel-title risk-panel-title--can">系統能做的</div>
+
+        <div class="risk-item risk-item--can">
+          <div class="risk-icon">✅</div>
+          <div>
+            <div class="risk-text">自動查實價登錄成交紀錄</div>
+            <div class="risk-workaround">500m 內、近 3 季、同類型物件全自動抓取</div>
+          </div>
+        </div>
+        <div class="risk-item risk-item--can">
+          <div class="risk-icon">✅</div>
+          <div>
+            <div class="risk-text">自動分析周邊設施距離</div>
+            <div class="risk-workaround">學校、醫院、捷運站、公園即時計算</div>
+          </div>
+        </div>
+        <div class="risk-item risk-item--can">
+          <div class="risk-icon">✅</div>
+          <div>
+            <div class="risk-text">AI 產出議價策略與話術</div>
+            <div class="risk-workaround">根據行情偏離程度，給出 3 種應對話術</div>
+          </div>
+        </div>
+        <div class="risk-item risk-item--can">
+          <div class="risk-icon">✅</div>
+          <div>
+            <div class="risk-text">一鍵跳轉 591 等平台</div>
+            <div class="risk-workaround">自動生成同區域搜尋連結，不需手動輸入</div>
+          </div>
+        </div>
+        <div class="risk-item risk-item--can">
+          <div class="risk-icon">✅</div>
+          <div>
+            <div class="risk-text">SWOT 自動生成</div>
+            <div class="risk-workaround">根據物件資訊和市場數據自動分析四象限</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右側：不能做 -->
+      <div class="risk-panel">
+        <div class="risk-panel-title risk-panel-title--cannot">系統不能做的</div>
+
+        <div class="risk-item risk-item--cannot">
+          <div class="risk-icon">❌</div>
+          <div>
+            <div class="risk-text">查凶宅紀錄</div>
+            <div class="risk-workaround">應對：你自己查政府凶宅資料庫或詢問鄰居</div>
+          </div>
+        </div>
+        <div class="risk-item risk-item--cannot">
+          <div class="risk-icon">❌</div>
+          <div>
+            <div class="risk-text">確認違建或增建</div>
+            <div class="risk-workaround">應對：現場勘查 + 查詢建管系統</div>
+          </div>
+        </div>
+        <div class="risk-item risk-item--cannot">
+          <div class="risk-icon">❌</div>
+          <div>
+            <div class="risk-text">即時抓取市場開價</div>
+            <div class="risk-workaround">應對：用系統提供的連結，自己到 591 看</div>
+          </div>
+        </div>
+        <div class="risk-item risk-item--cannot">
+          <div class="risk-icon">❌</div>
+          <div>
+            <div class="risk-text">出具正式估價報告</div>
+            <div class="risk-workaround">定位：市場參考分析，非法定估價文件</div>
+          </div>
+        </div>
+
+        <div class="risk-footer-note">
+          實價登錄資料有 <strong>1-3 個月申報延遲</strong>。在房價快速下跌期間，系統會在每個數字旁標示資料更新日期，並提醒你注意最新市況。
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">10 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 11 頁：費用與時程                        -->
+<!-- ======================================== -->
+<div class="page">
+  <div class="page-inner">
+    <div class="section-label">INVESTMENT</div>
+    <h2 class="section-title">費用、時程與合約條件</h2>
+    <div class="divider"></div>
+
+    <div class="pricing-layout">
+      <div class="pricing-box">
+        <div class="pricing-box-label">產品線 A</div>
+        <div class="pricing-box-product">物件分析助手（本次提案）</div>
+        <div class="pricing-amount">10<span class="pricing-unit"> 萬元</span></div>
+        <div class="pricing-detail">
+          簽約支付 5 萬 · 驗收支付 5 萬<br>
+          包含 POC 驗證 + 核心開發 + 測試上線<br>
+          月維運：3,000 - 6,500 元（依用量）
+        </div>
+      </div>
+      <div class="pricing-box pricing-box--highlight">
+        <div class="pricing-box-label">產品線 B</div>
+        <div class="pricing-box-product">行銷自動化（A 完成後）</div>
+        <div class="pricing-amount" style="font-size:28px;">文案 / 上架 / 影片</div>
+        <div class="pricing-detail">
+          A 完成並穩定運行後啟動，另議報價。<br>
+          同一個網站，功能分階段上線。<br>
+          不影響第一階段驗收與交付。
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-step">
+        <div class="timeline-week">第 1-2 週</div>
+        <div class="timeline-label">POC 驗證</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-week">第 3-4 週</div>
+        <div class="timeline-label">核心開發</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-week">第 5-6 週</div>
+        <div class="timeline-label">功能完善</div>
+      </div>
+      <div class="timeline-step">
+        <div class="timeline-week">第 7-8 週</div>
+        <div class="timeline-label">測試上線</div>
+      </div>
+    </div>
+
+    <div class="guarantee-row">
+      <div class="guarantee-item">
+        <div class="guarantee-check">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 8 7 12 13 4"/></svg>
+        </div>
+        <span class="guarantee-text">30 天保固 bug 免費修</span>
+      </div>
+      <div class="guarantee-item">
+        <div class="guarantee-check">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 8 7 12 13 4"/></svg>
+        </div>
+        <span class="guarantee-text">先看 Demo 再決定</span>
+      </div>
+      <div class="guarantee-item">
+        <div class="guarantee-check">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 8 7 12 13 4"/></svg>
+        </div>
+        <span class="guarantee-text">範圍寫清楚不追加</span>
+      </div>
+    </div>
+
+    <div class="contract-terms">
+      <div class="contract-terms-title">合約條件</div>
+      <div class="contract-terms-grid">
+        <div class="contract-term-item">
+          <strong>介面修改</strong>
+          3 次以內免費，超出另議
+        </div>
+        <div class="contract-term-item">
+          <strong>功能變更</strong>
+          2 次以內免費，超出另議
+        </div>
+        <div class="contract-term-item">
+          <strong>驗收期限</strong>
+          交付後 7 天內回覆，逾期視為通過
+        </div>
+        <div class="contract-term-item">
+          <strong>保固範圍</strong>
+          30 天內 bug 免費，需求變更不含
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-number">11 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+<!-- ======================================== -->
+<!-- 第 12 頁：下一步                           -->
+<!-- ======================================== -->
+<div class="page page--dark">
+  <div class="page-inner cta-page">
+    <div class="cover-bg-pattern"></div>
+    <div class="cover-content">
+      <h2 class="cta-title">準備好開始了嗎？</h2>
+      <div class="cover-accent-line"></div>
+      <p class="cta-subtitle">先做 Demo，你看了再決定</p>
+
+      <div class="cta-steps">
+        <div class="cta-step cta-step--done">
+          <div class="cta-step-number">1</div>
+          <div class="cta-step-label">確認需求</div>
+          <div class="cta-step-status">已完成</div>
+        </div>
+
+        <div class="cta-connector"></div>
+
+        <div class="cta-step">
+          <div class="cta-step-number">2</div>
+          <div class="cta-step-label">簽約啟動</div>
+          <div class="cta-step-status">下一步</div>
+        </div>
+
+        <div class="cta-connector"></div>
+
+        <div class="cta-step">
+          <div class="cta-step-number">3</div>
+          <div class="cta-step-label">2 個月後上線</div>
+          <div class="cta-step-status">目標</div>
+        </div>
+      </div>
+
+      <div class="cta-footer">
+        如有任何問題，歡迎隨時聯繫討論
+      </div>
+    </div>
+  </div>
+  <div class="page-number">12 / 12</div>
+  <div class="brand-bar"></div>
+</div>
+
+</body>
+</html>

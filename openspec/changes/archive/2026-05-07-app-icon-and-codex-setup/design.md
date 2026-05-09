@@ -1,6 +1,6 @@
 ## Context
 
-three-ai 桌面 App 的核心保護機制（middleware、next-auth 登入、electron-updater、License 驗證）已在 `desktop-commercial-complete` change 完成。目前缺兩個交付前必備項目：
+AIRE 桌面 App 的核心保護機制（middleware、next-auth 登入、electron-updater、License 驗證）已在 `desktop-commercial-complete` change 完成。目前缺兩個交付前必備項目：
 
 1. **App Icon**：electron-builder 目前沒有自訂 icon，打包出的 .app / .exe 用 Electron 預設圖示
 2. **Codex 授權**：客戶首次啟動後，需在 /setup 頁面輸入 OpenAI API Key 才能使用 AI 功能，目前此步驟不存在

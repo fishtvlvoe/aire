@@ -1,0 +1,110 @@
+==========================================
+  Qiaodoumayijiang CEP 扩展 - 安装说明
+  （带缩略图预览版本）
+==========================================
+
+【功能特点】
+✓ 素材缩略图预览
+✓ 网格卡片式布局
+✓ 自动扫描文件夹
+✓ 多选批量导入
+✓ 现代化 UI 界面
+
+
+【安装步骤】
+
+1. 开启 CEP 调试模式（首次安装需要）
+
+   Windows:
+   - 打开注册表编辑器 (Win+R → regedit)
+   - 找到路径: HKEY_CURRENT_USER\Software\Adobe\CSXS.11
+     （如果没有 CSXS.11，尝试 CSXS.10 或 CSXS.9）
+   - 右键新建 → 字符串值 → 名称: PlayerDebugMode → 值: 1
+   
+   或者运行以下命令（管理员权限）:
+   reg add "HKCU\Software\Adobe\CSXS.11" /v PlayerDebugMode /t REG_SZ /d 1 /f
+
+
+2. 复制扩展文件夹
+
+   将整个 Qiaodoumayijiang-CEP 文件夹复制到:
+   
+   Windows:
+   C:\Users\[你的用户名]\AppData\Roaming\Adobe\CEP\extensions\
+   
+   并重命名为: com.qiaodoumayijiang.panel
+   
+   最终路径应该是:
+   C:\Users\[你的用户名]\AppData\Roaming\Adobe\CEP\extensions\com.qiaodoumayijiang.panel\
+
+
+3. 重启 After Effects
+
+
+4. 打开面板
+
+   菜单: 窗口 → 扩展 → Qiaodoumayijiang
+
+
+【快速安装脚本】
+
+以管理员身份运行 PowerShell，执行:
+
+# 开启调试模式
+reg add "HKCU\Software\Adobe\CSXS.11" /v PlayerDebugMode /t REG_SZ /d 1 /f
+reg add "HKCU\Software\Adobe\CSXS.10" /v PlayerDebugMode /t REG_SZ /d 1 /f
+reg add "HKCU\Software\Adobe\CSXS.9" /v PlayerDebugMode /t REG_SZ /d 1 /f
+
+# 创建扩展目录
+$extDir = "$env:APPDATA\Adobe\CEP\extensions\com.qiaodoumayijiang.panel"
+New-Item -ItemType Directory -Force -Path $extDir
+
+# 复制文件（请替换源路径）
+Copy-Item -Path "你的源路径\Qiaodoumayijiang-CEP\*" -Destination $extDir -Recurse -Force
+
+
+【使用方法】
+
+1. 打开 Qiaodoumayijiang 面板
+2. 点击「扫描文件夹」自动识别目录中的所有素材
+3. 点击素材卡片选中（Ctrl+点击多选）
+4. 点击「导入到项目」或「导入到合成」
+
+
+【目录结构】
+
+默认素材目录: C:\Users\[你的用户名]\Qiaodoumayijiang\
+├── images\      ← 图片文件
+├── videos\      ← 视频文件
+├── audio\       ← 音频文件
+└── manifest.json ← 素材清单（自动生成）
+
+点击面板右上角「...」可以更改目录
+
+
+【支持的格式】
+
+图片: .png .jpg .jpeg .gif .webp .bmp .tiff
+视频: .mp4 .mov .avi .webm .mkv .m4v
+音频: .mp3 .wav .aac .m4a .ogg .flac
+
+
+【常见问题】
+
+Q: 看不到扩展菜单？
+A: 检查是否开启了 PlayerDebugMode，重启 AE
+
+Q: 缩略图不显示？
+A: 检查图片文件是否存在，路径中不要有中文或特殊字符
+
+Q: 导入失败？
+A: 确认 AE 中已开启「允许脚本写入文件和访问网络」
+   编辑 → 首选项 → 脚本和表达式
+
+
+【版本信息】
+
+版本: 1.0.0 CEP
+兼容: After Effects CC 2019 及以上版本
+
+==========================================

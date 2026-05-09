@@ -1,0 +1,4 @@
+0000000000000000000000000000000000000000 5147d9d48038d58974e2faa2d4f647de906a61a5 fish老魚 <fish@fishot.com> 1775108428 +0800	branch: Created from HEAD
+5147d9d48038d58974e2faa2d4f647de906a61a5 102a81b6dfeba4c392e200df0aadb6e274622672 fish老魚 <fish@fishot.com> 1775108797 +0800	commit: feat: Element Binding + SCALE prompt 框架 + character-profile SSOT
+102a81b6dfeba4c392e200df0aadb6e274622672 632a7afe6ec9d0cf6183fbeea6a67f6d7a7ddb59 fish老魚 <fish@fishot.com> 1775111790 +0800	commit: feat: 固定 v6 影片生成流程 — buildKlingPrompt + output-manager
+632a7afe6ec9d0cf6183fbeea6a67f6d7a7ddb59 d259da69ad23578583f1182bf05443832a7729e6 fish老魚 <fish@fishot.com> 1775111843 +0800	commit: feat: 固定 v6 影片生成流程 + 產出管理 + 資料夾整理

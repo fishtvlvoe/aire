@@ -54,7 +54,7 @@ code:
   - src/lib/pdf-generator/templates/survey.html
   - kimi-statusline-feature-request.md
   - kimi-usage-ux-issue-body.md
-  - three-ai.db
+  - AIRE.db
   - src/lib/codex-client/types.ts
   - src/lib/document-generator/pdf/dossier-building.ts
   - src/app/layout.tsx

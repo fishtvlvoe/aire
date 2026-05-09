@@ -1,6 +1,6 @@
 ## Context
 
-three-ai 是不動產媒合平臺，目標客戶是房仲業務員。目前系統有 Electron 外殼雛形（electron/ 目錄含 main.ts、launcher.ts、updater.ts、preload.ts）和 License Server 基礎（server/ 目錄含 Express + SQLite）。已有的 UI 頁面包括首次設定精靈（/setup）、登入頁（/login）、管理員功能面板（/admin/features）。但缺少 middleware 路由保護、正式 next-auth 登入、electron-updater 自動更新整合、Serverless PDF 能力、序號產生 CLI。本次合併兩個舊計畫，補齊所有缺口。
+AIRE 是不動產媒合平臺，目標客戶是房仲業務員。目前系統有 Electron 外殼雛形（electron/ 目錄含 main.ts、launcher.ts、updater.ts、preload.ts）和 License Server 基礎（server/ 目錄含 Express + SQLite）。已有的 UI 頁面包括首次設定精靈（/setup）、登入頁（/login）、管理員功能面板（/admin/features）。但缺少 middleware 路由保護、正式 next-auth 登入、electron-updater 自動更新整合、Serverless PDF 能力、序號產生 CLI。本次合併兩個舊計畫，補齊所有缺口。
 
 已存在的代碼：
 - electron/main.ts（136 行）：Electron 主進程，含 splash window、IPC、OAuth URL scheme

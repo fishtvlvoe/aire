@@ -71,6 +71,6 @@ The system SHALL encrypt OpenAI API Keys using AES-256-GCM before storing in the
 
 ##### Example: key derivation input
 
-- **GIVEN** hostname = "fish-macbook", username = "fish", salt = "three-ai-v1"
-- **WHEN** `scryptSync("fish-macbook:fish:three-ai-v1", "three-ai-aes", 32)` is called
+- **GIVEN** hostname = "fish-macbook", username = "fish", salt = "AIRE-v1"
+- **WHEN** `scryptSync("fish-macbook:fish:AIRE-v1", "AIRE-aes", 32)` is called
 - **THEN** a deterministic 32-byte key SHALL be produced for AES-256-GCM

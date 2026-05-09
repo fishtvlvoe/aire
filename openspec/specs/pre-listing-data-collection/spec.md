@@ -531,7 +531,7 @@ code:
   - src/lib/pdf-generator/survey-sales.ts
   - .opencode/skills/spectra-discuss/SKILL.md
   - AGENTS.md.before-zerospec-20260427
-  - three-ai-ui-test.js
+  - AIRE-ui-test.js
   - src/lib/db/schema.ts
   - src/app/layout.tsx
   - src/lib/codex-client/types.ts
@@ -625,7 +625,7 @@ code:
   - src/lib/db/index.ts
   - .opencode/skills/spectra-archive/SKILL.md
   - src/app/api/listings/[id]/field-visit/switch-source/route.ts
-  - three-ai.db
+  - AIRE.db
   - src/app/api/listings/[id]/pdf/route.ts
   - kimi-statusline-feature-request.md
   - vitest.config.ts
@@ -705,7 +705,7 @@ code:
   - src/app/api/listings/[id]/regenerate/route.ts
   - src/lib/pdf-generator/templates/survey.html
   - package.json
-  - three-ai.db
+  - AIRE.db
   - src/lib/codex-client/adapters/gemini.ts
   - src/lib/ocr/pdf-text-layer.ts
   - src/lib/document-generator/pdf/dossier-land.ts
@@ -783,7 +783,7 @@ code:
   - kimi-statusline-issue-body.md
   - src/lib/codex-client/adapters/gemini.ts
   - src/lib/codex-client/types.ts
-  - three-ai.db
+  - AIRE.db
 tests:
   - src/lib/ocr/__tests__/e2e-autofill.spec.ts
   - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts

@@ -13,7 +13,7 @@
 ## Non-Goals
 
 - 不一次性覆蓋所有專案的 agent 文件
-- 不把 three-ai 的商業規則複製到其他專案
+- 不把 AIRE 的商業規則複製到其他專案
 - 不建立強制 blocking hook
 - 不修改與 agent instructions 無關的專案程式碼
 - 不取代各專案既有的 source-of-truth specs、ADR 或 docs

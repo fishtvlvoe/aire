@@ -1,6 +1,6 @@
 ## Context
 
-three-ai 是房地產 AI 系統（Next.js 16 + SQLite），業務在 `src/app/listings/[id]/fill/page.tsx` 編輯物件資料。目前該頁面有「委託前資料」「現勘」「補充」三個 tab，但缺少周邊行情查詢輔助。
+AIRE 是房地產 AI 系統（Next.js 16 + SQLite），業務在 `src/app/listings/[id]/fill/page.tsx` 編輯物件資料。目前該頁面有「委託前資料」「現勘」「補充」三個 tab，但缺少周邊行情查詢輔助。
 
 業務目前的 workflow：
 1. 編輯物件 → 切換到瀏覽器 → 開 591 → 手動輸入縣市/區/價格 → 看結果 → 截圖 → 切回系統 → 上傳 → 填寫摘要

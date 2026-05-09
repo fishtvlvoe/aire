@@ -8,8 +8,8 @@ import { checkAndApplyUpdate, installUpdate } from './updater';
 
 const isDev = !app.isPackaged;
 const APP_ROOT = isDev ? path.join(__dirname, '..') : path.join(process.resourcesPath, 'app');
-const OPENAI_TOKEN_PATH = path.join(os.homedir(), '.three-ai', 'openai-token.json');
-const TOKEN_KEY_SALT = 'three-ai-openai-token';
+const OPENAI_TOKEN_PATH = path.join(os.homedir(), '.AIRE', 'openai-token.json');
+const TOKEN_KEY_SALT = 'AIRE-openai-token';
 
 interface EncryptedTokenPayload {
   iv: string;
@@ -17,8 +17,8 @@ interface EncryptedTokenPayload {
   data: string;
 }
 
-// 自訂 URL Scheme：three-ai://oauth-callback?token=...
-app.setAsDefaultProtocolClient('three-ai');
+// 自訂 URL Scheme：AIRE://oauth-callback?token=...
+app.setAsDefaultProtocolClient('AIRE');
 
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
@@ -30,7 +30,7 @@ if (!gotSingleInstanceLock) {
 } else {
   // Windows/Linux：second-instance 時從 argv 取 URL
   app.on('second-instance', (_event, argv) => {
-    const url = argv.find((arg) => arg.startsWith('three-ai://'));
+    const url = argv.find((arg) => arg.startsWith('AIRE://'));
     if (url) handleOAuthCallback(url);
 
     if (mainWindow && !mainWindow.isDestroyed()) {

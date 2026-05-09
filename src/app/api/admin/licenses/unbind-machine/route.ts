@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminUser } from '@/lib/admin-auth';
 
-const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL ?? 'https://three-ai-license-server.vercel.app';
+const LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL ?? 'https://AIRE-license-server.vercel.app';
 
 interface UnbindMachineBody {
   key?: string;

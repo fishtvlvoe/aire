@@ -1,6 +1,6 @@
 ## Context
 
-three-ai 是房產文件系統，使用 Next.js 16 + Tailwind CSS 4.x。目前 admin 頁面（/admin/users、/admin/features、/admin/templates）沒有包在主 layout 裡，導致缺少 Sidebar、背景色和導航。模板設定功能過於複雜（上傳 HTML），需要簡化為配色選擇器。
+AIRE 是房產文件系統，使用 Next.js 16 + Tailwind CSS 4.x。目前 admin 頁面（/admin/users、/admin/features、/admin/templates）沒有包在主 layout 裡，導致缺少 Sidebar、背景色和導航。模板設定功能過於複雜（上傳 HTML），需要簡化為配色選擇器。
 
 現有 listings 頁面的 layout 結構：
 - 外層：`min-h-screen bg-[#F5F6FA] font-['Manrope'] text-[#2D3142]`

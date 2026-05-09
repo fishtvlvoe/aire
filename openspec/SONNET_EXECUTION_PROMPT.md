@@ -11,7 +11,7 @@
 ## 專案位置
 
 ```
-/Users/fishtv/Development/2-顧問/real-estate-AI/three-ai
+/Users/fishtv/Development/2-顧問/real-estate-AI/AIRE
 ```
 
 ## 技術棧
@@ -140,7 +140,7 @@ spectra archive <change-name>
 ## 開始
 
 ```bash
-cd /Users/fishtv/Development/2-顧問/real-estate-AI/three-ai
+cd /Users/fishtv/Development/2-顧問/real-estate-AI/AIRE
 spectra unpark user-management
 cat openspec/changes/user-management/design.md
 cat openspec/changes/user-management/tasks.md

@@ -1,6 +1,6 @@
 ## Context
 
-three-ai 是一個 Next.js 16 + TypeScript 專案，目前只能透過 `npm run dev` 在本機啟動，再用瀏覽器連 localhost:3000 使用。客戶是房仲公司的非技術人員，需要雙擊桌面圖示就能使用。Electron 41.5.0 已加入 package.json 但尚未設定主程序和打包流程。
+AIRE 是一個 Next.js 16 + TypeScript 專案，目前只能透過 `npm run dev` 在本機啟動，再用瀏覽器連 localhost:3000 使用。客戶是房仲公司的非技術人員，需要雙擊桌面圖示就能使用。Electron 41.5.0 已加入 package.json 但尚未設定主程序和打包流程。
 
 目標平台：macOS（Apple Silicon + Intel）、Windows 10/11。不做 Linux。
 

@@ -6,7 +6,7 @@
 
 ## 動機
 
-需要把 three-ai 桌面版安裝檔交付給客戶（Mac + Windows）。先前只能在本機 Mac 手動 build arm64 dmg；缺：
+需要把 AIRE 桌面版安裝檔交付給客戶（Mac + Windows）。先前只能在本機 Mac 手動 build arm64 dmg；缺：
 
 1. Windows 安裝檔（本機沒有 Windows runner）
 2. Intel Mac 安裝檔
@@ -28,9 +28,9 @@
 ## 結果
 
 GitHub Releases v0.1.2 含：
-- `three-ai-0.1.2-arm64.dmg`（M 系列 Mac, 378 MB）
-- `three-ai-0.1.2-x64.dmg`（Intel Mac, 383 MB）
-- `three-ai-setup-0.1.2.exe`（Windows, 348 MB）
+- `AIRE-0.1.2-arm64.dmg`（M 系列 Mac, 378 MB）
+- `AIRE-0.1.2-x64.dmg`（Intel Mac, 383 MB）
+- `AIRE-setup-0.1.2.exe`（Windows, 348 MB）
 - `latest-mac.yml` / `latest.yml`（electron-updater 中繼）
 
 新工作流程：

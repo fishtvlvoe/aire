@@ -30,7 +30,7 @@ The supplementary form SHALL include company_name, property_name, case_number, a
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts
@@ -64,7 +64,7 @@ The supplementary form SHALL include sale_price, transaction_type, deed_fee_spli
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts
@@ -98,7 +98,7 @@ The supplementary form SHALL include ancillary_building_area, common_area_ping, 
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts
@@ -131,7 +131,7 @@ The supplementary form SHALL include school_distance, park_distance, transport_d
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts

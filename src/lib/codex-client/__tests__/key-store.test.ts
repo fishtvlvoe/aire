@@ -18,13 +18,13 @@ describe('key-store', () => {
     const encrypted = encryptApiKey('sk-proj-valid123', {
       hostname: 'fish-macbook',
       username: 'fish',
-      salt: 'three-ai-v1',
+      salt: 'AIRE-v1',
     });
 
     const decrypted = decryptApiKey(encrypted, {
       hostname: 'fish-macbook',
       username: 'fish',
-      salt: 'three-ai-v1',
+      salt: 'AIRE-v1',
     });
 
     expect(decrypted).toBe('sk-proj-valid123');
@@ -34,13 +34,13 @@ describe('key-store', () => {
     setOpenAIApiKey('sk-proj-valid123', {
       hostname: 'fish-macbook',
       username: 'fish',
-      salt: 'three-ai-v1',
+      salt: 'AIRE-v1',
     });
 
     const value = getOpenAIApiKey({
       hostname: 'office-macbook',
       username: 'fish',
-      salt: 'three-ai-v1',
+      salt: 'AIRE-v1',
     });
 
     expect(value).toBeNull();

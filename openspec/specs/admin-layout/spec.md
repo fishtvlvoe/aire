@@ -66,9 +66,9 @@ code:
   - src/components/LogoUploader.tsx
   - src/app/api/admin/templates/route.ts
   - src/components/TemplatePreview.tsx
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/app/listings/[id]/documents/page.tsx
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/app/admin/layout.tsx
   - package.json
   - src/app/api/admin/templates/logo/route.ts

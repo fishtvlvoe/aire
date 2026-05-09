@@ -51,7 +51,7 @@ code:
   - src/lib/template-engine.ts
   - src/lib/license/server-verify.ts
   - src/lib/auth/vendor.ts
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/app/admin/templates/page.tsx
   - src/app/api/admin/users/route.ts
   - src/lib/db/schema.ts
@@ -61,7 +61,7 @@ code:
   - migrations/005_vendor_account.sql
   - package.json
   - src/components/LogoUploader.tsx
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/app/api/admin/doc-flags/route.ts
 tests:
   - src/lib/auth/__tests__/vendor.test.ts

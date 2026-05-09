@@ -146,7 +146,7 @@ code:
   - kimi-statusline-issue-body.md
   - src/lib/codex-client/adapters/gemini.ts
   - src/lib/codex-client/types.ts
-  - three-ai.db
+  - AIRE.db
 tests:
   - src/lib/ocr/__tests__/e2e-autofill.spec.ts
   - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
@@ -244,7 +244,7 @@ The LLM prompt for disclosure document generation SHALL NOT produce any personal
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts
@@ -279,7 +279,7 @@ In the Puppeteer HTML template, all placeholder markers for unfilled fields SHAL
 source: disclosure-complete-and-fillable
 updated: 2026-05-03
 code:
-  - three-ai.db
+  - AIRE.db
   - src/lib/pdf-generator/dossier.ts
   - kimi-usage-ux-issue-body.md
   - src/lib/document-generator/build-input.ts

@@ -3,10 +3,10 @@ import * as path from 'path';
 import * as os from 'os';
 
 const LICENSE_SERVER_URL =
-  process.env.LICENSE_SERVER_URL ?? 'https://license.three-ai.app';
+  process.env.LICENSE_SERVER_URL ?? 'https://license.AIRE.app';
 
 /** 本地快取路徑（App Data 目錄） */
-const CACHE_PATH = path.join(os.homedir(), '.three-ai', 'license-cache.json');
+const CACHE_PATH = path.join(os.homedir(), '.AIRE', 'license-cache.json');
 
 interface LicenseCache {
   valid: boolean;

@@ -663,7 +663,7 @@ The electron:pack:mac command SHALL produce a DMG installer for macOS (arm64 + x
 - **THEN** the app displays the license activation page (/setup) after splash screen
 
 ##### Example: First launch flow
-- **GIVEN** freshly installed app on macOS with no ~/.three-ai/license-cache.json
+- **GIVEN** freshly installed app on macOS with no ~/.AIRE/license-cache.json
 - **WHEN** user double-clicks the .app
 - **THEN** splash screen appears for 3-5 seconds, then browser window loads /setup with license key input form
 

@@ -1,6 +1,6 @@
 ## Context
 
-`three-ai` 目前是針對單一客戶硬編碼的工具，所有 API routes 均無驗證保護，PDF 生成使用 `puppeteer` 全裝（需下載 ~300MB Chromium），無法部署至 Vercel。本次設計目標是在最小侵入性原則下，補足三個商業化缺口：授權序號、用戶登入、Serverless PDF。
+`AIRE` 目前是針對單一客戶硬編碼的工具，所有 API routes 均無驗證保護，PDF 生成使用 `puppeteer` 全裝（需下載 ~300MB Chromium），無法部署至 Vercel。本次設計目標是在最小侵入性原則下，補足三個商業化缺口：授權序號、用戶登入、Serverless PDF。
 
 ## Goals / Non-Goals
 

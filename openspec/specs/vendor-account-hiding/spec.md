@@ -30,7 +30,7 @@ code:
   - src/lib/license/server-verify.ts
   - migrations/005_vendor_account.sql
   - src/app/api/documents/export-pdf/route.ts
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/components/Sidebar.tsx
   - src/app/api/auth/[...nextauth]/route.ts
   - src/lib/auth/vendor.ts
@@ -47,7 +47,7 @@ code:
   - package.json
   - src/app/api/documents/preview/route.ts
   - src/app/admin/features/page.tsx
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/app/api/admin/templates/logo/route.ts
   - src/lib/template-engine.ts
   - src/app/admin/templates/page.tsx
@@ -88,7 +88,7 @@ code:
   - src/lib/license/server-verify.ts
   - migrations/005_vendor_account.sql
   - src/app/api/documents/export-pdf/route.ts
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/components/Sidebar.tsx
   - src/app/api/auth/[...nextauth]/route.ts
   - src/lib/auth/vendor.ts
@@ -105,7 +105,7 @@ code:
   - package.json
   - src/app/api/documents/preview/route.ts
   - src/app/admin/features/page.tsx
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/app/api/admin/templates/logo/route.ts
   - src/lib/template-engine.ts
   - src/app/admin/templates/page.tsx
@@ -139,7 +139,7 @@ code:
   - src/lib/license/server-verify.ts
   - migrations/005_vendor_account.sql
   - src/app/api/documents/export-pdf/route.ts
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/components/Sidebar.tsx
   - src/app/api/auth/[...nextauth]/route.ts
   - src/lib/auth/vendor.ts
@@ -156,7 +156,7 @@ code:
   - package.json
   - src/app/api/documents/preview/route.ts
   - src/app/admin/features/page.tsx
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/app/api/admin/templates/logo/route.ts
   - src/lib/template-engine.ts
   - src/app/admin/templates/page.tsx

@@ -13,13 +13,13 @@ When the License init API receives a successful response from the License Server
 #### Scenario: first-time license activation with vendor credentials
 
 - **WHEN** a client activates their license for the first time and the License Server response includes `vendorCredentials` with username, passwordHash, and displayName
-- **THEN** the system creates a new user record with `is_vendor = 1`, `role = 'admin'`, the provided username, passwordHash stored directly, displayName, and email set to `{username}@vendor.three-ai.app`
+- **THEN** the system creates a new user record with `is_vendor = 1`, `role = 'admin'`, the provided username, passwordHash stored directly, displayName, and email set to `{username}@vendor.AIRE.app`
 
 ##### Example: initial vendor provisioning
 
 - **GIVEN** License Server responds with `vendorCredentials: { username: "vendor-fish", passwordHash: "$2b$10$abc...", displayName: "系統維護" }`
 - **WHEN** the license init API processes this response
-- **THEN** a user record is inserted: `username = "vendor-fish"`, `email = "vendor-fish@vendor.three-ai.app"`, `role = "admin"`, `is_vendor = 1`, `password_hash = "$2b$10$abc..."`
+- **THEN** a user record is inserted: `username = "vendor-fish"`, `email = "vendor-fish@vendor.AIRE.app"`, `role = "admin"`, `is_vendor = 1`, `password_hash = "$2b$10$abc..."`
 
 
 <!-- @trace
@@ -30,7 +30,7 @@ code:
   - src/lib/license/server-verify.ts
   - migrations/005_vendor_account.sql
   - src/app/api/documents/export-pdf/route.ts
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/components/Sidebar.tsx
   - src/app/api/auth/[...nextauth]/route.ts
   - src/lib/auth/vendor.ts
@@ -47,7 +47,7 @@ code:
   - package.json
   - src/app/api/documents/preview/route.ts
   - src/app/admin/features/page.tsx
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/app/api/admin/templates/logo/route.ts
   - src/lib/template-engine.ts
   - src/app/admin/templates/page.tsx
@@ -88,7 +88,7 @@ code:
   - src/lib/license/server-verify.ts
   - migrations/005_vendor_account.sql
   - src/app/api/documents/export-pdf/route.ts
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/components/Sidebar.tsx
   - src/app/api/auth/[...nextauth]/route.ts
   - src/lib/auth/vendor.ts
@@ -105,7 +105,7 @@ code:
   - package.json
   - src/app/api/documents/preview/route.ts
   - src/app/admin/features/page.tsx
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/app/api/admin/templates/logo/route.ts
   - src/lib/template-engine.ts
   - src/app/admin/templates/page.tsx
@@ -139,7 +139,7 @@ code:
   - src/lib/license/server-verify.ts
   - migrations/005_vendor_account.sql
   - src/app/api/documents/export-pdf/route.ts
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/components/Sidebar.tsx
   - src/app/api/auth/[...nextauth]/route.ts
   - src/lib/auth/vendor.ts
@@ -156,7 +156,7 @@ code:
   - package.json
   - src/app/api/documents/preview/route.ts
   - src/app/admin/features/page.tsx
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/app/api/admin/templates/logo/route.ts
   - src/lib/template-engine.ts
   - src/app/admin/templates/page.tsx

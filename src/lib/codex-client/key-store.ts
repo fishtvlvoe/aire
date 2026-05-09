@@ -9,8 +9,8 @@ import { writeAuditLog } from '@/lib/audit';
 import { db } from '@/lib/db';
 
 const SETTINGS_KEY = 'openai_api_key';
-const DEFAULT_APP_SALT = 'three-ai-v1';
-const SCRYPT_SALT = 'three-ai-aes';
+const DEFAULT_APP_SALT = 'AIRE-v1';
+const SCRYPT_SALT = 'AIRE-aes';
 
 interface EncryptedPayload {
   iv: string;

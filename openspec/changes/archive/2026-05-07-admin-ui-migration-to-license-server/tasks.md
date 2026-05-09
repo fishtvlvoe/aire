@@ -1,7 +1,7 @@
 ## 1. license-server 升級為 Next.js 14 App Router 專案
 
 - [x] 1.1 [Tool: copilot] 修改 `license-server/package.json` 加入依賴 `next@^14`、`react@^18`、`react-dom@^18`、`@types/react`、`@types/react-dom`、`bcryptjs`、`@types/bcryptjs`，並新增 scripts `dev`/`build`/`start` 對應 Decision 1：license-server 升級為 Next.js 14 App Router 專案
-- [x] 1.2 [Tool: copilot] 新增 `license-server/next.config.ts` 與 `license-server/tsconfig.json`，照 three-ai 慣例設定 strict mode、paths alias，落實 Decision 1：license-server 升級為 Next.js 14 App Router 專案
+- [x] 1.2 [Tool: copilot] 新增 `license-server/next.config.ts` 與 `license-server/tsconfig.json`，照 AIRE 慣例設定 strict mode、paths alias，落實 Decision 1：license-server 升級為 Next.js 14 App Router 專案
 - [x] 1.3 [P] [Tool: copilot] 新增 `license-server/app/layout.tsx` 與 `license-server/app/globals.css`（最小骨架，含 mobile viewport meta），符合 Decision 1：license-server 升級為 Next.js 14 App Router 專案
 
 ## 2. admin session 模組（TDD）
@@ -25,13 +25,13 @@
 ## 5. admin UI 頁面
 
 - [x] 5.1 [Tool: copilot] 新增 `license-server/app/admin/login/page.tsx` 實作密碼輸入表單，submit 後 POST `/api/admin/session`，成功後 navigate `/admin/licenses`（Admin login page）對應 Decision 5：admin UI 移植策略
-- [x] 5.2 [Tool: sonnet] 新增 `license-server/app/admin/licenses/page.tsx`：複製 three-ai `src/app/admin/licenses/page.tsx` 並依 Decision 5：admin UI 移植策略 調整：所有 fetch 加 `credentials: 'same-origin'`、移除 `Authorization: Bearer` header、加入 401 偵測 redirect 邏輯（Admin licenses page lists licenses + Admin UI calls admin proxy endpoints + Admin UI handles 401 by redirecting to login + Admin UI provides license actions）
+- [x] 5.2 [Tool: sonnet] 新增 `license-server/app/admin/licenses/page.tsx`：複製 AIRE `src/app/admin/licenses/page.tsx` 並依 Decision 5：admin UI 移植策略 調整：所有 fetch 加 `credentials: 'same-origin'`、移除 `Authorization: Bearer` header、加入 401 偵測 redirect 邏輯（Admin licenses page lists licenses + Admin UI calls admin proxy endpoints + Admin UI handles 401 by redirecting to login + Admin UI provides license actions）
 - [x] 5.3 [Tool: copilot] 在 `license-server/app/admin/licenses/page.tsx` 與 `globals.css` 補上響應式樣式，符合 Admin UI is responsive on mobile（< 768px 時表格切換為卡片排版）
 
 ## 6. vercel.json 改寫與 client API 相容
 
 - [x] 6.1 [Tool: copilot] 修改 `license-server/vercel.json`：移除 catch-all `"/(.*)" → "/api/$1"`，新增 `/license/:path*`、`/features/:path*`、`/updates/:path*` 三條 rewrite 對應 Decision 4：`vercel.json` 改寫策略（Vercel rewrite changes preserve legacy paths）
-- [x] 6.2 [Tool: main] grep three-ai 與 license-server 程式碼確認沒有 hardcode 舊 catch-all 路徑（如 `/license/list` 直接呼叫且無 `Authorization` header），列出所有呼叫點供 review，驗證 Existing client API endpoints remain unchanged
+- [x] 6.2 [Tool: main] grep AIRE 與 license-server 程式碼確認沒有 hardcode 舊 catch-all 路徑（如 `/license/list` 直接呼叫且無 `Authorization` header），列出所有呼叫點供 review，驗證 Existing client API endpoints remain unchanged
 
 ## 7. 整合驗證與 Code Review
 
@@ -43,4 +43,4 @@
 
 - [x] 8.1 [Tool: main] 整理 deploy checklist 給 Fish 確認：Vercel env 設定 `LICENSE_ADMIN_PASSWORD`（bcrypt hash 用 cost=12 產生）與 `ADMIN_SESSION_SECRET`（`openssl rand -base64 48`）的具體指令；確認後 Fish 親自貼到 Vercel Dashboard
 - [x] 8.2 [Tool: main] 取得 Fish 同意後執行 `cd license-server && vercel deploy --prod` 部署
-- [x] 8.3 [Tool: main] 部署後線上 smoke test：用手機瀏覽器訪問 `https://three-ai-license-server.vercel.app/admin/login` 走完登入→列表→建立→停用→登出，回報結果給 Fish
+- [x] 8.3 [Tool: main] 部署後線上 smoke test：用手機瀏覽器訪問 `https://AIRE-license-server.vercel.app/admin/login` 走完登入→列表→建立→停用→登出，回報結果給 Fish

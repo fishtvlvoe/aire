@@ -49,7 +49,7 @@ export default function SetupPage() {
   const handleOAuthStart = async () => {
     setOauthWaiting(true);
     await window.electronAPI?.openExternal(
-      'https://chatgpt.com/auth/openai-codex?redirect_uri=three-ai://oauth-callback',
+      'https://chatgpt.com/auth/openai-codex?redirect_uri=AIRE://oauth-callback',
     );
   };
 

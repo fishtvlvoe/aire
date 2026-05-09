@@ -28,7 +28,7 @@ The migration SHALL NOT copy product-specific rules from one repository into the
 
 Alternatives Considered:
 
-- 把 three-ai 的完整模式做成全域模板：被否決，因為會把房仲產品規則污染其他專案。
+- 把 AIRE 的完整模式做成全域模板：被否決，因為會把房仲產品規則污染其他專案。
 - 每個專案完全自創格式：被否決，因為未來 Codex 無法穩定地自動掃描與驗證。
 
 ## Risks / Trade-offs

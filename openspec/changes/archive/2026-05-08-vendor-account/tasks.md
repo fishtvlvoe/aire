@@ -3,7 +3,7 @@
 ## Wave 1: Schema 與基礎設施
 
 - [x] [P] 1.1 建立 migration 檔 `migrations/005_vendor_account.sql`，內容為 `ALTER TABLE users ADD COLUMN is_vendor INTEGER NOT NULL DEFAULT 0;`。在 `src/lib/db/schema.ts` 的 `initDb()` 中加入執行此 migration 的邏輯（參考既有 migration 執行模式）。[Tool: Copilot] [Spec: user-account-management/is-vendor-column] [Design: D1]
-- [x] [P] 1.2 建立 `src/lib/auth/vendor.ts`，匯出 `provisionVendorAccount(credentials: { username: string; passwordHash: string; displayName: string }): void`。邏輯：查詢 `SELECT id FROM users WHERE username = ? AND is_vendor = 1`；若存在則 `UPDATE users SET password_hash = ?, display_name = ? WHERE id = ?`；若不存在則 `INSERT INTO users (username, email, password_hash, display_name, role, is_vendor) VALUES (?, ?, ?, ?, 'admin', 1)`，email 格式為 `{username}@vendor.three-ai.app`。使用 `db` from `@/lib/db`，同步 API（better-sqlite3）。[Tool: Copilot] [Spec: vendor-account-provisioning/auto-provision-vendor-account, vendor-account-provisioning/update-existing-vendor-account] [Design: D3]
+- [x] [P] 1.2 建立 `src/lib/auth/vendor.ts`，匯出 `provisionVendorAccount(credentials: { username: string; passwordHash: string; displayName: string }): void`。邏輯：查詢 `SELECT id FROM users WHERE username = ? AND is_vendor = 1`；若存在則 `UPDATE users SET password_hash = ?, display_name = ? WHERE id = ?`；若不存在則 `INSERT INTO users (username, email, password_hash, display_name, role, is_vendor) VALUES (?, ?, ?, ?, 'admin', 1)`，email 格式為 `{username}@vendor.AIRE.app`。使用 `db` from `@/lib/db`，同步 API（better-sqlite3）。[Tool: Copilot] [Spec: vendor-account-provisioning/auto-provision-vendor-account, vendor-account-provisioning/update-existing-vendor-account] [Design: D3]
 
 ## Wave 2: License Init API 整合
 

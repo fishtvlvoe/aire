@@ -108,4 +108,4 @@ The global `agent-progressive-loading` skill SHALL define the reusable method fo
 
 - **WHEN** Codex updates the global skill
 - **THEN** the skill SHALL contain reusable workflow guidance
-- **THEN** the skill SHALL NOT contain three-ai product rules, client details, or domain-specific facts
+- **THEN** the skill SHALL NOT contain AIRE product rules, client details, or domain-specific facts

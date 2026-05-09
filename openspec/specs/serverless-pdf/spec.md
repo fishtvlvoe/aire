@@ -351,7 +351,7 @@ When `CHROMIUM_MODE=serverless`, the PDF API route SHALL export `maxDuration = 6
 source: fe-software-commercialization
 updated: 2026-05-04
 code:
-  - three-ai.db
+  - AIRE.db
   - kimi-statusline-issue-body.md
   - package.json
   - src/app/api/listings/[id]/regenerate/route.ts

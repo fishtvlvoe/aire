@@ -35,7 +35,7 @@ The system SHALL validate a license serial key using Ed25519 asymmetric signatur
 source: fe-software-commercialization
 updated: 2026-05-04
 code:
-  - three-ai.db
+  - AIRE.db
   - kimi-statusline-issue-body.md
   - package.json
   - src/app/api/listings/[id]/regenerate/route.ts
@@ -96,7 +96,7 @@ The system SHALL provide `/setup/license` page for entering and activating a ser
 source: fe-software-commercialization
 updated: 2026-05-04
 code:
-  - three-ai.db
+  - AIRE.db
   - kimi-statusline-issue-body.md
   - package.json
   - src/app/api/listings/[id]/regenerate/route.ts
@@ -152,7 +152,7 @@ Serial key SHALL be a base64url-encoded Ed25519-signed JSON: `{ company: string,
 source: fe-software-commercialization
 updated: 2026-05-04
 code:
-  - three-ai.db
+  - AIRE.db
   - kimi-statusline-issue-body.md
   - package.json
   - src/app/api/listings/[id]/regenerate/route.ts
@@ -338,7 +338,7 @@ tests:
 source: fe-software-commercialization
 updated: 2026-05-04
 code:
-  - three-ai.db
+  - AIRE.db
   - kimi-statusline-issue-body.md
   - package.json
   - src/app/api/listings/[id]/regenerate/route.ts

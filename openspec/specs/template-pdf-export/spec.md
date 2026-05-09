@@ -36,7 +36,7 @@ code:
   - src/app/api/documents/preview/route.ts
   - src/app/admin/layout.tsx
   - src/lib/db/index.ts
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/app/admin/templates/page.tsx
   - src/app/listings/page.tsx
   - src/components/Sidebar.tsx
@@ -56,7 +56,7 @@ code:
   - src/app/api/admin/templates/route.ts
   - src/lib/template-engine.ts
   - src/app/api/me/route.ts
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/lib/db/schema.ts
   - src/components/TemplatePreview.tsx
   - src/app/api/admin/templates/logo/route.ts
@@ -86,7 +86,7 @@ code:
   - src/app/api/documents/preview/route.ts
   - src/app/admin/layout.tsx
   - src/lib/db/index.ts
-  - design-system/three-ai/pages/admin.md
+  - design-system/AIRE/pages/admin.md
   - src/app/admin/templates/page.tsx
   - src/app/listings/page.tsx
   - src/components/Sidebar.tsx
@@ -106,7 +106,7 @@ code:
   - src/app/api/admin/templates/route.ts
   - src/lib/template-engine.ts
   - src/app/api/me/route.ts
-  - design-system/three-ai/MASTER.md
+  - design-system/AIRE/MASTER.md
   - src/lib/db/schema.ts
   - src/components/TemplatePreview.tsx
   - src/app/api/admin/templates/logo/route.ts

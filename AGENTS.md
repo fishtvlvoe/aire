@@ -27,13 +27,13 @@ Changes can be parked, temporarily moved out of `openspec/changes/`. Parked chan
 
 <!-- SPECTRA:END -->
 
-# AGENTS.md - three-ai Agent Entry
+# AGENTS.md - AIRE Agent Entry
 
-This is the always-read entrypoint for GenAI agents working in `three-ai`. Keep it short. Load detailed guidance only when the current task needs it.
+This is the always-read entrypoint for GenAI agents working in `AIRE`. Keep it short. Load detailed guidance only when the current task needs it.
 
 ## Project Purpose
 
-`three-ai` is an intelligent real-estate listing and document platform. It helps agents upload official PDF documents, extract/OCR property data, validate fields, and generate compliant disclosure and transaction documents.
+`AIRE` is an intelligent real-estate listing and document platform. It helps agents upload official PDF documents, extract/OCR property data, validate fields, and generate compliant disclosure and transaction documents.
 
 Core product capabilities:
 
