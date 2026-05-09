@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Stepper from '@/components/Stepper';
 
@@ -70,6 +70,7 @@ const previewText = (content?: string): string => {
 
 export default function ListingDocumentsPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const listingId = Number(params.id ?? '0');
 
   const [docs, setDocs] = useState<Record<DocumentKey, DocumentEntry> | null>(null);
@@ -298,12 +299,23 @@ export default function ListingDocumentsPage() {
                       )}
 
                       {card.key === 'disclosure_document' && (
-                        <a
-                          href={card.entry.pdfUrl ?? `/api/listings/${listingId}/pdf?type=disclosure`}
-                          className="rounded-md border border-[#F5882B] px-3 py-1.5 text-sm font-semibold text-[#F5882B]"
-                        >
-                          下載 PDF
-                        </a>
+                        <>
+                          <a
+                            href={card.entry.pdfUrl ?? `/api/listings/${listingId}/pdf?type=disclosure`}
+                            className="rounded-md border border-[#F5882B] px-3 py-1.5 text-sm font-semibold text-[#F5882B]"
+                          >
+                            下載 PDF
+                          </a>
+                          {card.entry.status === 'ready' ? (
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/listings/${listingId}/documents/preview`)}
+                              className="rounded-md border border-[#1B3A6B] px-3 py-1.5 text-sm font-semibold text-[#1B3A6B] hover:bg-[#EEF3FB]"
+                            >
+                              預覽
+                            </button>
+                          ) : null}
+                        </>
                       )}
 
                       <button

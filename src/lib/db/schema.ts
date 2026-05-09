@@ -188,6 +188,8 @@ export function initDb(db: Database.Database): void {
   }
 
   db.prepare('INSERT OR IGNORE INTO feature_flags (key, enabled, value) VALUES (?, 1, ?)').run('doc_color_scheme', 'navy');
+  db.prepare('INSERT OR IGNORE INTO feature_flags (key, enabled, value) VALUES (?, 1, ?)').run('doc_bg_cover', '');
+  db.prepare('INSERT OR IGNORE INTO feature_flags (key, enabled, value) VALUES (?, 1, ?)').run('doc_bg_content', '');
 
   // 不在 schema 初始化時建立預設 admin；改由 instrumentation 的 env seed 建立
 }

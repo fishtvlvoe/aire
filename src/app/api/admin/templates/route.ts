@@ -3,13 +3,20 @@ import { resolveCurrentUser } from '@/lib/auth/resolve-user';
 import { COLOR_SCHEME_IDS } from '@/lib/branding/color-schemes';
 import { db, writeAuditLog } from '@/lib/db';
 
-function readTemplateSettings(): { colorScheme: string; logoPath: string | null } {
+function readTemplateSettings(): {
+  colorScheme: string;
+  logoPath: string | null;
+  bgCoverPath: string | null;
+  bgContentPath: string | null;
+} {
   const rows = db.prepare(
-    'SELECT key, value FROM feature_flags WHERE key IN (?, ?)'
-  ).all('doc_color_scheme', 'doc_logo_path') as Array<{ key: string; value: string | null }>;
+    'SELECT key, value FROM feature_flags WHERE key IN (?, ?, ?, ?)'
+  ).all('doc_color_scheme', 'doc_logo_path', 'doc_bg_cover', 'doc_bg_content') as Array<{ key: string; value: string | null }>;
 
   let colorScheme = 'navy';
   let logoPath: string | null = null;
+  let bgCoverPath: string | null = null;
+  let bgContentPath: string | null = null;
   for (const row of rows) {
     if (row.key === 'doc_color_scheme' && row.value) {
       colorScheme = row.value;
@@ -17,9 +24,15 @@ function readTemplateSettings(): { colorScheme: string; logoPath: string | null 
     if (row.key === 'doc_logo_path') {
       logoPath = row.value || null;
     }
+    if (row.key === 'doc_bg_cover') {
+      bgCoverPath = row.value || null;
+    }
+    if (row.key === 'doc_bg_content') {
+      bgContentPath = row.value || null;
+    }
   }
 
-  return { colorScheme, logoPath };
+  return { colorScheme, logoPath, bgCoverPath, bgContentPath };
 }
 
 export async function GET(req: NextRequest) {
