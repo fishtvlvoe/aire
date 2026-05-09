@@ -62,6 +62,9 @@ export default function DisclosureFieldOverlay({
             color: '#94a3b8',
             pointerEvents: 'none',
             padding: '0 4px',
+            backgroundColor: 'rgba(255,255,255,0.7)',
+            borderRadius: '2px',
+            lineHeight: '1.4',
           }}
         >
           {label}
@@ -78,10 +81,13 @@ export default function DisclosureFieldOverlay({
           left: `${position.x}%`,
           top: `${position.y}%`,
           width: `${position.width}%`,
-          height: `${position.height}%`,
+          minHeight: `${position.height}%`,
           fontSize: `${position.fontSize}px`,
           textAlign: position.textAlign,
           zIndex: 2,
+          backgroundColor: 'rgba(255,255,255,0.5)',
+          borderRadius: '2px',
+          lineHeight: '1.4',
         }}
         className={[
           'rounded px-1 outline-none transition',

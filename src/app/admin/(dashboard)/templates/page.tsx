@@ -71,6 +71,7 @@ function BackgroundUploadSlot({
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (!file) return;
+              const input = event.currentTarget;
               void (async () => {
                 setError('');
                 setUploading(true);
@@ -80,7 +81,7 @@ function BackgroundUploadSlot({
                   setError(caughtError instanceof Error ? caughtError.message : '上傳失敗');
                 } finally {
                   setUploading(false);
-                  event.currentTarget.value = '';
+                  input.value = '';
                 }
               })();
             }}
