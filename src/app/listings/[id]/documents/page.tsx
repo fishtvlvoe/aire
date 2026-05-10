@@ -198,17 +198,21 @@ export default function ListingDocumentsPage() {
   };
 
   const handleRegenerateAll = async () => {
-    if (!window.confirm('重新產生會覆蓋現有 5 份文件，確定？')) return;
+    if (!window.confirm('重新產生會覆蓋現有文件，確定？')) return;
     setRegenerating(true);
     try {
-      const res = await fetch(`/api/listings/${listingId}/regenerate`, { method: 'POST' });
-      if (!res.ok) throw new Error(await res.text() || '重新產生失敗');
-      // 重 fetch documents
-      const r2 = await fetch(`/api/listings/${listingId}/documents`);
-      if (r2.ok) {
-        const payload = (await r2.json()) as DocumentsResponse;
-        setDocs(payload.documents);
+      for (const docType of enabledDocKeys) {
+        const res = await fetch(`/api/listings/${listingId}/regenerate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ documentType: docType }),
+        });
+        if (!res.ok) {
+          const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(payload?.error ?? `${docType} 重新產生失敗`);
+        }
       }
+      await loadDocuments();
     } catch (e) {
       alert('重新產生失敗：' + (e as Error).message);
     } finally {

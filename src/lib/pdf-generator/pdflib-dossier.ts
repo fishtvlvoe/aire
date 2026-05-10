@@ -462,8 +462,7 @@ export async function generateDossierPDFLib(
   const coverPage = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
   drawBackground(coverPage, coverBgImage);
 
-  const contentFieldPage = createContentPage();
-  drawContentFields(contentFieldPage, fonts.regular, fieldMap);
+  drawContentFields(coverPage, fonts.regular, fieldMap);
 
   const contentLeft = TYPESET.margin.left;
   const contentRight = A4_WIDTH - TYPESET.margin.right;
