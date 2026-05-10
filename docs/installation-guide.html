@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 40px 50px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif; color: #1e293b; line-height: 1.7; padding: 40px 50px; max-width: 800px; margin: 0 auto; }
+
+  h1.title { font-size: 32px; color: #1e40af; margin-bottom: 4px; }
+  h1.title::after { content: ''; display: block; height: 3px; background: linear-gradient(90deg, #2563eb, #60a5fa, transparent); margin-top: 8px; margin-bottom: 8px; }
+  .subtitle { font-size: 14px; color: #64748b; margin-bottom: 36px; }
+
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 20px; font-weight: 700; color: #1e40af; margin-bottom: 16px; padding-left: 12px; border-left: 4px solid #2563eb; }
+  .section-num { color: #2563eb; margin-right: 6px; }
+
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin-bottom: 16px; }
+  .card-row { display: flex; gap: 20px; }
+  .card-half { flex: 1; }
+  .card h3 { font-size: 16px; color: #dc2626; margin-bottom: 8px; }
+  .card.blue h3 { color: #1e40af; }
+
+  .step { margin-bottom: 20px; padding-left: 44px; position: relative; }
+  .step-num { position: absolute; left: 0; top: 0; width: 28px; height: 28px; background: #2563eb; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; }
+  .step-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .step-desc { font-size: 14px; color: #475569; }
+
+  .warn { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 14px 18px; margin: 12px 0 20px; font-size: 13px; }
+  .warn-title { color: #d97706; font-weight: 700; margin-bottom: 4px; }
+  .warn p { color: #92400e; }
+
+  .code { font-family: "SF Mono", "Menlo", monospace; background: #f1f5f9; color: #dc2626; padding: 2px 8px; border-radius: 4px; font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+  th { background: #f1f5f9; text-align: left; padding: 10px 14px; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
+  td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; }
+
+  .footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 48px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+
+  .contact { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 18px; margin-top: 20px; font-size: 14px; }
+  .contact strong { color: #1e40af; }
+
+  .page-break { page-break-before: always; }
+
+  ul { padding-left: 20px; margin-top: 6px; }
+  li { font-size: 14px; color: #475569; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<h1 class="title">AIRE 安裝指引</h1>
+<p class="subtitle">適用版本 v0.1.3 &middot; 給第一次安裝的用戶</p>
+
+<!-- Section 1 -->
+<div class="section">
+  <div class="section-title"><span class="section-num">&oplus;</span> 確認你的電腦版本</div>
+  <div class="card-row">
+    <div class="card card-half blue">
+      <h3 style="color:#1e40af">Mac 用戶</h3>
+      <p style="font-size:14px; color:#475569;">
+        點螢幕左上蘋果圖示 &rarr; 關於這台 Mac &rarr; 看「晶片」欄位：
+      </p>
+      <ul>
+        <li>顯示 Apple M1 / M2 / M3 / M4 &rarr; 用 <span class="code">arm64</span> 版本</li>
+        <li>顯示 Intel &rarr; 用 <span class="code">x64</span> 版本</li>
+      </ul>
+    </div>
+    <div class="card card-half blue">
+      <h3 style="color:#1e40af">Windows 用戶</h3>
+      <p style="font-size:14px; color:#475569;">
+        直接使用 <span class="code">AIRE-setup-0.1.3.exe</span> 即可。
+      </p>
+      <p style="font-size:13px; color:#94a3b8; margin-top:8px;">（目前支援 Windows 10 / 11，64-bit）</p>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2 -->
+<div class="section">
+  <div class="section-title"><span class="section-num">&oplus;</span> Mac 安裝步驟</div>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-title">雙擊 DMG 檔案</div>
+    <div class="step-desc">出現一個視窗，把左邊的 <span class="code">AIRE</span> 圖示拖到右邊的「Applications」資料夾。</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-title">第一次開啟</div>
+    <div class="step-desc">到「應用程式」資料夾找到 AIRE 雙擊。</div>
+  </div>
+  <div class="warn">
+    <div class="warn-title">&#9888; Mac 第一次會跳警告：「無法驗證開發者」或「無法打開」</div>
+    <p>這是正常的（軟體還沒上架到 Mac App Store）。處理方式：</p>
+    <p>系統設定 &rarr; 隱私權與安全性 &rarr; 滑到中下方會看到「已封鎖 AIRE」&rarr; 點 <strong>「仍要開啟」</strong> &rarr; 輸入電腦密碼確認 &rarr; 重新打開即可。</p>
+  </div>
+</div>
+
+<!-- Section 3 -->
+<div class="section">
+  <div class="section-title"><span class="section-num">&oplus;</span> Windows 安裝步驟</div>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-title">雙擊 AIRE-setup-0.1.3.exe</div>
+    <div class="step-desc">跟隨安裝精靈一路按「下一步」即可。</div>
+  </div>
+  <div class="warn">
+    <div class="warn-title">&#9888; Windows 第一次會跳「Windows 已保護你的電腦」藍色畫面</div>
+    <p>處理方式：點 <strong>「其他資訊」</strong> &rarr; <strong>「仍要執行」</strong>。</p>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 4 -->
+<div class="section">
+  <div class="section-title"><span class="section-num">&oplus;</span> 啟用流程（首次開啟必做）</div>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-title">安裝 Codex CLI</div>
+    <div class="step-desc">
+      AIRE 需要 OpenAI 的 Codex 工具來驅動 AI 功能。首次開啟時，系統會自動偵測是否已安裝。<br>
+      若尚未安裝，畫面會顯示引導頁面，請依照指示完成安裝：
+      <ul>
+        <li>Mac：打開「終端機」，貼上指令 <span class="code">npm install -g @openai/codex</span></li>
+        <li>Windows：打開「命令提示字元」或「PowerShell」，貼上同樣指令</li>
+      </ul>
+      <p style="font-size:13px; color:#94a3b8; margin-top:4px;">（這一步通常由服務人員協助完成）</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-title">登入 ChatGPT 帳號</div>
+    <div class="step-desc">
+      安裝 Codex CLI 後，在終端機輸入 <span class="code">codex login</span>，瀏覽器會跳出 ChatGPT 登入頁面。<br>
+      登入完成後回到 AIRE，點擊「重新偵測」即可。
+      <p style="font-size:13px; color:#94a3b8; margin-top:4px;">（需有 ChatGPT 帳號，免費帳號即可使用；付費帳號效果更好）</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-title">輸入產品序號</div>
+    <div class="step-desc">
+      畫面會出現「啟用」頁，輸入服務人員提供的序號（格式：<span class="code">XXXX-XXXX-XXXX-XXXX</span>），按「啟用」。<br>
+      系統會自動把這台電腦記下來（俗稱「綁機」），之後同一台電腦不用再啟用。每張序號只能綁一台電腦。
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-title">建立管理員帳號</div>
+    <div class="step-desc">
+      設定一組電子信箱與密碼，這是登入 AIRE 的帳號（自己記好，後台找回密碼較麻煩）。
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-title">登入完成</div>
+    <div class="step-desc">
+      回到登入頁，輸入剛建立的 Email 與密碼，進入 AIRE 主頁。可以開始上傳謄本、產出文件。
+    </div>
+  </div>
+</div>
+
+<!-- Section 5 -->
+<div class="section">
+  <div class="section-title"><span class="section-num">&oplus;</span> 常見狀況處理</div>
+  <table>
+    <tr><th>狀況</th><th>解決方式</th></tr>
+    <tr><td>序號顯示「已被使用」</td><td>每張序號只能綁一台電腦。如要換電腦，請聯絡服務人員「解除綁定」。</td></tr>
+    <tr><td>忘記管理員密碼</td><td>聯絡服務人員協助重設。</td></tr>
+    <tr><td>更新提示出現</td><td>同意更新即可（系統會自動下載新版並重開）。</td></tr>
+    <tr><td>App 無法啟動</td><td>確認 Mac 系統設定已點過「仍要開啟」、Windows 已點過「仍要執行」。</td></tr>
+    <tr><td>序號輸入後一直轉圈</td><td>檢查網路連線，啟用流程需要連到 license 伺服器。</td></tr>
+    <tr><td>Codex CLI 安裝失敗</td><td>確認電腦已安裝 Node.js（至少 v18）。可在終端機輸入 <span class="code">node -v</span> 確認。若未安裝，請先到 nodejs.org 下載安裝。</td></tr>
+    <tr><td>codex login 沒有跳出瀏覽器</td><td>手動打開瀏覽器到 chatgpt.com 登入後，再重新執行 <span class="code">codex login</span>。</td></tr>
+  </table>
+
+  <div class="contact">
+    <strong>需要幫忙？</strong> 隨時聯絡 Fish（fish@fishot.com）— 通常 1 小時內回覆。
+  </div>
+</div>
+
+<div class="footer">AIRE v0.1.3 &middot; &copy;2026 核流有限公司</div>
+
+</body>
+</html>
