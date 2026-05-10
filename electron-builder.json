@@ -1,6 +1,6 @@
 {
   "appId": "com.aiver.AIRE",
-  "productName": "AI 不動產說明書",
+  "productName": "AIRE",
   "copyright": "Copyright © 2026 核流有限公司",
   "directories": {
     "output": "dist-electron",
@@ -47,12 +47,12 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "AI 不動產說明書"
+    "shortcutName": "AIRE"
   },
   "publish": {
     "provider": "github",
     "owner": "fishtvlvoe",
-    "repo": "three-ai",
+    "repo": "aire",
     "releaseType": "release"
   }
 }

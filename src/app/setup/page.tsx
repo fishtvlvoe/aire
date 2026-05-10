@@ -158,7 +158,7 @@ export default function SetupPage() {
               </svg>
             </div>
             <h1 className="mb-2 text-center text-xl font-bold text-slate-800">設定完成！</h1>
-            <p className="mb-6 text-center text-sm text-slate-500">您的系統已就緒，可以開始使用 AI 不動產說明書。</p>
+            <p className="mb-6 text-center text-sm text-slate-500">您的系統已就緒，可以開始使用 AIRE。</p>
             <button
               onClick={handleFinish}
               className="w-full rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700"
