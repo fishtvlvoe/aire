@@ -52,7 +52,7 @@
   "publish": {
     "provider": "github",
     "owner": "fishtvlvoe",
-    "repo": "aire",
+    "repo": "three-ai",
     "releaseType": "release"
   }
 }
