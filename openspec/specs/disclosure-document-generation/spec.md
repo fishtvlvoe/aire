@@ -16,29 +16,67 @@ The system SHALL support two document variants:
 
 Chapters 1–4, 10–16 SHALL have identical structure across both versions. Chapters 5–6 and 8–11 differ between building and land versions.
 
+The PDF renderer SHALL parse the markdown using a token-based approach (marked.lexer) and render each token type with formal typesetting rules: headings centered at 16pt Bold, paragraphs at 12pt Regular with 1.5x line height, label-value pairs with fixed-width labels. All text SHALL be rendered within the content margin boundaries of each page.
+
 #### Scenario: Building version chapter structure
 
-- **WHEN** property type is one of 公寓/大樓華廈/透天別墅/套房/店面/廠房/農舍
-- **THEN** the generated document SHALL contain chapters 1–16 as defined in the building version spec, with chapter 8 covering 建物現況調查
+WHEN property type is one of 公寓/大樓華廈/透天別墅/套房/店面/廠房/農舍
+THEN the generated document SHALL contain chapters 1–16 as defined in the building version spec, with chapter 8 covering 建物現況調查
+
+##### Example:
+GIVEN property type is 公寓
+WHEN disclosure document is generated
+THEN output contains exactly 16 chapters with chapter 8 titled 建物現況調查
 
 #### Scenario: Land version chapter structure
 
-- **WHEN** property type is one of 農地/建地/商業地/工業地/鄉村區建地/其他土地
-- **THEN** the generated document SHALL contain chapters 1–16 as defined in the land version spec, with chapters 8–11 covering 基地/土地現況調查表 p1–p4
+WHEN property type is one of 農地/建地/商業地/工業地/鄉村區建地/其他土地
+THEN the generated document SHALL contain chapters 1–16 as defined in the land version spec, with chapters 8–11 covering 基地/土地現況調查表 p1–p4
+
+##### Example:
+GIVEN property type is 農地
+WHEN disclosure document is generated
+THEN output contains exactly 16 chapters with chapters 8-11 covering 基地/土地現況調查表
+
+#### Scenario: PDF renders markdown with formal typesetting
+
+WHEN the markdown content is converted to PDF
+THEN chapter headings (level-2 and level-4) SHALL render centered with enlarged Bold font, paragraphs SHALL render with 1.5x line spacing and 12pt paragraph spacing, and all text SHALL stay within the defined content margin area.
+
+##### Example:
+GIVEN markdown containing `## 章節 2：重要告知` and paragraph text
+WHEN converted to PDF
+THEN pdftotext output contains "章節 2：重要告知" and visual inspection shows centered heading at 16pt
 
 
 <!-- @trace
-source: disclosure-pdf-16-chapter
-updated: 2026-04-18
+source: disclosure-pdf-typesetting
+updated: 2026-05-10
 code:
+  - package.json
+  - public/branding/backgrounds/cover.png
+  - src/lib/pdf-generator/pdflib-dossier.ts
+  - src/lib/pdf-generator/typesetting.ts
+  - .agents/skills/spectra-apply/SKILL.md
+  - .agents/skills/spectra-ingest/SKILL.md
+  - .agents/skills/spectra-discuss/SKILL.md
+  - public/fonts/NotoSansTC-Regular.ttf
   - src/lib/pdf-generator/dossier.ts
-  - src/app/listings/[id]/documents/page.tsx
-  - src/lib/document-generator/codex-provider.ts
-  - src/app/api/listings/[id]/pdf/route.ts
+  - .agents/skills/spectra-commit/SKILL.md
+  - docs/demo/不動產說明書-樣本.pdf
+  - .agents/skills/spectra-ask/SKILL.md
+  - .agents/skills/spectra-archive/SKILL.md
+  - .agents/skills/spectra-debug/SKILL.md
+  - public/fonts/NotoSansTC-Bold.ttf
+  - public/branding/backgrounds/content.png
+  - .agents/skills/spectra-audit/SKILL.md
+  - docs/demo/不動產說明書-測試.pdf
+  - .agents/skills/spectra-propose/SKILL.md
+  - .agents/skills/spectra-drift/SKILL.md
 tests:
+  - src/app/api/__tests__/listings-pdf-route.test.ts
   - src/lib/pdf-generator/__tests__/dossier.test.ts
-  - src/lib/document-generator/__tests__/land-type.test.ts
-  - src/lib/document-generator/__tests__/five-documents.test.ts
+  - src/lib/pdf-generator/__tests__/pdflib-dossier.test.ts
 -->
 
 ---

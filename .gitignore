@@ -50,3 +50,5 @@ test-results/
 # Electron compiled output
 electron/build/
 dist-electron/
+
+# PDF CJK fonts are versioned for reproducible PDF output
