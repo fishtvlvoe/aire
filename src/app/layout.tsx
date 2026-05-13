@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import type { ReactNode } from "react";
 
+// Root layout — Tauri WebView 載入的第一層
+// 字型、設計 token 注入留到 Group 10 處理，這裡只給最小骨架
 export const metadata: Metadata = {
-  title: "AI 房產文件系統",
-  description: "三段式 AI 房產文件自動產出系統（委託前 → 現勘 → 補充 → 文件生成）",
+  title: "AIRE",
+  description: "不動產說明書桌面 App",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="zh-Hant">
+      <body>{children}</body>
     </html>
   );
 }

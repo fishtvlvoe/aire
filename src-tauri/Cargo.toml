@@ -1,0 +1,38 @@
+[package]
+name = "aire"
+version = "0.1.0"
+description = "AIRE 不動產說明書桌面 App"
+authors = ["Fish <fish@fishot.com>"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "aire_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Tauri 核心
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+
+# 序列化
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# SQLite（Group 2 起會用到，先納入依賴避免後續 Wave 重 build）
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# HTTP 客戶端（Group 4 用於 OPCOS API）
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+# OS keychain（Group 3 用於憑證儲存）
+keyring = "2"
+
+# 非同步 runtime（Tauri 內已含但顯式列出便於我們 spawn task）
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+
+# UUID（Group 4 device_id 生成）
+uuid = { version = "1", features = ["v4"] }

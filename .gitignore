@@ -19,6 +19,7 @@
 
 # production
 /build
+/dist-electron
 
 # misc
 .DS_Store
@@ -30,26 +31,37 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 
-# vercel
+# vercel（舊 Web app 殘留設定，不入版控）
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Spectra
 .spectra/
 openspec/.vector-search.db*
-data/
 
-# 物件照片上傳（法規必揭，不入版控）
+# 應用資料（執行期產生，不入版控）
+data/
+listings.db
+three-ai.db
+*.sqlite
+*.sqlite-journal
+
+# 物件照片上傳（含個資）
 /public/uploads/
 test-results/
 
-# Electron compiled output
-electron/build/
-dist-electron/
+# Tauri build output
+/src-tauri/target/
+/src-tauri/gen/
 
-# PDF CJK fonts are versioned for reproducible PDF output
+# Electron 舊產出（legacy）
+electron/build/
+
+# 字型與 PDF 字型快取
 graphify-out/
