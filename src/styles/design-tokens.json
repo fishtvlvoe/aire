@@ -1,0 +1,87 @@
+{
+  "_meta": {
+    "description": "AIRE 桌面 App 設計 token，從 opcOS 平台 ST/tooling/tailwind/theme.css 抽出。對齊 opcOS 雲端網頁視覺。",
+    "source": "ST/tooling/tailwind/theme.css",
+    "extractedAt": "2026-05-14"
+  },
+  "colors": {
+    "light": {
+      "border": "var(--color-stone-200)",
+      "input": "var(--color-stone-200)",
+      "ring": "var(--color-stone-400)",
+      "background": "var(--color-stone-50)",
+      "foreground": "var(--color-stone-950)",
+      "primary": "var(--color-stone-900)",
+      "primary-foreground": "var(--color-white)",
+      "secondary": "var(--color-stone-100)",
+      "secondary-foreground": "var(--color-stone-900)",
+      "destructive": "var(--color-red-700)",
+      "destructive-foreground": "var(--color-white)",
+      "success": "var(--color-emerald-700)",
+      "success-foreground": "var(--color-white)",
+      "muted": "var(--color-stone-100)",
+      "muted-foreground": "var(--color-stone-500)",
+      "accent": "var(--color-stone-100)",
+      "accent-foreground": "var(--color-stone-900)",
+      "popover": "var(--color-white)",
+      "popover-foreground": "var(--color-stone-950)",
+      "card": "var(--color-white)",
+      "card-foreground": "var(--color-stone-950)"
+    },
+    "dark": {
+      "border": "var(--color-stone-800)",
+      "input": "var(--color-stone-800)",
+      "ring": "var(--color-stone-500)",
+      "background": "var(--color-stone-950)",
+      "foreground": "var(--color-white)",
+      "primary": "var(--color-white)",
+      "primary-foreground": "var(--color-stone-900)",
+      "secondary": "var(--color-stone-800)",
+      "secondary-foreground": "var(--color-white)",
+      "destructive": "var(--color-red-600)",
+      "destructive-foreground": "var(--color-white)",
+      "success": "var(--color-emerald-600)",
+      "success-foreground": "var(--color-white)",
+      "muted": "var(--color-stone-900)",
+      "muted-foreground": "var(--color-stone-400)",
+      "accent": "var(--color-stone-800)",
+      "accent-foreground": "var(--color-white)",
+      "popover": "var(--color-stone-900)",
+      "popover-foreground": "var(--color-white)",
+      "card": "var(--color-stone-900)",
+      "card-foreground": "var(--color-white)"
+    }
+  },
+  "radius": {
+    "base": "0.75rem",
+    "sm": "calc(0.75rem * 0.6)",
+    "md": "calc(0.75rem * 0.8)",
+    "lg": "0.75rem",
+    "xl": "calc(0.75rem * 1.4)",
+    "2xl": "calc(0.75rem * 1.8)",
+    "3xl": "calc(0.75rem * 2.2)",
+    "4xl": "calc(0.75rem * 2.6)"
+  },
+  "fontFamily": {
+    "sans": [
+      "Noto Sans TC",
+      "Inter",
+      "ui-sans-serif",
+      "system-ui",
+      "-apple-system",
+      "BlinkMacSystemFont",
+      "Helvetica Neue",
+      "Arial",
+      "sans-serif"
+    ],
+    "mono": [
+      "JetBrains Mono",
+      "ui-monospace",
+      "SFMono-Regular",
+      "Menlo",
+      "Monaco",
+      "Consolas",
+      "monospace"
+    ]
+  }
+}
