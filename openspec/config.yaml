@@ -1,39 +1,58 @@
 schema: spec-driven
 context: |
   # 產品定位
-  AIRE — 房地產 AI 顧問案子專案，客戶是房地產相關公司。
-  用 Next.js 建構內部 AI 工具（可能包含房源分析、客戶對話輔助、報告自動生成等）。
-  顧問性質：依客戶需求交付，非自有產品。
+  AIRE — OPCOS 平台底下第一個 App，服務不動產仲介業。
+  桌面 App 形態（不是 Web SaaS），原因：謄本資料涉及屋主個人隱私，不能存雲端。
+  目標：取代房仲助理製作「不動產說明書」的人工流程，輸入地號+地址 → 串地政 API → 補填現況 → 產出加密 PDF。
+  範圍：成屋說明書 + 土地說明書（兩種）。
+  授權模式：買斷制，一台電腦一組授權（NT$30,000），IP 鎖定店面。
 
   # Tech Stack
-  - Framework: Next.js (App Router, React)
-  - Language: TypeScript
-  - Database: better-sqlite3（本機檔案資料庫，適合顧問小型部署）
-  - PDF 產出：Puppeteer（headless Chrome 轉 PDF）
-  - Markdown：marked
+  - Shell: Tauri 2.x（Rust 殼，跨平台桌面打包，安裝檔 5-15MB）
+  - UI: Next.js 16 (App Router, React 19) + TypeScript
+  - 本機資料庫: SQLite（rusqlite，存所有案件資料，零雲端）
+  - PDF 產出: 評估中（候選：pdf-lib / react-pdf / pdfmake）
+  - 樣式: Tailwind CSS
+  - 雲端對接: HTTP REST 呼叫 OPCOS 平台（序號驗證、IP 驗證、自動更新）
+  - 地政 API: cop.land.moi.gov.tw（電子謄本）+ Twinkle Hub（實價登錄）— 客戶自付 Key
 
   # 部署方式
-  - 預設本機執行（npm run dev）
-  - 未來可能打包給客戶自架，或部署到 Vercel
+  - 打包：Tauri build → Windows .msi / .exe + macOS .dmg / .app
+  - 安裝：前期 Fish 到客戶店裡現場安裝，未來開放 OPCOS 線上下載
+  - 自動更新：Tauri updater，更新伺服器架在 OPCOS 雲端
+  - 目標平台：Windows 為主（多數客戶用 Windows），macOS 為輔
 
   # 目錄結構
-  - app/ — Next.js App Router（pages + API routes）
-  - 其餘結構依 Next.js 慣例
+  - src/ — Next.js (App Router、UI、表單)
+  - src-tauri/ — Rust 殼（IPC、SQLite、本機檔案、序號/IP 驗證、地政 API 呼叫）
+  - src-tauri/migrations/ — SQLite schema migrations
+  - resources/ — 說明書 PDF 底板（19 頁固定格式）
 
-  # 顧問案子特性
-  - 客戶需求優先 — 技術選擇向客戶能維運的方向妥協
-  - 交付物包含：可執行的 Web 工具 + 操作手冊 + 後續更新建議
-  - 資料屬於客戶，開發時不留客戶真實資料，用 mock data
+  # 安全與權限
+  - 序號鎖定 + IP 鎖定（只能在店面網路用，外面無法啟動）
+  - 案件資料全存本機 SQLite，連網僅用於 API + 序號驗證
+  - PDF 加密（密碼由老闆設定，業務員拿紙本，數位檔打不開）
+  - 角色分層：老闆（看全部、設密碼、印 PDF）/ 助理（輸入、產 PDF 但不能開啟）/ 業務員（只拿紙本）
+
+  # 使用流程（7 步）
+  1. 助理輸入地號 + 地址
+  2. 系統串地政 API 自動拉謄本，能填的先填
+  3. 印出現況調查表（紙本，空欄位讓業務員現場勾選）
+  4. 業務員拿紙本去現場勾選 → 帶回店裡
+  5. 助理把勾選結果輸入 AIRE
+  6. 系統產出加密 PDF
+  7. 老闆開 PDF（用密碼）→ 列印紙本給業務員
 
   # 程式碼規範
   - 程式碼英文 + 註解繁中
-  - 交付給客戶的文件全繁中
-  - commit message 繁中
+  - UI 文案全繁中（臺灣用語）
+  - commit message 遵守 conventional commits + 繁中描述
+  - 不寫死 mock 客戶資料；測試用合成資料
 
   # 資料與隱私
-  - 開發/測試資料一律 mock，禁止使用真實房源或客戶資訊
-  - better-sqlite3 資料庫檔案不進 git（.gitignore 必含 *.db）
-  - 客戶 API Key 走 .env
+  - SQLite 檔案不進 git（.gitignore 必含 *.db、*.sqlite）
+  - 客戶 API Key 存本機加密儲存（Tauri stronghold 或 OS keychain），不寫進 git
+  - 不上傳任何屋主個資到雲端
 
 # ─────────────────────────────────────────────────────────────────────
 rules:
