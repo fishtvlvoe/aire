@@ -31,11 +31,11 @@
 
 ## Group 5：案件 CRUD 與列表（依 case-management spec）
 
-- [ ] 5.1 [Tool: copilot] Cases IPC commands（capability: case-management - Requirement: Create case flow、Edit case page、Delete case）：`src-tauri/src/commands/cases.rs` 暴露 `list_cases`、`get_case`、`create_case`、`update_case`、`delete_case`；create 自動產 UUID + 時間戳；delete 寫 `operation_log` action=`case_delete`。
-- [ ] 5.2 [Tool: copilot] [P] 案件列表頁（capability: case-management - Requirement: Case list view）：`src/app/cases/page.tsx` 用 `invoke('list_cases')` 取資料；空表顯示 `尚無案件，按右上角「新增案件」開始`；表格欄位翻譯成中文（`成屋`/`土地`、`草稿`/`已完成`/`已匯出`）；`updated_at` 用 `Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei' })` 格式化。
-- [ ] 5.3 [Tool: copilot] [P] 新增案件頁（capability: case-management - Requirement: Create case flow）：`src/app/cases/new/page.tsx` 含 `property_type` 選擇器（radio：`成屋`/`土地`）+ 必填欄位（地號、地址、屋主姓名）；客戶端用 zod 驗證；提交成功後 `router.push('/cases/<new-id>')`。
-- [ ] 5.4 [Tool: copilot] [P] 編輯與刪除頁（capability: case-management - Requirement: Edit case page、Delete case、Case status transitions）：`src/app/cases/[id]/page.tsx` 載入 case 顯示 header + 對應表單；含 `刪除` 按鈕 + 確認 modal、`標示為完成` 按鈕（draft → completed 才顯示）。
-- [ ] 5.5 [Tool: copilot] 狀態轉換邏輯（capability: case-management - Requirement: Case status transitions）：在 `cases` IPC 加 `mark_completed(case_id)` 命令，拒絕從 `exported` 或 `completed` 倒退回 `draft`；按鈕僅在 `draft` 狀態顯示。
+- [x] 5.1 [Tool: copilot] Cases IPC commands（capability: case-management - Requirement: Create case flow、Edit case page、Delete case）：`src-tauri/src/commands/cases.rs` 暴露 `list_cases`、`get_case`、`create_case`、`update_case`、`delete_case`；create 自動產 UUID + 時間戳；delete 寫 `operation_log` action=`case_delete`。
+- [x] 5.2 [Tool: copilot] [P] 案件列表頁（capability: case-management - Requirement: Case list view）：`src/app/cases/page.tsx` 用 `invoke('list_cases')` 取資料；空表顯示 `尚無案件，按右上角「新增案件」開始`；表格欄位翻譯成中文（`成屋`/`土地`、`草稿`/`已完成`/`已匯出`）；`updated_at` 用 `Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei' })` 格式化。
+- [x] 5.3 [Tool: copilot] [P] 新增案件頁（capability: case-management - Requirement: Create case flow）：`src/app/cases/new/page.tsx` 含 `property_type` 選擇器（radio：`成屋`/`土地`）+ 必填欄位（地號、地址、屋主姓名）；客戶端用 zod 驗證；提交成功後 `router.push('/cases/<new-id>')`。
+- [x] 5.4 [Tool: copilot] [P] 編輯與刪除頁（capability: case-management - Requirement: Edit case page、Delete case、Case status transitions）：`src/app/cases/[id]/page.tsx` 載入 case 顯示 header + 對應表單；含 `刪除` 按鈕 + 確認 modal、`標示為完成` 按鈕（draft → completed 才顯示）。
+- [x] 5.5 [Tool: copilot] 狀態轉換邏輯（capability: case-management - Requirement: Case status transitions）：在 `cases` IPC 加 `mark_completed(case_id)` 命令，拒絕從 `exported` 或 `completed` 倒退回 `draft`；按鈕僅在 `draft` 狀態顯示。
 
 ## Group 6：說明書表單 — 成屋（依 disclosure-form-residential spec 與 design.md D6：表單草稿自動儲存）
 

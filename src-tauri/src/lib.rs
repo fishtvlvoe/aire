@@ -65,6 +65,12 @@ pub fn run() {
             commands::license::activate_license,
             commands::license::verify_license,
             commands::license::get_license_status,
+            commands::cases::list_cases,
+            commands::cases::get_case,
+            commands::cases::create_case,
+            commands::cases::update_case,
+            commands::cases::delete_case,
+            commands::cases::mark_completed,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");
