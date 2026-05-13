@@ -1,11 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "AIRE 桌面 App 預設能力集 — Phase 1 僅開放主視窗的核心 IPC 與 dialog plugin",
+  "description": "AIRE 桌面 App 預設能力集 — Phase 1 主視窗 IPC + dialog + opener",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "core:window:default",
-    "dialog:default"
+    "dialog:default",
+    "opener:default",
+    "opener:allow-reveal-item-in-dir"
   ]
 }

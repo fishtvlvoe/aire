@@ -6,9 +6,13 @@
 // Task 2.x：SQLite schema + migration runner，啟動時初始化 aire.db。
 // Task 3.x：secrets 模組封裝 OS keychain。
 // Task 4.x：opcos / license IPC commands、device_id 生成、啟動決策樹。
+// Task 6.3/6.4/7.2：drafts IPC（save_draft / get_draft）支援 autosave。
+// Task 8.4：pdf IPC（export_pdf）寫檔 + 更新 cases.status。
+// Task 9.x：operation_log writer + list_recent_logs 查詢 IPC。
 
 pub mod commands;
 pub mod db;
+pub mod log;
 pub mod opcos;
 pub mod paths;
 pub mod secrets;
@@ -34,6 +38,7 @@ fn greet(name: &str) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let app_dir = paths::ensure_app_dirs()
                 .map_err(|err| format!("failed to ensure app data directories: {err}"))?;
@@ -71,6 +76,10 @@ pub fn run() {
             commands::cases::update_case,
             commands::cases::delete_case,
             commands::cases::mark_completed,
+            commands::drafts::save_draft,
+            commands::drafts::get_draft,
+            commands::pdf::export_pdf,
+            commands::log::list_recent_logs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");
