@@ -23,11 +23,11 @@
 
 ## Group 4：序號啟用與驗證（依 design.md D3：序號驗證流程與離線容錯）
 
-- [ ] 4.1 [Tool: copilot] OPCOS HTTP client（capability: license-activation - Requirement: License activation flow、License verification on startup）：`src-tauri/src/opcos.rs` 用 `reqwest` 包 `verify_license(key, device_id)` 與 `activate_license(key, device_id, device_name, os_version)`，base URL 取自環境變數 `OPCOS_API_BASE_URL`（預設 `https://opcos.example.com`），timeout 10 秒。
-- [ ] 4.2 [Tool: copilot] device_id 生成（capability: license-activation - Requirement: License activation flow）：首次啟動產生 UUID v4 存 `settings.device_id`，後續啟動讀回；單元測試確認跨重啟值不變。
-- [ ] 4.3 [Tool: copilot] License IPC commands（capability: license-activation - Requirement: License activation flow、Remote revocation handling）：`src-tauri/src/commands/license.rs` 暴露 `activate_license(key)`、`verify_license()`、`get_license_status()`；activate 成功寫入 keychain + settings；verify 收 401/403 設 `license_status='revoked'`。
-- [ ] 4.4 [Tool: sonnet] 啟動序列與離線寬限（capability: license-activation - Requirement: License verification on startup、Offline grace period）：`src-tauri/src/startup.rs` 實作完整啟動決策樹（已啟用 < 7 天直入 / 7-30 天嘗試 verify / > 30 天強制重驗 / 撤銷跳啟用畫面），所有路徑寫 `operation_log`。多分支邏輯複雜，附單元測試覆蓋 design.md D3 表格 5 列。
-- [ ] 4.5 [Tool: copilot] 啟用畫面 UI（capability: license-activation - Requirement: License activation flow）：`src/app/activation/page.tsx` 含序號輸入框 + 啟用按鈕；錯誤訊息對應 design.md D3 的 409/422 文案；成功後 `router.push('/cases')`。
+- [x] 4.1 [Tool: copilot] OPCOS HTTP client（capability: license-activation - Requirement: License activation flow、License verification on startup）：`src-tauri/src/opcos.rs` 用 `reqwest` 包 `verify_license(key, device_id)` 與 `activate_license(key, device_id, device_name, os_version)`，base URL 取自環境變數 `OPCOS_API_BASE_URL`（預設 `https://opcos.example.com`），timeout 10 秒。
+- [x] 4.2 [Tool: copilot] device_id 生成（capability: license-activation - Requirement: License activation flow）：首次啟動產生 UUID v4 存 `settings.device_id`，後續啟動讀回；單元測試確認跨重啟值不變。
+- [x] 4.3 [Tool: copilot] License IPC commands（capability: license-activation - Requirement: License activation flow、Remote revocation handling）：`src-tauri/src/commands/license.rs` 暴露 `activate_license(key)`、`verify_license()`、`get_license_status()`；activate 成功寫入 keychain + settings；verify 收 401/403 設 `license_status='revoked'`。
+- [x] 4.4 [Tool: sonnet] 啟動序列與離線寬限（capability: license-activation - Requirement: License verification on startup、Offline grace period）：`src-tauri/src/startup.rs` 實作完整啟動決策樹（已啟用 < 7 天直入 / 7-30 天嘗試 verify / > 30 天強制重驗 / 撤銷跳啟用畫面），所有路徑寫 `operation_log`。多分支邏輯複雜，附單元測試覆蓋 design.md D3 表格 5 列。
+- [x] 4.5 [Tool: copilot] 啟用畫面 UI（capability: license-activation - Requirement: License activation flow）：`src/app/activation/page.tsx` 含序號輸入框 + 啟用按鈕；錯誤訊息對應 design.md D3 的 409/422 文案；成功後 `router.push('/cases')`。
 
 ## Group 5：案件 CRUD 與列表（依 case-management spec）
 
