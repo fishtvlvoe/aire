@@ -9,11 +9,11 @@
 
 ## Group 2：SQLite schema 與 migrations（依 design.md D2：SQLite Schema 與 Migration 策略）
 
-- [ ] 2.1 [Tool: copilot] [P] 建 migration 檔（capability: local-database - Requirement: SQLite database initialization、Cases table schema、Disclosure drafts table schema、Settings key-value store）：寫 `src-tauri/migrations/001_initial.sql` 含四張表（cases、disclosure_drafts、settings、operation_log）+ 索引 + CHECK constraints + `PRAGMA user_version = 1`，schema 完全依 design.md D2 DDL。
-- [ ] 2.2 [Tool: copilot] Migration runner（capability: local-database - Requirement: SQLite database initialization）：`src-tauri/src/db/mod.rs` 暴露 `init_db(path: &Path) -> Result<Connection>`，讀 `user_version` pragma、列舉 `migrations/` 下未套用的 .sql 檔（按檔名排序）依序 exec、每套用一個更新 `user_version`。單元測試：fresh DB 套到 v1、已是 v1 不重複套。
-- [ ] 2.3 [Tool: copilot] Cases CRUD repository（capability: local-database - Requirement: Cases table schema、Boundary handling on database errors）：在 `src-tauri/src/db/cases.rs` 寫 `insert_case`、`get_case`、`list_cases`、`update_case`、`delete_case`，回傳 `Result<T, DbError>`，`DbError` 含 `code` 與 `message`。空表 `list_cases` 回 `Ok(vec![])`。
-- [ ] 2.4 [Tool: copilot] Drafts repository（capability: local-database - Requirement: Disclosure drafts table schema）：在 `src-tauri/src/db/drafts.rs` 寫 `upsert_draft(case_id, payload_json, schema_version)` 用 `INSERT OR REPLACE`、`get_draft(case_id) -> Result<Option<DraftData>>`，刪除 case 後相應 draft 自動 cascade。
-- [ ] 2.5 [Tool: copilot] Settings repository（capability: local-database - Requirement: Settings key-value store）：在 `src-tauri/src/db/settings.rs` 寫 `get_setting(key)`、`set_setting(key, value)` 用 `INSERT OR REPLACE`，自動更新 `updated_at`。
+- [x] 2.1 [Tool: copilot] [P] 建 migration 檔（capability: local-database - Requirement: SQLite database initialization、Cases table schema、Disclosure drafts table schema、Settings key-value store）：寫 `src-tauri/migrations/001_initial.sql` 含四張表（cases、disclosure_drafts、settings、operation_log）+ 索引 + CHECK constraints + `PRAGMA user_version = 1`，schema 完全依 design.md D2 DDL。
+- [x] 2.2 [Tool: copilot] Migration runner（capability: local-database - Requirement: SQLite database initialization）：`src-tauri/src/db/mod.rs` 暴露 `init_db(path: &Path) -> Result<Connection>`，讀 `user_version` pragma、列舉 `migrations/` 下未套用的 .sql 檔（按檔名排序）依序 exec、每套用一個更新 `user_version`。單元測試：fresh DB 套到 v1、已是 v1 不重複套。
+- [x] 2.3 [Tool: copilot] Cases CRUD repository（capability: local-database - Requirement: Cases table schema、Boundary handling on database errors）：在 `src-tauri/src/db/cases.rs` 寫 `insert_case`、`get_case`、`list_cases`、`update_case`、`delete_case`，回傳 `Result<T, DbError>`，`DbError` 含 `code` 與 `message`。空表 `list_cases` 回 `Ok(vec![])`。
+- [x] 2.4 [Tool: copilot] Drafts repository（capability: local-database - Requirement: Disclosure drafts table schema）：在 `src-tauri/src/db/drafts.rs` 寫 `upsert_draft(case_id, payload_json, schema_version)` 用 `INSERT OR REPLACE`、`get_draft(case_id) -> Result<Option<DraftData>>`，刪除 case 後相應 draft 自動 cascade。
+- [x] 2.5 [Tool: copilot] Settings repository（capability: local-database - Requirement: Settings key-value store）：在 `src-tauri/src/db/settings.rs` 寫 `get_setting(key)`、`set_setting(key, value)` 用 `INSERT OR REPLACE`，自動更新 `updated_at`。
 
 ## Group 3：OS keychain 與憑證儲存（依 design.md D4：API Key 與 Token 的本機安全儲存）
 
