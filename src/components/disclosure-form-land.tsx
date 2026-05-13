@@ -1,0 +1,261 @@
+"use client";
+
+/**
+ * 土地說明書表單（Group 7.2）
+ *
+ * - 4 個 tab：標示 / 權利 / 稅費 / 現況
+ * - 與成屋表單共用 autosave hook 與互動樣式
+ */
+
+import { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { AutosaveIndicator } from "@/components/ux/AutosaveIndicator";
+import {
+  landFormTabs,
+  landDefaults,
+  landSchema,
+  landSchemaCompleted,
+  type LandPayload,
+  type FormFieldDef,
+} from "@/lib/disclosure-schema-land";
+import { useDraftAutosave, loadDraft } from "@/lib/use-draft-autosave";
+import { cn } from "@/lib/utils";
+
+export interface DisclosureFormLandProps {
+  caseId: string;
+  onMarkCompleted?: (payload: LandPayload) => Promise<void> | void;
+}
+
+export function DisclosureFormLand({
+  caseId,
+  onMarkCompleted,
+}: DisclosureFormLandProps) {
+  const [activeTab, setActiveTab] = useState<string>(landFormTabs[0]!.id);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
+
+  const form = useForm<LandPayload>({
+    resolver: zodResolver(landSchema),
+    defaultValues: landDefaults,
+    mode: "onChange",
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const existing = await loadDraft<LandPayload>(caseId);
+      if (cancelled) return;
+      if (existing) form.reset({ ...landDefaults, ...existing });
+      setDraftLoaded(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseId]);
+
+  const watched = form.watch();
+  const { state, savedAt } = useDraftAutosave({
+    caseId,
+    payload: watched as Record<string, unknown>,
+    enabled: draftLoaded,
+  });
+
+  async function handleMarkCompleted() {
+    setCompletionError(null);
+    const values = form.getValues();
+    const parsed = landSchemaCompleted.safeParse(values);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      setCompletionError(first?.message ?? "標示為完成失敗：欄位驗證未通過");
+      return;
+    }
+    setCompleting(true);
+    try {
+      await onMarkCompleted?.(values);
+    } catch (err) {
+      setCompletionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCompleting(false);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <AutosaveIndicator state={state} savedAt={savedAt ?? undefined} />
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4 flex w-full justify-start gap-1 bg-muted/40 p-1">
+          {landFormTabs.map((tab) => (
+            <TabsTrigger key={tab.id} value={tab.id}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {landFormTabs.map((tab) => (
+          <TabsContent key={tab.id} value={tab.id} className="space-y-4">
+            {tab.fields.map((field) => (
+              <FieldRow key={field.key as string} field={field} form={form} />
+            ))}
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      <div className="mt-6 flex items-center gap-3 border-t border-border pt-4">
+        <Button
+          type="button"
+          variant="default"
+          disabled={completing || !draftLoaded}
+          onClick={handleMarkCompleted}
+        >
+          {completing ? "處理中…" : "標示為完成"}
+        </Button>
+        {completionError ? (
+          <span role="alert" className="text-sm text-destructive">
+            {completionError}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ 子元件 ------------------------------ */
+
+interface FieldRowProps {
+  field: FormFieldDef;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: ReturnType<typeof useForm<any>>;
+}
+
+function FieldRow({ field, form }: FieldRowProps) {
+  const key = field.key as string;
+  const errors = form.formState.errors as Record<string, { message?: string } | undefined>;
+  const errMsg = errors[key]?.message;
+
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium" htmlFor={`field-${key}`}>
+        {field.label}
+        {field.required ? <span className="ml-1 text-destructive">*</span> : null}
+      </label>
+
+      {field.type === "tristate" ? (
+        <Controller
+          control={form.control}
+          name={key}
+          render={({ field: f }) => (
+            <TriStateButtons
+              value={(f.value ?? "unknown") as string}
+              onChange={f.onChange}
+              ariaLabel={field.label}
+            />
+          )}
+        />
+      ) : field.type === "textarea" ? (
+        <Controller
+          control={form.control}
+          name={key}
+          render={({ field: f }) => (
+            <textarea
+              id={`field-${key}`}
+              value={(f.value as string | undefined) ?? ""}
+              onChange={(e) => f.onChange(e.target.value)}
+              onBlur={f.onBlur}
+              placeholder={field.placeholder}
+              className={cn(
+                "min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+                "placeholder:text-muted-foreground",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              )}
+            />
+          )}
+        />
+      ) : field.type === "number" ? (
+        <Controller
+          control={form.control}
+          name={key}
+          render={({ field: f }) => (
+            <Input
+              id={`field-${key}`}
+              type="number"
+              step="0.01"
+              value={f.value === undefined || f.value === null ? "" : String(f.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                f.onChange(v === "" ? undefined : Number(v));
+              }}
+              onBlur={f.onBlur}
+              placeholder={field.placeholder}
+            />
+          )}
+        />
+      ) : (
+        <Controller
+          control={form.control}
+          name={key}
+          render={({ field: f }) => (
+            <Input
+              id={`field-${key}`}
+              type="text"
+              value={(f.value as string | undefined) ?? ""}
+              onChange={(e) => f.onChange(e.target.value)}
+              onBlur={f.onBlur}
+              placeholder={field.placeholder}
+            />
+          )}
+        />
+      )}
+
+      {errMsg ? (
+        <p role="alert" className="mt-1 text-xs text-destructive">
+          {errMsg}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+interface TriStateButtonsProps {
+  value: string;
+  onChange: (v: "true" | "false" | "unknown") => void;
+  ariaLabel: string;
+}
+
+function TriStateButtons({ value, onChange, ariaLabel }: TriStateButtonsProps) {
+  const options: Array<{ v: "true" | "false" | "unknown"; label: string }> = [
+    { v: "true", label: "是" },
+    { v: "false", label: "否" },
+    { v: "unknown", label: "未知" },
+  ];
+  return (
+    <div role="radiogroup" aria-label={ariaLabel} className="inline-flex gap-1">
+      {options.map((opt) => {
+        const active = value === opt.v;
+        return (
+          <button
+            key={opt.v}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(opt.v)}
+            className={cn(
+              "rounded-md border px-3 py-1.5 text-sm transition-colors",
+              active
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-input bg-background hover:bg-accent hover:text-accent-foreground",
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
