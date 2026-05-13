@@ -17,9 +17,9 @@
 
 ## Group 3：OS keychain 與憑證儲存（依 design.md D4：API Key 與 Token 的本機安全儲存）
 
-- [ ] 3.1 [Tool: copilot] Keyring 封裝（capability: secure-credential-storage - Requirement: OS-native credential storage、Credential retrieval boundary cases；依 D4：API Key 與 Token 的本機安全儲存）：`src-tauri/src/secrets.rs` 用 `keyring` crate 暴露 `get_credential(name) -> Result<Option<String>, CredError>`、`set_credential(name, value)`、`delete_credential(name)`；service name 寫死為 `"aire"`；缺值回 `Ok(None)`、keychain 鎖定回 `Err(LOCKED)`。
-- [ ] 3.2 [Tool: copilot] [P] 憑證寫失敗錯誤路徑（capability: secure-credential-storage - Requirement: Keychain write failure surfaces explicit error）：activate 流程偵測到 `set_credential` 失敗時，回傳 `ActivationError { code: 'CREDENTIAL_STORE_UNAVAILABLE' }` 並不寫 `settings`。單元測試用 mock keyring 觸發失敗。
-- [ ] 3.3 [Tool: copilot] [P] 確認憑證不存 SQLite（capability: secure-credential-storage - Requirement: No plaintext credentials in SQLite；依 Scope Boundaries 章節）：在 `src-tauri/src/db/settings.rs` 加白名單檢查 — 拒絕對 key 為 `license_key`、`license_token`、`land_registry_api_key` 的 `set_setting` 呼叫，回 `Err(SettingsError::ReservedKey)`；單元測試確認嘗試寫入會被拒、且 `aire.db` 中 `settings` 表查不到任何敏感 key。
+- [x] 3.1 [Tool: copilot] Keyring 封裝（capability: secure-credential-storage - Requirement: OS-native credential storage、Credential retrieval boundary cases；依 D4：API Key 與 Token 的本機安全儲存）：`src-tauri/src/secrets.rs` 用 `keyring` crate 暴露 `get_credential(name) -> Result<Option<String>, CredError>`、`set_credential(name, value)`、`delete_credential(name)`；service name 寫死為 `"aire"`；缺值回 `Ok(None)`、keychain 鎖定回 `Err(LOCKED)`。
+- [x] 3.2 [Tool: copilot] [P] 憑證寫失敗錯誤路徑（capability: secure-credential-storage - Requirement: Keychain write failure surfaces explicit error）：activate 流程偵測到 `set_credential` 失敗時，回傳 `ActivationError { code: 'CREDENTIAL_STORE_UNAVAILABLE' }` 並不寫 `settings`。單元測試用 mock keyring 觸發失敗。
+- [x] 3.3 [Tool: copilot] [P] 確認憑證不存 SQLite（capability: secure-credential-storage - Requirement: No plaintext credentials in SQLite；依 Scope Boundaries 章節）：在 `src-tauri/src/db/settings.rs` 加白名單檢查 — 拒絕對 key 為 `license_key`、`license_token`、`land_registry_api_key` 的 `set_setting` 呼叫，回 `Err(SettingsError::ReservedKey)`；單元測試確認嘗試寫入會被拒、且 `aire.db` 中 `settings` 表查不到任何敏感 key。
 
 ## Group 4：序號啟用與驗證（依 design.md D3：序號驗證流程與離線容錯）
 

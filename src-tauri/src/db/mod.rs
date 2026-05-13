@@ -12,6 +12,7 @@ use std::path::Path;
 
 pub mod cases;
 pub mod drafts;
+pub mod oplog;
 pub mod settings;
 
 /// 內嵌的 migration 腳本。
@@ -102,7 +103,7 @@ pub fn init_db(path: &Path) -> Result<Connection, DbError> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     /// 取得記憶體型 Connection 並套用所有 migration（測試用）。
