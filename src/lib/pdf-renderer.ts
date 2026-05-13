@@ -1,103 +1,173 @@
 /**
- * PDF 渲染器 — Phase 1 stub
+ * PDF 渲染器 — Group 8.3 完整實作
  *
- * 對應 AIRE Phase 1 Group 8.3 — 用 pdf-lib 載入既有 19 頁底板 PDF、
- * 套字型、按 src/lib/pdf-layout.ts 座標表 drawText 把表單資料疊上去、
- * 輸出 Uint8Array 給 Tauri IPC 寫檔。
+ * - pdf-lib 載入 19 頁底板 PDF
+ * - @pdf-lib/fontkit 嵌入 Noto Sans TC 子集化字型（中文支援）
+ * - 按 src/lib/pdf-layout.ts 座標表 drawText 把表單資料疊上去
+ * - 輸出 Uint8Array 給 Tauri IPC 寫檔
  *
- * Phase 1：明文 PDF（不加密）。Phase 2 才加密。
- *
- * 依賴：`pnpm add pdf-lib @pdf-lib/fontkit`
- *
- * 真實使用前置：
- * 1. 把 19 頁底板 PDF 放到 src/resources/templates/residential.pdf 與 land.pdf
- * 2. 跑 scripts/subset-font.py 產出 src/resources/fonts/NotoSansTC-Subset.ttf
- * 3. 視覺校對 src/lib/pdf-layout.ts 的座標
+ * 缺檔策略（spec 要求 graceful failure）：
+ * - 底板 PDF 不存在 → throw TemplateNotFoundError（IPC 對應錯誤碼 TEMPLATE_MISSING）
+ * - 字型不存在 → throw FontNotFoundError（IPC 對應錯誤碼 FONT_LOAD_FAILED）
  */
+
+import { PDFDocument, type PDFFont } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 
 import type { DisclosureLayout } from "./pdf-layout";
 import { residentialLayout, landLayout } from "./pdf-layout";
 
 export interface RenderInput {
-  /** 案件屬性 */
   propertyType: "residential" | "land";
-  /** 案件 header 資料 */
   caseInfo: {
     case_no?: string;
     land_lot_no: string;
     address: string;
     owner_name?: string;
-    generated_at: string; // ISO 字串，呈現時轉 Asia/Taipei
+    generated_at: string;
   };
-  /** 公司資訊（從 settings 帶入） */
   company: {
     name: string;
     address?: string;
     phone?: string;
   };
-  /** 表單欄位 payload（residential / land schema） */
   payload: Record<string, unknown>;
 }
 
 export interface RenderOptions {
-  /** 預覽模式：只渲染封面快速回傳。預設 false（完整 19 頁） */
   previewOnly?: boolean;
+  loader?: BinaryAssetLoader;
 }
 
+/** 底板 PDF 找不到 */
+export class TemplateNotFoundError extends Error {
+  code = "TEMPLATE_MISSING" as const;
+  constructor(path: string) {
+    super(`找不到 PDF 底板：${path}`);
+    this.name = "TemplateNotFoundError";
+  }
+}
+
+/** 字型載入失敗（缺檔或損毀） */
+export class FontNotFoundError extends Error {
+  code = "FONT_LOAD_FAILED" as const;
+  constructor(detail: string) {
+    super(`字型載入失敗：${detail}`);
+    this.name = "FontNotFoundError";
+  }
+}
+
+/** 保留向後相容；新代碼不再使用 */
+export class NotImplementedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NotImplementedError";
+  }
+}
+
+const TEMPLATE_PATHS: Record<RenderInput["propertyType"], string> = {
+  residential: "/resources/templates/residential.pdf",
+  land: "/resources/templates/land.pdf",
+};
+
+const FONT_PATH = "/resources/fonts/NotoSansTC-Subset.ttf";
+
+/** 抽象載資源，方便測試 mock */
+export type BinaryAssetLoader = (path: string) => Promise<ArrayBuffer>;
+
+class AssetFetchError extends Error {
+  constructor(
+    public path: string,
+    public status: number,
+  ) {
+    super(`asset fetch failed: ${path} (${status})`);
+    this.name = "AssetFetchError";
+  }
+}
+
+const defaultLoader: BinaryAssetLoader = async (path) => {
+  const res = await fetch(path);
+  if (!res.ok) throw new AssetFetchError(path, res.status);
+  return res.arrayBuffer();
+};
+
 /**
- * 渲染說明書 PDF。
- * 回傳 Uint8Array（PDF bytes），可用 Tauri IPC 寫到使用者選的路徑。
- *
- * Phase 1 stub：實際 pdf-lib + fontkit 整合要等 Group 8.4 IPC + Group 8 子代理跑完。
- * 目前 throw 一個明確 NotImplementedError，避免靜默失敗。
+ * 渲染說明書 PDF。回傳 Uint8Array（PDF bytes）。
  */
 export async function renderDisclosurePdf(
   input: RenderInput,
-  _options: RenderOptions = {},
+  options: RenderOptions = {},
 ): Promise<Uint8Array> {
-  // 選 layout
+  const loader = options.loader ?? defaultLoader;
+
+  // 1. 載底板
+  const templatePath = TEMPLATE_PATHS[input.propertyType];
+  let templateBytes: ArrayBuffer;
+  try {
+    templateBytes = await loader(templatePath);
+  } catch (err) {
+    if (err instanceof AssetFetchError) {
+      throw new TemplateNotFoundError(err.path);
+    }
+    throw new TemplateNotFoundError(templatePath);
+  }
+
+  // 2. 載字型
+  let fontBytes: ArrayBuffer;
+  try {
+    fontBytes = await loader(FONT_PATH);
+  } catch (err) {
+    const detail = err instanceof AssetFetchError ? err.path : String(err);
+    throw new FontNotFoundError(detail);
+  }
+
+  // 3. pdf-lib doc + fontkit + embedFont
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  pdfDoc.registerFontkit(fontkit);
+
+  let font: PDFFont;
+  try {
+    font = await pdfDoc.embedFont(fontBytes, { subset: false });
+  } catch (err) {
+    throw new FontNotFoundError(
+      `pdf-lib embedFont 失敗：${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  // 4. 選 layout 並 drawText
   const layout: DisclosureLayout =
     input.propertyType === "residential" ? residentialLayout : landLayout;
 
-  // 載入底板 PDF
-  // const templateBytes = await fetch(
-  //   `/resources/templates/${input.propertyType}.pdf`,
-  // ).then((r) => r.arrayBuffer());
-  // const pdfDoc = await PDFDocument.load(templateBytes);
+  const pages = pdfDoc.getPages();
 
-  // 載入字型
-  // const fontBytes = await fetch("/resources/fonts/NotoSansTC-Subset.ttf").then(
-  //   (r) => r.arrayBuffer(),
-  // );
-  // pdfDoc.registerFontkit(fontkit);
-  // const font = await pdfDoc.embedFont(fontBytes);
+  for (const entry of layout) {
+    const page = pages[entry.page];
+    if (!page) continue;
+    const raw = resolveFieldValue(input, entry.field);
+    if (raw == null || raw === "") continue;
+    const text = formatValue(raw);
+    try {
+      page.drawText(text, {
+        x: entry.x,
+        y: entry.y,
+        size: entry.size,
+        font,
+        ...(entry.maxWidth ? { maxWidth: entry.maxWidth } : {}),
+      });
+    } catch (err) {
+      console.warn(
+        `[pdf-renderer] drawText failed at page=${entry.page} field=${entry.field}:`,
+        err,
+      );
+    }
 
-  // 逐筆 layout 畫 text
-  // const pages = pdfDoc.getPages();
-  // for (const entry of layout) {
-  //   const page = pages[entry.page];
-  //   if (!page) continue;
-  //   const value = resolveFieldValue(input, entry.field);
-  //   if (value == null || value === "") continue;
-  //   page.drawText(String(value), {
-  //     x: entry.x,
-  //     y: entry.y,
-  //     size: entry.size,
-  //     font,
-  //   });
-  // }
+    if (options.previewOnly && entry.page > 0) break;
+  }
 
-  // return pdfDoc.save();
-
-  throw new NotImplementedError(
-    `renderDisclosurePdf: Phase 1 stub。layout 有 ${layout.length} 筆，需 pdf-lib 整合完成才能渲染。請在 Group 8.3 subagent 任務完成後再呼叫。`,
-  );
+  return pdfDoc.save();
 }
 
-/**
- * 從 RenderInput 解析欄位值。
- * 優先順序：caseInfo > company > payload
- */
+/** caseInfo > company > payload */
 function resolveFieldValue(input: RenderInput, field: string): unknown {
   const caseInfo = input.caseInfo as Record<string, unknown>;
   if (field in caseInfo) return caseInfo[field];
@@ -111,19 +181,31 @@ function resolveFieldValue(input: RenderInput, field: string): unknown {
   return null;
 }
 
-/**
- * Phase 1 階段性錯誤型別，明確標示「實作未完成」而非「無法執行」。
- */
-export class NotImplementedError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "NotImplementedError";
+/** tri-state / number / Date / ISO 字串都轉成可印字串 */
+function formatValue(v: unknown): string {
+  if (v === "true") return "是";
+  if (v === "false") return "否";
+  if (v === "unknown") return "未知";
+  if (typeof v === "number") return String(v);
+  if (v instanceof Date) return v.toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
+  if (typeof v === "string") {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
+      const ts = Date.parse(v);
+      if (!Number.isNaN(ts)) {
+        return new Date(ts).toLocaleString("zh-TW", {
+          timeZone: "Asia/Taipei",
+          hour12: false,
+        });
+      }
+    }
+    return v;
   }
+  return String(v);
 }
 
 /**
  * 生成預設輸出檔名。
- * 格式：<case_no_or_id>_<property_type>_<YYYYMMDD>.pdf
+ * 格式：<case_no_or_AIRE>_<property_type>_<YYYYMMDD>.pdf
  */
 export function generatePdfFileName(input: RenderInput): string {
   const date = new Date(input.caseInfo.generated_at);
