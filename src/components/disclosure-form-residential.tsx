@@ -29,6 +29,24 @@ import {
 } from "@/lib/disclosure-schema-residential";
 import { useDraftAutosave, loadDraft } from "@/lib/use-draft-autosave";
 import { cn } from "@/lib/utils";
+import { RealtorLicenseField } from "@/components/RealtorLicenseField";
+
+/**
+ * 經紀人證號 + 驗證狀態（#1d Stage 7.3）
+ * - 隨 draft autosave 一起寫回 SQLite（payload 額外欄位，schema 未含、不參與 zod 驗證）
+ * - verification_status 為 not_found/expired/offline 時，PDF 預覽 / 標示為完成按鈕「不阻擋」（#1d Stage 7.4）
+ */
+type RealtorLicenseVerificationStatus =
+  | "verified"
+  | "not_found"
+  | "expired"
+  | "offline"
+  | null;
+
+interface RealtorLicenseDraftSlice {
+  realtor_license_number?: string;
+  realtor_license_verification_status?: RealtorLicenseVerificationStatus;
+}
 
 export interface DisclosureFormResidentialProps {
   caseId: string;
@@ -45,6 +63,10 @@ export function DisclosureFormResidential({
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
+  // #1d Stage 7.3 — 經紀人證號 local state（未納入 zod schema，僅進 autosave payload）
+  const [realtorLicenseNumber, setRealtorLicenseNumber] = useState<string>("");
+  const [realtorLicenseVerificationStatus] =
+    useState<RealtorLicenseVerificationStatus>(null);
 
   const form = useForm<ResidentialPayload>({
     resolver: zodResolver(residentialSchema),
@@ -56,10 +78,20 @@ export function DisclosureFormResidential({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const existing = await loadDraft<ResidentialPayload>(caseId);
+      const existing = await loadDraft<ResidentialPayload & RealtorLicenseDraftSlice>(
+        caseId,
+      );
       if (cancelled) return;
       if (existing) {
-        form.reset({ ...residentialDefaults, ...existing });
+        const {
+          realtor_license_number: _rln,
+          realtor_license_verification_status: _rls,
+          ...formValues
+        } = existing as ResidentialPayload & RealtorLicenseDraftSlice;
+        form.reset({ ...residentialDefaults, ...(formValues as ResidentialPayload) });
+        if (typeof existing.realtor_license_number === "string") {
+          setRealtorLicenseNumber(existing.realtor_license_number);
+        }
       }
       setDraftLoaded(true);
     })();
@@ -71,10 +103,16 @@ export function DisclosureFormResidential({
   }, [caseId]);
 
   // 自動儲存（draft 載入完才啟動，避免 default 蓋掉 DB 值）
+  // #1d Stage 7.3 — 把證號 + 驗證狀態混入 payload，隨 autosave 寫回 SQLite
   const watched = form.watch();
+  const autosavePayload = {
+    ...(watched as Record<string, unknown>),
+    realtor_license_number: realtorLicenseNumber,
+    realtor_license_verification_status: realtorLicenseVerificationStatus,
+  } as Record<string, unknown>;
   const { state, savedAt } = useDraftAutosave({
     caseId,
-    payload: watched as Record<string, unknown>,
+    payload: autosavePayload,
     enabled: draftLoaded,
   });
 
@@ -100,6 +138,17 @@ export function DisclosureFormResidential({
   return (
     <div className="relative">
       <AutosaveIndicator state={state} savedAt={savedAt ?? undefined} />
+
+      {/* #1d Stage 7.3 — 經紀人證號（公司資訊區塊） */}
+      <section
+        aria-label="公司資訊"
+        className="mb-4 rounded-md border border-border bg-muted/20 p-3"
+      >
+        <RealtorLicenseField
+          initialValue={realtorLicenseNumber}
+          onChange={setRealtorLicenseNumber}
+        />
+      </section>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4 flex w-full justify-start gap-1 bg-muted/40 p-1">
