@@ -12,8 +12,7 @@
 mod tests {
     // ❌ 這些模組還不存在 — 紅燈起點
     use super::super::{
-        sync_legal_clauses, get_legal_clause,
-        SyncResult, LegalClause, LegalClausesError,
+        get_legal_clause, sync_legal_clauses, LegalClause, LegalClausesError, SyncResult,
     };
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -25,7 +24,7 @@ mod tests {
         let db = rusqlite::Connection::open_in_memory().expect("in-memory DB");
         let mock_endpoint = "http://localhost:19999/v1/legal-clauses"; // mock server
 
-        let result = sync_legal_clauses(&db, mock_endpoint).await;
+        let result = sync_legal_clauses(&db, mock_endpoint);
 
         // 不存在的模組讓編譯失敗 = 紅燈；若編譯過，assert 應對實作行為
         assert!(result.is_ok(), "首次 sync 應成功，got {:?}", result);
@@ -137,9 +136,12 @@ mod tests {
         // mock 一個無法連線的 endpoint
         let unreachable_endpoint = "http://localhost:19998/v1/legal-clauses";
 
-        let result = sync_legal_clauses(&db, unreachable_endpoint).await;
+        let result = sync_legal_clauses(&db, unreachable_endpoint);
 
-        assert!(result.is_ok(), "sync 失敗不應 panic，應返回 Ok(SyncResult::...)");
+        assert!(
+            result.is_ok(),
+            "sync 失敗不應 panic，應返回 Ok(SyncResult::...)"
+        );
 
         match result.unwrap() {
             SyncResult::EmptyCacheNoNetwork => {
@@ -173,10 +175,7 @@ mod tests {
             SyncResult::FallbackToCache { .. } => {
                 // 預期行為
             }
-            other => panic!(
-                "5xx 應觸發 FallbackToCache，但得到 {:?}",
-                other
-            ),
+            other => panic!("5xx 應觸發 FallbackToCache，但得到 {:?}", other),
         }
     }
 
@@ -196,10 +195,7 @@ mod tests {
             LegalClausesError::LawNotFound => {
                 // 預期行為
             }
-            other => panic!(
-                "應返回 LegalClausesError::LawNotFound，但得到 {:?}",
-                other
-            ),
+            other => panic!("應返回 LegalClausesError::LawNotFound，但得到 {:?}", other),
         }
     }
 

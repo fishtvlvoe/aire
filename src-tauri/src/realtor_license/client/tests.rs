@@ -12,8 +12,7 @@
 mod tests {
     use super::super::{
         client::{
-            fetch_license_from_opcos, LicenseVerificationResult, LicenseStatus,
-            RealtorLicenseError,
+            fetch_license_from_opcos, LicenseStatus, LicenseVerificationResult, RealtorLicenseError,
         },
         verify_realtor_license,
     };
@@ -29,21 +28,23 @@ mod tests {
         let result = super::super::verify_with_mock(
             &db,
             "ABC123456",
-            LicenseStatus::Verified { expires_at: "2030-01-01".to_string() },
-        )
-        .await;
+            LicenseStatus::Verified {
+                expires_at: "2030-01-01".to_string(),
+            },
+        );
 
         assert!(result.is_ok(), "fresh 驗證應成功");
 
         let verification = result.unwrap();
         assert_eq!(
-            verification.source,
-            "fresh",
+            verification.source, "fresh",
             "cache miss 時 source 必須是 'fresh'"
         );
         assert_eq!(
             verification.status,
-            LicenseStatus::Verified { expires_at: "2030-01-01".to_string() }
+            LicenseStatus::Verified {
+                expires_at: "2030-01-01".to_string()
+            }
         );
     }
 
@@ -59,9 +60,10 @@ mod tests {
         let result = super::super::verify_with_mock(
             &db,
             "EXP999999",
-            LicenseStatus::Expired { expires_at: "2024-01-01".to_string() },
-        )
-        .await;
+            LicenseStatus::Expired {
+                expires_at: "2024-01-01".to_string(),
+            },
+        );
 
         // expired 是一種有效的驗證結果，不是錯誤
         // IPC 應返回 Ok(LicenseVerificationResult { status: Expired, ... })
@@ -96,9 +98,10 @@ mod tests {
             super::super::verify_with_mock(
                 &*db,
                 "SAME123456",
-                LicenseStatus::Verified { expires_at: "2030-01-01".to_string() },
+                LicenseStatus::Verified {
+                    expires_at: "2030-01-01".to_string(),
+                },
             )
-            .await
         });
 
         let handle_b = tokio::spawn(async move {
@@ -106,16 +109,25 @@ mod tests {
             super::super::verify_with_mock(
                 &*db,
                 "SAME123456",
-                LicenseStatus::Verified { expires_at: "2030-01-01".to_string() },
+                LicenseStatus::Verified {
+                    expires_at: "2030-01-01".to_string(),
+                },
             )
-            .await
         });
 
         let (result_a, result_b) = tokio::join!(handle_a, handle_b);
 
         // 兩個 task 都不應 panic（UNIQUE constraint violation 應被 INSERT OR REPLACE 處理）
-        assert!(result_a.is_ok(), "concurrent verify A task panic: {:?}", result_a);
-        assert!(result_b.is_ok(), "concurrent verify B task panic: {:?}", result_b);
+        assert!(
+            result_a.is_ok(),
+            "concurrent verify A task panic: {:?}",
+            result_a
+        );
+        assert!(
+            result_b.is_ok(),
+            "concurrent verify B task panic: {:?}",
+            result_b
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -134,7 +146,10 @@ mod tests {
         .await;
 
         // 不應 panic，應返回 timeout 錯誤或超時狀態
-        assert!(result.is_ok(), "timeout 不應 panic，應返回 Ok(timeout state)");
+        assert!(
+            result.is_ok(),
+            "timeout 不應 panic，應返回 Ok(timeout state)"
+        );
 
         let verification = result.unwrap();
         matches!(verification.status, LicenseStatus::Timeout);
@@ -180,15 +195,14 @@ mod tests {
             .expect("seed failed");
 
         // mock OPCOS 無法連線
-        let result = super::super::verify_offline(&db, "OLD123456").await;
+        let result = super::super::verify_offline(&db, "OLD123456");
 
         assert!(result.is_ok(), "離線 + 過期 cache 不應 panic");
 
         let verification = result.unwrap();
         // source 應是 'offline'（不是 'cache'，因為 cache 已過期）
         assert_eq!(
-            verification.source,
-            "offline",
+            verification.source, "offline",
             "過期 cache + 離線時 source 應是 'offline'，不是 'cache'"
         );
     }
@@ -201,7 +215,7 @@ mod tests {
         let db = rusqlite::Connection::open_in_memory().expect("in-memory DB");
 
         // 空字串不應觸發 OPCOS 呼叫
-        let result = verify_realtor_license(&db, "").await;
+        let result = verify_realtor_license(&db, "");
 
         assert!(
             result.is_err(),

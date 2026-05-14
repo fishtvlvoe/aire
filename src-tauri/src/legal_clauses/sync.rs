@@ -75,7 +75,10 @@ fn bearer_token() -> Option<String> {
         .filter(|s| !s.trim().is_empty())
 }
 
-async fn get_with_bearer_retry(url: &str, timeout_secs: u64) -> Result<reqwest::Response, LegalClausesError> {
+async fn get_with_bearer_retry(
+    url: &str,
+    timeout_secs: u64,
+) -> Result<reqwest::Response, LegalClausesError> {
     let client = build_client(timeout_secs)?;
     let token = bearer_token();
 
@@ -84,14 +87,24 @@ async fn get_with_bearer_retry(url: &str, timeout_secs: u64) -> Result<reqwest::
         req = req.bearer_auth(t);
     }
 
-    let resp = req.send().await.map_err(|_| LegalClausesError::OpcosUnreachable)?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|_| LegalClausesError::OpcosUnreachable)?;
     if resp.status().as_u16() == 401 {
         let mut req2 = client.get(url);
         if let Some(t) = bearer_token().as_ref() {
             req2 = req2.bearer_auth(t);
         }
-        let resp2 = req2.send().await.map_err(|_| LegalClausesError::OpcosUnreachable)?;
-        Ok(resp2)
+        let resp2 = req2
+            .send()
+            .await
+            .map_err(|_| LegalClausesError::OpcosUnreachable)?;
+        if resp2.status().as_u16() == 401 {
+            Err(LegalClausesError::AuthFailed)
+        } else {
+            Ok(resp2)
+        }
     } else {
         Ok(resp)
     }
@@ -104,8 +117,13 @@ pub async fn fetch_version(endpoint: &str) -> Result<String, LegalClausesError> 
         return Err(LegalClausesError::OpcosUnreachable);
     }
     #[derive(Deserialize)]
-    struct V { version_date: String }
-    let v = resp.json::<V>().await.map_err(|_| LegalClausesError::OpcosUnreachable)?;
+    struct V {
+        version_date: String,
+    }
+    let v = resp
+        .json::<V>()
+        .await
+        .map_err(|_| LegalClausesError::OpcosUnreachable)?;
     Ok(v.version_date)
 }
 
@@ -183,103 +201,78 @@ fn test_fixture_three_laws() -> Vec<LegalClause> {
     ]
 }
 
+fn fallback_result(conn: &Connection) -> Result<SyncResult, LegalClausesError> {
+    let max = cache::max_fetched_at(conn).map_err(|_| LegalClausesError::CacheWriteFailed)?;
+    Ok(match max {
+        None => SyncResult::EmptyCacheNoNetwork,
+        Some(ts) => SyncResult::FallbackToCache {
+            days_old: days_old_from_fetched_at(&ts),
+        },
+    })
+}
+
 pub fn sync_legal_clauses(
     conn: &Connection,
     endpoint: &str,
-) -> std::pin::Pin<
-    Box<dyn std::future::Future<Output = Result<SyncResult, LegalClausesError>> + Send>,
-> {
-    // Make this future `Send` even though rusqlite::Connection is not Sync.
-    let conn = conn as *const Connection as usize;
-    let endpoint = endpoint.to_string();
+) -> Result<SyncResult, LegalClausesError> {
+    // Test harness endpoints are fully mocked to keep unit tests deterministic.
+    if endpoint == TEST_UNREACHABLE_ENDPOINT {
+        return fallback_result(conn);
+    }
 
-    Box::pin(async move {
-        // Test harness endpoints are fully mocked to keep unit tests deterministic.
-        if endpoint == TEST_UNREACHABLE_ENDPOINT {
-            let max = cache::max_fetched_at(unsafe { &*(conn as *const Connection) })
-                .map_err(|_| LegalClausesError::CacheWriteFailed)?;
-            return Ok(match max {
-                None => SyncResult::EmptyCacheNoNetwork,
-                Some(ts) => SyncResult::FallbackToCache {
-                    days_old: days_old_from_fetched_at(&ts),
-                },
-            });
-        }
-
-        let laws: Vec<LegalClause> = if endpoint == TEST_OK_ENDPOINT {
-            test_fixture_three_laws()
-        } else {
-            // Real call: GET {endpoint} returns {"laws":[...]}
-            let resp = get_with_bearer_retry(&endpoint, 5).await;
-            let resp = match resp {
-                Ok(r) => r,
-                Err(_) => {
-                    let max = cache::max_fetched_at(unsafe { &*(conn as *const Connection) })
-                        .map_err(|_| LegalClausesError::CacheWriteFailed)?;
-                    return Ok(match max {
-                        None => SyncResult::EmptyCacheNoNetwork,
-                        Some(ts) => SyncResult::FallbackToCache {
-                            days_old: days_old_from_fetched_at(&ts),
-                        },
-                    });
-                }
-            };
-
-            let status = resp.status().as_u16();
-            if status >= 500 {
-                let max = cache::max_fetched_at(unsafe { &*(conn as *const Connection) })
-                    .map_err(|_| LegalClausesError::CacheWriteFailed)?;
-                return Ok(match max {
-                    None => SyncResult::EmptyCacheNoNetwork,
-                    Some(ts) => SyncResult::FallbackToCache {
-                        days_old: days_old_from_fetched_at(&ts),
-                    },
-                });
-            }
-            if !resp.status().is_success() {
-                return Err(LegalClausesError::OpcosUnreachable);
-            }
-            let body = resp
-                .json::<LawsResp>()
-                .await
-                .map_err(|_| LegalClausesError::OpcosUnreachable)?;
-
-            let fetched_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-            body.laws
-                .into_iter()
-                .map(|w| LegalClause {
-                    law_id: w.law_id,
-                    title: w.title,
-                    content_markdown: w.content_markdown,
-                    version_date: w.version_date,
-                    fetched_at: fetched_at.clone(),
-                    source_url: w.source_url,
-                })
-                .collect()
+    let laws: Vec<LegalClause> = if endpoint == TEST_OK_ENDPOINT {
+        test_fixture_three_laws()
+    } else {
+        // Real call: GET {endpoint} returns {"laws":[...]}
+        let resp = match tauri::async_runtime::block_on(get_with_bearer_retry(endpoint, 5)) {
+            Ok(r) => r,
+            Err(LegalClausesError::AuthFailed) => return Err(LegalClausesError::AuthFailed),
+            Err(_) => return fallback_result(conn),
         };
 
-        let conn_ref = unsafe { &*(conn as *const Connection) };
-
-        // Upsert each law independently: partial failure must preserve successful rows.
-        let mut any_updated = false;
-        for clause in laws {
-            validate_legal_clause(&clause)?;
-            if cache::get_law(conn_ref, &clause.law_id)
-                .ok()
-                .flatten()
-                .map(|c| c.version_date)
-                != Some(clause.version_date.clone())
-            {
-                any_updated = true;
-            }
-            cache::upsert_law(conn_ref, &clause).map_err(|_| LegalClausesError::CacheWriteFailed)?;
+        let status = resp.status().as_u16();
+        if status >= 500 {
+            return fallback_result(conn);
         }
+        if !resp.status().is_success() {
+            return Err(LegalClausesError::OpcosUnreachable);
+        }
+        let body = tauri::async_runtime::block_on(resp.json::<LawsResp>())
+            .map_err(|_| LegalClausesError::OpcosUnreachable)?;
 
-        Ok(if any_updated {
-            SyncResult::Updated
-        } else {
-            SyncResult::Unchanged
-        })
+        let fetched_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+        body.laws
+            .into_iter()
+            .map(|w| LegalClause {
+                law_id: w.law_id,
+                title: w.title,
+                content_markdown: w.content_markdown,
+                version_date: w.version_date,
+                fetched_at: fetched_at.clone(),
+                source_url: w.source_url,
+            })
+            .collect()
+    };
+
+    // Upsert each law independently: partial failure must preserve successful rows.
+    let mut any_updated = false;
+    for clause in laws {
+        validate_legal_clause(&clause)?;
+        if cache::get_law(conn, &clause.law_id)
+            .ok()
+            .flatten()
+            .map(|c| c.version_date)
+            != Some(clause.version_date.clone())
+        {
+            any_updated = true;
+        }
+        cache::upsert_law(conn, &clause).map_err(|_| LegalClausesError::CacheWriteFailed)?;
+    }
+
+    Ok(if any_updated {
+        SyncResult::Updated
+    } else {
+        SyncResult::Unchanged
     })
 }
 
@@ -287,7 +280,11 @@ pub fn sync_legal_clauses(
 // Test helpers (no network)
 // ----------------------------
 
-pub fn seed_law_clause(conn: &Connection, law_id: &str, version_date: &str) -> Result<(), LegalClausesError> {
+pub fn seed_law_clause(
+    conn: &Connection,
+    law_id: &str,
+    version_date: &str,
+) -> Result<(), LegalClausesError> {
     let clause = LegalClause {
         law_id: law_id.to_string(),
         title: "seed".to_string(),
@@ -316,7 +313,8 @@ pub async fn sync_with_mock_response(
 
     if status_code == 200 {
         let json = body.ok_or(LegalClausesError::OpcosUnreachable)?;
-        let parsed: LawsResp = serde_json::from_str(json).map_err(|_| LegalClausesError::OpcosUnreachable)?;
+        let parsed: LawsResp =
+            serde_json::from_str(json).map_err(|_| LegalClausesError::OpcosUnreachable)?;
         let fetched_at = "2026-05-14T00:00:00Z".to_string();
         for w in parsed.laws {
             let clause = LegalClause {
@@ -340,17 +338,32 @@ pub async fn sync_with_mock_sequence(
     conn: &Connection,
     sequence: &[(u16, Option<&str>)],
 ) -> Result<SyncResult, LegalClausesError> {
-    // Minimal: treat 401 as retry trigger and proceed to next response.
-    for (code, body) in sequence {
-        if *code == 401 {
-            continue;
-        }
-        return sync_with_mock_response(conn, *code, body.map(|s| s)).await;
+    // Max one retry on 401; second 401 maps to AuthFailed.
+    if sequence.is_empty() {
+        return Ok(SyncResult::Unchanged);
     }
-    Ok(SyncResult::Unchanged)
+
+    let (first_code, first_body) = sequence[0];
+    if first_code != 401 {
+        return sync_with_mock_response(conn, first_code, first_body).await;
+    }
+
+    if sequence.len() < 2 {
+        return Err(LegalClausesError::AuthFailed);
+    }
+
+    let (second_code, second_body) = sequence[1];
+    if second_code == 401 {
+        return Err(LegalClausesError::AuthFailed);
+    }
+
+    sync_with_mock_response(conn, second_code, second_body).await
 }
 
-pub async fn sync_partial_with_failure_at(conn: &Connection, fail_at: usize) -> Result<SyncResult, LegalClausesError> {
+pub async fn sync_partial_with_failure_at(
+    conn: &Connection,
+    fail_at: usize,
+) -> Result<SyncResult, LegalClausesError> {
     // Deterministic sequence: first law success, second fails (simulated).
     let ids = [
         "real-estate-broker-act",

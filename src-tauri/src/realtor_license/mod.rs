@@ -31,14 +31,23 @@ pub use client::{fetch_license_from_opcos, verify_realtor_license};
 #[cfg(test)]
 pub use client::{verify_offline, verify_with_delayed_mock, verify_with_mock};
 
-use tauri::State;
 use crate::DbState;
+use tauri::State;
 
 #[tauri::command(rename = "verify_realtor_license")]
-pub fn verify_realtor_license_ipc(
+pub async fn verify_realtor_license_ipc(
     license_number: String,
     db: State<'_, DbState>,
 ) -> Result<LicenseVerificationResult, RealtorLicenseError> {
-    let conn = db.0.lock().map_err(|_| RealtorLicenseError::CacheWriteFailed)?;
-    tauri::async_runtime::block_on(client::verify_realtor_license(&*conn, &license_number))
+    let conn =
+        db.0.lock()
+            .map_err(|_| RealtorLicenseError::CacheWriteFailed)?
+            .try_clone()
+            .map_err(|_| RealtorLicenseError::CacheWriteFailed)?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        client::verify_realtor_license(&conn, &license_number)
+    })
+    .await
+    .map_err(|_| RealtorLicenseError::CacheWriteFailed)?
 }

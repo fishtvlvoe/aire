@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use tokio::task::JoinHandle;
 
@@ -46,37 +47,19 @@ pub async fn start_sync_scheduler(
     let endpoint = endpoint.to_string();
 
     let join = tokio::spawn(async move {
-        // Use tokio-cron-scheduler in production, but keep the job body simple.
-        // If cron scheduler fails to start, fall back to a simple interval loop.
-        let cron_expr = format!("0 0 0 */{} * *", config.interval_days.max(1));
+        let dur = Duration::from_secs(24 * 60 * 60 * config.interval_days.max(1) as u64);
+        let mut ticker = tokio::time::interval(dur);
+        // Consume initial immediate tick so the first sync happens after one full interval.
+        ticker.tick().await;
 
-        let mut used_cron = false;
-        if let Ok(sched) = tokio_cron_scheduler::JobScheduler::new().await {
-            let db_for_job = Arc::clone(&db);
-            let endpoint_for_job = endpoint.clone();
-            if let Ok(job) = tokio_cron_scheduler::Job::new_async(cron_expr.as_str(), move |_id, _lock| {
-                let db = Arc::clone(&db_for_job);
-                let endpoint = endpoint_for_job.clone();
-                Box::pin(async move {
-                    let conn = db.lock().await;
-                    let _ = sync_legal_clauses(&*conn, &endpoint).await;
-                })
-            }) {
-                if sched.add(job).await.is_ok() && sched.start().await.is_ok() {
-                    used_cron = true;
-                    // Keep task alive.
-                    std::future::pending::<()>().await;
-                }
-            }
-        }
-
-        if !used_cron {
-            let dur = tokio::time::Duration::from_secs(60 * 60 * 24 * config.interval_days.max(1) as u64);
-            loop {
-                tokio::time::sleep(dur).await;
-                let conn = db.lock().await;
-                let _ = sync_legal_clauses(&*conn, &endpoint).await;
-            }
+        loop {
+            ticker.tick().await;
+            let conn = match db.lock().await.try_clone() {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let endpoint = endpoint.clone();
+            let _ = tokio::task::spawn_blocking(move || sync_legal_clauses(&conn, &endpoint)).await;
         }
     });
 

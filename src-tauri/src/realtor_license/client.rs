@@ -35,7 +35,9 @@ struct LicenseResp {
     expires_at: Option<String>,
 }
 
-pub async fn fetch_license_from_opcos(license_number: &str) -> Result<LicenseStatus, RealtorLicenseError> {
+pub async fn fetch_license_from_opcos(
+    license_number: &str,
+) -> Result<LicenseStatus, RealtorLicenseError> {
     if license_number.trim().is_empty() {
         return Err(RealtorLicenseError::InvalidLicenseNumberFormat);
     }
@@ -47,7 +49,10 @@ pub async fn fetch_license_from_opcos(license_number: &str) -> Result<LicenseSta
         req = req.bearer_auth(t);
     }
 
-    let resp = req.send().await.map_err(|_| RealtorLicenseError::OpcosUnreachable)?;
+    let resp = req
+        .send()
+        .await
+        .map_err(|_| RealtorLicenseError::OpcosUnreachable)?;
     let status = resp.status().as_u16();
     if status == 404 {
         return Ok(LicenseStatus::NotFound);
@@ -59,7 +64,10 @@ pub async fn fetch_license_from_opcos(license_number: &str) -> Result<LicenseSta
         return Err(RealtorLicenseError::OpcosUnreachable);
     }
 
-    let body = resp.json::<LicenseResp>().await.map_err(|_| RealtorLicenseError::OpcosUnreachable)?;
+    let body = resp
+        .json::<LicenseResp>()
+        .await
+        .map_err(|_| RealtorLicenseError::OpcosUnreachable)?;
     Ok(match body.status.as_str() {
         "verified" => LicenseStatus::Verified {
             expires_at: body.expires_at.unwrap_or_default(),
@@ -85,7 +93,7 @@ fn status_from_cache_str(s: &str) -> LicenseStatus {
     }
 }
 
-pub async fn verify_realtor_license(
+pub fn verify_realtor_license(
     conn: &Connection,
     license_number: &str,
 ) -> Result<LicenseVerificationResult, RealtorLicenseError> {
@@ -105,8 +113,12 @@ pub async fn verify_realtor_license(
         }
     }
 
-    match fetch_license_from_opcos(license_number).await {
-        Ok(status @ (LicenseStatus::Verified { .. } | LicenseStatus::NotFound | LicenseStatus::Expired { .. })) => {
+    match tauri::async_runtime::block_on(fetch_license_from_opcos(license_number)) {
+        Ok(
+            status @ (LicenseStatus::Verified { .. }
+            | LicenseStatus::NotFound
+            | LicenseStatus::Expired { .. }),
+        ) => {
             let verified_at = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
             let _ = cache::write_license_cache(conn, license_number, &status, &verified_at)
                 .map_err(|_| RealtorLicenseError::CacheWriteFailed)?;
@@ -159,25 +171,14 @@ pub fn verify_with_mock(
     conn: &Connection,
     license_number: &str,
     status: LicenseStatus,
-) -> std::pin::Pin<
-    Box<
-        dyn std::future::Future<Output = Result<LicenseVerificationResult, RealtorLicenseError>>
-            + Send,
-    >,
-> {
-    let conn = conn as *const Connection as usize;
-    let license_number = license_number.to_string();
-
-    Box::pin(async move {
-        let conn = unsafe { &*(conn as *const Connection) };
-        let verified_at = "2026-05-14T10:00:00Z".to_string();
-        cache::write_license_cache(conn, &license_number, &status, &verified_at)
-            .map_err(|_| RealtorLicenseError::CacheWriteFailed)?;
-        Ok(LicenseVerificationResult {
-            status,
-            verified_at,
-            source: "fresh".to_string(),
-        })
+) -> Result<LicenseVerificationResult, RealtorLicenseError> {
+    let verified_at = "2026-05-14T10:00:00Z".to_string();
+    cache::write_license_cache(conn, license_number, &status, &verified_at)
+        .map_err(|_| RealtorLicenseError::CacheWriteFailed)?;
+    Ok(LicenseVerificationResult {
+        status,
+        verified_at,
+        source: "fresh".to_string(),
     })
 }
 
@@ -206,34 +207,23 @@ pub fn verify_with_delayed_mock(
 pub fn verify_offline(
     conn: &Connection,
     license_number: &str,
-) -> std::pin::Pin<
-    Box<
-        dyn std::future::Future<Output = Result<LicenseVerificationResult, RealtorLicenseError>>
-            + Send,
-    >,
-> {
-    let conn = conn as *const Connection as usize;
-    let license_number = license_number.to_string();
-
-    Box::pin(async move {
-        let conn = unsafe { &*(conn as *const Connection) };
-        let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-        if let Ok(Some(row)) = cache::read_license_cache(conn, &license_number) {
-            Ok(LicenseVerificationResult {
-                status: status_from_cache_str(&row.status),
-                verified_at: row.verified_at,
-                source: "offline".to_string(),
-            })
-        } else {
-            Ok(LicenseVerificationResult {
-                status: LicenseStatus::Offline {
-                    last_verified_at: None,
-                },
-                verified_at: now,
-                source: "offline".to_string(),
-            })
-        }
-    })
+) -> Result<LicenseVerificationResult, RealtorLicenseError> {
+    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    if let Ok(Some(row)) = cache::read_license_cache(conn, license_number) {
+        Ok(LicenseVerificationResult {
+            status: status_from_cache_str(&row.status),
+            verified_at: row.verified_at,
+            source: "offline".to_string(),
+        })
+    } else {
+        Ok(LicenseVerificationResult {
+            status: LicenseStatus::Offline {
+                last_verified_at: None,
+            },
+            verified_at: now,
+            source: "offline".to_string(),
+        })
+    }
 }
 
 #[cfg(test)]
