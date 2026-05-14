@@ -1,0 +1,375 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: #F9FAFB;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.page {
+  width: 210mm;
+  height: 297mm;
+  background: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+/* AI Badge */
+.ai-badge {
+  position: absolute;
+  top: 14mm;
+  right: 14mm;
+  width: 12mm;
+  height: 12mm;
+  background: #3B82F6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  z-index: 10;
+}
+
+/* ===== COVER PAGE ===== */
+.cover-top-bar {
+  width: 100%;
+  height: 2mm;
+  background: #3B82F6;
+}
+
+.cover-header {
+  padding: 14mm 18mm 0;
+  border-bottom: 1px solid #E5E7EB;
+  padding-bottom: 8mm;
+  margin-bottom: 0;
+}
+
+.cover-header .doc-type {
+  font-size: 7.5pt;
+  color: #6B7280;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 3mm;
+}
+
+.cover-header .doc-title {
+  font-size: 22pt;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 2px;
+  margin-bottom: 1.5mm;
+}
+
+.cover-header .doc-subtitle {
+  font-size: 9pt;
+  color: #9CA3AF;
+  letter-spacing: 4px;
+}
+
+.property-id-section {
+  padding: 6mm 18mm;
+  border-bottom: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  gap: 6mm;
+}
+
+.property-id-label {
+  font-size: 7pt;
+  color: #9CA3AF;
+  letter-spacing: 1px;
+}
+
+.property-id-value {
+  font-size: 11pt;
+  font-weight: 600;
+  color: #3B82F6;
+  font-family: 'Courier New', monospace;
+}
+
+.property-name-section {
+  padding: 8mm 18mm;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.property-name-label {
+  font-size: 7pt;
+  color: #9CA3AF;
+  letter-spacing: 1px;
+  margin-bottom: 2mm;
+}
+
+.property-name-value {
+  font-size: 14pt;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.summary-section {
+  padding: 7mm 18mm;
+  border-bottom: 1px solid #E5E7EB;
+  flex: 1;
+}
+
+.section-title {
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: #6B7280;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 5mm;
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+}
+
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 3mm;
+  height: 3mm;
+  background: #3B82F6;
+  border-radius: 50%;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5mm 8mm;
+}
+
+.summary-item {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  font-size: 8pt;
+  color: #374151;
+  padding: 2mm 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.summary-item .item-label {
+  color: #9CA3AF;
+  min-width: 22mm;
+  font-size: 7.5pt;
+}
+
+.summary-item .item-value {
+  color: #111827;
+  font-weight: 500;
+}
+
+.logo-section {
+  padding: 6mm 18mm;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.logo-placeholder {
+  width: 80mm;
+  height: 30mm;
+  border: 1px dashed #D1D5DB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8pt;
+  color: #9CA3AF;
+  background: #FAFAFA;
+}
+
+.agent-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4mm;
+  font-size: 7.5pt;
+}
+
+.agent-table th {
+  background: #F9FAFB;
+  color: #6B7280;
+  font-weight: 500;
+  padding: 2.5mm 3mm;
+  border: 1px solid #E5E7EB;
+  text-align: center;
+  font-size: 7pt;
+  letter-spacing: 0.5px;
+}
+
+.agent-table td {
+  padding: 3mm;
+  border: 1px solid #E5E7EB;
+  text-align: center;
+  color: #374151;
+  height: 9mm;
+}
+
+.company-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 5mm 18mm;
+  background: #F9FAFB;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.company-info {
+  font-size: 7pt;
+  color: #6B7280;
+  line-height: 1.6;
+}
+
+.company-name {
+  font-weight: 600;
+  color: #374151;
+  font-size: 8pt;
+}
+
+.date-info {
+  font-size: 7pt;
+  color: #9CA3AF;
+  text-align: right;
+}
+
+/* ===== CONTENT PAGE ===== */
+.content-header {
+  padding: 8mm 14mm 6mm;
+  border-bottom: 2px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-logo-placeholder {
+  width: 25mm;
+  height: 15mm;
+  border: 1px dashed #D1D5DB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6pt;
+  color: #9CA3AF;
+  background: #FAFAFA;
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 10pt;
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+  flex: 1;
+  padding: 0 8mm;
+}
+
+.header-badge-area {
+  width: 25mm;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.header-ai-badge {
+  width: 10mm;
+  height: 10mm;
+  background: #3B82F6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 6pt;
+  font-weight: 700;
+}
+
+.content-body {
+  padding: 8mm 14mm;
+}
+
+.table-title {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5mm;
+  letter-spacing: 1px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+
+.data-table th {
+  background: #F3F4F6;
+  color: #374151;
+  font-weight: 600;
+  padding: 3mm 4mm;
+  border: 1px solid #E5E7EB;
+  text-align: center;
+  font-size: 7.5pt;
+}
+
+.data-table td {
+  padding: 3mm 4mm;
+  border: 1px solid #E5E7EB;
+  color: #374151;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.data-table td:first-child {
+  background: #FAFAFA;
+  color: #6B7280;
+  font-weight: 500;
+  width: 35mm;
+  text-align: center;
+}
+
+.data-table td:nth-child(2) {
+  width: 80mm;
+}
+
+.data-table tr:nth-child(even) td:not(:first-child) {
+  background: #FAFAFA;
+}
+
+.content-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4mm 14mm;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #FFFFFF;
+}
+
+.page-number {
+  font-size: 7pt;
+  color: #9CA3AF;
+}
+
+.footer-company {
+  font-size: 7pt;
+  color: #9CA3AF;
+}

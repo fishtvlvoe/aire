@@ -1,0 +1,466 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: #EEF2F7;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.page {
+  width: 210mm;
+  height: 297mm;
+  background: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 30px rgba(59,94,122,0.2);
+}
+
+/* ===== COVER PAGE ===== */
+
+/* 左上角斜切三角（深藍） */
+.cover-tri-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 55mm 55mm 0 0;
+  border-color: #3B5E7A transparent transparent transparent;
+  z-index: 2;
+}
+
+/* 左上角斜切三角（金邊，稍微偏移） */
+.cover-tri-gold {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 52mm 52mm 0 0;
+  border-color: #C9A961 transparent transparent transparent;
+  z-index: 1;
+}
+
+/* 右下角對稱裝飾 */
+.cover-corner-br {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 40mm 40mm;
+  border-color: transparent transparent #3B5E7A transparent;
+  z-index: 2;
+}
+
+.cover-corner-br-gold {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 37mm 37mm;
+  border-color: transparent transparent #C9A961 transparent;
+  z-index: 1;
+}
+
+/* 粉漸層頂部橫條 */
+.cover-gradient-bar {
+  position: absolute;
+  top: 0;
+  left: 55mm;
+  right: 0;
+  height: 18mm;
+  background: linear-gradient(135deg, #F5D5D0, #D4A5A0);
+  z-index: 0;
+}
+
+/* AI Badge */
+.ai-badge {
+  position: absolute;
+  top: 4mm;
+  right: 10mm;
+  width: 13mm;
+  height: 13mm;
+  background: linear-gradient(135deg, #3B5E7A, #5B8FAA);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: 2px solid #C9A961;
+  z-index: 10;
+}
+
+/* 封面主體 */
+.cover-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+}
+
+.cover-top-area {
+  height: 55mm;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 18mm 5mm 18mm;
+}
+
+.cover-title-group {
+  text-align: left;
+  margin-left: 6mm;
+}
+
+.cover-doc-type {
+  font-size: 7pt;
+  color: rgba(59,94,122,0.7);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 2mm;
+}
+
+.cover-doc-title {
+  font-size: 21pt;
+  font-weight: 700;
+  color: #3B5E7A;
+  letter-spacing: 4px;
+  line-height: 1.2;
+}
+
+.cover-doc-subtitle {
+  font-size: 8pt;
+  color: #C9A961;
+  letter-spacing: 5px;
+  margin-top: 1.5mm;
+}
+
+.cover-gold-line {
+  height: 0.8mm;
+  background: linear-gradient(90deg, transparent 15mm, #C9A961 15mm, #C9A961 90%, transparent);
+  margin: 0 18mm;
+}
+
+.cover-property-area {
+  padding: 6mm 18mm;
+  flex: 1;
+}
+
+.property-id-row {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  margin-bottom: 5mm;
+}
+
+.id-tag {
+  font-size: 7pt;
+  color: #C9A961;
+  letter-spacing: 2px;
+  border-bottom: 1px solid #C9A961;
+  padding-bottom: 0.5mm;
+}
+
+.id-value {
+  font-size: 11pt;
+  font-weight: 600;
+  color: #3B5E7A;
+  font-family: 'Courier New', monospace;
+}
+
+.property-name-value {
+  font-size: 13pt;
+  font-weight: 700;
+  color: #2D4A5E;
+  line-height: 1.5;
+  margin-bottom: 6mm;
+  padding-left: 3mm;
+  border-left: 3mm solid #C9A961;
+}
+
+.summary-section {
+  margin-bottom: 5mm;
+}
+
+.summary-title {
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: #C9A961;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 3mm;
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+}
+
+.summary-title::after {
+  content: '';
+  flex: 1;
+  height: 0.5mm;
+  background: linear-gradient(90deg, #C9A961, transparent);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5mm 8mm;
+}
+
+.summary-item {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  font-size: 8pt;
+  padding: 2mm 0;
+  border-bottom: 0.5px solid #F0E8D8;
+}
+
+.summary-item .label {
+  color: #8BA0B0;
+  min-width: 22mm;
+  font-size: 7pt;
+}
+
+.summary-item .value {
+  color: #2D4A5E;
+  font-weight: 500;
+}
+
+.logo-area {
+  padding: 4mm 18mm;
+  border-top: 0.5mm solid #F0E8D8;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 6mm;
+  margin-bottom: 4mm;
+}
+
+.logo-placeholder {
+  width: 80mm;
+  height: 30mm;
+  border: 1.5px solid #C9A961;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8pt;
+  color: #B8A080;
+  background: linear-gradient(135deg, #FDF8F0, #FAF0E8);
+}
+
+.agent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.5pt;
+}
+
+.agent-table th {
+  background: #3B5E7A;
+  color: #FFFFFF;
+  padding: 2mm 3mm;
+  border: 1px solid #3B5E7A;
+  text-align: center;
+  font-size: 7pt;
+}
+
+.agent-table td {
+  padding: 2.5mm;
+  border: 1px solid #E8DDD0;
+  text-align: center;
+  color: #374151;
+  background: #FDFAF7;
+}
+
+.cover-footer {
+  padding: 4mm 18mm;
+  background: linear-gradient(135deg, #F5F0E8, #EEE8DC);
+  border-top: 0.5mm solid #C9A961;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 6;
+  position: relative;
+}
+
+.footer-left .company-name {
+  font-size: 9pt;
+  font-weight: 700;
+  color: #3B5E7A;
+  margin-bottom: 1mm;
+}
+
+.footer-left .company-info {
+  font-size: 7pt;
+  color: #7A6A55;
+  line-height: 1.5;
+}
+
+.footer-right {
+  font-size: 7pt;
+  color: #8B7A65;
+  text-align: right;
+}
+
+/* ===== CONTENT PAGE ===== */
+.content-header {
+  background: linear-gradient(135deg, #3B5E7A, #2D4A5E);
+  padding: 6mm 14mm;
+  display: flex;
+  align-items: center;
+  gap: 6mm;
+  position: relative;
+}
+
+.content-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1mm;
+  background: linear-gradient(90deg, #C9A961, #F0E0A0, #C9A961);
+}
+
+.header-logo-placeholder {
+  width: 25mm;
+  height: 15mm;
+  border: 1px solid rgba(201,169,97,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6pt;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 10pt;
+  font-weight: 600;
+  color: #FFFFFF;
+  flex: 1;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.header-ai-badge {
+  width: 11mm;
+  height: 11mm;
+  background: linear-gradient(135deg, #4A7A9B, #3B5E7A);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 6pt;
+  font-weight: 700;
+  border: 1.5px solid #C9A961;
+}
+
+.content-body {
+  padding: 8mm 14mm;
+}
+
+.table-section-title {
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: #3B5E7A;
+  margin-bottom: 3mm;
+  padding-left: 3mm;
+  border-left: 2.5mm solid #C9A961;
+  line-height: 1.3;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+
+.data-table th {
+  background: linear-gradient(135deg, #3B5E7A, #4A7A9B);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 2.5mm 4mm;
+  border: 1px solid #3B5E7A;
+  text-align: center;
+  font-size: 7.5pt;
+}
+
+.data-table td {
+  padding: 2.5mm 4mm;
+  border: 1px solid #E8DDD0;
+  color: #374151;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.data-table td:first-child {
+  background: linear-gradient(135deg, #F9F4EC, #F5EDE0);
+  color: #3B5E7A;
+  font-weight: 600;
+  width: 35mm;
+  text-align: center;
+  border-right: 1.5px solid #C9A961;
+}
+
+.data-table tr:nth-child(even) td:not(:first-child) {
+  background: #FDFAF7;
+}
+
+.section-divider {
+  margin: 6mm 0 4mm;
+}
+
+.content-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.content-footer-bar {
+  height: 1mm;
+  background: linear-gradient(90deg, #C9A961, #F0E0A0, #C9A961);
+}
+
+.content-footer-inner {
+  background: linear-gradient(135deg, #3B5E7A, #2D4A5E);
+  padding: 3.5mm 14mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-page-num {
+  font-size: 7pt;
+  color: rgba(255,255,255,0.7);
+}
+
+.footer-company-text {
+  font-size: 6.5pt;
+  color: rgba(255,255,255,0.5);
+}
