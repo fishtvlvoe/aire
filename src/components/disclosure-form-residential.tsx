@@ -138,7 +138,7 @@ export function DisclosureFormResidential({
           disabled={!draftLoaded}
           onClick={() => router.push(`/cases/${caseId}/preview`)}
         >
-          產生 PDF
+          前往 PDF 預覽
         </Button>
         {completionError ? (
           <span role="alert" className="text-sm text-destructive">

@@ -17,14 +17,6 @@ import {
   statusLabel,
   type CaseRow,
 } from "@/lib/cases-api";
-import {
-  exportDisclosurePdf,
-  revealInFolder,
-  exportErrorMessage,
-  ExportError,
-} from "@/lib/export-pdf";
-import { loadDraft } from "@/lib/use-draft-autosave";
-import { toast } from "@/components/ux/Toaster";
 
 export default function CaseDetailPage() {
   const params = useParams<{ id: string }>();
@@ -99,52 +91,9 @@ export default function CaseDetailPage() {
     }
   }
 
-  async function handleExportPdf() {
+  function handleExportCase() {
     if (!c) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const payload = (await loadDraft<Record<string, unknown>>(c.id)) ?? {};
-      const { outputPath } = await exportDisclosurePdf({
-        caseId: c.id,
-        propertyType: c.property_type as "residential" | "land",
-        caseInfo: {
-          case_no: c.case_no ?? undefined,
-          land_lot_no: c.land_lot_no,
-          address: c.address,
-          owner_name: c.owner_name ?? undefined,
-          generated_at: new Date().toISOString(),
-        },
-        company: { name: "AIRE" }, // Phase 1 暫用預設；後續從 settings 撈
-        payload,
-      });
-      // 重新取 case（status 已被後端改成 exported）
-      const refreshed = await casesApi.get(c.id);
-      setCase(refreshed);
-      toast.success("匯出成功", {
-        duration: 3000,
-        action: {
-          label: "開啟所在資料夾",
-          onClick: () => {
-            void revealInFolder(outputPath);
-          },
-        },
-      });
-    } catch (err) {
-      if (err instanceof ExportError) {
-        if (err.code === "USER_CANCELLED") {
-          // 取消不視為錯誤
-        } else {
-          toast.error(exportErrorMessage(err), { duration: 5000 });
-        }
-      } else {
-        toast.error(err instanceof Error ? err.message : String(err), {
-          duration: 5000,
-        });
-      }
-    } finally {
-      setSaving(false);
-    }
+    router.push(`/cases/${c.id}/preview`);
   }
 
   async function handleMarkCompleted() {
@@ -318,16 +267,16 @@ export default function CaseDetailPage() {
         ) : null}
 
         <button
-          onClick={handleExportPdf}
-          disabled={saving || c.status === "draft"}
-          title={c.status === "draft" ? "請先標示為完成才可匯出" : "匯出此案件"}
+          onClick={handleExportCase}
+          disabled={saving}
+          title="匯出此案件"
           style={{
             padding: "8px 16px",
-            background: c.status === "draft" ? "#eee" : "#0b6cdc",
-            color: c.status === "draft" ? "#888" : "white",
+            background: "#0b6cdc",
+            color: "white",
             border: "none",
             borderRadius: 6,
-            cursor: c.status === "draft" || saving ? "not-allowed" : "pointer",
+            cursor: saving ? "not-allowed" : "pointer",
           }}
         >
           匯出此案件

@@ -10,6 +10,7 @@ import {
   type CaseRow,
 } from "@/lib/cases-api";
 import { resolveThemeOrFallback } from "@/lib/pdf-themes/registry";
+import { BRANDING_CHANGED_EVENT } from "@/lib/pdf-themes/persistence";
 
 interface LoadedLogo {
   bytes: number[];
@@ -51,6 +52,11 @@ export default function CasePreviewPage() {
         setCase(row);
         const resolved = resolveThemeOrFallback(storedThemeId);
         setThemeId(resolved.theme.id);
+        window.dispatchEvent(
+          new CustomEvent(BRANDING_CHANGED_EVENT, {
+            detail: { themeId: resolved.theme.id },
+          }),
+        );
 
         if (storedLogo?.bytes?.length && storedLogo.mime) {
           createdLogoUrl = bytesToObjectUrl(storedLogo.bytes, storedLogo.mime);
@@ -129,6 +135,18 @@ export default function CasePreviewPage() {
         <p style={{ color: "#666", fontSize: 13, marginTop: 8 }}>
           主題：{themeId} ・ Logo：{logoUrl ? "已載入" : "未設定"}
         </p>
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt="公司 Logo"
+            style={{
+              marginTop: 8,
+              maxHeight: 44,
+              maxWidth: 220,
+              objectFit: "contain",
+            }}
+          />
+        ) : null}
       </header>
 
       <PdfPreviewer caseId={c.id} content={previewContent} />
