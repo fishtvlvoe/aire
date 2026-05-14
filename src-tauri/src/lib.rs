@@ -28,6 +28,31 @@ pub mod land_registry;
 #[cfg(all(test, feature = "phase2-red-tests"))]
 pub mod encryption;
 
+// Phase 2 紅燈測試 — legal_clauses + realtor_license（#1d 範圍）
+// 這些模組尚未實作 → cargo test 會因編譯失敗而紅燈 = 預期行為
+#[cfg(all(test, feature = "phase2-red-tests"))]
+mod legal_clauses {
+    pub mod sync {
+        include!("legal_clauses/sync/tests.rs");
+    }
+    pub mod cache {
+        include!("legal_clauses/cache/tests.rs");
+    }
+    pub mod scheduler {
+        include!("legal_clauses/scheduler/tests.rs");
+    }
+}
+
+#[cfg(all(test, feature = "phase2-red-tests"))]
+mod realtor_license {
+    pub mod client {
+        include!("realtor_license/client/tests.rs");
+    }
+    pub mod cache {
+        include!("realtor_license/cache/tests.rs");
+    }
+}
+
 #[cfg(all(test, feature = "phase2-red-tests"))]
 mod data_portability {
     pub mod aire_format {
