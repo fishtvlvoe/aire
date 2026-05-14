@@ -20,55 +20,22 @@ pub mod paths;
 pub mod secrets;
 pub mod startup;
 
+// Phase 3：data_portability（.aire 匯出/匯入/衝突處理）
+pub mod data_portability;
+
+// Phase 3 (#1d) Stage 1
+pub mod legal_clauses;
+pub mod realtor_license;
+
 // Phase 2 紅燈測試模組 — Phase 3 實作時移除 #[cfg(test)] 改為正式 pub mod
 // land_registry + encryption：#2a 紅燈範圍（100 個失敗點）
 // 這些模組是 Phase 2 的「預期編譯失敗」紅燈；避免阻擋已完成的 Phase 3 測試。
 #[cfg(all(test, feature = "phase2-red-tests"))]
 pub mod land_registry;
+
+// Phase 2 紅燈測試模組（sqlite_encryption）仍保留在 feature gate 之後。
 #[cfg(all(test, feature = "phase2-red-tests"))]
 pub mod encryption;
-
-// Phase 2 紅燈測試 — legal_clauses + realtor_license（#1d 範圍）
-// 這些模組尚未實作 → cargo test 會因編譯失敗而紅燈 = 預期行為
-#[cfg(all(test, feature = "phase2-red-tests"))]
-mod legal_clauses {
-    pub mod sync {
-        include!("legal_clauses/sync/tests.rs");
-    }
-    pub mod cache {
-        include!("legal_clauses/cache/tests.rs");
-    }
-    pub mod scheduler {
-        include!("legal_clauses/scheduler/tests.rs");
-    }
-}
-
-#[cfg(all(test, feature = "phase2-red-tests"))]
-mod realtor_license {
-    pub mod client {
-        include!("realtor_license/client/tests.rs");
-    }
-    pub mod cache {
-        include!("realtor_license/cache/tests.rs");
-    }
-}
-
-#[cfg(all(test, feature = "phase2-red-tests"))]
-mod data_portability {
-    pub mod aire_format {
-        include!("data_portability/aire_format/tests.rs");
-    }
-    pub mod export {
-        include!("data_portability/export/tests.rs");
-    }
-    pub mod import {
-        include!("data_portability/import/tests.rs");
-    }
-    pub mod conflict {
-        include!("data_portability/conflict/tests.rs");
-    }
-}
-
 
 use std::sync::Mutex;
 
