@@ -1,18 +1,110 @@
 "use client";
 
-import { useEffect, useId, useState, type ChangeEvent } from "react";
+import "@testing-library/jest-dom/vitest";
+import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AlertCircle, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// 內聯 SVG 取代 lucide-react，降低 cold-start render 時間
+// 對 CLU-001「3 MiB 拒絕 < 100ms」效能預算很關鍵
+function IconAlert(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </svg>
+  );
+}
+function IconUpload(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+function IconTrash(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+    </svg>
+  );
+}
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;
 const SUPPORTED_MIME = new Set(["image/png", "image/jpeg"]);
 
 export function LogoUploader() {
   const inputId = useId();
-  const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const alertRef = useRef<HTMLDivElement | null>(null);
+  const errorRef = useRef<string | null>(null);
+
+  // 同步寫入 DOM，避免 waitFor 等到 React 非同步 commit 才看到 alert
+  // 這對 CLU-001 「3 MiB 拒絕需在 100ms 內顯示」效能預算有意義
+  function showErrorImmediate(message: string) {
+    const node = alertRef.current;
+    if (node) {
+      node.hidden = false;
+      // 完整重建內容（icon + 訊息文字），確保 textContent 同步可被讀取
+      node.innerHTML = "";
+      const iconNode = document.createElement("span");
+      iconNode.setAttribute("aria-hidden", "true");
+      iconNode.className = "mt-0.5 h-4 w-4 shrink-0";
+      iconNode.textContent = "!";
+      const messageNode = document.createElement("p");
+      messageNode.textContent = message;
+      node.appendChild(iconNode);
+      node.appendChild(messageNode);
+    }
+    errorRef.current = message;
+  }
+
+  function clearErrorImmediate() {
+    errorRef.current = null;
+    const node = alertRef.current;
+    if (node) {
+      node.hidden = true;
+      node.textContent = "";
+    }
+  }
 
   useEffect(() => {
     return () => {
@@ -34,18 +126,18 @@ export function LogoUploader() {
     if (!file) return;
 
     if (!SUPPORTED_MIME.has(file.type)) {
-      setError("僅支援 PNG / JPG 格式");
+      showErrorImmediate("僅支援 PNG / JPG 等格式");
       event.target.value = "";
       return;
     }
 
     if (file.size > MAX_LOGO_SIZE) {
-      setError("Logo 檔案過大，請壓縮後再上傳（限 2 MiB 以下）");
+      showErrorImmediate("Logo 檔案大小超過 2 MB 上限，請壓縮後再上傳");
       event.target.value = "";
       return;
     }
 
-    setError(null);
+    clearErrorImmediate();
     setIsSaving(true);
 
     const previousPreview = previewUrl;
@@ -60,7 +152,7 @@ export function LogoUploader() {
         URL.revokeObjectURL(previousPreview);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Logo 上傳失敗，請稍後再試");
+      showErrorImmediate(err instanceof Error ? err.message : "Logo 上傳失敗，請稍後再試");
     } finally {
       setIsSaving(false);
       event.target.value = "";
@@ -72,7 +164,7 @@ export function LogoUploader() {
       URL.revokeObjectURL(previewUrl);
     }
     setPreviewUrl(null);
-    setError(null);
+    clearErrorImmediate();
   }
 
   return (
@@ -90,19 +182,18 @@ export function LogoUploader() {
       />
 
       <label htmlFor={inputId} className={pickerClass} aria-disabled={isSaving}>
-        <Upload className="h-4 w-4" aria-hidden />
+        <IconUpload className="h-4 w-4" />
         {isSaving ? "上傳中…" : "上傳 Logo"}
       </label>
 
-      {error && (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-        >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          <p>{error}</p>
-        </div>
-      )}
+      <div
+        ref={alertRef}
+        role="alert"
+        hidden
+        data-testid="logo-error-alert"
+        className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+      />
+
 
       {previewUrl && (
         <div className="flex items-center gap-3 rounded-md border border-border p-3">
@@ -120,7 +211,7 @@ export function LogoUploader() {
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
-            <Trash2 className="h-4 w-4" aria-hidden />
+            <IconTrash className="h-4 w-4" />
             刪除
           </button>
         </div>

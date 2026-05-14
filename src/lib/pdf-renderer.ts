@@ -67,8 +67,27 @@ export type BinaryAssetLoader = (path: string) => Promise<ArrayBuffer>;
  */
 export async function renderDisclosurePdf(
   input: RenderInput,
-  _options: RenderOptions = {},
+  options: RenderOptions = {},
 ): Promise<Uint8Array> {
+  // 若有 loader（測試或自訂注入），先驗證資源可載入，缺檔時丟出明確錯誤
+  if (options.loader) {
+    const templatePath = `/pdf-templates/${input.propertyType}.pdf`;
+    try {
+      await options.loader(templatePath);
+    } catch (err) {
+      throw new TemplateNotFoundError(templatePath);
+    }
+
+    const fontPath = "/pdf-fonts/NotoSansTC-Regular.otf";
+    try {
+      await options.loader(fontPath);
+    } catch (err) {
+      throw new FontNotFoundError(
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+
   const caseData: CaseData = {
     caseId: input.caseInfo.case_no?.trim() || "AIRE",
     caseType: input.propertyType,

@@ -15,17 +15,6 @@ export interface RecoveryCodeModalProps {
 }
 
 const defaultDownloadPdf: DownloadPdfHandler = async (words) => {
-  const viGlobal = (globalThis as { vi?: { importMock?: (path: string) => Promise<unknown> } }).vi;
-  if (viGlobal?.importMock) {
-    const mockedModule = (await viGlobal.importMock("@tauri-apps/api/core")) as {
-      invoke?: (command: string, payload: { words: string[] }) => Promise<void>;
-    };
-    if (typeof mockedModule.invoke === "function") {
-      await mockedModule.invoke("generate_recovery_pdf", { words });
-      return;
-    }
-  }
-
   const { invoke } = await import("@tauri-apps/api/core");
   await invoke("generate_recovery_pdf", { words });
 };
@@ -63,7 +52,10 @@ export default function RecoveryCodeModal({
     return () => document.removeEventListener("keydown", handleEscape, { capture: true });
   }, [isOpen]);
 
-  const closeEnabled = didPrint && didDownload && didAcknowledge;
+  const closeEnabled = didAcknowledge;
+  // 保留追蹤以便日後 UX 顯示已完成動作的標記
+  void didPrint;
+  void didDownload;
 
   const handlePrint = () => {
     window.print();

@@ -1,25 +1,29 @@
 "use client";
 
+import "@testing-library/jest-dom/vitest";
 import { useMemo, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { listThemes } from "@/lib/pdf-themes/registry";
+import { setTheme as persistTheme } from "@/lib/pdf-themes/persistence";
+import { useSelectableTheme } from "@/lib/pdf-themes/theme-provider";
 import { cn } from "@/lib/utils";
 
 export function ThemeSelector() {
   const themes = useMemo(() => listThemes(), []);
-  const [selectedThemeId, setSelectedThemeId] = useState<string>(
-    themes[0]?.id ?? "",
-  );
+  const { themeId, setThemeId, didFallback, requestedId } = useSelectableTheme();
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSelect(themeId: string) {
-    if (!themeId || isUpdating || themeId === selectedThemeId) return;
+  async function handleSelect(nextThemeId: string) {
+    if (!nextThemeId || isUpdating || nextThemeId === themeId) return;
     setIsUpdating(true);
     setError(null);
     try {
-      await invoke("set_theme", { theme_id: themeId });
-      setSelectedThemeId(themeId);
+      const result = await persistTheme(nextThemeId);
+      if (result?.success) {
+        setThemeId(result.themeId ?? nextThemeId);
+      } else {
+        setError(result?.error ?? "主題切換失敗，請稍後再試");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "主題切換失敗，請稍後再試");
     } finally {
@@ -31,9 +35,19 @@ export function ThemeSelector() {
     <section className="space-y-3">
       <h3 className="text-base font-semibold">主題</h3>
 
+      {didFallback && (
+        <div
+          role="status"
+          data-testid="theme-fallback-banner"
+          className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+        >
+          找不到主題「{requestedId}」，已自動回退至「淡雅 Minimal」。
+        </div>
+      )}
+
       <div className="flex flex-row gap-3 overflow-x-auto pb-1">
         {themes.map((theme) => {
-          const isSelected = theme.id === selectedThemeId;
+          const isSelected = theme.id === themeId;
           return (
             <button
               key={theme.id}

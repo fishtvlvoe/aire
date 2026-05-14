@@ -122,17 +122,15 @@ describe("RecoveryCodeModal — RCM-017 ~ RCM-023", () => {
     vi.unstubAllGlobals();
   });
 
-  // RCM-023: Download PDF 動作觸發下載（invoke Tauri command）
+  // RCM-023: Download PDF 動作觸發下載（呼叫注入的下載 handler）
   it("RCM-023: 點擊 Download PDF 應觸發下載動作", async () => {
     const user = userEvent.setup();
     const mockInvoke = vi.fn().mockResolvedValue(undefined);
+    const onDownloadPdf = vi.fn(async (words: string[]) => {
+      await mockInvoke("generate_recovery_pdf", { words });
+    });
 
-    // Mock Tauri invoke
-    vi.mock("@tauri-apps/api/core", () => ({
-      invoke: mockInvoke,
-    }));
-
-    render(<RecoveryCodeModal {...defaultProps} />);
+    render(<RecoveryCodeModal {...defaultProps} onDownloadPdf={onDownloadPdf} />);
 
     const downloadButton = screen.getByRole("button", { name: /下載|download.*pdf/i });
     await user.click(downloadButton);
