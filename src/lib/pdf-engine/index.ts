@@ -1,6 +1,7 @@
 import React from "react";
 import { pdf } from "@react-pdf/renderer";
 
+import type { LegalClauseData } from "../pdf-blocks/legal-notice";
 import type { PdfTheme } from "../pdf-themes/types";
 import { PdfDocument, type CaseData } from "./document";
 import { initReactPdfEngine } from "./react-pdf-init";
@@ -37,8 +38,17 @@ export async function renderDisclosurePdf(
     );
   }
 
+  let legalClauses: LegalClauseData[] = [];
   try {
-    const doc = React.createElement(PdfDocument, { caseData, theme, logo });
+    const { invoke } = await import("@tauri-apps/api/core");
+    const clausePayload = await invoke("get_legal_clause");
+    legalClauses = Array.isArray(clausePayload) ? (clausePayload as LegalClauseData[]) : [];
+  } catch (e) {
+    console.warn("[pdf-engine] get_legal_clause failed, falling back to empty clauses.", e);
+  }
+
+  try {
+    const doc = React.createElement(PdfDocument, { caseData, theme, logo, legalClauses });
     return await pdf(doc).toBlob();
   } catch (e) {
     const { PdfRenderError, PdfRenderErrorCode } = await import("./engine");
