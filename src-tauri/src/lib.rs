@@ -10,7 +10,9 @@
 // Task 8.4：pdf IPC（export_pdf）寫檔 + 更新 cases.status。
 // Task 9.x：operation_log writer + list_recent_logs 查詢 IPC。
 
+pub mod branding;
 pub mod commands;
+pub mod crypto;
 pub mod db;
 pub mod log;
 pub mod opcos;
@@ -19,7 +21,13 @@ pub mod secrets;
 pub mod startup;
 
 // Phase 2 紅燈測試模組 — Phase 3 實作時移除 #[cfg(test)] 改為正式 pub mod
-// 現在這些模組只有測試宣告（tests.rs），no 實作 → cargo test 會編譯失敗 = 預期紅燈
+// land_registry + encryption：#2a 紅燈範圍（100 個失敗點）
+// 這些模組只有 mod.rs + tests.rs 結構，無實作 → cargo test 編譯失敗 = 預期紅燈
+#[cfg(test)]
+pub mod land_registry;
+#[cfg(test)]
+pub mod encryption;
+
 #[cfg(test)]
 mod data_portability {
     pub mod aire_format {
@@ -36,27 +44,6 @@ mod data_portability {
     }
 }
 
-// Phase 2 紅燈測試 — branding 模組（CLU-004、005、009）
-// crate::branding 尚未建立 → cargo test 編譯失敗 = 預期紅燈
-#[cfg(test)]
-mod branding {
-    pub mod tests {
-        include!("branding/tests.rs");
-    }
-}
-
-#[cfg(test)]
-mod crypto {
-    pub mod master_password {
-        include!("crypto/master_password/tests.rs");
-    }
-    pub mod recovery_code {
-        include!("crypto/recovery_code/tests.rs");
-    }
-    pub mod vault {
-        include!("crypto/vault/tests.rs");
-    }
-}
 
 use std::sync::Mutex;
 
@@ -120,6 +107,11 @@ pub fn run() {
             commands::drafts::get_draft,
             commands::pdf::export_pdf,
             commands::log::list_recent_logs,
+            branding::save_logo,
+            branding::load_logo,
+            branding::delete_logo,
+            branding::set_theme,
+            branding::get_theme,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");
