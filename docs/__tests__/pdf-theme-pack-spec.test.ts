@@ -9,7 +9,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
 
-const SPEC_FILE = resolve(__dirname, "../../pdf-theme-pack-spec.md");
+const SPEC_FILE = resolve(__dirname, "../pdf-theme-pack-spec.md");
 
 const REQUIRED_HEADINGS = [
   "Theme Pack 結構",

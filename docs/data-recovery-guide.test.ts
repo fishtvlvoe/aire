@@ -18,7 +18,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-const GUIDE_PATH = resolve(__dirname, "../../docs/data-recovery-guide.md");
+const GUIDE_PATH = resolve(__dirname, "data-recovery-guide.md");
 
 let guideContent = "";
 
