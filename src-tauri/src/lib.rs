@@ -40,6 +40,10 @@ pub mod encryption {
             Self { available: false }
         }
 
+        pub fn available() -> Self {
+            Self { available: true }
+        }
+
         pub fn is_available(&self) -> bool {
             self.available
         }

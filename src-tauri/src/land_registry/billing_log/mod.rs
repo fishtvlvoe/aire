@@ -29,6 +29,10 @@ impl BillingLogEntry {
         &self.transaction_id
     }
 
+    pub fn api_id(&self) -> &str {
+        &self.endpoint
+    }
+
     pub fn cost(&self) -> f64 {
         self.cost
     }
@@ -125,7 +129,7 @@ impl BillingLog {
         let entries = self.entries.lock().ok();
         entries
             .as_deref()
-            .unwrap_or(&[])
+            .map_or(&[][..], |v| v.as_slice())
             .iter()
             .filter(|e| to_local_date(&e.timestamp) == date_yyyy_mm_dd)
             .map(|e| e.cost)
@@ -139,7 +143,7 @@ impl BillingLog {
         let entries = self.entries.lock().ok();
         entries
             .as_deref()
-            .unwrap_or(&[])
+            .map_or(&[][..], |v| v.as_slice())
             .iter()
             .filter(|e| {
                 let d = to_local_date(&e.timestamp);

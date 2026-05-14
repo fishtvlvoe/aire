@@ -14,6 +14,14 @@ pub mod cases;
 pub mod drafts;
 pub mod oplog;
 pub mod settings;
+pub mod migrations {
+    pub mod rekey {
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/migrations/004_master_password_rekey.rs"
+        ));
+    }
+}
 
 /// 內嵌的 migration 腳本。
 ///
@@ -99,6 +107,31 @@ pub fn init_db(path: &Path) -> Result<Connection, DbError> {
         current = next;
     }
 
+    Ok(conn)
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        use std::fmt::Write;
+        let _ = write!(&mut s, "{:02x}", b);
+    }
+    s
+}
+
+/// Stage 4: 以主密碼解鎖 keystore 取得 sqlcipher key，再開啟 DB 並套用 PRAGMA key。
+pub fn open_encrypted_connection(path: &Path, password: &str) -> Result<Connection, DbError> {
+    let keystore_path = path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("keystore.json");
+    let sqlcipher_key = migrations::rekey::unlock_with_master(password, &keystore_path)
+        .map_err(|e| DbError::new("vault_unlock_failed", e.to_string()))?;
+
+    let conn = Connection::open(path)?;
+    let key_spec = format!("x'{}'", hex_encode(&sqlcipher_key));
+    let _ = conn.pragma_update(None, "key", key_spec.as_str());
+    conn.execute_batch("PRAGMA foreign_keys = ON;")?;
     Ok(conn)
 }
 
@@ -188,5 +221,33 @@ pub(crate) mod tests {
 
         drop(conn2);
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn open_with_master_password() {
+        let path = tmp_db_path("master-open");
+        let _ = std::fs::remove_file(&path);
+        let keystore_path = path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("keystore.json");
+        let _ = std::fs::remove_file(&keystore_path);
+
+        let sqlcipher_key = [0x7bu8; 32];
+        migrations::rekey::write_keystore_for_test(
+            &keystore_path,
+            "correct-horse-battery-staple",
+            &sqlcipher_key,
+        )
+        .expect("write keystore");
+
+        let conn = open_encrypted_connection(&path, "correct-horse-battery-staple")
+            .expect("open with master password");
+        let probe: i64 = conn.query_row("SELECT 42", [], |r| r.get(0)).unwrap();
+        assert_eq!(probe, 42);
+
+        drop(conn);
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(&keystore_path);
     }
 }
