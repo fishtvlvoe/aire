@@ -29,9 +29,11 @@ mod tests {
 
     // 輔助函式：標準 base64 decode（Phase 3 實作會用 base64 crate）
     fn base64_decode_standard(s: &str) -> Result<String, String> {
-        // 紅燈期：此函式的存在用於測試結構完整性
-        // Phase 3 實作時替換為 base64::engine::general_purpose::STANDARD.decode(s)
-        unimplemented!("base64_decode_standard: Phase 3 will implement with base64 crate")
+        use base64::{engine::general_purpose, Engine as _};
+        let bytes = general_purpose::STANDARD
+            .decode(s.as_bytes())
+            .map_err(|e| format!("base64 decode failed: {e}"))?;
+        String::from_utf8(bytes).map_err(|e| format!("utf8 decode failed: {e}"))
     }
 
     // LRC-002: token endpoint 必須用 POST 不是 GET
@@ -68,8 +70,12 @@ mod tests {
     }
 
     fn make_test_jwt_no_padding(exp: i64) -> String {
-        // 紅燈期：依賴 crate::land_registry::client 的輔助函式
-        unimplemented!("make_test_jwt_no_padding: Phase 3 implement")
+        use base64::{engine::general_purpose, Engine as _};
+        let header = serde_json::json!({"alg": "none", "typ": "JWT"});
+        let payload = serde_json::json!({"exp": exp});
+        let h = general_purpose::URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header).unwrap());
+        let p = general_purpose::URL_SAFE_NO_PAD.encode(serde_json::to_vec(&payload).unwrap());
+        format!("{}.{}.sig", h, p)
     }
 
     // LRC-005: exp 是 Unix epoch seconds（不是 milliseconds）

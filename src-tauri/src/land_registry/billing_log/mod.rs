@@ -1,3 +1,25 @@
-/// land-registry-billing_log 模組佔位符（Phase 3 實作）
-/// Phase 2：僅定義模組結構，讓 tests.rs 的 import 能觸發編譯錯誤（紅燈）
+#[derive(Debug, Clone)]
+pub struct BillingLogEntry {
+    parcel_id: String,
+    api_id: String,
+    cost: f64,
+    transaction_id: String,
+}
+
+impl BillingLogEntry {
+    pub fn new(parcel_id: impl Into<String>, api_id: &str, cost: f64, transaction_id: impl Into<String>) -> Self {
+        Self {
+            parcel_id: parcel_id.into(),
+            api_id: api_id.to_string(),
+            cost,
+            transaction_id: transaction_id.into(),
+        }
+    }
+
+    pub fn api_id(&self) -> &str {
+        &self.api_id
+    }
+}
+
+#[cfg(all(test, feature = "phase2-red-tests"))]
 pub mod tests;

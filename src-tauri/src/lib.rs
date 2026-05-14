@@ -20,20 +20,31 @@ pub mod paths;
 pub mod secrets;
 pub mod startup;
 
-// Phase 3 (#1d) Stage 1
-pub mod legal_clauses;
-pub mod realtor_license;
-
 // Phase 3：land_registry
-// land_registry 尚未完成；避免阻擋其他模組測試，測試編譯時先以空模組佔位。
-#[cfg(not(test))]
 pub mod land_registry;
-#[cfg(test)]
-pub mod land_registry {}
 
 // Phase 2 紅燈測試模組（sqlite_encryption）仍保留在 feature gate 之後。
 #[cfg(all(test, feature = "phase2-red-tests"))]
 pub mod encryption;
+
+// Stage 1 需要用到 crate::encryption::KeychainState（供 land_registry cache 測試）。
+#[cfg(not(feature = "phase2-red-tests"))]
+pub mod encryption {
+    #[derive(Debug, Clone)]
+    pub struct KeychainState {
+        available: bool,
+    }
+
+    impl KeychainState {
+        pub fn unavailable() -> Self {
+            Self { available: false }
+        }
+
+        pub fn is_available(&self) -> bool {
+            self.available
+        }
+    }
+}
 
 use std::sync::Mutex;
 
@@ -102,10 +113,6 @@ pub fn run() {
             branding::delete_logo,
             branding::set_theme,
             branding::get_theme,
-            // Phase 3 (#1d) Stage 1
-            legal_clauses::sync_ipc,
-            legal_clauses::get_legal_clause_ipc,
-            realtor_license::verify_realtor_license_ipc,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");
