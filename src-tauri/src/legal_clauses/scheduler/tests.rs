@@ -15,6 +15,7 @@ mod tests {
         },
         SyncResult,
     };
+    use super::super::scheduler as scheduler;
 
     // ─────────────────────────────────────────────────────────────────────────
     // LCS-004 / spec: 7 天排程器 callback 觸發恰好一次

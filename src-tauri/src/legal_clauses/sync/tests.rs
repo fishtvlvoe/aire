@@ -64,10 +64,10 @@ mod tests {
         };
 
         // version_date 必須符合 ISO 8601 格式 YYYY-MM-DD
-        let parsed = chrono::NaiveDate::parse_from_str(&clause.version_date, "%Y-%m-%d");
+        let err = super::super::validate_legal_clause(&clause);
         assert!(
-            parsed.is_err(),
-            "民國年 '113-05-10' 應無法被 ISO 8601 parser 接受，但 parsed OK"
+            err.is_err(),
+            "民國年 '113-05-10' 應被 validate_legal_clause 拒絕（非嚴格 YYYY-MM-DD）"
         );
     }
 
