@@ -52,7 +52,10 @@ export async function uploadLogo(file: File): Promise<UploadLogoResult> {
   }
 
   const fileBuffer = await file.arrayBuffer();
-  const base64 = Buffer.from(fileBuffer).toString("base64");
+  // Tauri WebView 無 Node Buffer，用 btoa + Uint8Array 轉 base64
+  const base64 = btoa(
+    Array.from(new Uint8Array(fileBuffer), (b) => String.fromCharCode(b)).join("")
+  );
 
   return invoke<UploadLogoResult>("upload_logo", {
     filename: file.name,
