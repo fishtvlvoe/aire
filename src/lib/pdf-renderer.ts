@@ -1,21 +1,13 @@
 /**
- * PDF 渲染器 — Group 8.3 完整實作
+ * PDF 渲染器 — thin wrapper around pdf-engine
  *
- * - pdf-lib 載入 19 頁底板 PDF
- * - @pdf-lib/fontkit 嵌入 Noto Sans TC 子集化字型（中文支援）
- * - 按 src/lib/pdf-layout.ts 座標表 drawText 把表單資料疊上去
- * - 輸出 Uint8Array 給 Tauri IPC 寫檔
- *
- * 缺檔策略（spec 要求 graceful failure）：
- * - 底板 PDF 不存在 → throw TemplateNotFoundError（IPC 對應錯誤碼 TEMPLATE_MISSING）
- * - 字型不存在 → throw FontNotFoundError（IPC 對應錯誤碼 FONT_LOAD_FAILED）
+ * 舊的座標表渲染實作已移除。此檔案保留向後相容的類型與簽名，
+ * 內部轉派至 src/lib/pdf-engine。
  */
 
-import { PDFDocument, type PDFFont } from "pdf-lib";
-import fontkit from "@pdf-lib/fontkit";
-
-import type { DisclosureLayout } from "./pdf-layout";
-import { residentialLayout, landLayout } from "./pdf-layout";
+import { renderDisclosurePdf as engineRenderDisclosurePdf } from "./pdf-engine";
+import { resolveThemeOrFallback } from "./pdf-themes/registry";
+import type { CaseData } from "./pdf-engine";
 
 export interface RenderInput {
   propertyType: "residential" | "land";
@@ -65,142 +57,28 @@ export class NotImplementedError extends Error {
   }
 }
 
-const TEMPLATE_PATHS: Record<RenderInput["propertyType"], string> = {
-  residential: "/resources/templates/residential.pdf",
-  land: "/resources/templates/land.pdf",
-};
-
-const FONT_PATH = "/resources/fonts/NotoSansTC-Subset.ttf";
-
 /** 抽象載資源，方便測試 mock */
 export type BinaryAssetLoader = (path: string) => Promise<ArrayBuffer>;
 
-class AssetFetchError extends Error {
-  constructor(
-    public path: string,
-    public status: number,
-  ) {
-    super(`asset fetch failed: ${path} (${status})`);
-    this.name = "AssetFetchError";
-  }
-}
-
-const defaultLoader: BinaryAssetLoader = async (path) => {
-  const res = await fetch(path);
-  if (!res.ok) throw new AssetFetchError(path, res.status);
-  return res.arrayBuffer();
-};
-
 /**
  * 渲染說明書 PDF。回傳 Uint8Array（PDF bytes）。
+ *
+ * 已改為內部轉派 pdf-engine；loader / previewOnly 等舊選項暫時忽略。
  */
 export async function renderDisclosurePdf(
   input: RenderInput,
-  options: RenderOptions = {},
+  _options: RenderOptions = {},
 ): Promise<Uint8Array> {
-  const loader = options.loader ?? defaultLoader;
+  const caseData: CaseData = {
+    caseId: input.caseInfo.case_no?.trim() || "AIRE",
+    caseType: input.propertyType,
+    propertyName: input.caseInfo.address || input.caseInfo.land_lot_no,
+  };
 
-  // 1. 載底板
-  const templatePath = TEMPLATE_PATHS[input.propertyType];
-  let templateBytes: ArrayBuffer;
-  try {
-    templateBytes = await loader(templatePath);
-  } catch (err) {
-    if (err instanceof AssetFetchError) {
-      throw new TemplateNotFoundError(err.path);
-    }
-    throw new TemplateNotFoundError(templatePath);
-  }
-
-  // 2. 載字型
-  let fontBytes: ArrayBuffer;
-  try {
-    fontBytes = await loader(FONT_PATH);
-  } catch (err) {
-    const detail = err instanceof AssetFetchError ? err.path : String(err);
-    throw new FontNotFoundError(detail);
-  }
-
-  // 3. pdf-lib doc + fontkit + embedFont
-  const pdfDoc = await PDFDocument.load(templateBytes);
-  pdfDoc.registerFontkit(fontkit);
-
-  let font: PDFFont;
-  try {
-    font = await pdfDoc.embedFont(fontBytes, { subset: false });
-  } catch (err) {
-    throw new FontNotFoundError(
-      `pdf-lib embedFont 失敗：${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-
-  // 4. 選 layout 並 drawText
-  const layout: DisclosureLayout =
-    input.propertyType === "residential" ? residentialLayout : landLayout;
-
-  const pages = pdfDoc.getPages();
-
-  for (const entry of layout) {
-    const page = pages[entry.page];
-    if (!page) continue;
-    const raw = resolveFieldValue(input, entry.field);
-    if (raw == null || raw === "") continue;
-    const text = formatValue(raw);
-    try {
-      page.drawText(text, {
-        x: entry.x,
-        y: entry.y,
-        size: entry.size,
-        font,
-        ...(entry.maxWidth ? { maxWidth: entry.maxWidth } : {}),
-      });
-    } catch (err) {
-      console.warn(
-        `[pdf-renderer] drawText failed at page=${entry.page} field=${entry.field}:`,
-        err,
-      );
-    }
-
-    if (options.previewOnly && entry.page > 0) break;
-  }
-
-  return pdfDoc.save();
-}
-
-/** caseInfo > company > payload */
-function resolveFieldValue(input: RenderInput, field: string): unknown {
-  const caseInfo = input.caseInfo as Record<string, unknown>;
-  if (field in caseInfo) return caseInfo[field];
-
-  if (field === "company_name") return input.company.name;
-  if (field === "company_address") return input.company.address;
-  if (field === "company_phone") return input.company.phone;
-
-  if (field in input.payload) return input.payload[field];
-
-  return null;
-}
-
-/** tri-state / number / Date / ISO 字串都轉成可印字串 */
-function formatValue(v: unknown): string {
-  if (v === "true") return "是";
-  if (v === "false") return "否";
-  if (v === "unknown") return "未知";
-  if (typeof v === "number") return String(v);
-  if (v instanceof Date) return v.toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
-  if (typeof v === "string") {
-    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
-      const ts = Date.parse(v);
-      if (!Number.isNaN(ts)) {
-        return new Date(ts).toLocaleString("zh-TW", {
-          timeZone: "Asia/Taipei",
-          hour12: false,
-        });
-      }
-    }
-    return v;
-  }
-  return String(v);
+  const { theme } = resolveThemeOrFallback("theme-a-minimal");
+  const blob = await engineRenderDisclosurePdf(caseData, theme, null);
+  const arrayBuffer = await blob.arrayBuffer();
+  return new Uint8Array(arrayBuffer);
 }
 
 /**
