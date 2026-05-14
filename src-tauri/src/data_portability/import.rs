@@ -23,11 +23,11 @@ pub struct ImportResult {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ImportError {
-    #[error("checksum mismatch: expected={expected} actual={actual}")]
-    ChecksumMismatch { expected: String, actual: String },
+    #[error("archive is corrupted")]
+    CorruptedFile,
 
-    #[error("incompatible schema version: found={found} supported_max={supported_max}")]
-    IncompatibleSchemaVersion { found: u32, supported_max: u32 },
+    #[error("incompatible schema version")]
+    IncompatibleSchema,
 
     #[error("insufficient disk space: required={required} available={available}")]
     InsufficientDiskSpace { required: u64, available: u64 },
@@ -59,19 +59,14 @@ pub fn start_import(opts: ImportOptions) -> Result<ImportResult, ImportError> {
 
 pub fn validate_archive_checksum(archive_bytes: &[u8], checksum_file_content: &str) -> Result<(), ImportError> {
     verify_checksum(archive_bytes, checksum_file_content).map_err(|e| match e {
-        AireFormatError::ChecksumMismatch { expected, actual } => {
-            ImportError::ChecksumMismatch { expected, actual }
-        }
+        AireFormatError::ChecksumMismatch { .. } => ImportError::CorruptedFile,
         other => ImportError::Format(other.to_string()),
     })
 }
 
 pub fn check_schema_version_compatibility(found: u32) -> Result<(), ImportError> {
     if found > CURRENT_SCHEMA_VERSION {
-        return Err(ImportError::IncompatibleSchemaVersion {
-            found,
-            supported_max: CURRENT_SCHEMA_VERSION,
-        });
+        return Err(ImportError::IncompatibleSchema);
     }
     Ok(())
 }
@@ -95,7 +90,10 @@ pub fn detect_conflicts(existing_ids: &[u64], incoming_ids: &[u64]) -> Result<Ve
 /// - Rejects incompatible schema_version
 pub fn import_aire(file_path: &PathBuf, _master_password: &str) -> Result<(), ImportError> {
     let bytes = std::fs::read(file_path).map_err(|e| ImportError::Io(e.to_string()))?;
-    let opened = open_archive(&bytes).map_err(|e| ImportError::Format(e.to_string()))?;
+    let opened = open_archive(&bytes).map_err(|e| match e {
+        AireFormatError::ChecksumMismatch { .. } => ImportError::CorruptedFile,
+        other => ImportError::Format(other.to_string()),
+    })?;
 
     check_schema_version_compatibility(opened.meta.schema_version)?;
 

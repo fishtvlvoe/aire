@@ -32,11 +32,8 @@ mod tests {
         );
 
         match result {
-            Err(ImportError::ChecksumMismatch { expected, actual }) => {
-                // 正確的錯誤類型
-                assert_ne!(expected, actual, "expected 和 actual 應不同");
-            }
-            Err(other) => panic!("期望 ChecksumMismatch，實際：{:?}", other),
+            Err(ImportError::CorruptedFile) => {}
+            Err(other) => panic!("期望 CorruptedFile，實際：{:?}", other),
             Ok(_) => panic!("checksum 不符時不應回傳 Ok"),
         }
     }
@@ -52,11 +49,8 @@ mod tests {
         );
 
         match result {
-            Err(ImportError::IncompatibleSchemaVersion { found, supported_max }) => {
-                assert_eq!(found, 99, "found 應為 99");
-                assert!(supported_max < 99, "supported_max 應小於 99");
-            }
-            Err(other) => panic!("期望 IncompatibleSchemaVersion，實際：{:?}", other),
+            Err(ImportError::IncompatibleSchema) => {}
+            Err(other) => panic!("期望 IncompatibleSchema，實際：{:?}", other),
             Ok(_) => panic!("不相容版本不應回傳 Ok"),
         }
     }

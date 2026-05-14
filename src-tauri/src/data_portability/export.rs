@@ -112,20 +112,25 @@ pub fn export_aire(conn: &rusqlite::Connection, output_path: &Path) -> Result<Ex
     conn.execute_batch("BEGIN IMMEDIATE;")
         .map_err(|e| ExportError::Sqlite(e.to_string()))?;
 
-    let db_path: String = conn
-        .query_row(
-            "SELECT file FROM pragma_database_list WHERE name='main'",
-            [],
-            |row| row.get(0),
-        )
+    let locked_result = (|| -> Result<(Vec<u8>, u32), ExportError> {
+        let db_path: String = conn
+            .query_row(
+                "SELECT file FROM pragma_database_list WHERE name='main'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| ExportError::Sqlite(e.to_string()))?;
+
+        let db_bytes = std::fs::read(&db_path).map_err(|e| ExportError::Io(e.to_string()))?;
+        let case_count = count_cases_in_db(conn)?;
+        Ok((db_bytes, case_count))
+    })();
+
+    // Always release the IMMEDIATE lock, even when any step above fails.
+    conn.execute_batch("ROLLBACK;")
         .map_err(|e| ExportError::Sqlite(e.to_string()))?;
 
-    let db_bytes = std::fs::read(&db_path).map_err(|e| ExportError::Io(e.to_string()))?;
-
-    // Release the lock.
-    let _ = conn.execute_batch("ROLLBACK;");
-
-    let case_count = count_cases_in_db(conn).unwrap_or(0);
+    let (db_bytes, case_count) = locked_result?;
 
     let meta = AireMeta {
         created_at: chrono::Utc::now().to_rfc3339(),
