@@ -53,6 +53,7 @@ chrono = "0.4.44"
 thiserror = "2.0.12"
 base64 = "0.22.1"
 toml = "0.8.23"
+fs2 = "0.4.3"
 
 [features]
 # Phase 2 紅燈測試：cargo test --features phase2-red-tests 觸發未實作模組編譯錯誤
