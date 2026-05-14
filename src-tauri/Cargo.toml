@@ -37,3 +37,20 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
 
 # UUID（Group 4 device_id 生成）
 uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+# Phase 2 紅燈測試用 stub 說明（Phase 3 實作時移到 [dependencies]）
+# 注意：以下 crates 是 Phase 3 預期使用的，測試檔案 import 了對應的模組路徑
+# 目前 cargo test 會因「模組不存在」而編譯失敗 = 這就是紅燈的預期行為
+#
+# 預期 Phase 3 加入：
+# argon2 = { version = "0.5", features = ["std"] }   # Argon2id 金鑰派生
+# aes-gcm = "0.10"                                    # AES-256-GCM 加密
+# zeroize = { version = "1", features = ["derive"] }  # 記憶體清零
+# zip = "2"                                           # ZIP 容器（.aire 格式）
+# sha2 = "0.10"                                       # SHA-256 checksum
+# bip39 = "2"                                         # BIP39 詞庫驗證
+#
+# 測試專用輔助（不會進 production binary）：
+# tempfile = "3"                                      # 臨時目錄/檔案
+# assert_matches = "1"                                # 模式匹配斷言

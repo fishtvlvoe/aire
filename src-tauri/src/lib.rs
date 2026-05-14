@@ -18,6 +18,37 @@ pub mod paths;
 pub mod secrets;
 pub mod startup;
 
+// Phase 2 紅燈測試模組 — Phase 3 實作時移除 #[cfg(test)] 改為正式 pub mod
+// 現在這些模組只有測試宣告（tests.rs），no 實作 → cargo test 會編譯失敗 = 預期紅燈
+#[cfg(test)]
+mod data_portability {
+    pub mod aire_format {
+        include!("data_portability/aire_format/tests.rs");
+    }
+    pub mod export {
+        include!("data_portability/export/tests.rs");
+    }
+    pub mod import {
+        include!("data_portability/import/tests.rs");
+    }
+    pub mod conflict {
+        include!("data_portability/conflict/tests.rs");
+    }
+}
+
+#[cfg(test)]
+mod crypto {
+    pub mod master_password {
+        include!("crypto/master_password/tests.rs");
+    }
+    pub mod recovery_code {
+        include!("crypto/recovery_code/tests.rs");
+    }
+    pub mod vault {
+        include!("crypto/vault/tests.rs");
+    }
+}
+
 use std::sync::Mutex;
 
 use rusqlite::Connection;
