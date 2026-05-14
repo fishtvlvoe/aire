@@ -37,6 +37,15 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
 
 # UUID（Group 4 device_id 生成）
 uuid = { version = "1", features = ["v4"] }
+argon2 = "0.5.3"
+aes-gcm = "0.10.3"
+bip39 = "2.2.2"
+zeroize = "1.8.2"
+sha2 = "0.10.9"
+zip = "4.2.0"
+image = "0.25.6"
+rand = "0.9.4"
+chrono = "0.4.44"
 
 [dev-dependencies]
 # Phase 2 紅燈測試用 stub 說明（Phase 3 實作時移到 [dependencies]）
