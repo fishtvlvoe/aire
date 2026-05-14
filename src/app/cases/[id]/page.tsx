@@ -320,7 +320,7 @@ export default function CaseDetailPage() {
         <button
           onClick={handleExportPdf}
           disabled={saving || c.status === "draft"}
-          title={c.status === "draft" ? "請先標示為完成才可匯出" : "匯出 PDF"}
+          title={c.status === "draft" ? "請先標示為完成才可匯出" : "匯出此案件"}
           style={{
             padding: "8px 16px",
             background: c.status === "draft" ? "#eee" : "#0b6cdc",
@@ -330,7 +330,7 @@ export default function CaseDetailPage() {
             cursor: c.status === "draft" || saving ? "not-allowed" : "pointer",
           }}
         >
-          匯出 PDF
+          匯出此案件
         </button>
 
         <div style={{ flex: 1 }} />

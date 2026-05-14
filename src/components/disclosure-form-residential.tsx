@@ -14,6 +14,7 @@
 import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -39,6 +40,7 @@ export function DisclosureFormResidential({
   caseId,
   onMarkCompleted,
 }: DisclosureFormResidentialProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>(residentialFormTabs[0]!.id);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -129,6 +131,14 @@ export function DisclosureFormResidential({
           onClick={handleMarkCompleted}
         >
           {completing ? "處理中…" : "標示為完成"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={!draftLoaded}
+          onClick={() => router.push(`/cases/${caseId}/preview`)}
+        >
+          產生 PDF
         </Button>
         {completionError ? (
           <span role="alert" className="text-sm text-destructive">
