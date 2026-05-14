@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import "@testing-library/jest-dom/vitest";
 import { invoke } from "@tauri-apps/api/core";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 
@@ -45,12 +46,6 @@ export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<PdfPreviewError | null>(null);
 
-  const renderArgs: RenderOptions & { themeId: string } = {
-    caseId,
-    content,
-    themeId,
-  };
-
   const renderPreview = useCallback(async () => {
     setStatus("loading");
     setError(null);
@@ -59,6 +54,7 @@ export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
       const engine = engineRef.current ?? (await createPdfEngine());
       engineRef.current = engine;
 
+      const renderArgs: RenderOptions & { themeId: string } = { caseId, content, themeId };
       const blob = await engine.render(renderArgs);
       const objectUrl = URL.createObjectURL(blob);
 
@@ -76,7 +72,7 @@ export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
       setError(typedError);
       setStatus("error");
     }
-  }, [renderArgs]);
+  }, [caseId, content, themeId]);
 
   const handleRetry = useCallback(() => {
     void renderPreview();
