@@ -36,6 +36,15 @@ mod data_portability {
     }
 }
 
+// Phase 2 紅燈測試 — branding 模組（CLU-004、005、009）
+// crate::branding 尚未建立 → cargo test 編譯失敗 = 預期紅燈
+#[cfg(test)]
+mod branding {
+    pub mod tests {
+        include!("branding/tests.rs");
+    }
+}
+
 #[cfg(test)]
 mod crypto {
     pub mod master_password {
