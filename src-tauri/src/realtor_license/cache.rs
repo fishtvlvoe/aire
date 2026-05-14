@@ -46,7 +46,8 @@ pub fn write_license_cache(
 
     let verified = chrono::DateTime::parse_from_rfc3339(verified_at)
         .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
-    let expires = (verified + chrono::Duration::days(7)).to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+    let expires =
+        (verified + chrono::Duration::days(7)).to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
     conn.execute(
         "INSERT OR REPLACE INTO realtor_licenses (license_number, status, verified_at, cache_expires_at) \
@@ -93,7 +94,11 @@ pub fn is_license_cache_valid(conn: &Connection, license_number: &str, now: &str
     }
 }
 
-pub fn seed_expired_license(conn: &Connection, license_number: &str, verified_at: &str) -> Result<(), rusqlite::Error> {
+pub fn seed_expired_license(
+    conn: &Connection,
+    license_number: &str,
+    verified_at: &str,
+) -> Result<(), rusqlite::Error> {
     // seed a verified row whose cache_expires_at is 7 days after verified_at
     write_license_cache(
         conn,

@@ -4,8 +4,14 @@ use crate::legal_clauses::LegalClause;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CacheWriteError {
-    StorageFull { available_bytes: u64, law_id: String },
-    Sqlite { law_id: String, message: String },
+    StorageFull {
+        available_bytes: u64,
+        law_id: String,
+    },
+    Sqlite {
+        law_id: String,
+        message: String,
+    },
 }
 
 fn ensure_schema(conn: &Connection) -> Result<(), rusqlite::Error> {
@@ -43,12 +49,12 @@ pub fn upsert_law(conn: &Connection, clause: &LegalClause) -> Result<(), CacheWr
 
     match res {
         Ok(_) => Ok(()),
-        Err(rusqlite::Error::SqliteFailure(err, _)) if err.extended_code == 13 => Err(
-            CacheWriteError::StorageFull {
+        Err(rusqlite::Error::SqliteFailure(err, _)) if err.extended_code == 13 => {
+            Err(CacheWriteError::StorageFull {
                 available_bytes: 0,
                 law_id: clause.law_id.clone(),
-            },
-        ),
+            })
+        }
         Err(e) => Err(CacheWriteError::Sqlite {
             law_id: clause.law_id.clone(),
             message: e.to_string(),
@@ -107,11 +113,10 @@ pub fn list_laws(conn: &Connection) -> Result<Vec<LegalClause>, rusqlite::Error>
 pub fn max_fetched_at(conn: &Connection) -> Result<Option<String>, rusqlite::Error> {
     ensure_schema(conn)?;
 
-    let v: Option<String> = conn.query_row(
-        "SELECT MAX(fetched_at) FROM legal_clauses",
-        [],
-        |r| r.get(0),
-    )?;
+    let v: Option<String> =
+        conn.query_row("SELECT MAX(fetched_at) FROM legal_clauses", [], |r| {
+            r.get(0)
+        })?;
     Ok(v)
 }
 
