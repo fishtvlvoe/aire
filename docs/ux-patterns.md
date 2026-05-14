@@ -149,3 +149,78 @@
 ## 八、驗收 checklist 對應
 
 驗收時依本文件規則檢查每個畫面，項目見 `docs/ux-acceptance-checklist.md`。
+
+## 法規告知 + 證號驗證 v1
+
+> 適用：成屋說明書 / 土地說明書 / 預售屋說明書共用的「法規告知頁」與「不動產經紀人證號驗證」流程。
+> 與 OPCOS 雲端同步法規 dataset 與經紀人證號驗簽，本節定義 UI / 文案規範。
+
+### (a) 證號驗證五態 UI
+
+證號驗證以「即時 + 快取」雙模式運行；UI 狀態以下表為單一事實來源。所有狀態 **必須** 同時包含 icon、顏色、文案三要素，不得只用顏色傳達含義（無障礙）。
+
+| 狀態 | Icon（lucide-react） | 顏色 token | 文案 | 補充行為 |
+| --- | --- | --- | --- | --- |
+| 已驗證 | `BadgeCheck` | `--color-success` (#16a34a) | `已驗證：<姓名>（證號 <license_id>），<發證機關> <issue_date>` | 顯示綁定的經紀公司名稱（若有） |
+| 證號不存在 | `BadgeX` | `--color-danger` (#dc2626) | `查無此證號，請確認輸入是否正確或聯絡 opcOS 客服` | 阻擋繼續匯出 PDF（disabled 主按鈕） |
+| 過期 | `BadgeAlert` | `--color-warning` (#f59e0b) | `證號已過期（有效期至 <expiry_date>），請至內政部更新` | 不阻擋匯出，但於 PDF 頁尾加紅字註記 |
+| 離線（無法連線雲端） | `WifiOff` | `--color-neutral` (#6b7280) | `離線中，目前顯示本機快取（<cached_at>），連線後將自動重新驗證` | 顯示 `重新驗證` 按鈕 |
+| 驗證逾時 | `Clock` | `--color-warning` (#f59e0b) | `驗證逾時（>5 秒），請稍後再試或檢查 opcOS 服務狀態` | 顯示 `重試` 按鈕；逾時門檻 5000ms |
+
+實作元件：
+
+```tsx
+<LicenseVerificationBadge
+  status="verified" | "not_found" | "expired" | "offline" | "timeout"
+  payload={{ name, licenseId, issuer, issueDate, expiryDate, cachedAt }}
+  onRetry={refetch}
+/>
+```
+
+### (b) 同步失敗 banner（OPCOS 統一格式）
+
+法規 dataset 與證號 endpoint 兩者皆透過 OPCOS 雲端同步。任一同步失敗，於 `/cases/[id]` 頁面頂端顯示統一 banner，沿用「三、Toast / Banner / Modal 政策」中的 banner 樣式。三態如下：
+
+| 狀態 | 顯示位置 | 樣式 | 文案 | 行為 |
+| --- | --- | --- | --- | --- |
+| Loading | 頁首下方 inline banner | 灰色背景 + 旋轉 icon | `正在同步 opcOS 法規條文與證號資料...` | 不阻擋操作 |
+| Empty（首次啟動未同步） | 頁首下方 inline banner | 藍色背景 + Info icon | `尚未同步法規資料，按右側『立即同步』下載最新版本` | 顯示 `立即同步` CTA |
+| Error | 頁首下方 inline banner | 紅色背景 + AlertCircle icon | `法規資料同步失敗：<reason>。將使用本機快取版本（<version_date>）` | 顯示 `重試同步` 按鈕；不阻擋 PDF 匯出 |
+
+實作元件：
+
+```tsx
+<OpcosSyncBanner
+  resource="legal_clauses" | "realtor_license"
+  state="loading" | "empty" | "error"
+  reason={errorMessage}
+  cachedVersion={versionDate}
+  onRetry={triggerSync}
+/>
+```
+
+容錯原則：
+- 離線狀態 → 一律使用本機快取，並於 PDF 法規頁加註「本版本為 <version_date> 之快取，請於連線後重新匯出以取得最新法規」。
+- 證號離線 → 不阻擋匯出，但於 PDF 頁尾加紅字「證號未經即時驗證（離線）」。
+
+### (c) PDF 法規告知頁版面規格
+
+所有主題（成屋 / 土地 / 預售屋）共用 **同一份法規告知頁**，固定置於 PDF 最末 4 頁，所有版面元素如下：
+
+| 項目 | 規格 |
+| --- | --- |
+| 頁數 | 固定 4 頁（不隨案件變動） |
+| 位置 | PDF 文件最末（簽章頁之前） |
+| 紙張 | A4 直向（210mm × 297mm） |
+| 邊界 | 上 25mm、下 20mm、左 20mm、右 20mm |
+| 頁首 | 左：`opcOS / AIRE — 法規告知`（10pt 灰）；右：`第 X 頁 / 共 Y 頁` |
+| 頁尾 | 左：`版本：<version_date>（民國 <ROC>/西元 <CE> 年）`；中：`資料來源：opcOS 法規資料庫`；右：`匯出時間 <YYYY-MM-DD HH:mm>` |
+| 版本日期格式 | **雙年制**：`民國 113 / 2024-03-15`（民國年 + 西元日期並列） |
+| 字型 | Noto Sans TC 11pt 內文、14pt 章節標題、10pt 頁首頁尾 |
+| 章節順序 | 1. 不動產經紀業管理條例（節錄）→ 2. 不動產經紀業申報資料申報內容項目 → 3. 不動產說明書應記載事項 → 4. 經紀人簽章與證號驗證註記 |
+| 簽章區 | 第 4 頁底部 1/3，含經紀人姓名、證號、簽名欄、日期欄、`已驗證 / 離線 / 過期` 狀態浮水印 |
+
+驗收：
+- 不論案件複雜度，匯出後法規頁固定 4 頁不增減
+- 頁首頁尾於所有 4 頁出現位置一致
+- 證號狀態浮水印與「(a) 五態 UI」狀態一一對應
