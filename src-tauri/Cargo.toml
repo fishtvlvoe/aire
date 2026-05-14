@@ -33,20 +33,26 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-feature
 keyring = "2"
 
 # 非同步 runtime（Tauri 內已含但顯式列出便於我們 spawn task）
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+
+# 7-day sync scheduler (Phase 3 #1d)
+tokio-cron-scheduler = "0.13"
 
 # UUID（Group 4 device_id 生成）
 uuid = { version = "1", features = ["v4"] }
 argon2 = "0.5.3"
 aes-gcm = "0.10.3"
 bip39 = "2.2.2"
-zeroize = "1.8.2"
+zeroize = { version = "1.8.2", features = ["derive"] }
+subtle = "2.6"
 sha2 = "0.10.9"
 zip = "4.2.0"
 image = "0.25.6"
 rand = "0.8.5"
 chrono = "0.4.44"
 thiserror = "2.0.12"
+base64 = "0.22.1"
+toml = "0.8.23"
 
 [features]
 # Phase 2 紅燈測試：cargo test --features phase2-red-tests 觸發未實作模組編譯錯誤

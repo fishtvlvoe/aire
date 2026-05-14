@@ -4,6 +4,8 @@ use rand::RngCore;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
+use subtle::ConstantTimeEq;
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 pub const RECOVERY_CODE_WORD_COUNT: usize = 12;
 pub const RECOVERY_CODE_ENTROPY_BITS: usize = 128;
@@ -11,7 +13,7 @@ pub const BIP39_WORDLIST_VERSION: &str = "bip39-english";
 
 pub trait NoLogOutput {}
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
 pub struct RecoveryCode(String);
 
 impl RecoveryCode {
@@ -28,7 +30,7 @@ impl std::fmt::Debug for RecoveryCode {
 
 impl std::fmt::Display for RecoveryCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
+        f.write_str("[REDACTED]")
     }
 }
 
@@ -92,8 +94,8 @@ pub fn generate_recovery_salt() -> Result<[u8; 16], RecoveryCodeError> {
 /// Derive a 32-byte recovery key from 12 BIP39 words + 16-byte salt.
 pub fn derive_recovery_key(words: &[&str], salt: &[u8; 16]) -> Result<[u8; 32], RecoveryCodeError> {
     validate_recovery_code(words)?;
-    let normalized = words.join(" ");
-    crate::crypto::master_password::derive_master_key(&normalized, salt)
+    let normalized = Zeroizing::new(words.join(" "));
+    crate::crypto::master_password::derive_master_key(normalized.as_str(), salt)
         .map_err(|_| RecoveryCodeError::AuthenticationFailed)
 }
 
@@ -146,7 +148,14 @@ impl VaultRecoveryManager {
 pub fn unlock_vault_with_recovery(vault_id: &str, code: &RecoveryCode) -> Result<(), RecoveryCodeError> {
     let map = store().lock().expect("vault recovery store poisoned");
     match map.get(vault_id) {
-        Some(current) if current == code => Ok(()),
+        Some(current) => {
+            let result = current.0.as_bytes().ct_eq(code.0.as_bytes());
+            if result.into() {
+                Ok(())
+            } else {
+                Err(RecoveryCodeError::AuthenticationFailed)
+            }
+        }
         _ => Err(RecoveryCodeError::AuthenticationFailed),
     }
 }
@@ -175,7 +184,7 @@ pub fn check_recovery_code_persistence(app_data_dir: &Path, code: &RecoveryCode)
             }
             if let Ok(bytes) = std::fs::read(&path) {
                 if let Ok(s) = std::str::from_utf8(&bytes) {
-                    if s.contains(code.to_string().as_str()) {
+                    if s.contains(code.0.as_str()) {
                         return true;
                     }
                 }
