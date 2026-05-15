@@ -71,7 +71,7 @@ describe("MockStore", () => {
     expect(licenseBefore.status).toBe("none");
 
     await expect(
-      mockInvoke("activate_license", { serial_key: "ANY-KEY-WORKS" }),
+      mockInvoke("activate_license", { serial_key: "AIRE-TEST-VALID-001" }),
     ).resolves.toEqual({ success: true });
     const licenseAfter = await mockInvoke<{ status: string }>("check_license");
     expect(licenseAfter.status).toBe("valid");

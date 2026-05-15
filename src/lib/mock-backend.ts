@@ -294,6 +294,23 @@ export class MockStore {
       throw new Error("activate_license requires non-empty serial_key");
     }
 
+    const MOCK_RESPONSES: Record<string, string> = {
+      "AIRE-TEST-EXPIRED-001": "EXPIRED_KEY",
+      "AIRE-TEST-USED-001": "ALREADY_ACTIVATED_OTHER_DEVICE",
+      "AIRE-TEST-QUOTA-001": "QUOTA_EXHAUSTED",
+      "AIRE-TEST-NETFAIL-001": "NETWORK_FAILED",
+      "AIRE-TEST-DOWN-001": "OPCOS_UNAVAILABLE",
+    };
+
+    const errorCode = MOCK_RESPONSES[serialKey];
+    if (errorCode) {
+      throw new Error(errorCode);
+    }
+
+    if (!serialKey.startsWith("AIRE-")) {
+      throw new Error("INVALID_KEY");
+    }
+
     this.license = {
       status: "valid",
       serialKey,
