@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { safeInvoke, NotInTauriError } from "@/lib/tauri-bridge";
 
 type LicenseStatus = "valid" | "expired" | "none";
 
@@ -8,25 +9,27 @@ export function useLicenseStatus() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     async function check() {
       try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        const result = await invoke("get_license_status") as { status: string };
+        const result = await safeInvoke<{ status: string }>("get_license_status");
+        if (cancelled) return;
         if (result.status === "valid") setStatus("valid");
         else if (result.status === "expired") setStatus("expired");
         else setStatus("none");
-      } catch {
-        // DEV BYPASS: 瀏覽器環境下視為已授權，方便 UI 驗證
-        if (process.env.NODE_ENV === "development") {
-          setStatus("valid");
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof NotInTauriError) {
+          setStatus("none");
         } else {
           setStatus("none");
         }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
     check();
+    return () => { cancelled = true; };
   }, []);
 
   return { status, isLoading };
