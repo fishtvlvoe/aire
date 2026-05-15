@@ -22,6 +22,7 @@ import { isTauriEnv } from "@/lib/tauri-bridge";
  * 顯示最近 100 筆 operation_log，給老闆 / 助理查驗操作歷程用。
  */
 export default function LogsPage() {
+  const isDevelopment = process.env.NODE_ENV === "development";
   const [entries, setEntries] = useState<LogEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingEnv, setIsLoadingEnv] = useState(true);
@@ -45,7 +46,7 @@ export default function LogsPage() {
       if (!mounted) return;
       setIsTauri(detected);
       setIsLoadingEnv(false);
-      if (detected) {
+      if (detected || isDevelopment) {
         await load();
       } else {
         setEntries([]);
@@ -61,7 +62,7 @@ export default function LogsPage() {
     return <LoadingState label="偵測桌面環境中" />;
   }
 
-  if (!isTauri) {
+  if (!isTauri && !isDevelopment) {
     return <TauriRequired />;
   }
 

@@ -1,6 +1,15 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import type { ReactNode } from "react";
 
-export function TauriRequired() {
+interface TauriRequiredProps {
+  children?: ReactNode;
+}
+
+export function TauriRequired({ children }: TauriRequiredProps) {
+  if (process.env.NODE_ENV === "development") {
+    return <>{children ?? null}</>;
+  }
+
   return (
     <Card className="mx-auto w-full max-w-xl">
       <CardHeader className="space-y-1 pb-2">

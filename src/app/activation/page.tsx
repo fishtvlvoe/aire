@@ -44,6 +44,7 @@ const ERROR_TEXT: Record<string, string> = {
 
 export function ActivationPage() {
   const router = useRouter();
+  const isDevelopment = process.env.NODE_ENV === "development";
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [isCheckingEnv, setIsCheckingEnv] = useState(true);
@@ -110,7 +111,7 @@ export function ActivationPage() {
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <span className="ml-2 text-sm text-muted-foreground">偵測桌面環境中…</span>
             </div>
-          ) : isTauri ? (
+          ) : isTauri || isDevelopment ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="license-key">授權序號</Label>

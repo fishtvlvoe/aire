@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/lib/pdf-themes/theme-provider";
 import { isTauriEnv } from "@/lib/tauri-bridge";
 
 export default function BrandingContent() {
+  const isDevelopment = process.env.NODE_ENV === "development";
   const [isLoadingEnv, setIsLoadingEnv] = useState(true);
   const [isTauri, setIsTauri] = useState(false);
 
@@ -33,7 +34,7 @@ export default function BrandingContent() {
     );
   }
 
-  if (!isTauri) {
+  if (!isTauri && !isDevelopment) {
     return <TauriRequired />;
   }
 

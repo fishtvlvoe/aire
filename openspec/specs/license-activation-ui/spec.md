@@ -384,3 +384,222 @@ tests:
   - src-tauri/tests/e2e_smoke.rs
   - src/app/settings/sync-status/__tests__/page.test.tsx
 -->
+
+---
+### Requirement: Async Tauri Environment Detection
+
+The activation page SHALL use asynchronous detection to determine if it is running inside a Tauri WebView, by attempting to dynamically import @tauri-apps/api/core and checking if the invoke function is available.
+
+#### Scenario: Tauri App Environment
+
+- **WHEN** the activation page loads inside the Tauri desktop application
+- **THEN** the serial key input form SHALL be displayed within 3 seconds
+
+#### Scenario: Browser Environment
+
+- **WHEN** the activation page loads in a standard web browser (no Tauri runtime)
+- **THEN** the message "請在 AIRE 桌面 App 中開啟" SHALL be displayed after detection completes
+
+#### Scenario: Detection Loading State
+
+- **WHEN** the activation page is performing environment detection
+- **THEN** a loading spinner SHALL be displayed (not the browser fallback message)
+
+##### Example: Tauri Detection Timing
+
+- **GIVEN** the Tauri 2.x IPC bridge is injected after page hydration
+- **WHEN** the activation page calls isTauriEnv()
+- **THEN** the function resolves to true within 3 seconds and the serial key form is rendered
+
+
+<!-- @trace
+source: aire-mvp-bugfix
+updated: 2026-05-15
+code:
+  - src-tauri/icons/icon.ico
+  - src-tauri/icons/ios/AppIcon-512@2x.png
+  - src-tauri/icons/32x32.png
+  - src-tauri/icons/ios/AppIcon-20x20@2x-1.png
+  - src/lib/log.ts
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_foreground.png
+  - src-tauri/icons/Square142x142Logo.png
+  - src-tauri/icons/Square150x150Logo.png
+  - src-tauri/icons/Square30x30Logo.png
+  - src-tauri/icons/ios/AppIcon-20x20@2x.png
+  - src-tauri/icons/ios/AppIcon-29x29@1x.png
+  - src-tauri/icons/ios/AppIcon-76x76@1x.png
+  - src/app/(dashboard)/cases/page.tsx
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png
+  - src/components/LogoUploader.tsx
+  - src-tauri/icons/128x128.png
+  - src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png
+  - src-tauri/icons/ios/AppIcon-40x40@2x-1.png
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src/app/activation/page.tsx
+  - src-tauri/icons/StoreLogo.png
+  - .artifacts/aire-mvp-bugfix/settings_branding.png
+  - src-tauri/icons/Square71x71Logo.png
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher_foreground.png
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher_foreground.png
+  - src-tauri/icons/Square89x89Logo.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher_foreground.png
+  - src-tauri/icons/ios/AppIcon-60x60@3x.png
+  - src-tauri/icons/ios/AppIcon-29x29@2x.png
+  - src-tauri/icons/ios/AppIcon-29x29@3x.png
+  - src-tauri/icons/128x128@2x.png
+  - src/lib/cases-api.ts
+  - src/lib/tauri-bridge.ts
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher.png
+  - src-tauri/icons/Square310x310Logo.png
+  - src-tauri/icons/aire-source.png
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher.png
+  - src-tauri/icons/icon.icns
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src-tauri/icons/Square44x44Logo.png
+  - src-tauri/icons/ios/AppIcon-40x40@1x.png
+  - src-tauri/icons/ios/AppIcon-76x76@2x.png
+  - src-tauri/icons/ios/AppIcon-40x40@3x.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher_round.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher_round.png
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_round.png
+  - src-tauri/icons/ios/AppIcon-20x20@3x.png
+  - src-tauri/icons/Square107x107Logo.png
+  - src-tauri/icons/ios/AppIcon-40x40@2x.png
+  - src-tauri/icons/ios/AppIcon-60x60@2x.png
+  - src-tauri/icons/64x64.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher.png
+  - src-tauri/icons/ios/AppIcon-29x29@2x-1.png
+  - .artifacts/aire-mvp-bugfix/activation.png
+  - .artifacts/aire-mvp-bugfix/cases.png
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_round.png
+  - .artifacts/aire-mvp-bugfix/settings_logs.png
+  - src-tauri/icons/icon.png
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png
+  - src-tauri/icons/Square284x284Logo.png
+  - src-tauri/icons/ios/AppIcon-20x20@1x.png
+  - src/components/TauriRequired.tsx
+tests:
+  - src/lib/__tests__/log.test.ts
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/components/__tests__/TauriRequired.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/app/activation/__tests__/page.test.tsx
+  - src/lib/__tests__/cases-api.test.ts
+  - src/lib/__tests__/tauri-bridge.test.ts
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+-->
+
+---
+### Requirement: Graceful IPC Fallback in Browser
+
+All pages that call Tauri IPC commands SHALL use the safeInvoke wrapper from tauri-bridge.ts. When running outside Tauri, safeInvoke SHALL throw a NotInTauriError instead of a raw TypeError.
+
+#### Scenario: Cases Page in Browser
+
+- **WHEN** the /cases page loads in a browser without Tauri runtime
+- **THEN** a friendly message "此功能需在 AIRE 桌面 App 中使用" SHALL be displayed instead of "Cannot read properties of undefined (reading 'invoke')"
+
+#### Scenario: Branding Page in Browser
+
+- **WHEN** the /settings/branding page loads in a browser without Tauri runtime
+- **THEN** the same friendly fallback message SHALL be displayed
+
+##### Example: Branding Page Fallback
+
+- **GIVEN** a user opens http://localhost:3000/settings/branding in Chrome
+- **WHEN** LogoUploader attempts to call safeInvoke("get_brand_settings")
+- **THEN** NotInTauriError is caught and the TauriRequired component is rendered with the text "此功能需在 AIRE 桌面 App 中使用"
+
+#### Scenario: Logs Page in Browser
+
+- **WHEN** the /settings/logs page loads in a browser without Tauri runtime
+- **THEN** the same friendly fallback message SHALL be displayed
+
+##### Example: Error Type Check
+
+- **GIVEN** a page component catches an error from safeInvoke
+- **WHEN** the error is an instance of NotInTauriError
+- **THEN** the component renders the TauriRequired component instead of the raw error message
+
+<!-- @trace
+source: aire-mvp-bugfix
+updated: 2026-05-15
+code:
+  - src-tauri/icons/icon.ico
+  - src-tauri/icons/ios/AppIcon-512@2x.png
+  - src-tauri/icons/32x32.png
+  - src-tauri/icons/ios/AppIcon-20x20@2x-1.png
+  - src/lib/log.ts
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_foreground.png
+  - src-tauri/icons/Square142x142Logo.png
+  - src-tauri/icons/Square150x150Logo.png
+  - src-tauri/icons/Square30x30Logo.png
+  - src-tauri/icons/ios/AppIcon-20x20@2x.png
+  - src-tauri/icons/ios/AppIcon-29x29@1x.png
+  - src-tauri/icons/ios/AppIcon-76x76@1x.png
+  - src/app/(dashboard)/cases/page.tsx
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png
+  - src/components/LogoUploader.tsx
+  - src-tauri/icons/128x128.png
+  - src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png
+  - src-tauri/icons/ios/AppIcon-40x40@2x-1.png
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src/app/activation/page.tsx
+  - src-tauri/icons/StoreLogo.png
+  - .artifacts/aire-mvp-bugfix/settings_branding.png
+  - src-tauri/icons/Square71x71Logo.png
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher_foreground.png
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher_foreground.png
+  - src-tauri/icons/Square89x89Logo.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher_foreground.png
+  - src-tauri/icons/ios/AppIcon-60x60@3x.png
+  - src-tauri/icons/ios/AppIcon-29x29@2x.png
+  - src-tauri/icons/ios/AppIcon-29x29@3x.png
+  - src-tauri/icons/128x128@2x.png
+  - src/lib/cases-api.ts
+  - src/lib/tauri-bridge.ts
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher.png
+  - src-tauri/icons/Square310x310Logo.png
+  - src-tauri/icons/aire-source.png
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher.png
+  - src-tauri/icons/icon.icns
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src-tauri/icons/Square44x44Logo.png
+  - src-tauri/icons/ios/AppIcon-40x40@1x.png
+  - src-tauri/icons/ios/AppIcon-76x76@2x.png
+  - src-tauri/icons/ios/AppIcon-40x40@3x.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher_round.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher_round.png
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_round.png
+  - src-tauri/icons/ios/AppIcon-20x20@3x.png
+  - src-tauri/icons/Square107x107Logo.png
+  - src-tauri/icons/ios/AppIcon-40x40@2x.png
+  - src-tauri/icons/ios/AppIcon-60x60@2x.png
+  - src-tauri/icons/64x64.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher.png
+  - src-tauri/icons/ios/AppIcon-29x29@2x-1.png
+  - .artifacts/aire-mvp-bugfix/activation.png
+  - .artifacts/aire-mvp-bugfix/cases.png
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_round.png
+  - .artifacts/aire-mvp-bugfix/settings_logs.png
+  - src-tauri/icons/icon.png
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png
+  - src-tauri/icons/Square284x284Logo.png
+  - src-tauri/icons/ios/AppIcon-20x20@1x.png
+  - src/components/TauriRequired.tsx
+tests:
+  - src/lib/__tests__/log.test.ts
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/components/__tests__/TauriRequired.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/app/activation/__tests__/page.test.tsx
+  - src/lib/__tests__/cases-api.test.ts
+  - src/lib/__tests__/tauri-bridge.test.ts
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+-->

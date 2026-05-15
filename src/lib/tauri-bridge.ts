@@ -56,9 +56,14 @@ export async function safeInvoke<T>(
   args?: Record<string, unknown>,
 ): Promise<T> {
   const inTauri = await isTauriEnv();
-  if (!inTauri || !cachedInvoke) {
-    throw new NotInTauriError();
+  if (inTauri && cachedInvoke) {
+    return cachedInvoke<T>(cmd, args);
   }
 
-  return cachedInvoke<T>(cmd, args);
+  if (process.env.NODE_ENV === "development") {
+    const { mockInvoke } = await import("./mock-backend");
+    return mockInvoke<T>(cmd, args);
+  }
+
+  throw new NotInTauriError();
 }
