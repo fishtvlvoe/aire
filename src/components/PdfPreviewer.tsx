@@ -83,6 +83,19 @@ export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
     if (!latestBlobRef.current) return;
 
     try {
+      const inTauri = typeof (window as typeof window & { __TAURI__?: unknown }).__TAURI__ !== "undefined";
+
+      if (!inTauri) {
+        // Browser dev mode: use native <a> download
+        const url = URL.createObjectURL(latestBlobRef.current);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${caseId || "AIRE"}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
       const chosenPath = await saveDialog({
         title: "下載 PDF",
         defaultPath: `${caseId || "AIRE"}.pdf`,
