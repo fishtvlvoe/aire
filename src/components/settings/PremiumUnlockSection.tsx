@@ -51,7 +51,7 @@ export function PremiumUnlockSection() {
     setSubscribing(true);
     try {
       const res = await mockInvoke<SubscribePremiumResponse>("subscribe_premium");
-      window.open(res.redirect_url, "_blank");
+      window.open(res.redirect_url, "_blank", "noopener,noreferrer");
     } finally {
       setSubscribing(false);
     }

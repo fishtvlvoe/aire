@@ -51,6 +51,7 @@ describe("PremiumUnlockSection", () => {
       expect(windowOpenSpy).toHaveBeenCalledWith(
         "https://opcos.tw/checkout/mcp-hub",
         "_blank",
+        "noopener,noreferrer",
       );
     });
 

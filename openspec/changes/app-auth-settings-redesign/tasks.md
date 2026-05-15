@@ -43,7 +43,7 @@
 
 ## Group 8: 建構驗證
 
-- [ ] 8.1 [Tool: Codex] 跑 `npm run build` + `npm test` 全量驗證。修復所有 build error 和 test failure。滿足所有 Acceptance Criteria 和 Scope Boundaries。驗證：build 0 error，test 全綠。
+- [x] 8.1 [Tool: Codex] 跑 `npm run build` + `npm test` 全量驗證。修復所有 build error 和 test failure。滿足所有 Acceptance Criteria 和 Scope Boundaries。驗證：build 0 error，test 全綠。
 
 ## Group 9: Code Review
 

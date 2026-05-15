@@ -52,5 +52,5 @@
 
 ## 9. Scope 驗證 + 全量測試
 
-- [ ] 9.1 scope 驗證（對應 design scope boundaries）：`git diff --name-only` 確認所有變更在 in-scope 路徑內。驗證：無 out-of-scope 檔案被修改。[Tool: Codex]
-- [ ] 9.2 全量測試（對應 design acceptance criteria）：`cargo test --workspace` 通過（排除已知 crypto/db 3 個 pre-existing failures）+ `npm run build` 通過。驗證：除已知 3 個失敗外無新失敗。[Tool: Codex]
+- [x] 9.1 scope 驗證（對應 design scope boundaries）：`git diff --name-only` 確認所有變更在 in-scope 路徑內。驗證：無 out-of-scope 檔案被修改。[Tool: Codex]
+- [x] 9.2 全量測試（對應 design acceptance criteria）：`cargo test --workspace` 通過（排除已知 crypto/db 3 個 pre-existing failures）+ `npm run build` 通過。驗證：除已知 3 個失敗外無新失敗。[Tool: Codex]

@@ -16,6 +16,15 @@ interface UseAuthResult {
   logout: () => Promise<void>;
 }
 
+/**
+ * 開發環境 mock user — 不走 loginRequest，直接注入 session
+ * 只在 NEXT_PUBLIC_DEV_AUTO_LOGIN === "true" 時啟用
+ */
+const DEV_MOCK_USER: AuthUser = {
+  email: "admin@test.aire",
+  role: "admin",
+};
+
 export function useAuth(): UseAuthResult {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,19 +39,13 @@ export function useAuth(): UseAuthResult {
 
         if (session.authenticated) {
           setUser(session.user);
+        } else if (
+          process.env.NEXT_PUBLIC_DEV_AUTO_LOGIN === "true"
+        ) {
+          // 開發環境自動登入：直接設 mock session，不發送密碼
+          setUser(DEV_MOCK_USER);
         } else {
-          // 開發環境自動以 admin@test.aire 登入
-          if (process.env.NODE_ENV === "development") {
-            try {
-              const result = await loginRequest("admin@test.aire", "password");
-              if (!active) return;
-              setUser(result.user);
-            } catch {
-              if (active) setUser(null);
-            }
-          } else {
-            setUser(null);
-          }
+          setUser(null);
         }
       } catch {
         if (active) {

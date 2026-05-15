@@ -17,12 +17,13 @@ type ToggleFeatureFlagResponse = {
 };
 
 export function DevSuperAdmin() {
-  if (process.env.NODE_ENV !== "development") return null;
-
   const [flags, setFlags] = React.useState<FeatureFlag[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    // 非開發環境不載入 feature flags
+    if (process.env.NODE_ENV !== "development") return;
+
     let cancelled = false;
 
     async function load() {
@@ -42,6 +43,9 @@ export function DevSuperAdmin() {
       cancelled = true;
     };
   }, []);
+
+  // Guard 放在所有 hook 之後
+  if (process.env.NODE_ENV !== "development") return null;
 
   async function toggleFlag(flag: FeatureFlag) {
     const res = await mockInvoke<ToggleFeatureFlagResponse>("toggle_feature_flag", {

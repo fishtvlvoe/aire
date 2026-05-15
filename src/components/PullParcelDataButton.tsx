@@ -104,21 +104,30 @@ export function PullParcelDataButton({
     ? Object.values(results).filter((r) => !r.success).length
     : 0;
 
+  // 按鈕在查詢中或已完成時都 disabled，防止重複觸發扣款
+  const buttonDisabled = step === "pulling" || step === "done" || apiIds.length === 0;
+
   return (
     <div className="space-y-4">
       {/* 主按鈕 */}
       <Button
         onClick={handleClick}
-        disabled={step === "pulling" || apiIds.length === 0}
+        disabled={buttonDisabled}
         className="gap-2"
       >
         {step === "pulling" ? (
           <Loader2 className="h-4 w-4 animate-spin" />
+        ) : step === "done" ? (
+          <CheckCircle className="h-4 w-4" />
         ) : (
           <FileSearch className="h-4 w-4" />
         )}
-        {step === "pulling" ? "查詢中…" : "拉謄本"}
-        {step !== "pulling" && (
+        {step === "pulling"
+          ? "查詢中…"
+          : step === "done"
+            ? "已完成"
+            : "拉謄本"}
+        {step !== "pulling" && step !== "done" && (
           <ChevronRight className="h-4 w-4 ml-auto opacity-60" />
         )}
       </Button>

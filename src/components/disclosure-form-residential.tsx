@@ -11,7 +11,7 @@
  * - 「標示為完成」按鈕用 residentialSchemaCompleted 驗證、失敗 inline error
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -132,17 +132,7 @@ export function DisclosureFormResidential({
   });
 
   // 取得表單中的地址值，作為拉謄本的參考
-  const watchedAddress = form.watch("address" as never) as unknown as string | undefined;
-
-  // TODO: 當 PullParcelDataButton 查詢完成後，可透過 onDataFilled callback
-  // 把 API 回傳的資料填入對應表單欄位（目前由 PullParcelDataButton 內部處理結果顯示）
-  const _handleDataFilled = useCallback(
-    (_data: Record<string, Record<string, unknown>>) => {
-      // 未來實作：根據 API 回傳 field mapping 填入 form
-      // 例如：form.setValue("building_area", data.building_registry?.building_area)
-    },
-    [],
-  );
+  const watchedAddress = form.watch("address" as keyof ResidentialPayload) as string | undefined;
 
   async function handleMarkCompleted() {
     setCompletionError(null);
