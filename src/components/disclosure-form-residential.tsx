@@ -11,7 +11,7 @@
  * - 「標示為完成」按鈕用 residentialSchemaCompleted 驗證、失敗 inline error
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -30,6 +30,7 @@ import {
 import { useDraftAutosave, loadDraft } from "@/lib/use-draft-autosave";
 import { cn } from "@/lib/utils";
 import { RealtorLicenseField } from "@/components/RealtorLicenseField";
+import { PullParcelDataButton } from "@/components/PullParcelDataButton";
 
 /**
  * 經紀人證號 + 驗證狀態（#1d Stage 7.3）
@@ -48,14 +49,28 @@ interface RealtorLicenseDraftSlice {
   realtor_license_verification_status?: RealtorLicenseVerificationStatus;
 }
 
+/** 成屋表單預設查詢的七支地政 API */
+const RESIDENTIAL_API_IDS = [
+  "building_registry",
+  "land_registry",
+  "co_owners",
+  "land_value",
+  "mortgages",
+  "building_ownership",
+  "zoning",
+];
+
 export interface DisclosureFormResidentialProps {
   caseId: string;
+  /** 地號（由案件載入，供拉謄本使用） */
+  parcelId?: string;
   /** 標示為完成觸發 — 由父層呼 markCompleted IPC */
   onMarkCompleted?: (payload: ResidentialPayload) => Promise<void> | void;
 }
 
 export function DisclosureFormResidential({
   caseId,
+  parcelId,
   onMarkCompleted,
 }: DisclosureFormResidentialProps) {
   const router = useRouter();
@@ -116,6 +131,19 @@ export function DisclosureFormResidential({
     enabled: draftLoaded,
   });
 
+  // 取得表單中的地址值，作為拉謄本的參考
+  const watchedAddress = form.watch("address" as never) as unknown as string | undefined;
+
+  // TODO: 當 PullParcelDataButton 查詢完成後，可透過 onDataFilled callback
+  // 把 API 回傳的資料填入對應表單欄位（目前由 PullParcelDataButton 內部處理結果顯示）
+  const _handleDataFilled = useCallback(
+    (_data: Record<string, Record<string, unknown>>) => {
+      // 未來實作：根據 API 回傳 field mapping 填入 form
+      // 例如：form.setValue("building_area", data.building_registry?.building_area)
+    },
+    [],
+  );
+
   async function handleMarkCompleted() {
     setCompletionError(null);
     const values = form.getValues();
@@ -149,18 +177,35 @@ export function DisclosureFormResidential({
           onChange={setRealtorLicenseNumber}
           onVerificationChange={(state) => {
             if (state === null) {
-              // 清空輸入，重置驗證狀態
               setRealtorLicenseVerificationStatus(null);
             } else if (state.source === "offline" && !state.verifiedAt) {
-              // 離線且無 cache
               setRealtorLicenseVerificationStatus("offline");
             } else {
-              // fresh 或 offline+cache，直接用 status
               setRealtorLicenseVerificationStatus(state.status);
             }
           }}
         />
       </section>
+
+      {/* 拉謄本（地政 API 查詢） */}
+      {parcelId && (
+        <section
+          aria-label="地政資料查詢"
+          className="mb-4 rounded-md border border-border bg-muted/20 p-3"
+        >
+          <p className="mb-2 text-sm font-medium">地政資料查詢</p>
+          {watchedAddress && (
+            <p className="mb-2 text-xs text-muted-foreground">
+              地址：{watchedAddress}
+            </p>
+          )}
+          <PullParcelDataButton
+            caseId={caseId}
+            parcelId={parcelId}
+            apiIds={RESIDENTIAL_API_IDS}
+          />
+        </section>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4 flex w-full justify-start gap-1 bg-muted/40 p-1">

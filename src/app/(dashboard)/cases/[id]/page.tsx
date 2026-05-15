@@ -1,17 +1,26 @@
 "use client";
 
-// AIRE 編輯案件頁（Task 5.4 — shadcn/ui 升級）
+// AIRE 編輯案件頁（Task 5.4 — shadcn/ui 升級 + Task 8.4 — 地政 API 整合）
 //
 // - 載入 case 顯示 header + 對應表單
 // - Tabs 切換成屋 / 土地
 // - 「刪除」按鈕 + 確認 modal
 // - 「標示為完成」按鈕僅在 status='draft' 顯示
 // - 儲存成功用 sonner toast，必填欄位空值顯示紅色提示
+// - BalanceBanner 低餘額警告
+// - Parcel data pull status 顯示
 //
 // Note: Next.js static export 下動態路由 [id] 用 client-side router 取參數。
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  FileSearch,
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  Minus,
+} from "lucide-react";
 import {
   casesApi,
   formatTpeDate,
@@ -19,10 +28,12 @@ import {
   statusLabel,
   type CaseRow,
 } from "@/lib/cases-api";
+import { getBalance, type BalanceInfo } from "@/lib/land-registry-api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -33,12 +44,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { BalanceBanner } from "@/components/BalanceBanner";
 
 // 必填欄位驗證錯誤
 interface FormErrors {
   owner_name?: string;
   property_type?: string;
 }
+
+/** 地政資料查詢狀態 */
+type PullStatus = "not_queried" | "querying" | "completed" | "partial_manual";
+
+const PULL_STATUS_CONFIG: Record<
+  PullStatus,
+  { label: string; icon: React.ReactNode; className: string }
+> = {
+  not_queried: {
+    label: "未查詢",
+    icon: <Minus className="h-3.5 w-3.5" />,
+    className: "bg-muted text-muted-foreground border-border",
+  },
+  querying: {
+    label: "查詢中",
+    icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+    className: "bg-blue-50 text-blue-700 border-blue-200",
+  },
+  completed: {
+    label: "已完成",
+    icon: <CheckCircle className="h-3.5 w-3.5" />,
+    className: "bg-green-50 text-green-700 border-green-200",
+  },
+  partial_manual: {
+    label: "部分手動",
+    icon: <AlertTriangle className="h-3.5 w-3.5" />,
+    className: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  },
+};
 
 export default function CaseDetailPage() {
   const params = useParams<{ id: string }>();
@@ -50,6 +91,12 @@ export default function CaseDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+
+  // 地政 API 餘額
+  const [balanceInfo, setBalanceInfo] = useState<BalanceInfo | null>(null);
+
+  // 地政資料查詢狀態（TODO: 從案件資料或 IPC 取得實際狀態）
+  const [pullStatus] = useState<PullStatus>("not_queried");
 
   // 編輯 buffer
   const [buf, setBuf] = useState<{
@@ -92,6 +139,21 @@ export default function CaseDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  // 載入餘額資訊
+  useEffect(() => {
+    let cancelled = false;
+    getBalance()
+      .then((info) => {
+        if (!cancelled) setBalanceInfo(info);
+      })
+      .catch(() => {
+        // 靜默失敗，不影響案件頁主功能
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function validate(): boolean {
     const errors: FormErrors = {};
@@ -170,8 +232,13 @@ export default function CaseDetailPage() {
     );
   }
 
+  const statusCfg = PULL_STATUS_CONFIG[pullStatus];
+
   return (
     <main className="max-w-2xl mx-auto py-8 px-6 space-y-6">
+      {/* 低餘額警告 Banner */}
+      <BalanceBanner lowBalanceWarning={balanceInfo?.low_balance_warning ?? false} />
+
       {/* Header */}
       <header className="space-y-2">
         <div className="flex items-center gap-3">
@@ -195,6 +262,42 @@ export default function CaseDetailPage() {
           建立於 {formatTpeDate(c.created_at)} ・ 最後更新 {formatTpeDate(c.updated_at)}
         </p>
       </header>
+
+      {/* 地政資料查詢狀態 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileSearch className="h-4 w-4" />
+              地政資料查詢
+            </CardTitle>
+            <Badge
+              variant="outline"
+              className={`gap-1.5 ${statusCfg.className}`}
+            >
+              {statusCfg.icon}
+              {statusCfg.label}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {pullStatus === "not_queried" && (
+            <p className="text-sm text-muted-foreground">
+              尚未查詢地政資料，請在說明書表單中使用「拉謄本」功能
+            </p>
+          )}
+          {pullStatus === "completed" && (
+            <p className="text-sm text-green-700">
+              所有地政資料已查詢完成
+            </p>
+          )}
+          {pullStatus === "partial_manual" && (
+            <p className="text-sm text-yellow-700">
+              部分欄位為手動填入，請確認資料正確性
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* 案件類型 Select（必填） */}
       <div className="space-y-1.5">

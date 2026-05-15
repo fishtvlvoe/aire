@@ -71,13 +71,11 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen">
-      {/* Desktop sidebar — hidden on mobile */}
+      {/* Desktop sidebar — hidden on mobile, 200ms transition */}
       <aside
-        className={
-          sidebarCollapsed
-            ? "hidden md:flex md:w-[60px] md:flex-col md:border-r"
-            : "hidden md:flex md:w-60 md:flex-col md:border-r"
-        }
+        className={`hidden md:flex md:flex-col md:border-r transition-[width] duration-200 ease-in-out ${
+          sidebarCollapsed ? "md:w-[60px]" : "md:w-60"
+        }`}
       >
         <AppSidebar
           collapsed={sidebarCollapsed}

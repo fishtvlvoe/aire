@@ -29,17 +29,17 @@
 
 ## Group 5: 設定頁整合 + Session Guard
 
-- [ ] 5.1 [Tool: Codex] 重組 `src/app/(dashboard)/settings/page.tsx`，import LicenseSection + LandApiSection + PremiumUnlockSection + DevSuperAdmin，由上到下排列為三個 Card + 底部 DevSuperAdmin。移除舊有的獨立 license 管理 UI。滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 和 Observable Behavior 第 3 點。驗證：`npm run build` 通過，設定頁顯示三個區塊。
-- [ ] 5.2 [Tool: Codex] 更新 session guard，滿足 spec "Session guard with mock auth support" 和 "Development auto-login"。確保 dashboard 路由需要認證，未登入 redirect 到 /login。開發環境自動以 `admin@test.aire` 登入。驗證：未登入訪問 /dashboard 被導向 /login；dev 環境自動登入。
+- [x] 5.1 [Tool: Codex] 重組 `src/app/(dashboard)/settings/page.tsx`，import LicenseSection + LandApiSection + PremiumUnlockSection + DevSuperAdmin，由上到下排列為三個 Card + 底部 DevSuperAdmin。移除舊有的獨立 license 管理 UI。滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 和 Observable Behavior 第 3 點。驗證：`npm run build` 通過，設定頁顯示三個區塊。
+- [x] 5.2 [Tool: Codex] 更新 session guard，滿足 spec "Session guard with mock auth support" 和 "Development auto-login"。確保 dashboard 路由需要認證，未登入 redirect 到 /login。開發環境自動以 `admin@test.aire` 登入。驗證：未登入訪問 /dashboard 被導向 /login；dev 環境自動登入。
 
 ## Group 6: 側邊欄收合
 
-- [ ] 6.1 [Tool: Codex] TDD 紅燈：為側邊欄收合寫失敗測試，驗證 spec "Sidebar collapse toggle" 和 "Sidebar state persistence" 場景（收合/展開/localStorage 持久化/重載恢復）。驗證：測試存在且全部 fail。
-- [ ] 6.2 [Tool: Codex] 修改 `src/components/sidebar.tsx`，加入收合/展開切換，滿足 design "D3: 側邊欄收合 — 寬度 240px ↔ 60px + localStorage 持久化"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（lucide-react ChevronsLeft/ChevronsRight icons）。底部加收合 toggle。收合時只顯示 icon + tooltip。CSS transition 200ms ease-in-out。localStorage key `aire-sidebar-collapsed`。滿足 Observable Behavior 第 7-8 點和 Acceptance Criteria。驗證：Group 6.1 紅燈測試全部變綠。
+- [x] 6.1 [Tool: Codex] TDD 紅燈：為側邊欄收合寫失敗測試，驗證 spec "Sidebar collapse toggle" 和 "Sidebar state persistence" 場景（收合/展開/localStorage 持久化/重載恢復）。驗證：測試存在且全部 fail。
+- [x] 6.2 [Tool: Codex] 修改 `src/components/sidebar.tsx`，加入收合/展開切換，滿足 design "D3: 側邊欄收合 — 寬度 240px ↔ 60px + localStorage 持久化"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（lucide-react ChevronsLeft/ChevronsRight icons）。底部加收合 toggle。收合時只顯示 icon + tooltip。CSS transition 200ms ease-in-out。localStorage key `aire-sidebar-collapsed`。滿足 Observable Behavior 第 7-8 點和 Acceptance Criteria。驗證：Group 6.1 紅燈測試全部變綠。
 
 ## Group 7: 路由清理
 
-- [ ] 7.1 [Tool: Codex] 刪除 `src/app/(auth)/activation/page.tsx`（如果存在），或移除 activation 相關路由。加 redirect rule `/activation` → `/settings`。滿足 Acceptance Criteria 中 activation 頁已刪除。驗證：訪問 /activation 會導向 /settings。
+- [x] 7.1 [Tool: Codex] 刪除 `src/app/(auth)/activation/page.tsx`（如果存在），或移除 activation 相關路由。加 redirect rule `/activation` → `/settings`。滿足 Acceptance Criteria 中 activation 頁已刪除。驗證：訪問 /activation 會導向 /settings。
 
 ## Group 8: 建構驗證
 

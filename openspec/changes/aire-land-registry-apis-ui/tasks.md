@@ -45,10 +45,10 @@
 
 ## 8. 頁面整合
 
-- [ ] 8.1 新增 `src/app/(dashboard)/settings/api-key/page.tsx`：設定頁路由，包含 ApiKeySettings + BalanceMonitor。驗證：路由可訪問 + 元件渲染。[Tool: Codex]
-- [ ] [P] 8.2 修改 `src/components/disclosure-form-residential.tsx`：在地址欄位旁加 PullParcelDataButton，滿足 spec Pull parcel data button integration（residential）的 Pull button fills form fields scenario + Pull failure shows manual fallback scenario。驗證：mock 模式下點拉謄本 → 欄位被填入。[Tool: Codex]
-- [ ] [P] 8.3 修改 `src/components/disclosure-form-land.tsx`：在地號欄位旁加 PullParcelDataButton，滿足 spec Pull parcel data button integration（land）。驗證同上。[Tool: Codex]
-- [ ] [P] 8.4 修改 `src/app/(dashboard)/cases/[id]/page.tsx`：加入 Parcel data pull status display（未查詢/查詢中/已完成/部分手動，滿足 spec Parcel data pull status display 的 Status shows after successful pull + Status shows partial manual scenario）+ BalanceBanner（滿足 spec Balance warning banner on case page 的 Banner appears when balance is low scenario）。驗證：mock 模式下狀態正確顯示。[Tool: Codex]
+- [x] 8.1 新增 `src/app/(dashboard)/settings/api-key/page.tsx`：設定頁路由，包含 ApiKeySettings + BalanceMonitor。驗證：路由可訪問 + 元件渲染。[Tool: Codex]
+- [x] [P] 8.2 修改 `src/components/disclosure-form-residential.tsx`：在地址欄位旁加 PullParcelDataButton，滿足 spec Pull parcel data button integration（residential）的 Pull button fills form fields scenario + Pull failure shows manual fallback scenario。驗證：mock 模式下點拉謄本 → 欄位被填入。[Tool: Codex]
+- [x] [P] 8.3 修改 `src/components/disclosure-form-land.tsx`：在地號欄位旁加 PullParcelDataButton，滿足 spec Pull parcel data button integration（land）。驗證同上。[Tool: Codex]
+- [x] [P] 8.4 修改 `src/app/(dashboard)/cases/[id]/page.tsx`：加入 Parcel data pull status display（未查詢/查詢中/已完成/部分手動，滿足 spec Parcel data pull status display 的 Status shows after successful pull + Status shows partial manual scenario）+ BalanceBanner（滿足 spec Balance warning banner on case page 的 Banner appears when balance is low scenario）。驗證：mock 模式下狀態正確顯示。[Tool: Codex]
 
 ## 9. Scope 驗證 + 全量測試
 

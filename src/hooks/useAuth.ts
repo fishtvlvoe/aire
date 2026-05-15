@@ -26,14 +26,23 @@ export function useAuth(): UseAuthResult {
     (async () => {
       try {
         const session = await getSession();
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
         if (session.authenticated) {
           setUser(session.user);
         } else {
-          setUser(null);
+          // 開發環境自動以 admin@test.aire 登入
+          if (process.env.NODE_ENV === "development") {
+            try {
+              const result = await loginRequest("admin@test.aire", "password");
+              if (!active) return;
+              setUser(result.user);
+            } catch {
+              if (active) setUser(null);
+            }
+          } else {
+            setUser(null);
+          }
         }
       } catch {
         if (active) {

@@ -7,7 +7,7 @@
  * - 與成屋表單共用 autosave hook 與互動樣式
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -26,6 +26,7 @@ import {
 import { useDraftAutosave, loadDraft } from "@/lib/use-draft-autosave";
 import { cn } from "@/lib/utils";
 import { RealtorLicenseField } from "@/components/RealtorLicenseField";
+import { PullParcelDataButton } from "@/components/PullParcelDataButton";
 
 /**
  * 經紀人證號 + 驗證狀態（#1d Stage 7.3）
@@ -44,13 +45,25 @@ interface RealtorLicenseDraftSlice {
   realtor_license_verification_status?: RealtorLicenseVerificationStatus;
 }
 
+/** 土地表單預設查詢的地政 API（排除建物相關） */
+const LAND_API_IDS = [
+  "land_registry",
+  "co_owners",
+  "land_value",
+  "mortgages",
+  "zoning",
+];
+
 export interface DisclosureFormLandProps {
   caseId: string;
+  /** 地號（由案件載入，供拉謄本使用） */
+  parcelId?: string;
   onMarkCompleted?: (payload: LandPayload) => Promise<void> | void;
 }
 
 export function DisclosureFormLand({
   caseId,
+  parcelId,
   onMarkCompleted,
 }: DisclosureFormLandProps) {
   const router = useRouter();
@@ -106,6 +119,18 @@ export function DisclosureFormLand({
     enabled: draftLoaded,
   });
 
+  // 取得表單中的地號值，作為拉謄本的參考
+  const watchedLotNo = form.watch("land_lot_no" as never) as unknown as string | undefined;
+
+  // TODO: 當 PullParcelDataButton 查詢完成後，可透過 onDataFilled callback
+  // 把 API 回傳的資料填入對應表單欄位
+  const _handleDataFilled = useCallback(
+    (_data: Record<string, Record<string, unknown>>) => {
+      // 未來實作：根據 API 回傳 field mapping 填入 form
+    },
+    [],
+  );
+
   async function handleMarkCompleted() {
     setCompletionError(null);
     const values = form.getValues();
@@ -139,18 +164,35 @@ export function DisclosureFormLand({
           onChange={setRealtorLicenseNumber}
           onVerificationChange={(state) => {
             if (state === null) {
-              // 清空輸入，重置驗證狀態
               setRealtorLicenseVerificationStatus(null);
             } else if (state.source === "offline" && !state.verifiedAt) {
-              // 離線且無 cache
               setRealtorLicenseVerificationStatus("offline");
             } else {
-              // fresh 或 offline+cache，直接用 status
               setRealtorLicenseVerificationStatus(state.status);
             }
           }}
         />
       </section>
+
+      {/* 拉謄本（地政 API 查詢） */}
+      {parcelId && (
+        <section
+          aria-label="地政資料查詢"
+          className="mb-4 rounded-md border border-border bg-muted/20 p-3"
+        >
+          <p className="mb-2 text-sm font-medium">地政資料查詢</p>
+          {watchedLotNo && (
+            <p className="mb-2 text-xs text-muted-foreground">
+              地號：{watchedLotNo}
+            </p>
+          )}
+          <PullParcelDataButton
+            caseId={caseId}
+            parcelId={parcelId}
+            apiIds={LAND_API_IDS}
+          />
+        </section>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4 flex w-full justify-start gap-1 bg-muted/40 p-1">
