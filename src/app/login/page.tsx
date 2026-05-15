@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import iconDark from "@/assets/icon-dark.png";
-import { useAuth } from "@/hooks/useAuth";
+import { mockInvoke } from "@/lib/mock-backend";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,45 +10,35 @@ import { Input } from "@/components/ui/input";
 const FORGOT_PASSWORD_URL = "https://opcos.com.tw";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
-  INVALID_CREDENTIALS: "帳號或密碼錯誤，請重新輸入",
-  ACCOUNT_EXPIRED: "此帳號已過期，請聯繫客服",
+  INVALID_CREDENTIALS: "帳號或密碼錯誤",
+  ACCOUNT_EXPIRED: "帳號已過期",
 };
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isLoading, isAuthenticated, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fieldError, setFieldError] = useState<string | null>(null);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.replace("/cases");
-    }
-  }, [isLoading, isAuthenticated, router]);
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFieldError(null);
-    setSubmitError(null);
-
-    if (!email.trim()) {
-      setFieldError("請輸入 Email");
-      return;
-    }
-
-    if (!password.trim()) {
-      setFieldError("請輸入密碼");
-      return;
-    }
-
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
     try {
-      await login(email.trim(), password);
-      router.replace("/cases");
-    } catch (error) {
-      const code = error instanceof Error ? error.message : "";
-      setSubmitError(AUTH_ERROR_MESSAGES[code] ?? "登入失敗，請稍後再試");
+      await mockInvoke("login", { email, password });
+      router.push("/dashboard");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("INVALID_CREDENTIALS")) {
+        setError(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS);
+      } else if (msg.includes("ACCOUNT_EXPIRED")) {
+        setError(AUTH_ERROR_MESSAGES.ACCOUNT_EXPIRED);
+      } else {
+        setError("登入失敗，請稍後再試");
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -57,37 +46,37 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md shadow-md">
         <CardHeader className="items-center space-y-3 pb-4 text-center">
-          <img src={iconDark.src} alt="AIRE Logo" className="h-14 w-14" />
           <div>
             <h1 className="text-2xl font-bold text-slate-900">AIRE</h1>
-            <p className="text-sm text-muted-foreground">不動產說明書自動化系統</p>
+            <p className="text-sm text-muted-foreground">不動產說明書智能助手</p>
           </div>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <Input
               type="email"
               placeholder="Email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              disabled={isLoading}
+              disabled={loading}
+              required
             />
             <Input
               type="password"
               placeholder="密碼"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              disabled={isLoading}
+              disabled={loading}
+              required
             />
 
-            {fieldError ? <p className="text-sm text-destructive">{fieldError}</p> : null}
-            {submitError ? <p className="text-sm text-destructive">{submitError}</p> : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              登入
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "登入中..." : "登入"}
             </Button>
           </form>
 
@@ -98,7 +87,7 @@ export default function LoginPage() {
               rel="noopener noreferrer"
               className="text-sm text-blue-600 hover:underline"
             >
-              忘記密碼？
+              忘記密碼
             </a>
           </div>
         </CardContent>
