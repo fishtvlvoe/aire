@@ -18,9 +18,9 @@
 
 ## 4. 授權啟動流程
 
-- [ ] 4.1 建立 src/hooks/useLicenseStatus.ts：custom hook 封裝 get_license_status Tauri IPC 呼叫，回傳 `{ status: 'valid' | 'expired' | 'none', isLoading: boolean }`。Tauri IPC 不可用時 fallback 回傳 status: 'none'。驗證：TypeScript 編譯通過，hook export 存在。對應 spec: license-guard，design D2: 授權啟動流程 — layout guard + Tauri IPC。Interface / Data Shape: useLicenseStatus() 回傳 { status, isLoading }。 [Tool: copilot]
-- [ ] 4.2 建立 src/app/(auth)/activation/page.tsx：授權啟動頁 UI，ST Form + Input（序號輸入）+ Button（提交），空值提交顯示 "請輸入授權序號" 驗證錯誤，成功後 redirect /cases，失敗顯示 error Toast。Tauri IPC 不可用時顯示 "請在 AIRE 桌面 App 中開啟"。驗證：頁面渲染無錯誤，空值提交顯示驗證訊息。對應 spec: activation-page-form，design D2: 授權啟動流程 — layout guard + Tauri IPC。Failure Modes: IPC 不可用時顯示提示訊息而非表單。 [Tool: copilot]
-- [ ] 4.3 在 src/app/(dashboard)/layout.tsx 加入 license guard：mount 時呼叫 useLicenseStatus，status 非 valid 時 redirect 到 /activation。驗證：未授權時訪問 /cases 被 redirect 到 /activation。對應 spec: license-guard，design D2: 授權啟動流程 — layout guard + Tauri IPC。 [Tool: copilot]
+- [x] 4.1 建立 src/hooks/useLicenseStatus.ts：custom hook 封裝 get_license_status Tauri IPC 呼叫，回傳 `{ status: 'valid' | 'expired' | 'none', isLoading: boolean }`。Tauri IPC 不可用時 fallback 回傳 status: 'none'。驗證：TypeScript 編譯通過，hook export 存在。對應 spec: license-guard，design D2: 授權啟動流程 — layout guard + Tauri IPC。Interface / Data Shape: useLicenseStatus() 回傳 { status, isLoading }。 [Tool: copilot]
+- [x] 4.2 建立 src/app/(auth)/activation/page.tsx：授權啟動頁 UI，ST Form + Input（序號輸入）+ Button（提交），空值提交顯示 "請輸入授權序號" 驗證錯誤，成功後 redirect /cases，失敗顯示 error Toast。Tauri IPC 不可用時顯示 "請在 AIRE 桌面 App 中開啟"。驗證：頁面渲染無錯誤，空值提交顯示驗證訊息。對應 spec: activation-page-form，design D2: 授權啟動流程 — layout guard + Tauri IPC。Failure Modes: IPC 不可用時顯示提示訊息而非表單。 [Tool: copilot]
+- [x] 4.3 在 src/app/(dashboard)/layout.tsx 加入 license guard：mount 時呼叫 useLicenseStatus，status 非 valid 時 redirect 到 /activation。驗證：未授權時訪問 /cases 被 redirect 到 /activation。對應 spec: license-guard，design D2: 授權啟動流程 — layout guard + Tauri IPC。 [Tool: copilot]
 
 ## 5. 案件 UI 升級
 

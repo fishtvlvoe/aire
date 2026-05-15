@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AppTopbar } from "@/components/AppTopbar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useLicenseStatus } from "@/hooks/useLicenseStatus";
 
 export default function DashboardLayout({
   children,
@@ -11,6 +13,26 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { status, isLoading } = useLicenseStatus();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && status !== "valid") {
+      router.replace("/activation");
+    }
+  }, [status, isLoading, router]);
+
+  // License 驗證中 → 顯示 loading
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-foreground" />
+      </div>
+    );
+  }
+
+  // 授權無效 → guard 已觸發 redirect，渲染空節點避免閃爍
+  if (status !== "valid") return null;
 
   return (
     <div className="flex h-screen">

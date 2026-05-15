@@ -1,6 +1,6 @@
 "use client";
 
-// AIRE 啟用畫面（Task 4.5）
+// AIRE 啟用畫面（Task 4.5 → Task 11 重寫）
 //
 // 對應 design.md D3 / Phase 1：
 //   - 未啟用或被遠端撤銷時的入口
@@ -12,8 +12,18 @@
 //       CREDENTIAL_STORE_UNAVAILABLE        → 「無法寫入系統憑證儲存區...」
 //       NETWORK_FAILED                      → 「無法連線 OPCOS...」
 
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 interface ActivationErrorShape {
   code: string;
@@ -31,114 +41,103 @@ const ERROR_TEXT: Record<string, string> = {
   OPCOS_UNAVAILABLE: "OPCOS 伺服器目前暫時無法服務，請稍後再試。",
 };
 
-export default function ActivationPage() {
+function ActivationForm() {
   const router = useRouter();
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [isTauri, setIsTauri] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsTauri(typeof window !== "undefined" && "__TAURI__" in window);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErrorCode(null);
-    setErrorDetail(null);
+    setFieldError(null);
+
     if (!key.trim()) {
-      setErrorCode("INVALID_KEY");
+      setFieldError("請輸入授權序號");
       return;
     }
+
     setLoading(true);
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("activate_license", { key: key.trim() });
-      router.push("/cases");
+      toast.success("授權啟動成功");
+      router.replace("/cases");
     } catch (err) {
       const e = err as ActivationErrorShape;
-      if (e && typeof e === "object" && "code" in e) {
-        setErrorCode(e.code);
-        setErrorDetail(e.message);
-      } else {
-        setErrorCode("NETWORK_FAILED");
-        setErrorDetail(String(err));
-      }
+      const code =
+        e && typeof e === "object" && "code" in e ? e.code : "NETWORK_FAILED";
+      const text =
+        ERROR_TEXT[code] ??
+        (e && typeof e === "object" && "message" in e
+          ? (e.message as string)
+          : "啟用失敗，請稍後再試。");
+      toast.error(text);
     } finally {
       setLoading(false);
     }
   }
 
-  const errorText = errorCode
-    ? ERROR_TEXT[errorCode] ?? errorDetail ?? "啟用失敗，請稍後再試。"
-    : null;
-
   return (
-    <main
-      style={{
-        maxWidth: 480,
-        margin: "80px auto",
-        padding: 24,
-        fontFamily: "system-ui, sans-serif",
-        lineHeight: 1.6,
-      }}
-    >
-      <h1 style={{ marginBottom: 8 }}>啟用 AIRE</h1>
-      <p style={{ color: "#555", marginBottom: 24 }}>
-        請輸入您的授權序號以啟用本機 App。啟用後可離線使用 30 天。
-      </p>
-      <form onSubmit={handleSubmit}>
-        <label
-          htmlFor="license-key"
-          style={{ display: "block", marginBottom: 8, fontWeight: 600 }}
-        >
-          授權序號
-        </label>
-        <input
-          id="license-key"
-          type="text"
-          autoComplete="off"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="例：AIRE-XXXX-XXXX-XXXX"
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            border: "1px solid #ccc",
-            borderRadius: 6,
-            fontSize: 16,
-            marginBottom: 16,
-          }}
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          disabled={loading || !key.trim()}
-          style={{
-            width: "100%",
-            padding: "10px 16px",
-            background: loading ? "#999" : "#111",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            fontSize: 16,
-            cursor: loading ? "not-allowed" : "pointer",
-          }}
-        >
-          {loading ? "啟用中…" : "啟用"}
-        </button>
-      </form>
-      {errorText ? (
-        <div
-          role="alert"
-          style={{
-            marginTop: 16,
-            padding: 12,
-            background: "#fdecea",
-            color: "#b00020",
-            borderRadius: 6,
-            border: "1px solid #f5c2c0",
-          }}
-        >
-          {errorText}
-        </div>
-      ) : null}
-    </main>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md shadow-md">
+        <CardHeader className="space-y-1 pb-4">
+          <h1 className="text-center text-2xl font-bold tracking-tight">
+            AIRE
+          </h1>
+          <p className="text-center text-sm text-muted-foreground">
+            不動產說明書自動化系統
+          </p>
+        </CardHeader>
+        <CardContent>
+          {isTauri ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="license-key">授權序號</Label>
+                <Input
+                  id="license-key"
+                  type="text"
+                  autoComplete="off"
+                  value={key}
+                  onChange={(e) => {
+                    setKey(e.target.value);
+                    setFieldError(null);
+                  }}
+                  placeholder="AIRE-XXXX-XXXX-XXXX"
+                  disabled={loading}
+                  className={fieldError ? "border-destructive" : ""}
+                />
+                {fieldError && (
+                  <p className="text-sm text-destructive">{fieldError}</p>
+                )}
+              </div>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? "啟動中…" : "啟動授權"}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                啟動後可離線使用 30 天
+              </p>
+            </form>
+          ) : (
+            <div className="py-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                請在 AIRE 桌面 App 中開啟
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
+
+// SSR 關閉：window.__TAURI__ 偵測需要在 client 執行
+export default dynamic(() => Promise.resolve(ActivationForm), { ssr: false });
