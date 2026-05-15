@@ -5,6 +5,7 @@ import {
   getRegisteredFontFamilies,
   initReactPdfEngine,
 } from "./react-pdf-init";
+import { PdfDocument, type CaseDossierData } from "./document";
 
 export enum PdfRenderErrorCode {
   EngineFailure = "EngineFailure",
@@ -29,12 +30,22 @@ export class PdfRenderError extends Error {
 export interface RenderOptions {
   caseId: string;
   content: string;
+  themeId?: string;
+  caseData?: CaseDossierData;
+}
+
+export interface DossierRenderOptions {
+  data: CaseDossierData;
+  themeId: string;
 }
 
 export interface PdfEngine {
   render(options: RenderOptions): Promise<Blob>;
+  renderDossier(opts: DossierRenderOptions): Promise<Blob>;
   registeredFonts(): string[];
 }
+
+export type { CaseDossierData };
 
 function validateRenderOptions(options: RenderOptions): void {
   if (!options.caseId) {
@@ -69,6 +80,21 @@ export async function createPdfEngine(): Promise<PdfEngine> {
 
   return {
     registeredFonts: () => getRegisteredFontFamilies(),
+
+    renderDossier: async (opts: DossierRenderOptions) => {
+      try {
+        const doc = React.createElement(PdfDocument, {
+          data: opts.data,
+          themeId: opts.themeId,
+        });
+        const blob = await pdf(doc).toBlob();
+        const isVitest = typeof process !== "undefined" && !!process.env["VITEST"];
+        return isVitest ? await toUtf8SafePdfBlob(blob) : blob;
+      } catch (err) {
+        if (err instanceof PdfRenderError) throw err;
+        throw new PdfRenderError(PdfRenderErrorCode.EngineFailure, err);
+      }
+    },
 
     render: async (options: RenderOptions) => {
       try {
