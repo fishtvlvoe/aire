@@ -119,6 +119,77 @@ fn hex_encode(bytes: &[u8]) -> String {
     s
 }
 
+/// Stage 6: 直接從 master password 用 argon2id derive sqlcipher key 並開啟 DB。
+///
+/// 適用場景：DB 本身已用 argon2id-derived key 加密（非 keystore.json 間接路徑）。
+/// 與 `open_encrypted_connection` 的差異：
+/// - 本函數從 password 直接 derive key，不讀 keystore.json
+/// - salt 從 keystore.json 讀取（確保每次 derive 結果一致）
+/// - 適合「master password = DB 鑰匙」的對稱加密模型
+pub fn open_with_master_password(path: &Path, password: &str) -> Result<Connection, DbError> {
+    use crate::crypto::master_password::derive_master_key;
+
+    // 讀 keystore.json 取得 salt（salt 必須持久化，否則每次 derive 結果不同）
+    let keystore_path = path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("keystore.json");
+
+    let salt = read_salt_from_keystore(&keystore_path)
+        .map_err(|e| DbError::new("keystore_read_failed", e.to_string()))?;
+
+    // argon2id 從 password + salt derive 32-byte sqlcipher key
+    let derived_key = derive_master_key(password, &salt)
+        .map_err(|e| DbError::new("key_derive_failed", e.to_string()))?;
+
+    let conn = Connection::open(path)?;
+    let key_spec = format!("x'{}'", hex_encode(&derived_key));
+    conn.pragma_update(None, "key", key_spec.as_str())
+        .map_err(|e| DbError::new("sqlite_unlock_failed", e.to_string()))?;
+    conn.execute_batch("PRAGMA foreign_keys = ON;")?;
+
+    // 驗證 key 是否正確（讀 user_version 是最輕量的探針）
+    conn.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
+        .map_err(|_| DbError::new("wrong_password", "wrong master password or corrupted db"))?;
+
+    Ok(conn)
+}
+
+/// 從 keystore.json 讀取 salt（hex 格式）。
+///
+/// keystore.json 結構：`{"salt_hex": "<hex>", ...}`
+fn read_salt_from_keystore(keystore_path: &Path) -> Result<Vec<u8>, String> {
+    let raw = std::fs::read_to_string(keystore_path)
+        .map_err(|e| format!("keystore.json read failed: {e}"))?;
+    let val: serde_json::Value =
+        serde_json::from_str(&raw).map_err(|e| format!("keystore.json parse failed: {e}"))?;
+    let salt_hex = val["salt_hex"]
+        .as_str()
+        .ok_or_else(|| "keystore.json missing salt_hex".to_string())?;
+    hex_decode_simple(salt_hex).map_err(|e| format!("salt_hex decode failed: {e}"))
+}
+
+/// 簡易 hex decode（僅供內部 keystore 讀取用）。
+fn hex_decode_simple(s: &str) -> Result<Vec<u8>, String> {
+    if s.len() % 2 != 0 {
+        return Err("odd length hex string".to_string());
+    }
+    let mut out = Vec::with_capacity(s.len() / 2);
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i < bytes.len() {
+        let h = (bytes[i] as char)
+            .to_digit(16)
+            .ok_or_else(|| format!("invalid hex char at {i}"))?;
+        let l = (bytes[i + 1] as char)
+            .to_digit(16)
+            .ok_or_else(|| format!("invalid hex char at {}", i + 1))?;
+        out.push(((h << 4) | l) as u8);
+        i += 2;
+    }
+    Ok(out)
+}
+
 /// Stage 4: 以主密碼解鎖 keystore 取得 sqlcipher key，再開啟 DB 並套用 PRAGMA key。
 pub fn open_encrypted_connection(path: &Path, password: &str) -> Result<Connection, DbError> {
     let keystore_path = path
@@ -221,6 +292,126 @@ pub(crate) mod tests {
 
         drop(conn2);
         let _ = std::fs::remove_file(&path);
+    }
+
+    /// Stage 6.1 測試：open_with_master_password 正確密碼可讀取資料。
+    #[test]
+    fn open_with_master_password_succeeds() {
+        use crate::crypto::master_password::derive_master_key;
+
+        let path = tmp_db_path("stage6-open");
+        let _ = std::fs::remove_file(&path);
+        let keystore_path = path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join(format!(
+                "keystore-stage6-{}.json",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+        let _ = std::fs::remove_file(&keystore_path);
+
+        // 準備：用 argon2id 從 password derive key，建立 encrypted db
+        let password = "correct-horse-battery-staple";
+        let salt = [0xB3u8; 16];
+        let derived_key = derive_master_key(password, &salt).expect("derive key");
+
+        // 寫入 keystore.json（只需要 salt_hex，open_with_master_password 只讀 salt）
+        let keystore_content = serde_json::json!({
+            "salt_hex": hex_encode(&salt),
+            "vault_master_ciphertext_hex": "",
+            "vault_master_nonce_hex": ""
+        });
+        std::fs::write(
+            &keystore_path,
+            serde_json::to_string_pretty(&keystore_content).unwrap(),
+        )
+        .expect("write keystore");
+
+        // 建立用 derived_key 加密的 DB
+        {
+            let conn = Connection::open(&path).expect("create db");
+            let key_spec = format!("x'{}'", hex_encode(&derived_key));
+            conn.pragma_update(None, "key", key_spec.as_str()).unwrap();
+            conn.execute_batch("CREATE TABLE probe (v INTEGER);").unwrap();
+            conn.execute("INSERT INTO probe VALUES (99)", []).unwrap();
+        }
+
+        // 實際用 open_with_master_password 開啟，keystore_path 與 db path 同目錄
+        // 為了讓函數找到正確的 keystore.json，建立一個 symlink 或直接用同目錄測試
+        // 這裡我們繞過：把 keystore_path 的 parent 對齊到 db 的 parent，
+        // 因為 open_with_master_password 固定找 parent/keystore.json，
+        // 所以用標準的 keystore.json 路徑（db 同目錄）
+        let std_keystore = path
+            .parent()
+            .unwrap()
+            .join("keystore.json");
+        std::fs::write(
+            &std_keystore,
+            serde_json::to_string_pretty(&keystore_content).unwrap(),
+        )
+        .expect("write std keystore");
+
+        let conn = open_with_master_password(&path, password).expect("open with master password");
+        let v: i64 = conn
+            .query_row("SELECT v FROM probe", [], |r| r.get(0))
+            .expect("read probe");
+        assert_eq!(v, 99, "應該讀到剛寫入的資料");
+
+        drop(conn);
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(&keystore_path);
+        let _ = std::fs::remove_file(&std_keystore);
+    }
+
+    /// Stage 6.1 測試：用錯誤密碼開啟加密 DB 應回傳 error。
+    #[test]
+    fn open_without_unlock_returns_locked_error() {
+        use crate::crypto::master_password::derive_master_key;
+
+        let path = tmp_db_path("stage6-wrong-pw");
+        let _ = std::fs::remove_file(&path);
+
+        let correct_password = "correct-password-123";
+        let wrong_password = "wrong-password-456";
+        let salt = [0xC7u8; 16];
+        let derived_key = derive_master_key(correct_password, &salt).expect("derive key");
+
+        // 建立 keystore.json（salt 對應 correct_password）
+        let std_keystore = path.parent().unwrap().join("keystore.json");
+        let keystore_content = serde_json::json!({
+            "salt_hex": hex_encode(&salt),
+            "vault_master_ciphertext_hex": "",
+            "vault_master_nonce_hex": ""
+        });
+        std::fs::write(
+            &std_keystore,
+            serde_json::to_string_pretty(&keystore_content).unwrap(),
+        )
+        .expect("write keystore");
+
+        // 建立用 correct_password 加密的 DB
+        {
+            let conn = Connection::open(&path).expect("create db");
+            let key_spec = format!("x'{}'", hex_encode(&derived_key));
+            conn.pragma_update(None, "key", key_spec.as_str()).unwrap();
+            conn.execute_batch("CREATE TABLE t (id INTEGER);").unwrap();
+        }
+
+        // 用 wrong_password 開啟應失敗
+        let result = open_with_master_password(&path, wrong_password);
+        assert!(result.is_err(), "錯誤密碼應回傳 error");
+        let err = result.unwrap_err();
+        assert!(
+            err.code == "wrong_password" || err.code == "key_derive_failed" || err.code == "sqlite_unlock_failed",
+            "error code 應為 wrong_password 或相關加密錯誤，實際：{}",
+            err.code
+        );
+
+        let _ = std::fs::remove_file(&path);
+        let _ = std::fs::remove_file(&std_keystore);
     }
 
     #[test]
