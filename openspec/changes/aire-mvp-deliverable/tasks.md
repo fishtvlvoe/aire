@@ -12,9 +12,9 @@
 
 ## 3. App Shell（sidebar + topbar + layout）
 
-- [ ] 3.1 建立 src/components/AppSidebar.tsx：用 ST Button + lucide-react icons 渲染導航項（案件管理 /cases、品牌設定 /settings/branding、日誌 /settings/logs），desktop 固定左側 240px 寬，當前路由 active 狀態高亮。驗證：元件 TypeScript 編譯通過，導航項渲染三個連結。對應 spec: sidebar-navigation，design D1: App Shell 架構 — Next.js nested layout + 自建 sidebar 元件。 [Tool: copilot]
-- [ ] 3.2 建立 src/components/AppTopbar.tsx：顯示當前頁面標題，viewport ≤ 768px 時顯示漢堡按鈕（觸發 sidebar Sheet 開啟）。驗證：元件 TypeScript 編譯通過。對應 spec: topbar-display，design D1: App Shell 架構。 [Tool: copilot]
-- [ ] 3.3 建立 src/app/(dashboard)/layout.tsx：組合 AppSidebar + AppTopbar + children content area，mobile 用 ST Sheet 包裹 sidebar。驗證：`pnpm build` 零錯誤，/cases 路由渲染時左側有 sidebar、頂部有 topbar。對應 spec: layout-wrapper，design D1: App Shell 架構。Behavior: 已授權使用者進入 dashboard 時看到 sidebar + topbar。Interface / Data Shape: Sidebar 導航項硬編碼陣列。Failure Modes: Tauri IPC 不可用時不阻擋 layout 渲染。Acceptance Criteria: pnpm build 零錯誤 + sidebar 在 desktop > 768px 固定顯示。Scope Boundaries: 不修改 Rust 後端。 [Tool: copilot]
+- [x] 3.1 建立 src/components/AppSidebar.tsx：用 ST Button + lucide-react icons 渲染導航項（案件管理 /cases、品牌設定 /settings/branding、日誌 /settings/logs），desktop 固定左側 240px 寬，當前路由 active 狀態高亮。驗證：元件 TypeScript 編譯通過，導航項渲染三個連結。對應 spec: sidebar-navigation，design D1: App Shell 架構 — Next.js nested layout + 自建 sidebar 元件。 [Tool: copilot]
+- [x] 3.2 建立 src/components/AppTopbar.tsx：顯示當前頁面標題，viewport ≤ 768px 時顯示漢堡按鈕（觸發 sidebar Sheet 開啟）。驗證：元件 TypeScript 編譯通過。對應 spec: topbar-display，design D1: App Shell 架構。 [Tool: copilot]
+- [x] 3.3 建立 src/app/(dashboard)/layout.tsx：組合 AppSidebar + AppTopbar + children content area，mobile 用 ST Sheet 包裹 sidebar。驗證：`pnpm build` 零錯誤，/cases 路由渲染時左側有 sidebar、頂部有 topbar。對應 spec: layout-wrapper，design D1: App Shell 架構。Behavior: 已授權使用者進入 dashboard 時看到 sidebar + topbar。Interface / Data Shape: Sidebar 導航項硬編碼陣列。Failure Modes: Tauri IPC 不可用時不阻擋 layout 渲染。Acceptance Criteria: pnpm build 零錯誤 + sidebar 在 desktop > 768px 固定顯示。Scope Boundaries: 不修改 Rust 後端。 [Tool: copilot]
 
 ## 4. 授權啟動流程
 
