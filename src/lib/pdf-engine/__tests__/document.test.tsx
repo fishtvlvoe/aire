@@ -87,16 +87,15 @@ describe("PdfDocument — 土地版", () => {
 
 describe("PdfDocument — 建物版", () => {
   it(
-    "System SHALL render 建物版 placeholder for property_type = 'building'",
+    "System SHALL render 建物版 as a full 7-page document for property_type = 'building'",
     async () => {
-      // 🔴 RED: 同上，props 介面不符
       const element = React.createElement(PdfDocument, {
         data: buildingData,
         themeId: "theme-a-minimal",
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const blob = await pdf(element as any).toBlob();
-      expect(blob.size).toBeGreaterThan(0);
+      expect(blob.size).toBeGreaterThan(1000);
     },
   );
 });

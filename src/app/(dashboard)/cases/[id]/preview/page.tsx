@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { PdfPreviewer } from "@/components/PdfPreviewer";
 import {
   casesApi,
@@ -9,6 +9,7 @@ import {
   type CaseRow,
 } from "@/lib/cases-api";
 import type { CaseDossierData } from "@/lib/pdf-engine/engine";
+import { assembleDossierData } from "@/lib/pdf-engine/assemble-dossier-data";
 import { resolveThemeOrFallback } from "@/lib/pdf-themes/registry";
 import { BRANDING_CHANGED_EVENT } from "@/lib/pdf-themes/persistence";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export default function CasePreviewPage() {
   const [themeId, setThemeId] = useState("theme-a-minimal");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoBytes, setLogoBytes] = useState<number[] | undefined>(undefined);
+  const [caseDossierData, setCaseDossierData] = useState<CaseDossierData | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -79,13 +81,21 @@ export default function CasePreviewPage() {
           }),
         );
 
+        let resolvedLogoBytes: number[] | undefined;
         if (storedLogo?.bytes?.length && storedLogo.mime) {
           createdLogoUrl = bytesToObjectUrl(storedLogo.bytes, storedLogo.mime);
           setLogoUrl(createdLogoUrl);
           setLogoBytes(storedLogo.bytes);
+          resolvedLogoBytes = storedLogo.bytes;
         } else {
           setLogoUrl(null);
           setLogoBytes(undefined);
+        }
+
+        // 組裝完整 dossier data（含 IPC 呼叫）
+        const assembled = await assembleDossierData(row);
+        if (!cancelled) {
+          setCaseDossierData({ ...assembled, logoBytes: resolvedLogoBytes });
         }
       } catch (err) {
         if (!cancelled) {
@@ -101,20 +111,6 @@ export default function CasePreviewPage() {
       }
     };
   }, [id]);
-
-  const caseDossierData = useMemo((): CaseDossierData | undefined => {
-    if (!c) return undefined;
-    return {
-      caseNo: c.case_no ?? c.id.slice(0, 8),
-      address: c.address ?? "",
-      propertyType: c.property_type === "land" ? "land" : "building",
-      landLotNo: c.land_lot_no ?? "",
-      ownerName: c.owner_name ?? "",
-      companyName: "建安不動產",
-      generatedAt: new Date().toLocaleDateString("zh-TW"),
-      logoBytes,
-    };
-  }, [c, logoBytes]);
 
   if (error && !c) {
     return (
