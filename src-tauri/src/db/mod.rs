@@ -415,7 +415,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn open_with_master_password() {
+    fn open_with_master_password_via_keystore() {
         let path = tmp_db_path("master-open");
         let _ = std::fs::remove_file(&path);
         let keystore_path = path
