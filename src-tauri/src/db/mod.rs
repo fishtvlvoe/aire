@@ -8,6 +8,7 @@
 // - submodules: cases, drafts, settings
 
 use rusqlite::Connection;
+use sha2::{Digest, Sha256};
 use std::path::Path;
 
 pub mod cases;
@@ -119,6 +120,51 @@ fn hex_encode(bytes: &[u8]) -> String {
     s
 }
 
+fn password_verifier_hex(derived_key: &[u8; 32], salt: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(b"AIRE_MASTER_PASSWORD_VERIFIER_V1");
+    hasher.update(salt);
+    hasher.update(derived_key);
+    hex_encode(&hasher.finalize())
+}
+
+fn read_keystore_value(path: &Path) -> Result<serde_json::Value, DbError> {
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| DbError::new("keystore_read_failed", format!("keystore.json read failed: {e}")))?;
+    serde_json::from_str::<serde_json::Value>(&raw)
+        .map_err(|e| DbError::new("keystore_read_failed", format!("keystore.json parse failed: {e}")))
+}
+
+fn write_keystore_value(path: &Path, value: &serde_json::Value) -> Result<(), DbError> {
+    let body = serde_json::to_string_pretty(value)
+        .map_err(|e| DbError::new("keystore_write_failed", format!("keystore.json serialize failed: {e}")))?;
+    std::fs::write(path, body)
+        .map_err(|e| DbError::new("keystore_write_failed", format!("keystore.json write failed: {e}")))
+}
+
+fn has_any_user_row(conn: &Connection) -> Result<bool, DbError> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT name FROM sqlite_master \
+             WHERE type='table' AND name NOT LIKE 'sqlite_%' \
+             ORDER BY name",
+        )
+        .map_err(DbError::from)?;
+    let table_names = stmt
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(DbError::from)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(DbError::from)?;
+
+    for name in table_names {
+        let sql = format!("SELECT 1 FROM \"{}\" LIMIT 1", name.replace('"', "\"\""));
+        if conn.query_row(&sql, [], |row| row.get::<_, i64>(0)).is_ok() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 /// Stage 6: 直接從 master password 用 argon2id derive sqlcipher key 並開啟 DB。
 ///
 /// 適用場景：DB 本身已用 argon2id-derived key 加密（非 keystore.json 間接路徑）。
@@ -137,6 +183,7 @@ pub fn open_with_master_password(path: &Path, password: &str) -> Result<Connecti
 
     let salt = read_salt_from_keystore(&keystore_path)
         .map_err(|e| DbError::new("keystore_read_failed", e.to_string()))?;
+    let mut keystore_json = read_keystore_value(&keystore_path)?;
 
     // argon2id 從 password + salt derive 32-byte sqlcipher key
     let derived_key = derive_master_key(password, &salt)
@@ -151,6 +198,44 @@ pub fn open_with_master_password(path: &Path, password: &str) -> Result<Connecti
     // 驗證 key 是否正確（讀 user_version 是最輕量的探針）
     conn.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))
         .map_err(|_| DbError::new("wrong_password", "wrong master password or corrupted db"))?;
+
+    let expected_verifier = keystore_json
+        .get("master_password_verifier_hex")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let actual_verifier = password_verifier_hex(&derived_key, &salt);
+
+    match expected_verifier {
+        Some(expected) => {
+            if expected != actual_verifier {
+                return Err(DbError::new(
+                    "wrong_password",
+                    "wrong master password or corrupted db",
+                ));
+            }
+        }
+        None => {
+            // In non-SQLCipher builds, PRAGMA key is a no-op. Require at least one readable data row
+            // before trusting this password for first-time verifier bootstrap.
+            if !has_any_user_row(&conn)? {
+                return Err(DbError::new(
+                    "wrong_password",
+                    "wrong master password or missing verifier on empty db",
+                ));
+            }
+            let obj = keystore_json.as_object_mut().ok_or_else(|| {
+                DbError::new(
+                    "keystore_read_failed",
+                    "keystore.json root must be an object",
+                )
+            })?;
+            obj.insert(
+                "master_password_verifier_hex".to_string(),
+                serde_json::Value::String(actual_verifier),
+            );
+            write_keystore_value(&keystore_path, &keystore_json)?;
+        }
+    }
 
     Ok(conn)
 }

@@ -30,7 +30,7 @@ impl std::fmt::Debug for RecoveryCode {
 
 impl std::fmt::Display for RecoveryCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("[REDACTED]")
+        f.write_str(&self.0)
     }
 }
 
