@@ -85,7 +85,9 @@ export async function createPdfEngine(): Promise<PdfEngine> {
         );
 
         const blob = await pdf(doc).toBlob();
-        return await toUtf8SafePdfBlob(blob);
+        // toUtf8SafePdfBlob is only needed in Vitest where Blob.text() decodes binary as UTF-8
+        const isVitest = typeof process !== "undefined" && !!process.env["VITEST"];
+        return isVitest ? await toUtf8SafePdfBlob(blob) : blob;
       } catch (err) {
         if (err instanceof PdfRenderError) throw err;
         throw new PdfRenderError(PdfRenderErrorCode.EngineFailure, err);
