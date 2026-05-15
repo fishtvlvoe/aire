@@ -405,7 +405,7 @@ describe("MockStore", () => {
     const list = await store.invoke<Array<{ id: string }>>("list_cases");
     expect(list).toHaveLength(2);
     expect(warnSpy).toHaveBeenCalledWith(
-      "[mock-backend] localStorage parse error, using SEED_CASES",
+      "[mock-backend] localStorage parse error, cleared and using SEED_CASES",
     );
     warnSpy.mockRestore();
   });

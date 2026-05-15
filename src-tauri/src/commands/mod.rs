@@ -12,3 +12,4 @@ pub mod drafts;
 pub mod license;
 pub mod log;
 pub mod pdf;
+pub mod real_price;

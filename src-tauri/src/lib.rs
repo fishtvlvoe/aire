@@ -23,6 +23,8 @@ pub mod realtor_license;
 pub mod secrets;
 pub mod startup;
 
+pub mod mcp_client;
+
 // Phase 3：land_registry
 pub mod land_registry;
 
@@ -245,6 +247,7 @@ pub fn run() {
             commands::drafts::get_draft,
             commands::pdf::export_pdf,
             commands::log::list_recent_logs,
+            commands::real_price::query_real_price,
             branding::save_logo,
             branding::load_logo,
             branding::delete_logo,

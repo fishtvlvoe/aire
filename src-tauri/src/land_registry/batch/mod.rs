@@ -2,10 +2,7 @@ use crate::land_registry::cache::LandRegistryCache;
 use crate::land_registry::errors::LandRegistryError;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[derive(Debug, Clone)]
 pub struct BatchItem {
@@ -61,6 +58,10 @@ impl BatchResult {
 
     pub fn is_from_chunk_dispatch(&self) -> bool {
         self.from_chunk_dispatch
+    }
+
+    pub fn value(&self) -> Option<&Value> {
+        self.value.as_ref()
     }
 }
 

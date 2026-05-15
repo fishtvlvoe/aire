@@ -1,6 +1,5 @@
 "use client";
 
-import "@testing-library/jest-dom/vitest";
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";

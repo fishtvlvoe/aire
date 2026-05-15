@@ -1089,7 +1089,8 @@ export class MockStore {
       }
     } catch {
       this.cases = new Map(SEED_CASES.map((row) => [row.id, { ...row }]));
-      console.warn("[mock-backend] localStorage parse error, using SEED_CASES");
+      getBrowserLocalStorage()?.removeItem(MOCK_STORAGE_KEY);
+      console.warn("[mock-backend] localStorage parse error, cleared and using SEED_CASES");
     }
   }
 

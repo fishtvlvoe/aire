@@ -1,6 +1,5 @@
 "use client";
 
-import "@testing-library/jest-dom/vitest";
 import { useMemo, useState } from "react";
 import { Palette } from "lucide-react";
 import { listThemes } from "@/lib/pdf-themes/registry";
