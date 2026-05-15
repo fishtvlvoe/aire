@@ -18,14 +18,14 @@
 
 ## Group 4: 設定頁元件（可並行）
 
-- [ ] 4.1 [Tool: Codex] TDD 紅燈：為 LicenseSection 寫失敗測試，驗證 spec "License status display" 和 "License deactivation with confirmation" 的所有場景（未啟用/啟用成功/啟用失敗/停用確認/停用取消）。驗證：測試存在且全部 fail。
-- [ ] 4.2 [P] [Tool: Codex] 建立 `src/components/settings/LicenseSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的序號管理區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（shadcn Card + Input + Button + Badge + AlertDialog + lucide-react icons）和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"（三態 loading/empty/error + 破壞性操作二次確認 Dialog）。滿足 Observable Behavior 第 4 點和 Scope Boundaries。驗證：Group 4.1 紅燈測試全部變綠。
-- [ ] 4.3 [Tool: Codex] TDD 紅燈：為 LandApiSection 寫失敗測試，驗證 spec "Land API credentials input and save" 和 "Connection test" 的所有場景（儲存/空欄位禁用/連線成功/連線失敗）。驗證：測試存在且全部 fail。
-- [ ] 4.4 [P] [Tool: Codex] 建立 `src/components/settings/LandApiSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的地政 API 設定區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token" 和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"。包含 Client ID + 安全碼（password）+ 儲存 + 測試連線 + 說明連結 + YouTube 預留區。實作三態。滿足 Observable Behavior 第 5 點。驗證：Group 4.3 紅燈測試全部變綠。
-- [ ] 4.5 [Tool: Codex] TDD 紅燈：為 PremiumUnlockSection 寫失敗測試，驗證 spec "Premium unlock section display" 的所有場景（未訂閱/訂閱跳轉/已訂閱）。驗證：測試存在且全部 fail。
-- [ ] 4.6 [P] [Tool: Codex] 建立 `src/components/settings/PremiumUnlockSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的進階功能解鎖區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token" 和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"。未訂閱：說明 + 價格 + CTA；已訂閱：Badge + 方案名 + 到期日 + 管理連結。滿足 Observable Behavior 第 6 點。驗證：Group 4.5 紅燈測試全部變綠。
-- [ ] 4.7 [Tool: Codex] TDD 紅燈：為 DevSuperAdmin 寫失敗測試，驗證 spec "Developer Super Admin panel visibility" 和 "Feature flags management" 場景。特別驗證 production 環境不渲染。驗證：測試存在且全部 fail。
-- [ ] 4.8 [P] [Tool: Codex] 建立 `src/components/settings/DevSuperAdmin.tsx`，滿足 design "D6: 開發環境 Super Admin — DevSuperAdmin 元件"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"。顯示 feature flags toggle list，條件渲染僅 development。滿足 Observable Behavior 第 9 點和 Acceptance Criteria 中 DevSuperAdmin 不渲染條件。驗證：Group 4.7 紅燈測試全部變綠。
+- [x] 4.1 [Tool: Codex] TDD 紅燈：為 LicenseSection 寫失敗測試，驗證 spec "License status display" 和 "License deactivation with confirmation" 的所有場景（未啟用/啟用成功/啟用失敗/停用確認/停用取消）。驗證：測試存在且全部 fail。
+- [x] 4.2 [P] [Tool: Codex] 建立 `src/components/settings/LicenseSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的序號管理區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（shadcn Card + Input + Button + Badge + AlertDialog + lucide-react icons）和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"（三態 loading/empty/error + 破壞性操作二次確認 Dialog）。滿足 Observable Behavior 第 4 點和 Scope Boundaries。驗證：Group 4.1 紅燈測試全部變綠。
+- [x] 4.3 [Tool: Codex] TDD 紅燈：為 LandApiSection 寫失敗測試，驗證 spec "Land API credentials input and save" 和 "Connection test" 的所有場景（儲存/空欄位禁用/連線成功/連線失敗）。驗證：測試存在且全部 fail。
+- [x] 4.4 [P] [Tool: Codex] 建立 `src/components/settings/LandApiSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的地政 API 設定區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token" 和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"。包含 Client ID + 安全碼（password）+ 儲存 + 測試連線 + 說明連結 + YouTube 預留區。實作三態。滿足 Observable Behavior 第 5 點。驗證：Group 4.3 紅燈測試全部變綠。
+- [x] 4.5 [Tool: Codex] TDD 紅燈：為 PremiumUnlockSection 寫失敗測試，驗證 spec "Premium unlock section display" 的所有場景（未訂閱/訂閱跳轉/已訂閱）。驗證：測試存在且全部 fail。
+- [x] 4.6 [P] [Tool: Codex] 建立 `src/components/settings/PremiumUnlockSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的進階功能解鎖區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token" 和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"。未訂閱：說明 + 價格 + CTA；已訂閱：Badge + 方案名 + 到期日 + 管理連結。滿足 Observable Behavior 第 6 點。驗證：Group 4.5 紅燈測試全部變綠。
+- [x] 4.7 [Tool: Codex] TDD 紅燈：為 DevSuperAdmin 寫失敗測試，驗證 spec "Developer Super Admin panel visibility" 和 "Feature flags management" 場景。特別驗證 production 環境不渲染。驗證：測試存在且全部 fail。
+- [x] 4.8 [P] [Tool: Codex] 建立 `src/components/settings/DevSuperAdmin.tsx`，滿足 design "D6: 開發環境 Super Admin — DevSuperAdmin 元件"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"。顯示 feature flags toggle list，條件渲染僅 development。滿足 Observable Behavior 第 9 點和 Acceptance Criteria 中 DevSuperAdmin 不渲染條件。驗證：Group 4.7 紅燈測試全部變綠。
 
 ## Group 5: 設定頁整合 + Session Guard
 
