@@ -7,8 +7,8 @@
 
 ## 2. ST 元件引入
 
-- [ ] [P] 2.1 從 ST @repo/ui 複製必要元件（button、input、select、form、label、card、dialog、sheet、table、badge、toast、tabs、textarea、skeleton、spinner）到 src/components/ui/ 目錄，保留 shadcn/ui 命名慣例。驗證：每個元件檔案存在且 TypeScript 編譯無錯誤。對應 design D4: ST 元件引入 — 直接複製到 AIRE。 [Tool: copilot]
-- [ ] [P] 2.2 更新 tailwind.config.ts 的 content 掃描路徑包含 src/components/ui/，確認 ST 元件的 utility class 正確生效。安裝 ST 元件的 peer dependencies（class-variance-authority、clsx、tailwind-merge、lucide-react）。驗證：`pnpm build` 零錯誤。對應 design D4: ST 元件引入 — 直接複製到 AIRE。 [Tool: copilot]
+- [x] [P] 2.1 從 ST @repo/ui 複製必要元件（button、input、select、form、label、card、dialog、sheet、table、badge、toast、tabs、textarea、skeleton、spinner）到 src/components/ui/ 目錄，保留 shadcn/ui 命名慣例。驗證：每個元件檔案存在且 TypeScript 編譯無錯誤。對應 design D4: ST 元件引入 — 直接複製到 AIRE。 [Tool: copilot]
+- [x] [P] 2.2 更新 tailwind.config.ts 的 content 掃描路徑包含 src/components/ui/，確認 ST 元件的 utility class 正確生效。安裝 ST 元件的 peer dependencies（class-variance-authority、clsx、tailwind-merge、lucide-react）。驗證：`pnpm build` 零錯誤。對應 design D4: ST 元件引入 — 直接複製到 AIRE。 [Tool: copilot]
 
 ## 3. App Shell（sidebar + topbar + layout）
 
