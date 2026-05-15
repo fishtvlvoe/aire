@@ -60,7 +60,7 @@ export function DisclosureFormLand({
   const [completing, setCompleting] = useState(false);
   // #1d Stage 7.3 — 經紀人證號 local state（未納入 zod schema，僅進 autosave payload）
   const [realtorLicenseNumber, setRealtorLicenseNumber] = useState<string>("");
-  const [realtorLicenseVerificationStatus] =
+  const [realtorLicenseVerificationStatus, setRealtorLicenseVerificationStatus] =
     useState<RealtorLicenseVerificationStatus>(null);
 
   const form = useForm<LandPayload>({
@@ -137,6 +137,18 @@ export function DisclosureFormLand({
         <RealtorLicenseField
           initialValue={realtorLicenseNumber}
           onChange={setRealtorLicenseNumber}
+          onVerificationChange={(state) => {
+            if (state === null) {
+              // 清空輸入，重置驗證狀態
+              setRealtorLicenseVerificationStatus(null);
+            } else if (state.source === "offline" && !state.verifiedAt) {
+              // 離線且無 cache
+              setRealtorLicenseVerificationStatus("offline");
+            } else {
+              // fresh 或 offline+cache，直接用 status
+              setRealtorLicenseVerificationStatus(state.status);
+            }
+          }}
         />
       </section>
 
