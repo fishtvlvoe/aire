@@ -15,6 +15,7 @@ import {
   type PdfEngine,
   type RenderOptions,
 } from "../engine";
+import type { CaseDossierData } from "../document";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RPE-001：NotoSansTC 字型必須在 engine 初始化時自動 register
@@ -139,5 +140,35 @@ describe("RPE-007 — @react-pdf/renderer v4 version lock", () => {
       (pkg as unknown as { dependencies: Record<string, string> }).dependencies?.["@react-pdf/renderer"] ?? "";
 
     expect(version).toMatch(/^[\^~]?4\./);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RPE-008：renderDossier 接受 CaseDossierData 並回傳 Blob > 1 KB
+// Task 1.4：紅燈測試 — renderDossier 尚未存在，此測試 MUST 失敗
+// 覆蓋：「Engine render function SHALL accept themeId and render PdfDocument」
+//       「RenderOptions SHALL be extended with optional caseData and themeId fields」
+// ─────────────────────────────────────────────────────────────────────────────
+describe("RPE-008 — renderDossier returns Blob > 1 KB for land CaseDossierData", () => {
+  const validLandData: CaseDossierData = {
+    caseNo: "AIRE-2026-TEST",
+    address: "新北市板橋區文化路一段188號",
+    propertyType: "land",
+    landLotNo: "磁二小段88-1",
+    ownerName: "林大仁",
+    companyName: "建安不動產",
+    generatedAt: "2026/05/15",
+  };
+
+  it("renderDossier({ data, themeId }) 解析為 Blob，size > 1000 bytes", async () => {
+    const engine = await createPdfEngine();
+    // ❌ renderDossier 尚未實作 — 紅燈
+    const blob = await (engine as PdfEngine & { renderDossier: (opts: { data: CaseDossierData; themeId: string }) => Promise<Blob> }).renderDossier({
+      data: validLandData,
+      themeId: "theme-a-minimal",
+    });
+
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.size).toBeGreaterThan(1000);
   });
 });
