@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   MockStore,
@@ -52,7 +52,7 @@ describe("MockStore", () => {
     if (originalLocalStorage) {
       Object.defineProperty(window, "localStorage", originalLocalStorage);
     } else {
-      delete (window as Window & { localStorage?: Storage }).localStorage;
+      Reflect.deleteProperty(window, "localStorage");
     }
   });
 
@@ -264,6 +264,71 @@ describe("MockStore", () => {
     });
   });
 
+  it("returns default land api settings", async () => {
+    await expect(mockInvoke("get_land_api_settings")).resolves.toEqual({
+      clientId: "",
+      secret: "",
+    });
+  });
+
+  it("saves and gets land api settings", async () => {
+    await expect(
+      mockInvoke("save_land_api_settings", {
+        clientId: "land-client",
+        secret: "land-secret",
+      }),
+    ).resolves.toEqual({ success: true });
+
+    await expect(mockInvoke("get_land_api_settings")).resolves.toEqual({
+      clientId: "land-client",
+      secret: "land-secret",
+    });
+  });
+
+  it("tests land api connection", async () => {
+    const result = await mockInvoke<{ success: boolean; latency_ms: number }>(
+      "test_land_api_connection",
+    );
+    expect(result.success).toBe(true);
+    expect(result.latency_ms).toBeGreaterThan(0);
+  });
+
+  it("returns default premium status", async () => {
+    await expect(mockInvoke("get_premium_status")).resolves.toEqual({
+      subscribed: false,
+      plan: null,
+      expires_at: null,
+    });
+  });
+
+  it("returns premium subscribe redirect url", async () => {
+    await expect(mockInvoke("subscribe_premium")).resolves.toEqual({
+      redirect_url: "https://opcos.tw/checkout/mcp-hub",
+    });
+  });
+
+  it("returns default feature flags", async () => {
+    await expect(mockInvoke("get_feature_flags")).resolves.toEqual([
+      { id: "premium-unlock", name: "進階功能解鎖", enabled: false },
+      { id: "mcp-hub", name: "MCP Hub", enabled: false },
+      { id: "land-registry-api", name: "地政 API", enabled: true },
+    ]);
+  });
+
+  it("toggles feature flag enabled state", async () => {
+    await expect(
+      mockInvoke("toggle_feature_flag", {
+        id: "mcp-hub",
+      }),
+    ).resolves.toEqual({ success: true, enabled: true });
+
+    await expect(
+      mockInvoke<Array<{ id: string; enabled: boolean }>>("get_feature_flags"),
+    ).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "mcp-hub", enabled: true })]),
+    );
+  });
+
   it("persists and restores session + app settings via localStorage", async () => {
     await mockInvoke("login", {
       email: "admin@test.aire",
@@ -283,6 +348,21 @@ describe("MockStore", () => {
       license: { status: "valid", serialKey: "AIRE-TEST-VALID-001" },
       landApi: { clientId: "persist-client", secret: "persist-secret" },
       premiumUnlocked: false,
+    });
+  });
+
+  it("persists land api settings via localStorage", async () => {
+    await expect(
+      mockInvoke("save_land_api_settings", {
+        clientId: "persisted-client-id",
+        secret: "persisted-secret",
+      }),
+    ).resolves.toEqual({ success: true });
+
+    const reloaded = new MockStore();
+    await expect(reloaded.invoke("get_land_api_settings")).resolves.toEqual({
+      clientId: "persisted-client-id",
+      secret: "persisted-secret",
     });
   });
 

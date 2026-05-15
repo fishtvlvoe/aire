@@ -39,13 +39,25 @@ interface AppSettingsState {
     clientId: string;
     secret: string;
   };
+  premium: {
+    subscribed: boolean;
+    plan: string | null;
+    expiresAt: string | null;
+  };
   premiumUnlocked: boolean;
+}
+
+interface FeatureFlagState {
+  id: string;
+  name: string;
+  enabled: boolean;
 }
 
 interface PersistedMockState {
   license?: LicenseState;
   sessionUser?: MockSessionUser | null;
   appSettings?: AppSettingsState;
+  featureFlags?: FeatureFlagState[];
 }
 
 const MOCK_STORAGE_KEY = "aire-mock-store";
@@ -76,8 +88,19 @@ const DEFAULT_APP_SETTINGS: AppSettingsState = {
     clientId: "",
     secret: "",
   },
+  premium: {
+    subscribed: false,
+    plan: null,
+    expiresAt: null,
+  },
   premiumUnlocked: false,
 };
+
+const DEFAULT_FEATURE_FLAGS: FeatureFlagState[] = [
+  { id: "premium-unlock", name: "進階功能解鎖", enabled: false },
+  { id: "mcp-hub", name: "MCP Hub", enabled: false },
+  { id: "land-registry-api", name: "地政 API", enabled: true },
+];
 
 const DEFAULT_THEMES = [
   {
@@ -258,8 +281,16 @@ export class MockStore {
       clientId: DEFAULT_APP_SETTINGS.landApi.clientId,
       secret: DEFAULT_APP_SETTINGS.landApi.secret,
     },
+    premium: {
+      subscribed: DEFAULT_APP_SETTINGS.premium.subscribed,
+      plan: DEFAULT_APP_SETTINGS.premium.plan,
+      expiresAt: DEFAULT_APP_SETTINGS.premium.expiresAt,
+    },
     premiumUnlocked: DEFAULT_APP_SETTINGS.premiumUnlocked,
   };
+  private featureFlags: FeatureFlagState[] = DEFAULT_FEATURE_FLAGS.map((flag) => ({
+    ...flag,
+  }));
 
   constructor() {
     this.reset();
@@ -285,8 +316,14 @@ export class MockStore {
         clientId: DEFAULT_APP_SETTINGS.landApi.clientId,
         secret: DEFAULT_APP_SETTINGS.landApi.secret,
       },
+      premium: {
+        subscribed: DEFAULT_APP_SETTINGS.premium.subscribed,
+        plan: DEFAULT_APP_SETTINGS.premium.plan,
+        expiresAt: DEFAULT_APP_SETTINGS.premium.expiresAt,
+      },
       premiumUnlocked: DEFAULT_APP_SETTINGS.premiumUnlocked,
     };
+    this.featureFlags = DEFAULT_FEATURE_FLAGS.map((flag) => ({ ...flag }));
   }
 
   async invoke<T>(cmd: string, args?: CommandArgs): Promise<T> {
@@ -311,6 +348,20 @@ export class MockStore {
           return this.getAppSettings() as T;
         case "save_app_settings":
           return this.saveAppSettings(args) as T;
+        case "get_land_api_settings":
+          return this.getLandApiSettings() as T;
+        case "save_land_api_settings":
+          return this.saveLandApiSettings(args) as T;
+        case "test_land_api_connection":
+          return (await this.testLandApiConnection()) as T;
+        case "get_premium_status":
+          return this.getPremiumStatus() as T;
+        case "subscribe_premium":
+          return this.subscribePremium() as T;
+        case "get_feature_flags":
+          return this.getFeatureFlags() as T;
+        case "toggle_feature_flag":
+          return this.toggleFeatureFlag(args) as T;
 
         case "list_cases":
           return this.listCases() as T;
@@ -511,6 +562,80 @@ export class MockStore {
     };
 
     return { success: true };
+  }
+
+  private getLandApiSettings(): { clientId: string; secret: string } {
+    return {
+      clientId: this.appSettings.landApi.clientId,
+      secret: this.appSettings.landApi.secret,
+    };
+  }
+
+  private saveLandApiSettings(args?: CommandArgs): { success: true } {
+    const payload = toRecord(args);
+    const clientIdRaw = payload.clientId ?? payload.client_id;
+    const secretRaw = payload.secret;
+
+    if (typeof clientIdRaw === "string") {
+      this.appSettings.landApi.clientId = clientIdRaw;
+    }
+
+    if (typeof secretRaw === "string") {
+      this.appSettings.landApi.secret = secretRaw;
+    }
+
+    return { success: true };
+  }
+
+  private async testLandApiConnection(): Promise<{
+    success: true;
+    latency_ms: number;
+  }> {
+    await new Promise((resolve) => {
+      setTimeout(resolve, 500);
+    });
+
+    return {
+      success: true,
+      latency_ms: Math.floor(Math.random() * 401) + 100,
+    };
+  }
+
+  private getPremiumStatus(): {
+    subscribed: boolean;
+    plan: string | null;
+    expires_at: string | null;
+  } {
+    return {
+      subscribed: this.appSettings.premium.subscribed,
+      plan: this.appSettings.premium.plan,
+      expires_at: this.appSettings.premium.expiresAt,
+    };
+  }
+
+  private subscribePremium(): { redirect_url: string } {
+    return { redirect_url: "https://opcos.tw/checkout/mcp-hub" };
+  }
+
+  private getFeatureFlags(): FeatureFlagState[] {
+    return this.featureFlags.map((flag) => ({ ...flag }));
+  }
+
+  private toggleFeatureFlag(args?: CommandArgs): { success: true; enabled: boolean } {
+    const payload = toRecord(args);
+    const id = pickString(payload, ["id"]);
+
+    if (!id) {
+      throw new Error("toggle_feature_flag requires id");
+    }
+
+    const target = this.featureFlags.find((flag) => flag.id === id);
+    if (!target) {
+      throw new Error(`Feature flag not found: ${id}`);
+    }
+
+    target.enabled = !target.enabled;
+    return { success: true, enabled: target.enabled };
   }
 
   private checkLicense(): { status: LicenseStatus; is_valid: boolean } {
@@ -850,8 +975,27 @@ export class MockStore {
             clientId: readString(landApi.clientId) ?? "",
             secret: readString(landApi.secret) ?? "",
           },
+          premium: {
+            subscribed: Boolean(toRecord(persistedSettings.premium).subscribed),
+            plan: readString(toRecord(persistedSettings.premium).plan),
+            expiresAt:
+              readString(toRecord(persistedSettings.premium).expiresAt) ??
+              readString(toRecord(persistedSettings.premium).expires_at),
+          },
           premiumUnlocked: Boolean(persistedSettings.premiumUnlocked),
         };
+      }
+
+      if (Array.isArray(parsed.featureFlags)) {
+        this.featureFlags = parsed.featureFlags
+          .filter(
+            (flag): flag is FeatureFlagState =>
+              Boolean(flag) &&
+              typeof flag.id === "string" &&
+              typeof flag.name === "string" &&
+              typeof flag.enabled === "boolean",
+          )
+          .map((flag) => ({ ...flag }));
       }
     } catch {
       // Ignore invalid/blocked localStorage in private mode.
@@ -872,8 +1016,14 @@ export class MockStore {
           clientId: this.appSettings.landApi.clientId,
           secret: this.appSettings.landApi.secret,
         },
+        premium: {
+          subscribed: this.appSettings.premium.subscribed,
+          plan: this.appSettings.premium.plan,
+          expiresAt: this.appSettings.premium.expiresAt,
+        },
         premiumUnlocked: this.appSettings.premiumUnlocked,
       },
+      featureFlags: this.featureFlags.map((flag) => ({ ...flag })),
     };
 
     try {
