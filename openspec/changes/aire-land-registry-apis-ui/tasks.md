@@ -20,13 +20,13 @@
 
 ## 4. 屋主授權 + 二次確認（Rust）
 
-- [ ] 4.1 新增 SQLite migration：`owner_consent_log` table（id, case_id, timestamp, user_email）（對應 D4: 屋主授權 — 前端強制 checkbox + 後端時戳紀錄: 屋主授權）。滿足 spec Consent logging 的 Consent recorded in database scenario（寫入 case_id + 當前 time-synced timestamp + user email）。驗證：migration up/down 可逆。[Tool: Codex]
-- [ ] 4.2 實作 consent 記錄 + Backend enforcement 邏輯：IPC `land_registry_record_consent(case_id)` 寫入 owner_consent_log（滿足 spec Mandatory consent before data pull）；`land_registry_pull_data` 執行前 check consent 存在，不存在 → ConsentRequired error（滿足 spec Backend enforcement 的 IPC rejects without consent scenario）。驗證：test — 無 consent record 呼叫 pull_data → ConsentRequired；有 record → 通過。[Tool: Codex]
+- [x] 4.1 新增 SQLite migration：`owner_consent_log` table（id, case_id, timestamp, user_email）（對應 D4: 屋主授權 — 前端強制 checkbox + 後端時戳紀錄: 屋主授權）。滿足 spec Consent logging 的 Consent recorded in database scenario（寫入 case_id + 當前 time-synced timestamp + user email）。驗證：migration up/down 可逆。[Tool: Codex]
+- [x] 4.2 實作 consent 記錄 + Backend enforcement 邏輯：IPC `land_registry_record_consent(case_id)` 寫入 owner_consent_log（滿足 spec Mandatory consent before data pull）；`land_registry_pull_data` 執行前 check consent 存在，不存在 → ConsentRequired error（滿足 spec Backend enforcement 的 IPC rejects without consent scenario）。驗證：test — 無 consent record 呼叫 pull_data → ConsentRequired；有 record → 通過。[Tool: Codex]
 
 ## 5. 主 pull_data IPC command
 
-- [ ] 5.1 實作 `land_registry_pull_data(parcel_id, api_ids)` IPC（對應 design observable behavior 第 2 點 + interface / data shape + failure modes + acceptance criteria）：檢查 API key（Failure Mode: ApiKeyNotConfigured → 前端導向設定頁）→ 檢查 consent（Failure Mode: ConsentRequired）→ 遍歷 api_ids 呼叫各 endpoint（含 Batch support，滿足 spec Batch support 的 Large batch split into chunks scenario）→ 記 billing_log → 回傳 PullResult（results map + total_cost）。失敗的 endpoint 在 results 中標 error，不中斷其他（Failure Mode: 網路斷線 → cache hit 回快取資料標示 cached，cache miss → 手填 fallback）。驗證：integration test — 3 支 API 中 1 支 mock 503 → PullResult 有 2 success + 1 error，billing_log 3 筆。[Tool: Codex]
-- [ ] 5.2 在 `src-tauri/src/main.rs` 註冊所有新 IPC commands（對應 design scope boundaries in-scope 項目）。驗證：cargo check 通過。[Tool: Codex]
+- [x] 5.1 實作 `land_registry_pull_data(parcel_id, api_ids)` IPC（對應 design observable behavior 第 2 點 + interface / data shape + failure modes + acceptance criteria）：檢查 API key（Failure Mode: ApiKeyNotConfigured → 前端導向設定頁）→ 檢查 consent（Failure Mode: ConsentRequired）→ 遍歷 api_ids 呼叫各 endpoint（含 Batch support，滿足 spec Batch support 的 Large batch split into chunks scenario）→ 記 billing_log → 回傳 PullResult（results map + total_cost）。失敗的 endpoint 在 results 中標 error，不中斷其他（Failure Mode: 網路斷線 → cache hit 回快取資料標示 cached，cache miss → 手填 fallback）。驗證：integration test — 3 支 API 中 1 支 mock 503 → PullResult 有 2 success + 1 error，billing_log 3 筆。[Tool: Codex]
+- [x] 5.2 在 `src-tauri/src/main.rs` 註冊所有新 IPC commands（對應 design scope boundaries in-scope 項目）。驗證：cargo check 通過。[Tool: Codex]
 
 ## 6. 前端 IPC wrapper + mock backend
 
