@@ -184,6 +184,17 @@ pub fn monthly_total(log: &BillingLog, prefix_yyyy_mm: &str) -> f64 {
         .unwrap_or(0.0)
 }
 
+pub fn monthly_count(log: &BillingLog, prefix_yyyy_mm: &str) -> usize {
+    log.entries
+        .lock()
+        .map(|v| {
+            v.iter()
+                .filter(|e| to_local_date(&e.timestamp).starts_with(prefix_yyyy_mm))
+                .count()
+        })
+        .unwrap_or(0)
+}
+
 pub fn available_balance(total_credit: f64, spent: f64) -> f64 {
     total_credit - spent
 }

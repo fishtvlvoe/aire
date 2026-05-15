@@ -44,6 +44,7 @@ mod tests {
                 LandRegistryError::AuthFailed { .. } => "auth_failed",
                 LandRegistryError::Network { .. } => "network",
                 LandRegistryError::InsufficientBalance { .. } => "insufficient_balance",
+                LandRegistryError::ApiKeyNotConfigured => "api_key_not_configured",
                 LandRegistryError::DiskFull { .. } => "disk_full",
                 LandRegistryError::TimeSkew { .. } => "time_skew",
                 LandRegistryError::MigrationFailed { .. } => "migration_failed",
