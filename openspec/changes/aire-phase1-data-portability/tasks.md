@@ -32,8 +32,8 @@
 
 ## 6. 既有 sqlcipher 接點 + 升級腳本
 
-- [ ] 6.1 改 `src-tauri/src/db/mod.rs` 的 `open_encrypted_connection()` 從「OS keychain 取 key」改成「呼叫 crypto::vault::unlock_with_master(password) 取 sqlcipher_key 後 PRAGMA key」。驗證：`cargo test db::tests::open_with_master_password_succeeds` 通過 + `cargo test db::tests::open_without_unlock_returns_locked_error` 通過。
-- [ ] 6.2 寫 `src-tauri/src/migrations/2026_05_master_password_rekey.rs` 升級腳本：偵測 keystore.json 不存在 + 既有 OS keychain 條目存在時，引導使用者首次設定主密碼，用既有 keychain key 解開 SQLite → 用新 sqlcipher_key PRAGMA rekey → 寫 keystore.json → 刪 keychain 條目；過程中先備份 SQLite 到 `db.sqlite.pre-rekey.bak`，腳本失敗自動還原。驗證：`cargo test migrations::rekey::tests::happy_path` 通過 + `failure_during_rekey_restores_backup` 通過（mock 失敗點觸發 rollback 後 db.sqlite 與備份 byte-for-byte 一致）。
+- [x] 6.1 改 `src-tauri/src/db/mod.rs` 的 `open_encrypted_connection()` 從「OS keychain 取 key」改成「呼叫 crypto::vault::unlock_with_master(password) 取 sqlcipher_key 後 PRAGMA key」。驗證：`cargo test db::tests::open_with_master_password_succeeds` 通過 + `cargo test db::tests::open_without_unlock_returns_locked_error` 通過。
+- [x] 6.2 寫 `src-tauri/src/migrations/2026_05_master_password_rekey.rs` 升級腳本：偵測 keystore.json 不存在 + 既有 OS keychain 條目存在時，引導使用者首次設定主密碼，用既有 keychain key 解開 SQLite → 用新 sqlcipher_key PRAGMA rekey → 寫 keystore.json → 刪 keychain 條目；過程中先備份 SQLite 到 `db.sqlite.pre-rekey.bak`，腳本失敗自動還原。驗證：`cargo test migrations::rekey::tests::happy_path` 通過 + `failure_during_rekey_restores_backup` 通過（mock 失敗點觸發 rollback 後 db.sqlite 與備份 byte-for-byte 一致）。
 
 ## 7. E2E + 驗收
 
