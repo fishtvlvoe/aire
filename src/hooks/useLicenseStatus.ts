@@ -16,8 +16,12 @@ export function useLicenseStatus() {
         else if (result.status === "expired") setStatus("expired");
         else setStatus("none");
       } catch {
-        // Tauri IPC 不可用（瀏覽器環境）→ fallback
-        setStatus("none");
+        // DEV BYPASS: 瀏覽器環境下視為已授權，方便 UI 驗證
+        if (process.env.NODE_ENV === "development") {
+          setStatus("valid");
+        } else {
+          setStatus("none");
+        }
       } finally {
         setIsLoading(false);
       }
