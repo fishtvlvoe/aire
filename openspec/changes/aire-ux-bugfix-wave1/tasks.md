@@ -20,7 +20,7 @@
 
 ## Group 4：Code Review
 
-- [ ] 4.1 Kimi MCP 審查 Group 1-3 所有改動：確認 mock 序列化不破壞現有 featureFlags 結構、safeInvoke 降級邏輯正確、toast provider 不重複掛載、admin role 判斷不可繞過（對應：所有 spec 變更）[Tool: kimi]
+- [x] 4.1 Kimi MCP 審查 Group 1-3 所有改動：確認 mock 序列化不破壞現有 featureFlags 結構、safeInvoke 降級邏輯正確、toast provider 不重複掛載、admin role 判斷不可繞過（對應：所有 spec 變更）[Tool: kimi]
 
 ## Group 5：驗收
 

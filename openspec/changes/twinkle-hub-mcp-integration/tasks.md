@@ -14,13 +14,13 @@
 
 ## Group 3：案件頁整合（依賴 Group 2 完成）
 
-- [ ] 3.1 `src/app/(dashboard)/cases/[id]/page.tsx`：import `RealPricePanel` 和 `parseAddressForQuery`；在地政資料 section 之後新增「實價登錄參考」section，從 case.address 呼叫 `parseAddressForQuery` 取得 district 和 keyword，傳入 `<RealPricePanel>`（對應：case-management / real-price-section-on-case-detail；設計決策：D4: 前端顯示 — 獨立元件 `realpricepanel`，懶加載）[Tool: copilot]
+- [x] 3.1 `src/app/(dashboard)/cases/[id]/page.tsx`：import `RealPricePanel` 和 `parseAddressForQuery`；在地政資料 section 之後新增「實價登錄參考」section，從 case.address 呼叫 `parseAddressForQuery` 取得 district 和 keyword，傳入 `<RealPricePanel>`（對應：case-management / real-price-section-on-case-detail；設計決策：D4: 前端顯示 — 獨立元件 `realpricepanel`，懶加載）[Tool: copilot]
 
 ## Group 4：Code Review
 
-- [ ] 4.1 Kimi MCP 審查 Group 1-3 所有改動：確認 API key 不出現在任何 JS 檔案（設計決策：D2: api key 儲存 — 讀 `.env` 的 `twinkle_hub_api_key`，build time 注入 rust）、where clause 無 SQL injection 向量、mock 欄位結構與 Rust 回傳一致（對應：twinkle-hub-mcp-client / api-key-rust-only, where-clause-parameterized）[Tool: kimi]
+- [x] 4.1 Kimi MCP 審查 Group 1-3 所有改動：確認 API key 不出現在任何 JS 檔案（設計決策：D2: api key 儲存 — 讀 `.env` 的 `twinkle_hub_api_key`，build time 注入 rust）、where clause 無 SQL injection 向量、mock 欄位結構與 Rust 回傳一致（對應：twinkle-hub-mcp-client / api-key-rust-only, where-clause-parameterized）[Tool: kimi]
 
 ## Group 5：端對端驗收
 
-- [ ] 5.1 瀏覽器 dev mode 驗收：打開 /cases/TEST-001 → 點「查實價登錄」→ 顯示 3 筆 mock 資料 → 格式正確（NT$格式、坪數換算）（對應：real-price-query / result-display-card）[Tool: sonnet]
+- [x] 5.1 瀏覽器 dev mode 驗收：打開 /cases/TEST-001 → 點「查實價登錄」→ 顯示 3 筆 mock 資料 → 格式正確（NT$格式、坪數換算）（對應：real-price-query / result-display-card）[Tool: sonnet]
 - [ ] 5.2 Tauri dev mode 驗收（`pnpm tauri dev`）：點「查實價登錄」→ 確認 Rust 呼叫 Twinkle Hub 成功（network log 有 POST 到 api.twinkleai.tw）→ 前端顯示真實資料（對應：twinkle-hub-mcp-client / mcp-http-json-rpc-call）[Tool: sonnet]
