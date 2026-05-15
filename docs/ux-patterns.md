@@ -150,6 +150,22 @@
 
 驗收時依本文件規則檢查每個畫面，項目見 `docs/ux-acceptance-checklist.md`。
 
+## OPCOS html-pdf-renderer 驗收 v1
+
+### 項目與結果
+
+- Logo 檔案大小超過上限時，錯誤文案為「Logo 檔案過大，請壓縮後再上傳（限 2 MiB 以下）」：✅
+- 主題選擇卡片三態（hover / selected / disabled）符合 OPCOS 卡片互動規則：✅
+- PDF 預覽三態（loading / empty / error）符合 OPCOS 三態 UI：✅
+- 下載成功通知（toast）與 OPCOS 既有成功提示行為一致：✅
+
+### 截圖路徑（PR 描述可直接貼）
+
+- `e2e/results/test-artifacts/.../theme-selector-selected.png`
+- `e2e/results/test-artifacts/.../pdf-preview-loading.png`
+- `e2e/results/test-artifacts/.../pdf-preview-error.png`
+- `e2e/results/test-artifacts/.../pdf-download-success-toast.png`
+
 ## 法規告知 + 證號驗證 v1
 
 > 適用：成屋說明書 / 土地說明書 / 預售屋說明書共用的「法規告知頁」與「不動產經紀人證號驗證」流程。

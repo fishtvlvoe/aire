@@ -19,7 +19,7 @@ import { ThemeProvider } from "../../lib/pdf-themes/theme-provider";
 vi.mock("../../lib/pdf-themes/persistence", () => ({
   setTheme: vi.fn().mockResolvedValue({
     success: true,
-    themeId: "theme-b-professional",
+    themeId: "theme-c-tech-elegant",
     didFallback: false,
   }),
   loadPersistedTheme: vi.fn().mockResolvedValue("theme-a-minimal"),
@@ -46,9 +46,9 @@ describe("ThemeSelector — displays available themes", () => {
     expect(screen.getByText(/minimal/i)).toBeInTheDocument();
   });
 
-  it("顯示 theme-b-professional 選項", () => {
+  it("顯示 theme-c-tech-elegant 選項", () => {
     renderWithProvider();
-    expect(screen.getByText(/professional/i)).toBeInTheDocument();
+    expect(screen.getByText(/tech elegant/i)).toBeInTheDocument();
   });
 
   it("當前主題有 active/selected 標記", () => {
@@ -66,26 +66,26 @@ describe("ThemeSelector — theme selection triggers setTheme", () => {
     mockSetTheme.mockReset();
     mockSetTheme.mockResolvedValue({
       success: true,
-      themeId: "theme-b-professional",
+      themeId: "theme-c-tech-elegant",
       didFallback: false,
     });
   });
 
-  it("點擊 theme-b-professional 呼叫 setTheme('theme-b-professional')", async () => {
+  it("點擊 theme-c-tech-elegant 呼叫 setTheme('theme-c-tech-elegant')", async () => {
     renderWithProvider("theme-a-minimal");
 
-    const proItem = screen.getByTestId("theme-item-theme-b-professional");
+    const proItem = screen.getByTestId("theme-item-theme-c-tech-elegant");
     fireEvent.click(proItem);
 
     await waitFor(() => {
-      expect(mockSetTheme).toHaveBeenCalledWith("theme-b-professional");
+      expect(mockSetTheme).toHaveBeenCalledWith("theme-c-tech-elegant");
     });
   });
 
   it("setTheme 呼叫後 UI 更新顯示新的 active 主題", async () => {
     renderWithProvider("theme-a-minimal");
 
-    const proItem = screen.getByTestId("theme-item-theme-b-professional");
+    const proItem = screen.getByTestId("theme-item-theme-c-tech-elegant");
     fireEvent.click(proItem);
 
     await waitFor(() => {

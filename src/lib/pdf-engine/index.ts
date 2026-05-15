@@ -9,10 +9,41 @@ import { initReactPdfEngine } from "./react-pdf-init";
 export { PdfRenderError, PdfRenderErrorCode } from "./engine";
 export type { CaseData };
 
+const LEGAL_LAW_IDS = [
+  "real-estate-broker-act",
+  "consumer-protection-relevant",
+  "fair-trade-relevant",
+] as const;
+
+function isLegalClauseData(value: unknown): value is LegalClauseData {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.law_id === "string" &&
+    typeof record.title === "string" &&
+    typeof record.content_markdown === "string" &&
+    typeof record.version_date === "string" &&
+    typeof record.fetched_at === "string" &&
+    typeof record.source_url === "string"
+  );
+}
+
+async function fetchLegalClausesFromIpc(): Promise<LegalClauseData[]> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  const responses = await Promise.all(
+    LEGAL_LAW_IDS.map(async (lawId) => {
+      const result = await invoke("get_legal_clause", { law_id: lawId });
+      return isLegalClauseData(result) ? result : null;
+    }),
+  );
+  return responses.filter((item): item is LegalClauseData => item !== null);
+}
+
 export async function renderDisclosurePdf(
   caseData: CaseData,
   theme: PdfTheme,
   logo: Uint8Array | null,
+  legalClauses?: LegalClauseData[],
 ): Promise<Blob> {
   initReactPdfEngine();
 
@@ -38,17 +69,22 @@ export async function renderDisclosurePdf(
     );
   }
 
-  let legalClauses: LegalClauseData[] = [];
-  try {
-    const { invoke } = await import("@tauri-apps/api/core");
-    const clausePayload = await invoke("get_legal_clause");
-    legalClauses = Array.isArray(clausePayload) ? (clausePayload as LegalClauseData[]) : [];
-  } catch (e) {
-    console.warn("[pdf-engine] get_legal_clause failed, falling back to empty clauses.", e);
+  let resolvedLegalClauses = Array.isArray(legalClauses) ? legalClauses : [];
+  if (resolvedLegalClauses.length === 0) {
+    try {
+      resolvedLegalClauses = await fetchLegalClausesFromIpc();
+    } catch (e) {
+      console.warn("[pdf-engine] get_legal_clause failed, falling back to empty clauses.", e);
+    }
   }
 
   try {
-    const doc = React.createElement(PdfDocument, { caseData, theme, logo, legalClauses });
+    const doc = React.createElement(PdfDocument, {
+      caseData,
+      theme,
+      logo,
+      legalClauses: resolvedLegalClauses,
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return await pdf(doc as any).toBlob();
   } catch (e) {

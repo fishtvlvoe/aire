@@ -9,5 +9,4 @@ export * from "./persistence";
 
 // 主題
 export { themeAMinimal } from "./theme-a-minimal";
-export { themeBProfessional } from "./theme-b-professional";
 export { themeCTechElegant } from "./theme-c-tech-elegant";

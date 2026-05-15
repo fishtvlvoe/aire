@@ -24,9 +24,15 @@ function getPageTitle(pathname: string): string {
 
 interface AppTopbarProps {
   onMenuClick: () => void;
+  onLogout?: () => void;
+  logoutDisabled?: boolean;
 }
 
-export function AppTopbar({ onMenuClick }: AppTopbarProps) {
+export function AppTopbar({
+  onMenuClick,
+  onLogout,
+  logoutDisabled = false,
+}: AppTopbarProps) {
   const pathname = usePathname();
   const title = getPageTitle(pathname);
 
@@ -45,6 +51,19 @@ export function AppTopbar({ onMenuClick }: AppTopbarProps) {
 
       {/* 頁面標題 */}
       <h1 className="text-sm font-semibold">{title}</h1>
+
+      {onLogout ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onLogout}
+          disabled={logoutDisabled}
+          className="ml-auto"
+        >
+          登出
+        </Button>
+      ) : null}
     </header>
   );
 }

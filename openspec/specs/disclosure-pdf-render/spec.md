@@ -6,85 +6,409 @@ TBD - created by archiving change 'aire-desktop-phase1'. Update Purpose after ar
 
 ## Requirements
 
-### Requirement: PDF template overlay rendering
-
-The system SHALL produce a PDF by overlaying form field values onto a pre-existing template PDF located at `src/resources/templates/residential.pdf` (for residential cases) or `src/resources/templates/land.pdf` (for land cases), using `pdf-lib` to load the template and `drawText` to render field values at coordinates defined in `src/lib/pdf-layout.ts`.
-
-##### Example: layout coordinate table format
-
-- **GIVEN** `pdf-layout.ts` exports `residentialLayout` containing entries `{ field: 'land_lot_no', page: 0, x: 120, y: 720, size: 12 }`
-- **WHEN** the PDF renderer processes the residential template
-- **THEN** the value of `land_lot_no` is drawn on page 0 at coordinates (120, 720) at font size 12
-
-#### Scenario: Residential PDF generated
-
-- **WHEN** the user clicks `匯出 PDF` on a residential case with `land_lot_no='台南市東區大同段123-4'`
-- **THEN** the system generates a PDF where `123-4` and its prefix appear at the layout coordinate for `land_lot_no` on the residential template
-
-#### Scenario: Land PDF generated
-
-- **WHEN** the user clicks `匯出 PDF` on a land case
-- **THEN** the system generates a PDF using `land.pdf` template overlaid with the land form payload
-
----
 ### Requirement: Embedded Traditional Chinese font
 
-The system SHALL embed a subset Traditional Chinese font (`NotoSansTC-Regular` subset) into every generated PDF; the subset MUST contain at minimum the 5000 most common Traditional Chinese characters plus Latin and digit glyphs.
+The system SHALL embed the NotoSansTC subset font through `@react-pdf/font` registration at engine initialization. The system SHALL register family name "NotoSansTC" mapped to `src/resources/fonts/NotoSansTC-Subset.ttf` for both regular and bold weights and SHALL be used as the default font for all PDF text content.
 
-#### Scenario: Chinese characters render in output PDF
+#### Scenario: NotoSansTC family is the default for PDF text
 
-- **WHEN** a PDF is generated containing the string `台南市東區大同段123-4`
-- **THEN** opening the PDF in any standards-compliant PDF reader displays all characters correctly without missing glyph boxes
+- **WHEN** any block component renders text without an explicit `fontFamily` style override
+- **THEN** the rendered PDF uses NotoSansTC glyphs (verified by extracting font info from the PDF with pdf-parse — the default font family resolves to "NotoSansTC")
 
-#### Scenario: PDF file size constraint
+#### Scenario: Traditional Chinese sample renders without tofu
 
-- **WHEN** a residential PDF is generated for a fully populated case
-- **THEN** the resulting file size is less than 3 megabytes
+- **WHEN** a PDF containing the sample "不動產說明書 — 大林新城三房平車" renders
+- **THEN** every Traditional Chinese character in the sample has a corresponding glyph in the embedded subset (no missing-glyph boxes in the rendered output, verified by visual diff against a known-good fixture image with tolerance < 1% pixel diff)
 
----
-### Requirement: Output file path and post-export behavior
 
-The system SHALL prompt the user with a system file dialog for the output location (defaulting to the OS Downloads folder with a suggested filename of `<case_no_or_id>_<property_type>_<YYYYMMDD>.pdf`), and after a successful write SHALL update `cases.status` to `exported` and write an entry to `operation_log`.
-
-##### Example: default filename
-
-- **GIVEN** a residential case with `case_no='AIRE-001'`, generated on 2026-05-14
-- **WHEN** the user clicks `匯出 PDF`
-- **THEN** the suggested filename is `AIRE-001_residential_20260514.pdf`
-
-#### Scenario: User cancels save dialog
-
-- **WHEN** the user clicks `匯出 PDF` and then cancels the file dialog
-- **THEN** no file is written, `cases.status` is unchanged, and no `operation_log` row is created
-
-#### Scenario: Export success updates status
-
-- **WHEN** the PDF is written successfully to the chosen path
-- **THEN** `cases.status` transitions to `exported`, an `operation_log` row is written with `action='pdf_export'`, `result='ok'`, payload containing the output path, and the UI displays `匯出成功` along with a button `開啟所在資料夾`
-
----
-### Requirement: Failure modes during export
-
-The system SHALL surface PDF export failures as user-visible errors and SHALL NOT update `cases.status` on failure.
-
-##### Example: failure scenarios
-
-| Failure | Cause | UI message | DB effect |
-| --- | --- | --- | --- |
-| Template missing | `residential.pdf` not found at expected path | `找不到說明書底板檔案` | no change |
-| Font load failure | embedded font file corrupted | `字型載入失敗` | no change |
-| Disk full | output path on full volume | `磁碟空間不足，無法寫入 PDF` | no change |
-| Path locked | target file open in another program | `檔案被其他程式占用，請關閉後重試` | no change |
-
-#### Scenario: Template not found
-
-- **WHEN** the renderer attempts to load `residential.pdf` and the file is missing
-- **THEN** the system displays `找不到說明書底板檔案` and writes `operation_log` with `result='error'`, payload `{ reason: 'template_missing' }`
-
-#### Scenario: Disk full during write
-
-- **WHEN** the PDF write fails with a disk-full error
-- **THEN** the system displays `磁碟空間不足，無法寫入 PDF` and `cases.status` remains at the previous value
+<!-- @trace
+source: aire-phase1-html-pdf-renderer
+updated: 2026-05-15
+code:
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_round.png
+  - src/components/ui/dialog.tsx
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-2：新密碼解鎖應成功-chromium-tauri/trace.zip
+  - src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src/components/TauriRequired.tsx
+  - src-tauri/migrations/002_branding.sql
+  - src/app/(dashboard)/settings/branding/page.tsx
+  - e2e/results/test-artifacts/license-verification-經紀人證號-48d27-he-expired-態：過期證號應回-expired-chromium-tauri/trace.zip
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher.png
+  - docs/phase4-cr-reports/aire-phase1-data-portability-kimi-cr.md
+  - e2e/pdf-theme-a-visual.spec.ts-snapshots/theme-a-cover-chromium-tauri-darwin.png
+  - src-tauri/src/data_portability/aire_format.rs
+  - src/components/ui/Tabs.tsx
+  - src-tauri/icons/ios/AppIcon-29x29@2x-1.png
+  - src-tauri/src/data_portability/export/tests.rs
+  - src-tauri/src/lib.rs
+  - src/components/ui/sonner.tsx
+  - src/components/ux/EmptyState.tsx
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--77e13-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--ae8ef-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - src/app/(dashboard)/cases/[id]/layout.tsx
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--77e13-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/src/data_portability/import.rs
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-41aa9--渲染-同步後本地-DB-應含三條法規且版本日期為新版-chromium-tauri/trace.zip
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-3：使用-token-設定新密碼應成功-chromium-tauri/error-context.md
+  - src/components/disclosure-form-land.tsx
+  - src/lib/tauri-bridge.ts
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-匯出備份：應產生-aire-檔案並回報案件數-chromium-tauri/trace.zip
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/crypto/master_password/tests.rs
+  - docs/data-recovery-guide.md
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--bf32e--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - src/components/ui/textarea.tsx
+  - src-tauri/src/land_registry/client/tests.rs
+  - src/app/dev/components/page.tsx
+  - e2e/results/test-artifacts/license-verification-經紀人證號-59275-allback：應顯示「（最後驗證日期，目前離線中）」-chromium-tauri/error-context.md
+  - src/lib/pdf-blocks/life-amenities.tsx
+  - src-tauri/src/encryption/mod.rs
+  - .artifacts/browser-dev-mock/03-create-case-success.png
+  - .artifacts/aire-mvp-bugfix/settings_logs.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-5ddad--500ms-debounce-後回-verified-chromium-tauri/trace.zip
+  - src-tauri/src/crypto/recovery_code.rs
+  - e2e/results/test-artifacts/license-verification-經紀人證號-48d27-he-expired-態：過期證號應回-expired-chromium-tauri/error-context.md
+  - src-tauri/icons/ios/AppIcon-20x20@3x.png
+  - src-tauri/src/crypto/recovery_code/tests.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher.png
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/icons/ios/AppIcon-20x20@2x-1.png
+  - src-tauri/migrations/004_land_registry.sql
+  - src/app/(dashboard)/cases/new/page.tsx
+  - docs/legal-clauses-sync-spec.md
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-1：舊密碼解鎖應失敗（密碼已被重設）-chromium-tauri/trace.zip
+  - src/app/cases/page.tsx
+  - src/lib/auth.ts
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--5d251-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-2：新密碼解鎖應成功-chromium-tauri/error-context.md
+  - src/components/ui/skeleton.tsx
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--bf32e--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/theme-c-cover-actual.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher_round.png
+  - src-tauri/src/db/mod.rs
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--ae8ef-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/assets/icon-dark.png
+  - src/components/ui/spinner.tsx
+  - e2e/pdf-theme-a-visual.spec.ts-snapshots/theme-a-photos-chromium-tauri-darwin.png
+  - e2e/results/results.json
+  - src-tauri/src/realtor_license/mod.rs
+  - src/lib/pdf-engine/index.ts
+  - src-tauri/src/realtor_license/cache.rs
+  - src/lib/pdf-blocks/legal-notice.tsx
+  - src/components/RealtorLicenseField.tsx
+  - e2e/results/test-artifacts/license-verification-經紀人證號-97213-che-7-天-cache：第二次填同證號不打-API-chromium-tauri/test-failed-1.png
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/components/ui/label.tsx
+  - src-tauri/icons/StoreLogo.png
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--8110a--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/src/realtor_license/cache/tests.rs
+  - src-tauri/icons/ios/AppIcon-40x40@1x.png
+  - src-tauri/src/branding/theme.rs
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-82a7d-PDF-渲染-PDF-渲染應嵌入新版法規條文與版本日期-chromium-tauri/test-failed-1.png
+  - .artifacts/aire-mvp-bugfix/settings_branding.png
+  - src-tauri/migrations/003_legal_clauses.sql
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_round.png
+  - src/app/(dashboard)/cases/page.tsx
+  - src-tauri/src/legal_clauses/scheduler.rs
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--77e13-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/icons/Square71x71Logo.png
+  - src/components/ui/Input.tsx
+  - src/lib/pdf-blocks/basic-info.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--ae8ef-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/icons/icon.icns
+  - src-tauri/src/legal_clauses/scheduler/tests.rs
+  - e2e/results/test-artifacts/license-verification-經紀人證號-59275-allback：應顯示「（最後驗證日期，目前離線中）」-chromium-tauri/trace.zip
+  - src/lib/pdf-themes/theme-provider.tsx
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/client/tests.rs
+  - src-tauri/icons/ios/AppIcon-20x20@2x.png
+  - vitest.config.ts
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--8110a--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/src/crypto/master_password.rs
+  - src/components/ui/card.tsx
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-1：舊密碼解鎖應失敗（密碼已被重設）-chromium-tauri/test-failed-1.png
+  - src-tauri/icons/ios/AppIcon-29x29@2x.png
+  - src-tauri/src/land_registry/mod.rs
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-舊電腦：建立-3-個案件後應顯示於案件清單-chromium-tauri/error-context.md
+  - e2e/pdf-theme-a-visual.spec.ts-snapshots/theme-a-basic-info-chromium-tauri-darwin.png
+  - src/components/ui/Dialog.tsx
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png
+  - docs/phase4-cr-reports/aire-land-registry-foundation-kimi-cr.md
+  - src-tauri/icons/ios/AppIcon-60x60@3x.png
+  - src/lib/pdf-layout.ts
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-完整救援碼重置流程：設密碼-→-取救援碼-→-忘記-→-重設-→-三斷言-chromium-tauri/error-context.md
+  - src-tauri/icons/Square150x150Logo.png
+  - src-tauri/src/land_registry/field_mapping/mod.rs
+  - src/app/(dashboard)/dev/ux/page.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/components/ui/table.tsx
+  - .artifacts/browser-dev-mock/05-logs-loaded.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-3：解鎖後資料完整（案件數不變）-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/license-verification-經紀人證號-7973a-t-found-態：未登錄證號應回-not-found-chromium-tauri/trace.zip
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/ui/sheet.tsx
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-新電腦：匯入備份後案件數應與備份一致-chromium-tauri/error-context.md
+  - src/app/cases/[id]/layout.tsx
+  - e2e/.gitkeep
+  - src/components/ui/Button.tsx
+  - src-tauri/src/data_portability/aire_format/tests.rs
+  - src-tauri/icons/Square107x107Logo.png
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--8110a--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/theme-a-cover-actual.png
+  - src-tauri/icons/32x32.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher_round.png
+  - src-tauri/icons/128x128@2x.png
+  - src-tauri/icons/ios/AppIcon-76x76@1x.png
+  - .artifacts/aire-mvp-bugfix/activation.png
+  - src-tauri/src/data_portability/conflict/tests.rs
+  - src/lib/pdf-blocks/ai-badge.tsx
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-27d84-etch-→-sync-→-DB-→-PDF-全鏈一致-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/license-verification-經紀人證號-5ddad--500ms-debounce-後回-verified-chromium-tauri/error-context.md
+  - src-tauri/src/realtor_license/client.rs
+  - src/components/ux/RecoveryCodeModal.tsx
+  - README.md
+  - src/lib/pdf-engine/engine.ts
+  - src/lib/pdf-blocks/dynamic-composition.tsx
+  - scripts/phase5-smoke-2a.sh
+  - .env.example
+  - src/lib/pdf-themes/theme-c-tech-elegant/index.tsx
+  - src/components/ThemeSelector.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--cf4e0-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/theme-a-basic-info-actual.png
+  - src/components/ux/ConfirmDialog.tsx
+  - src-tauri/icons/ios/AppIcon-60x60@2x.png
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_foreground.png
+  - .github/copilot-instructions.md
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--cf4e0-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - playwright.config.ts
+  - src-tauri/src/crypto/vault/tests.rs
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--77e13-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/theme-c-photos-actual.png
+  - src/lib/pdf-blocks/location-map.tsx
+  - src/lib/pdf-blocks/photo-gallery.tsx
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-9921b-COS-endpoint-應回傳新版三條法規與版本日期-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-3：解鎖後資料完整（案件數不變）-chromium-tauri/test-failed-1.png
+  - src-tauri/src/crypto/mod.rs
+  - e2e/results/test-artifacts/license-verification-經紀人證號-7973a-t-found-態：未登錄證號應回-not-found-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/.last-run.json
+  - src/components/PdfPreviewer.tsx
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - .artifacts/browser-dev-mock/01-activation-form.png
+  - src-tauri/src/encryption/tests.rs
+  - src/lib/pdf-renderer.ts
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--bf32e--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher_foreground.png
+  - e2e/results/legal-sync.json
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-82a7d-PDF-渲染-PDF-渲染應嵌入新版法規條文與版本日期-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-2：使用救援碼驗證應回傳重設-token-chromium-tauri/trace.zip
+  - src/components/AppTopbar.tsx
+  - src-tauri/src/data_portability/conflict.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-bb38e-legal-clauses-後應回報同步成功與版本日期-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-舊電腦：建立-3-個案件後應顯示於案件清單-chromium-tauri/test-failed-1.png
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--5d251-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - src/components/AppSidebar.tsx
+  - src/components/ui/button.tsx
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-41aa9--渲染-同步後本地-DB-應含三條法規且版本日期為新版-chromium-tauri/test-failed-1.png
+  - src/components/ui/input.tsx
+  - src/app/page.tsx
+  - src-tauri/src/data_portability/export.rs
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher_foreground.png
+  - src-tauri/icons/icon.png
+  - src-tauri/src/branding/tests.rs
+  - src-tauri/icons/Square310x310Logo.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-1：設定主密碼後應取得救援碼-chromium-tauri/test-failed-1.png
+  - src-tauri/icons/Square142x142Logo.png
+  - src/components/ui/badge.tsx
+  - src/app/(dashboard)/dev/components/page.tsx
+  - src/lib/pdf-themes/index.ts
+  - e2e/results/license-verification.json
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--5d251-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/theme-c-basic-info-actual.png
+  - src/app/(dashboard)/layout.tsx
+  - src/lib/pdf-themes/registry.ts
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-跨機完整流程：建立-→-匯出-→-匯入-→-比對案件數一致-chromium-tauri/test-failed-1.png
+  - src/lib/cases-api.ts
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-匯出備份：應產生-aire-檔案並回報案件數-chromium-tauri/test-failed-1.png
+  - src-tauri/src/legal_clauses/cache/tests.rs
+  - src/app/settings/logs/page.tsx
+  - src/lib/pdf-blocks/logo-upload.ts
+  - src/lib/pdf-blocks/condition-survey.tsx
+  - src-tauri/src/data_portability/mod.rs
+  - docs/phase4-cr-reports/aire-phase1-legal-clauses-autofill-kimi-cr.md
+  - src-tauri/icons/ios/AppIcon-29x29@1x.png
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-舊電腦：建立-3-個案件後應顯示於案件清單-chromium-tauri/trace.zip
+  - docs/ux-patterns.md
+  - scripts/phase4-kimi-cr.sh
+  - src/components/ui/tabs.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--ae8ef-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/theme-a-photos-actual.png
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-9921b-COS-endpoint-應回傳新版三條法規與版本日期-chromium-tauri/trace.zip
+  - src-tauri/icons/aire-source.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-97213-che-7-天-cache：第二次填同證號不打-API-chromium-tauri/trace.zip
+  - src-tauri/src/branding/mod.rs
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-1：設定主密碼後應取得救援碼-chromium-tauri/trace.zip
+  - src/lib/pdf-blocks/page-footer.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--cf4e0-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - src/app/dev/ux/page.tsx
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src/app/activation/page.tsx
+  - src/app/login/page.tsx
+  - src-tauri/icons/64x64.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher.png
+  - src/lib/date-format-twn.ts
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-41aa9--渲染-同步後本地-DB-應含三條法規且版本日期為新版-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/license-verification-經紀人證號-48d27-he-expired-態：過期證號應回-expired-chromium-tauri/test-failed-1.png
+  - src/app/cases/new/page.tsx
+  - src/lib/pdf-themes/theme-a-minimal/index.tsx
+  - src-tauri/icons/icon.ico
+  - src-tauri/icons/Square44x44Logo.png
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--5d251-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src/components/ui/select.tsx
+  - .artifacts/aire-mvp-bugfix/cases.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-7973a-t-found-態：未登錄證號應回-not-found-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-9921b-COS-endpoint-應回傳新版三條法規與版本日期-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-97213-che-7-天-cache：第二次填同證號不打-API-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-2：新密碼解鎖應成功-chromium-tauri/test-failed-1.png
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src-tauri/src/legal_clauses/sync/tests.rs
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - .artifacts/browser-dev-mock/04-branding-loaded.png
+  - src-tauri/src/legal_clauses/cache.rs
+  - e2e/pdf-theme-c-visual.spec.ts-snapshots/theme-c-photos-chromium-tauri-darwin.png
+  - scripts/phase5-smoke.sh
+  - src-tauri/icons/ios/AppIcon-40x40@2x.png
+  - src/components/LogoUploader.tsx
+  - src/lib/pdf-themes/persistence.ts
+  - src-tauri/icons/ios/AppIcon-20x20@1x.png
+  - e2e/pdf-theme-c-visual.spec.ts-snapshots/theme-c-cover-chromium-tauri-darwin.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-59275-allback：應顯示「（最後驗證日期，目前離線中）」-chromium-tauri/test-failed-1.png
+  - docs/pdf-theme-pack-spec.md
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-bb38e-legal-clauses-後應回報同步成功與版本日期-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-匯出備份：應產生-aire-檔案並回報案件數-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-跨機完整流程：建立-→-匯出-→-匯入-→-比對案件數一致-chromium-tauri/trace.zip
+  - src/lib/pdf-blocks/logo-anchors.tsx
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-bb38e-legal-clauses-後應回報同步成功與版本日期-chromium-tauri/trace.zip
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher.png
+  - src/hooks/useLicenseStatus.ts
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--bf32e--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/icons/ios/AppIcon-40x40@2x-1.png
+  - src/components/ux/ErrorState.tsx
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-完整救援碼重置流程：設密碼-→-取救援碼-→-忘記-→-重設-→-三斷言-chromium-tauri/trace.zip
+  - src-tauri/Cargo.toml
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-2：使用救援碼驗證應回傳重設-token-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-3：解鎖後資料完整（案件數不變）-chromium-tauri/trace.zip
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-2：使用救援碼驗證應回傳重設-token-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-27d84-etch-→-sync-→-DB-→-PDF-全鏈一致-chromium-tauri/trace.zip
+  - src/components/ux/MasterPasswordPrompt.tsx
+  - src/components/ux/ImportConflictDialog.tsx
+  - src/components/disclosure-form-residential.tsx
+  - src/lib/log.ts
+  - src/app/cases/[id]/page.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--8110a--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - e2e/results/playwright-report/index.html
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/icons/ios/AppIcon-76x76@2x.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-3：使用-token-設定新密碼應成功-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-新電腦：匯入備份後案件數應與備份一致-chromium-tauri/trace.zip
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-27d84-etch-→-sync-→-DB-→-PDF-全鏈一致-chromium-tauri/test-failed-1.png
+  - src-tauri/icons/ios/AppIcon-512@2x.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher.png
+  - e2e/pdf-theme-c-visual.spec.ts-snapshots/theme-c-basic-info-chromium-tauri-darwin.png
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-82a7d-PDF-渲染-PDF-渲染應嵌入新版法規條文與版本日期-chromium-tauri/trace.zip
+  - src-tauri/icons/ios/AppIcon-29x29@3x.png
+  - src-tauri/migrations/004_master_password_rekey.rs
+  - src/components/ui/separator.tsx
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-新電腦：匯入備份後案件數應與備份一致-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-1：設定主密碼後應取得救援碼-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-1：舊密碼解鎖應失敗（密碼已被重設）-chromium-tauri/error-context.md
+  - src-tauri/icons/ios/AppIcon-40x40@3x.png
+  - src/components/ui/Card.tsx
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-3：使用-token-設定新密碼應成功-chromium-tauri/trace.zip
+  - src/hooks/useAuth.ts
+  - src/lib/mock-backend.ts
+  - docs/phase4-cr-reports/aire-phase1-html-pdf-renderer-kimi-cr.md
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-跨機完整流程：建立-→-匯出-→-匯入-→-比對案件數一致-chromium-tauri/error-context.md
+  - src/components/ui/form.tsx
+  - e2e/results/test-artifacts/license-verification-經紀人證號-5ddad--500ms-debounce-後回-verified-chromium-tauri/test-failed-1.png
+  - src-tauri/icons/128x128.png
+  - package.json
+  - src/lib/pdf-themes/types.ts
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--cf4e0-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/icons/Square284x284Logo.png
+  - src-tauri/icons/Square89x89Logo.png
+  - src/lib/pdf-blocks/conditional-section.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - .artifacts/browser-dev-mock/02-cases-seed-list.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher_foreground.png
+  - src-tauri/icons/Square30x30Logo.png
+  - src-tauri/src/land_registry/client/mod.rs
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-完整救援碼重置流程：設密碼-→-取救援碼-→-忘記-→-重設-→-三斷言-chromium-tauri/test-failed-1.png
+  - src-tauri/src/data_portability/import/tests.rs
+  - src/assets/icon-light.png
+  - src/app/(dashboard)/settings/sync-status/page.tsx
+  - src/lib/pdf-blocks/cover.tsx
+tests:
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/components/__tests__/RecoveryCodeModal.test.tsx
+  - src/lib/pdf-blocks/__tests__/legal-notice-wrap.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - e2e/data-portability.spec.ts
+  - src/lib/pdf-blocks/__tests__/legal-notice.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/app/activation/__tests__/page.test.tsx
+  - src/lib/__tests__/date-format-twn.test.ts
+  - e2e/pdf-theme-c-visual.spec.ts
+  - src/lib/pdf-blocks/__tests__/legal-notice-theme.test.tsx
+  - docs/__tests__/pdf-theme-pack-spec.test.ts
+  - src/lib/pdf-themes/__tests__/registry.test.ts
+  - src/components/__tests__/MasterPasswordPrompt.test.tsx
+  - src/components/__tests__/ThemeSelector.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src/components/__tests__/ImportConflictDialog.test.tsx
+  - src/hooks/__tests__/useAuth.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/lib/pdf-engine/__tests__/engine.test.ts
+  - src/components/__tests__/TauriRequired.test.tsx
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - e2e/theme-selector.spec.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/lib/pdf-themes/__tests__/persistence.test.ts
+  - src/lib/__tests__/tauri-bridge.test.ts
+  - src/components/__tests__/PdfPreviewer.test.tsx
+  - src/lib/__tests__/log.test.ts
+  - src/lib/pdf-engine/__tests__/render-with-legal.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/(dashboard)/__tests__/layout-sidebar.test.tsx
+  - e2e/license-verification.spec.ts
+  - e2e/legal-clauses-sync.spec.ts
+  - src/lib/__tests__/auth.test.ts
+  - docs/__tests__/no-tofu-sample.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/cases-api.test.ts
+  - e2e/recovery-reset.spec.ts
+  - src/lib/pdf-themes/__tests__/theme-provider.test.tsx
+  - e2e/smoke.spec.ts
+  - src/lib/pdf-blocks/__tests__/legal-notice-empty.test.tsx
+  - e2e/pdf-theme-a-visual.spec.ts
+  - docs/data-recovery-guide.test.ts
+-->
 
 ---
 ### Requirement: Disclosure template PDF assets SHALL exist on disk
@@ -1052,4 +1376,403 @@ tests:
   - src/components/__tests__/ImportConflictDialog.test.tsx
   - src/components/__tests__/RealtorLicenseField.test.tsx
   - src/components/__tests__/ThemeSelector.test.tsx
+-->
+
+---
+### Requirement: disclosure-pdf-render SHALL delegate to react-pdf-render-engine
+
+The system SHALL move all rendering invocations through the entry point `renderDisclosurePdf` defined by the `react-pdf-render-engine` capability. The existing module `src/lib/pdf-renderer.ts` SHALL act as a thin wrapper that forwards calls to the new engine without performing any rendering work of its own.
+
+#### Scenario: Legacy callers reach the new engine
+
+- **WHEN** any existing call site (e.g., `src/components/disclosure-form-residential.tsx`) invokes the legacy `renderDisclosurePdf` export from `src/lib/pdf-renderer.ts`
+- **THEN** the call is forwarded to `src/lib/pdf-engine/index.ts` `renderDisclosurePdf` AND the legacy wrapper itself does not import `pdf-lib`
+
+<!-- @trace
+source: aire-phase1-html-pdf-renderer
+updated: 2026-05-15
+code:
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_round.png
+  - src/components/ui/dialog.tsx
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-2：新密碼解鎖應成功-chromium-tauri/trace.zip
+  - src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src/components/TauriRequired.tsx
+  - src-tauri/migrations/002_branding.sql
+  - src/app/(dashboard)/settings/branding/page.tsx
+  - e2e/results/test-artifacts/license-verification-經紀人證號-48d27-he-expired-態：過期證號應回-expired-chromium-tauri/trace.zip
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher.png
+  - docs/phase4-cr-reports/aire-phase1-data-portability-kimi-cr.md
+  - e2e/pdf-theme-a-visual.spec.ts-snapshots/theme-a-cover-chromium-tauri-darwin.png
+  - src-tauri/src/data_portability/aire_format.rs
+  - src/components/ui/Tabs.tsx
+  - src-tauri/icons/ios/AppIcon-29x29@2x-1.png
+  - src-tauri/src/data_portability/export/tests.rs
+  - src-tauri/src/lib.rs
+  - src/components/ui/sonner.tsx
+  - src/components/ux/EmptyState.tsx
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--77e13-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--ae8ef-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - src/app/(dashboard)/cases/[id]/layout.tsx
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--77e13-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/src/data_portability/import.rs
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-41aa9--渲染-同步後本地-DB-應含三條法規且版本日期為新版-chromium-tauri/trace.zip
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-3：使用-token-設定新密碼應成功-chromium-tauri/error-context.md
+  - src/components/disclosure-form-land.tsx
+  - src/lib/tauri-bridge.ts
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-匯出備份：應產生-aire-檔案並回報案件數-chromium-tauri/trace.zip
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/crypto/master_password/tests.rs
+  - docs/data-recovery-guide.md
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--bf32e--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - src/components/ui/textarea.tsx
+  - src-tauri/src/land_registry/client/tests.rs
+  - src/app/dev/components/page.tsx
+  - e2e/results/test-artifacts/license-verification-經紀人證號-59275-allback：應顯示「（最後驗證日期，目前離線中）」-chromium-tauri/error-context.md
+  - src/lib/pdf-blocks/life-amenities.tsx
+  - src-tauri/src/encryption/mod.rs
+  - .artifacts/browser-dev-mock/03-create-case-success.png
+  - .artifacts/aire-mvp-bugfix/settings_logs.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-5ddad--500ms-debounce-後回-verified-chromium-tauri/trace.zip
+  - src-tauri/src/crypto/recovery_code.rs
+  - e2e/results/test-artifacts/license-verification-經紀人證號-48d27-he-expired-態：過期證號應回-expired-chromium-tauri/error-context.md
+  - src-tauri/icons/ios/AppIcon-20x20@3x.png
+  - src-tauri/src/crypto/recovery_code/tests.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher.png
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/icons/ios/AppIcon-20x20@2x-1.png
+  - src-tauri/migrations/004_land_registry.sql
+  - src/app/(dashboard)/cases/new/page.tsx
+  - docs/legal-clauses-sync-spec.md
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-1：舊密碼解鎖應失敗（密碼已被重設）-chromium-tauri/trace.zip
+  - src/app/cases/page.tsx
+  - src/lib/auth.ts
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--5d251-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-2：新密碼解鎖應成功-chromium-tauri/error-context.md
+  - src/components/ui/skeleton.tsx
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--bf32e--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/theme-c-cover-actual.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher_round.png
+  - src-tauri/src/db/mod.rs
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--ae8ef-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/assets/icon-dark.png
+  - src/components/ui/spinner.tsx
+  - e2e/pdf-theme-a-visual.spec.ts-snapshots/theme-a-photos-chromium-tauri-darwin.png
+  - e2e/results/results.json
+  - src-tauri/src/realtor_license/mod.rs
+  - src/lib/pdf-engine/index.ts
+  - src-tauri/src/realtor_license/cache.rs
+  - src/lib/pdf-blocks/legal-notice.tsx
+  - src/components/RealtorLicenseField.tsx
+  - e2e/results/test-artifacts/license-verification-經紀人證號-97213-che-7-天-cache：第二次填同證號不打-API-chromium-tauri/test-failed-1.png
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/components/ui/label.tsx
+  - src-tauri/icons/StoreLogo.png
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--8110a--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/src/realtor_license/cache/tests.rs
+  - src-tauri/icons/ios/AppIcon-40x40@1x.png
+  - src-tauri/src/branding/theme.rs
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-82a7d-PDF-渲染-PDF-渲染應嵌入新版法規條文與版本日期-chromium-tauri/test-failed-1.png
+  - .artifacts/aire-mvp-bugfix/settings_branding.png
+  - src-tauri/migrations/003_legal_clauses.sql
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_round.png
+  - src/app/(dashboard)/cases/page.tsx
+  - src-tauri/src/legal_clauses/scheduler.rs
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--77e13-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/icons/Square71x71Logo.png
+  - src/components/ui/Input.tsx
+  - src/lib/pdf-blocks/basic-info.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--ae8ef-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/icons/icon.icns
+  - src-tauri/src/legal_clauses/scheduler/tests.rs
+  - e2e/results/test-artifacts/license-verification-經紀人證號-59275-allback：應顯示「（最後驗證日期，目前離線中）」-chromium-tauri/trace.zip
+  - src/lib/pdf-themes/theme-provider.tsx
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/client/tests.rs
+  - src-tauri/icons/ios/AppIcon-20x20@2x.png
+  - vitest.config.ts
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--8110a--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/src/crypto/master_password.rs
+  - src/components/ui/card.tsx
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-1：舊密碼解鎖應失敗（密碼已被重設）-chromium-tauri/test-failed-1.png
+  - src-tauri/icons/ios/AppIcon-29x29@2x.png
+  - src-tauri/src/land_registry/mod.rs
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-舊電腦：建立-3-個案件後應顯示於案件清單-chromium-tauri/error-context.md
+  - e2e/pdf-theme-a-visual.spec.ts-snapshots/theme-a-basic-info-chromium-tauri-darwin.png
+  - src/components/ui/Dialog.tsx
+  - src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png
+  - docs/phase4-cr-reports/aire-land-registry-foundation-kimi-cr.md
+  - src-tauri/icons/ios/AppIcon-60x60@3x.png
+  - src/lib/pdf-layout.ts
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-完整救援碼重置流程：設密碼-→-取救援碼-→-忘記-→-重設-→-三斷言-chromium-tauri/error-context.md
+  - src-tauri/icons/Square150x150Logo.png
+  - src-tauri/src/land_registry/field_mapping/mod.rs
+  - src/app/(dashboard)/dev/ux/page.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/components/ui/table.tsx
+  - .artifacts/browser-dev-mock/05-logs-loaded.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-3：解鎖後資料完整（案件數不變）-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/license-verification-經紀人證號-7973a-t-found-態：未登錄證號應回-not-found-chromium-tauri/trace.zip
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/ui/sheet.tsx
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-新電腦：匯入備份後案件數應與備份一致-chromium-tauri/error-context.md
+  - src/app/cases/[id]/layout.tsx
+  - e2e/.gitkeep
+  - src/components/ui/Button.tsx
+  - src-tauri/src/data_portability/aire_format/tests.rs
+  - src-tauri/icons/Square107x107Logo.png
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--8110a--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/theme-a-cover-actual.png
+  - src-tauri/icons/32x32.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher_round.png
+  - src-tauri/icons/128x128@2x.png
+  - src-tauri/icons/ios/AppIcon-76x76@1x.png
+  - .artifacts/aire-mvp-bugfix/activation.png
+  - src-tauri/src/data_portability/conflict/tests.rs
+  - src/lib/pdf-blocks/ai-badge.tsx
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-27d84-etch-→-sync-→-DB-→-PDF-全鏈一致-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/license-verification-經紀人證號-5ddad--500ms-debounce-後回-verified-chromium-tauri/error-context.md
+  - src-tauri/src/realtor_license/client.rs
+  - src/components/ux/RecoveryCodeModal.tsx
+  - README.md
+  - src/lib/pdf-engine/engine.ts
+  - src/lib/pdf-blocks/dynamic-composition.tsx
+  - scripts/phase5-smoke-2a.sh
+  - .env.example
+  - src/lib/pdf-themes/theme-c-tech-elegant/index.tsx
+  - src/components/ThemeSelector.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--cf4e0-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/theme-a-basic-info-actual.png
+  - src/components/ux/ConfirmDialog.tsx
+  - src-tauri/icons/ios/AppIcon-60x60@2x.png
+  - src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_foreground.png
+  - .github/copilot-instructions.md
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--cf4e0-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - playwright.config.ts
+  - src-tauri/src/crypto/vault/tests.rs
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--77e13-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/theme-c-photos-actual.png
+  - src/lib/pdf-blocks/location-map.tsx
+  - src/lib/pdf-blocks/photo-gallery.tsx
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-9921b-COS-endpoint-應回傳新版三條法規與版本日期-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-3：解鎖後資料完整（案件數不變）-chromium-tauri/test-failed-1.png
+  - src-tauri/src/crypto/mod.rs
+  - e2e/results/test-artifacts/license-verification-經紀人證號-7973a-t-found-態：未登錄證號應回-not-found-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/.last-run.json
+  - src/components/PdfPreviewer.tsx
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - .artifacts/browser-dev-mock/01-activation-form.png
+  - src-tauri/src/encryption/tests.rs
+  - src/lib/pdf-renderer.ts
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--bf32e--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher_foreground.png
+  - e2e/results/legal-sync.json
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-82a7d-PDF-渲染-PDF-渲染應嵌入新版法規條文與版本日期-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-2：使用救援碼驗證應回傳重設-token-chromium-tauri/trace.zip
+  - src/components/AppTopbar.tsx
+  - src-tauri/src/data_portability/conflict.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-bb38e-legal-clauses-後應回報同步成功與版本日期-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-舊電腦：建立-3-個案件後應顯示於案件清單-chromium-tauri/test-failed-1.png
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--5d251-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - src/components/AppSidebar.tsx
+  - src/components/ui/button.tsx
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-41aa9--渲染-同步後本地-DB-應含三條法規且版本日期為新版-chromium-tauri/test-failed-1.png
+  - src/components/ui/input.tsx
+  - src/app/page.tsx
+  - src-tauri/src/data_portability/export.rs
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher_foreground.png
+  - src-tauri/icons/icon.png
+  - src-tauri/src/branding/tests.rs
+  - src-tauri/icons/Square310x310Logo.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-1：設定主密碼後應取得救援碼-chromium-tauri/test-failed-1.png
+  - src-tauri/icons/Square142x142Logo.png
+  - src/components/ui/badge.tsx
+  - src/app/(dashboard)/dev/components/page.tsx
+  - src/lib/pdf-themes/index.ts
+  - e2e/results/license-verification.json
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--5d251-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/theme-c-basic-info-actual.png
+  - src/app/(dashboard)/layout.tsx
+  - src/lib/pdf-themes/registry.ts
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-跨機完整流程：建立-→-匯出-→-匯入-→-比對案件數一致-chromium-tauri/test-failed-1.png
+  - src/lib/cases-api.ts
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-匯出備份：應產生-aire-檔案並回報案件數-chromium-tauri/test-failed-1.png
+  - src-tauri/src/legal_clauses/cache/tests.rs
+  - src/app/settings/logs/page.tsx
+  - src/lib/pdf-blocks/logo-upload.ts
+  - src/lib/pdf-blocks/condition-survey.tsx
+  - src-tauri/src/data_portability/mod.rs
+  - docs/phase4-cr-reports/aire-phase1-legal-clauses-autofill-kimi-cr.md
+  - src-tauri/icons/ios/AppIcon-29x29@1x.png
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-舊電腦：建立-3-個案件後應顯示於案件清單-chromium-tauri/trace.zip
+  - docs/ux-patterns.md
+  - scripts/phase4-kimi-cr.sh
+  - src/components/ui/tabs.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--ae8ef-視覺對比-現況照片頁：與-mockup-視覺差異-5--chromium-tauri/theme-a-photos-actual.png
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-9921b-COS-endpoint-應回傳新版三條法規與版本日期-chromium-tauri/trace.zip
+  - src-tauri/icons/aire-source.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-97213-che-7-天-cache：第二次填同證號不打-API-chromium-tauri/trace.zip
+  - src-tauri/src/branding/mod.rs
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-1：設定主密碼後應取得救援碼-chromium-tauri/trace.zip
+  - src/lib/pdf-blocks/page-footer.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--cf4e0-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - src/app/dev/ux/page.tsx
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src/app/activation/page.tsx
+  - src/app/login/page.tsx
+  - src-tauri/icons/64x64.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher.png
+  - src/lib/date-format-twn.ts
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-41aa9--渲染-同步後本地-DB-應含三條法規且版本日期為新版-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/license-verification-經紀人證號-48d27-he-expired-態：過期證號應回-expired-chromium-tauri/test-failed-1.png
+  - src/app/cases/new/page.tsx
+  - src/lib/pdf-themes/theme-a-minimal/index.tsx
+  - src-tauri/icons/icon.ico
+  - src-tauri/icons/Square44x44Logo.png
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--5d251-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/test-failed-1.png
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src/components/ui/select.tsx
+  - .artifacts/aire-mvp-bugfix/cases.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-7973a-t-found-態：未登錄證號應回-not-found-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-9921b-COS-endpoint-應回傳新版三條法規與版本日期-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-97213-che-7-天-cache：第二次填同證號不打-API-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-2：新密碼解鎖應成功-chromium-tauri/test-failed-1.png
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src-tauri/src/legal_clauses/sync/tests.rs
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - .artifacts/browser-dev-mock/04-branding-loaded.png
+  - src-tauri/src/legal_clauses/cache.rs
+  - e2e/pdf-theme-c-visual.spec.ts-snapshots/theme-c-photos-chromium-tauri-darwin.png
+  - scripts/phase5-smoke.sh
+  - src-tauri/icons/ios/AppIcon-40x40@2x.png
+  - src/components/LogoUploader.tsx
+  - src/lib/pdf-themes/persistence.ts
+  - src-tauri/icons/ios/AppIcon-20x20@1x.png
+  - e2e/pdf-theme-c-visual.spec.ts-snapshots/theme-c-cover-chromium-tauri-darwin.png
+  - e2e/results/test-artifacts/license-verification-經紀人證號-59275-allback：應顯示「（最後驗證日期，目前離線中）」-chromium-tauri/test-failed-1.png
+  - docs/pdf-theme-pack-spec.md
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-bb38e-legal-clauses-後應回報同步成功與版本日期-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-匯出備份：應產生-aire-檔案並回報案件數-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-跨機完整流程：建立-→-匯出-→-匯入-→-比對案件數一致-chromium-tauri/trace.zip
+  - src/lib/pdf-blocks/logo-anchors.tsx
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-bb38e-legal-clauses-後應回報同步成功與版本日期-chromium-tauri/trace.zip
+  - src-tauri/icons/android/mipmap-xhdpi/ic_launcher.png
+  - src/hooks/useLicenseStatus.ts
+  - e2e/results/test-artifacts/pdf-theme-c-visual-PDF-主題--bf32e--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/icons/ios/AppIcon-40x40@2x-1.png
+  - src/components/ux/ErrorState.tsx
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-完整救援碼重置流程：設密碼-→-取救援碼-→-忘記-→-重設-→-三斷言-chromium-tauri/trace.zip
+  - src-tauri/Cargo.toml
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-2：使用救援碼驗證應回傳重設-token-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-3：解鎖後資料完整（案件數不變）-chromium-tauri/trace.zip
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-2：使用救援碼驗證應回傳重設-token-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-27d84-etch-→-sync-→-DB-→-PDF-全鏈一致-chromium-tauri/trace.zip
+  - src/components/ux/MasterPasswordPrompt.tsx
+  - src/components/ux/ImportConflictDialog.tsx
+  - src/components/disclosure-form-residential.tsx
+  - src/lib/log.ts
+  - src/app/cases/[id]/page.tsx
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--8110a--—-視覺對比-封面：與-mockup-視覺差異-5--chromium-tauri/trace.zip
+  - e2e/results/playwright-report/index.html
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/icons/ios/AppIcon-76x76@2x.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-3：使用-token-設定新密碼應成功-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-新電腦：匯入備份後案件數應與備份一致-chromium-tauri/trace.zip
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-27d84-etch-→-sync-→-DB-→-PDF-全鏈一致-chromium-tauri/test-failed-1.png
+  - src-tauri/icons/ios/AppIcon-512@2x.png
+  - src-tauri/icons/android/mipmap-mdpi/ic_launcher.png
+  - e2e/pdf-theme-c-visual.spec.ts-snapshots/theme-c-basic-info-chromium-tauri-darwin.png
+  - e2e/results/test-artifacts/legal-clauses-sync-法規條款同步：-82a7d-PDF-渲染-PDF-渲染應嵌入新版法規條文與版本日期-chromium-tauri/trace.zip
+  - src-tauri/icons/ios/AppIcon-29x29@3x.png
+  - src-tauri/migrations/004_master_password_rekey.rs
+  - src/components/ui/separator.tsx
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-新電腦：匯入備份後案件數應與備份一致-chromium-tauri/test-failed-1.png
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-1：設定主密碼後應取得救援碼-chromium-tauri/error-context.md
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-斷言-1：舊密碼解鎖應失敗（密碼已被重設）-chromium-tauri/error-context.md
+  - src-tauri/icons/ios/AppIcon-40x40@3x.png
+  - src/components/ui/Card.tsx
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-Step-3：使用-token-設定新密碼應成功-chromium-tauri/trace.zip
+  - src/hooks/useAuth.ts
+  - src/lib/mock-backend.ts
+  - docs/phase4-cr-reports/aire-phase1-html-pdf-renderer-kimi-cr.md
+  - e2e/results/test-artifacts/data-portability-資料可攜性：跨機備份與還原-跨機完整流程：建立-→-匯出-→-匯入-→-比對案件數一致-chromium-tauri/error-context.md
+  - src/components/ui/form.tsx
+  - e2e/results/test-artifacts/license-verification-經紀人證號-5ddad--500ms-debounce-後回-verified-chromium-tauri/test-failed-1.png
+  - src-tauri/icons/128x128.png
+  - package.json
+  - src/lib/pdf-themes/types.ts
+  - e2e/results/test-artifacts/pdf-theme-a-visual-PDF-主題--cf4e0-視覺對比-基本資訊頁：與-mockup-視覺差異-5--chromium-tauri/error-context.md
+  - src-tauri/icons/Square284x284Logo.png
+  - src-tauri/icons/Square89x89Logo.png
+  - src/lib/pdf-blocks/conditional-section.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - .artifacts/browser-dev-mock/02-cases-seed-list.png
+  - src-tauri/icons/android/mipmap-hdpi/ic_launcher_foreground.png
+  - src-tauri/icons/Square30x30Logo.png
+  - src-tauri/src/land_registry/client/mod.rs
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - e2e/results/test-artifacts/recovery-reset-救援碼重置主密碼-完整救援碼重置流程：設密碼-→-取救援碼-→-忘記-→-重設-→-三斷言-chromium-tauri/test-failed-1.png
+  - src-tauri/src/data_portability/import/tests.rs
+  - src/assets/icon-light.png
+  - src/app/(dashboard)/settings/sync-status/page.tsx
+  - src/lib/pdf-blocks/cover.tsx
+tests:
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/components/__tests__/RecoveryCodeModal.test.tsx
+  - src/lib/pdf-blocks/__tests__/legal-notice-wrap.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - e2e/data-portability.spec.ts
+  - src/lib/pdf-blocks/__tests__/legal-notice.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/app/activation/__tests__/page.test.tsx
+  - src/lib/__tests__/date-format-twn.test.ts
+  - e2e/pdf-theme-c-visual.spec.ts
+  - src/lib/pdf-blocks/__tests__/legal-notice-theme.test.tsx
+  - docs/__tests__/pdf-theme-pack-spec.test.ts
+  - src/lib/pdf-themes/__tests__/registry.test.ts
+  - src/components/__tests__/MasterPasswordPrompt.test.tsx
+  - src/components/__tests__/ThemeSelector.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src/components/__tests__/ImportConflictDialog.test.tsx
+  - src/hooks/__tests__/useAuth.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/lib/pdf-engine/__tests__/engine.test.ts
+  - src/components/__tests__/TauriRequired.test.tsx
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - e2e/theme-selector.spec.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/lib/pdf-themes/__tests__/persistence.test.ts
+  - src/lib/__tests__/tauri-bridge.test.ts
+  - src/components/__tests__/PdfPreviewer.test.tsx
+  - src/lib/__tests__/log.test.ts
+  - src/lib/pdf-engine/__tests__/render-with-legal.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/(dashboard)/__tests__/layout-sidebar.test.tsx
+  - e2e/license-verification.spec.ts
+  - e2e/legal-clauses-sync.spec.ts
+  - src/lib/__tests__/auth.test.ts
+  - docs/__tests__/no-tofu-sample.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/cases-api.test.ts
+  - e2e/recovery-reset.spec.ts
+  - src/lib/pdf-themes/__tests__/theme-provider.test.tsx
+  - e2e/smoke.spec.ts
+  - src/lib/pdf-blocks/__tests__/legal-notice-empty.test.tsx
+  - e2e/pdf-theme-a-visual.spec.ts
+  - docs/data-recovery-guide.test.ts
 -->

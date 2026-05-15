@@ -25,11 +25,11 @@ describe("PTS-001 — listThemes returns exactly 2 built-in themes", () => {
     expect(themes).toHaveLength(2);
   });
 
-  it("兩個主題 id 分別是 theme-a-minimal 和 theme-b-professional", () => {
+  it("兩個主題 id 分別是 theme-a-minimal 和 theme-c-tech-elegant", () => {
     const themes = listThemes();
     const ids = themes.map((t) => t.id);
     expect(ids).toContain("theme-a-minimal");
-    expect(ids).toContain("theme-b-professional");
+    expect(ids).toContain("theme-c-tech-elegant");
   });
 });
 
@@ -99,10 +99,10 @@ describe("PTS-003 — getTheme by id returns correct theme", () => {
     expect(theme!.id).toBe("theme-a-minimal");
   });
 
-  it("getTheme('theme-b-professional') 回傳 id = theme-b-professional 的主題", () => {
-    const theme = getTheme("theme-b-professional");
+  it("getTheme('theme-c-tech-elegant') 回傳 id = theme-c-tech-elegant 的主題", () => {
+    const theme = getTheme("theme-c-tech-elegant");
     expect(theme).toBeDefined();
-    expect(theme!.id).toBe("theme-b-professional");
+    expect(theme!.id).toBe("theme-c-tech-elegant");
   });
 
   it("getTheme 未知 id 回傳 undefined", () => {

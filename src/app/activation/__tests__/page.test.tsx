@@ -1,8 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-
-import { ActivationPage } from "../page";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { render, waitFor, screen } from "@testing-library/react";
 
 const mockReplace = vi.fn();
 
@@ -12,64 +10,21 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/lib/tauri-bridge", () => ({
-  isTauriEnv: vi.fn(),
-  safeInvoke: vi.fn(),
-  NotInTauriError: class NotInTauriError extends Error {},
-}));
+import ActivationPage from "../page";
 
-import { isTauriEnv, safeInvoke } from "@/lib/tauri-bridge";
-
-const mockIsTauriEnv = vi.mocked(isTauriEnv);
-const mockSafeInvoke = vi.mocked(safeInvoke);
-
-describe("ActivationPage async tauri detection", () => {
+describe("Activation redirect page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it("renders serial key form when isTauriEnv resolves true", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    mockIsTauriEnv.mockResolvedValue(true);
-
+  it("redirects to /settings and does not render old activation form", async () => {
     render(<ActivationPage />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("授權序號")).toBeInTheDocument();
+      expect(mockReplace).toHaveBeenCalledWith("/settings");
     });
-  });
 
-  it("renders desktop-app hint when isTauriEnv resolves false", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    mockIsTauriEnv.mockResolvedValue(false);
-
-    render(<ActivationPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("請在 AIRE 桌面 App 中開啟")).toBeInTheDocument();
-    });
-  });
-
-  it("runs activation flow in development browser env", async () => {
-    vi.stubEnv("NODE_ENV", "development");
-    mockIsTauriEnv.mockResolvedValue(false);
-    mockSafeInvoke.mockResolvedValue({ success: true });
-
-    render(<ActivationPage />);
-
-    const input = await screen.findByLabelText("授權序號");
-    fireEvent.change(input, { target: { value: "TEST-KEY-123" } });
-    fireEvent.click(screen.getByRole("button", { name: "啟動授權" }));
-
-    await waitFor(() => {
-      expect(mockSafeInvoke).toHaveBeenCalledWith("activate_license", {
-        key: "TEST-KEY-123",
-      });
-      expect(mockReplace).toHaveBeenCalledWith("/cases");
-    });
+    expect(screen.queryByText("啟動授權")).not.toBeInTheDocument();
+    expect(screen.queryByText("啟動後可離線使用 30 天")).not.toBeInTheDocument();
   });
 });

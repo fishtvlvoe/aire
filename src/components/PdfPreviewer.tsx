@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "@testing-library/jest-dom/vitest";
 import { invoke } from "@tauri-apps/api/core";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
+import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
 
 import { createPdfEngine, type PdfEngine, type RenderOptions } from "../lib/pdf-engine/engine";
 import { BRANDING_CHANGED_EVENT } from "../lib/pdf-themes/persistence";
@@ -130,17 +131,34 @@ export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
   }, []);
 
   return (
-    <section>
+    <section className="space-y-4 font-sans">
       {status === "loading" && (
-        <div data-testid="pdf-loading-spinner" aria-live="polite">
+        <div
+          data-testid="pdf-loading-spinner"
+          aria-live="polite"
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
           PDF 產生中…
         </div>
       )}
 
       {status === "error" && (
-        <div role="alert">
-          <p>PDF 預覽失敗（{error?.code ?? "ENGINE_FAILURE"}）</p>
-          <button type="button" data-testid="pdf-error-retry" onClick={handleRetry}>
+        <div
+          role="alert"
+          className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-destructive"
+        >
+          <p className="inline-flex items-center gap-2 text-sm font-medium">
+            <AlertCircle className="h-4 w-4" />
+            PDF 預覽失敗（{error?.code ?? "ENGINE_FAILURE"}）
+          </p>
+          <button
+            type="button"
+            data-testid="pdf-error-retry"
+            onClick={handleRetry}
+            className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <RotateCcw className="h-4 w-4" />
             重試
           </button>
         </div>
@@ -160,7 +178,9 @@ export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
         data-testid="pdf-download-btn"
         onClick={handleDownload}
         disabled={!latestBlobRef.current || status === "loading"}
+        className="inline-flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
       >
+        <Download className="h-4 w-4" />
         下載 PDF
       </button>
     </section>

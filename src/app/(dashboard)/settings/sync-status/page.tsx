@@ -42,7 +42,7 @@ function StatusIcon({ fetchedAt }: { fetchedAt: string }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-sm text-amber-600">
+    <span className="inline-flex items-center gap-1 text-sm text-warning">
       <AlertTriangle className="h-4 w-4" aria-hidden />
       過期
     </span>
@@ -86,7 +86,7 @@ export default function SyncStatusPage(): React.ReactElement {
   const isLoading = laws === null && error === null;
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-6">
+    <main className="mx-auto w-full max-w-3xl p-6 font-sans">
       {/* 頁面標題 + 同步按鈕 */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">法規同步狀態</h1>

@@ -2,70 +2,9 @@
 
 import "@testing-library/jest-dom/vitest";
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
+import { Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { safeInvoke } from "@/lib/tauri-bridge";
-
-// 內聯 SVG 取代 lucide-react，降低 cold-start render 時間
-// 對 CLU-001「3 MiB 拒絕 < 100ms」效能預算很關鍵
-function IconAlert(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 8v4" />
-      <path d="M12 16h.01" />
-    </svg>
-  );
-}
-function IconUpload(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="17 8 12 3 7 8" />
-      <line x1="12" y1="3" x2="12" y2="15" />
-    </svg>
-  );
-}
-function IconTrash(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
-    </svg>
-  );
-}
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;
 const SUPPORTED_MIME = new Set(["image/png", "image/jpeg"]);
@@ -126,13 +65,13 @@ export function LogoUploader() {
     if (!file) return;
 
     if (!SUPPORTED_MIME.has(file.type)) {
-      showErrorImmediate("僅支援 PNG / JPG 等格式");
+      showErrorImmediate("僅支援 PNG / JPG 格式");
       event.target.value = "";
       return;
     }
 
     if (file.size > MAX_LOGO_SIZE) {
-      showErrorImmediate("Logo 檔案大小超過 2 MB 上限，請壓縮後再上傳");
+      showErrorImmediate("Logo 檔案過大，請壓縮後再上傳（限 2 MiB 以下）");
       event.target.value = "";
       return;
     }
@@ -168,7 +107,7 @@ export function LogoUploader() {
   }
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-3 font-sans">
       <h3 className="text-base font-semibold">Logo</h3>
 
       <input
@@ -182,7 +121,7 @@ export function LogoUploader() {
       />
 
       <label htmlFor={inputId} className={pickerClass} aria-disabled={isSaving}>
-        <IconUpload className="h-4 w-4" />
+        <Upload className="h-4 w-4" />
         {isSaving ? "上傳中…" : "上傳 Logo"}
       </label>
 
@@ -211,7 +150,7 @@ export function LogoUploader() {
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
-            <IconTrash className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" />
             刪除
           </button>
         </div>

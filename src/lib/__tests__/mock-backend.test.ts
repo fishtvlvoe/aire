@@ -12,9 +12,48 @@ function isUuid(value: string): boolean {
   );
 }
 
+function createMockLocalStorage(seed?: Record<string, string>): Storage {
+  const data = new Map<string, string>(Object.entries(seed ?? {}));
+  return {
+    get length() {
+      return data.size;
+    },
+    clear() {
+      data.clear();
+    },
+    getItem(key: string) {
+      return data.has(key) ? data.get(key)! : null;
+    },
+    key(index: number) {
+      return [...data.keys()][index] ?? null;
+    },
+    removeItem(key: string) {
+      data.delete(key);
+    },
+    setItem(key: string, value: string) {
+      data.set(key, value);
+    },
+  };
+}
+
+let originalLocalStorage: PropertyDescriptor | undefined;
+
 describe("MockStore", () => {
   beforeEach(() => {
+    originalLocalStorage = Object.getOwnPropertyDescriptor(window, "localStorage");
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: createMockLocalStorage(),
+    });
     __resetMockStoreForTests();
+  });
+
+  afterEach(() => {
+    if (originalLocalStorage) {
+      Object.defineProperty(window, "localStorage", originalLocalStorage);
+    } else {
+      delete (window as Window & { localStorage?: Storage }).localStorage;
+    }
   });
 
   it("covers all command happy paths", async () => {
@@ -167,5 +206,116 @@ describe("MockStore", () => {
     await expect(mockInvoke("nonexistent_command")).rejects.toThrow(
       "Mock not implemented: nonexistent_command",
     );
+  });
+
+  it("supports mock auth commands for valid, invalid, and expired users", async () => {
+    await expect(
+      mockInvoke("login", {
+        email: "admin@test.aire",
+        password: "password",
+      }),
+    ).resolves.toEqual({
+      success: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
+
+    await expect(mockInvoke("get_session")).resolves.toEqual({
+      authenticated: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
+
+    await expect(mockInvoke("logout")).resolves.toEqual({ success: true });
+    await expect(mockInvoke("get_session")).resolves.toEqual({
+      authenticated: false,
+    });
+
+    await expect(
+      mockInvoke("login", {
+        email: "wrong@example.com",
+        password: "wrong",
+      }),
+    ).rejects.toThrow("INVALID_CREDENTIALS");
+
+    await expect(
+      mockInvoke("login", {
+        email: "expired@test.aire",
+        password: "password",
+      }),
+    ).rejects.toThrow("ACCOUNT_EXPIRED");
+  });
+
+  it("supports get_app_settings and save_app_settings merging", async () => {
+    await expect(mockInvoke("get_app_settings")).resolves.toEqual({
+      license: { status: "none", serialKey: null },
+      landApi: { clientId: "", secret: "" },
+      premiumUnlocked: false,
+    });
+
+    await expect(
+      mockInvoke("save_app_settings", {
+        landApi: { clientId: "c1", secret: "s1" },
+      }),
+    ).resolves.toEqual({ success: true });
+
+    await expect(mockInvoke("get_app_settings")).resolves.toEqual({
+      license: { status: "none", serialKey: null },
+      landApi: { clientId: "c1", secret: "s1" },
+      premiumUnlocked: false,
+    });
+  });
+
+  it("persists and restores session + app settings via localStorage", async () => {
+    await mockInvoke("login", {
+      email: "admin@test.aire",
+      password: "password",
+    });
+    await mockInvoke("activate_license", { serial_key: "AIRE-TEST-VALID-001" });
+    await mockInvoke("save_app_settings", {
+      landApi: { clientId: "persist-client", secret: "persist-secret" },
+    });
+
+    const reloaded = new MockStore();
+    await expect(reloaded.invoke("get_session")).resolves.toEqual({
+      authenticated: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
+    await expect(reloaded.invoke("get_app_settings")).resolves.toEqual({
+      license: { status: "valid", serialKey: "AIRE-TEST-VALID-001" },
+      landApi: { clientId: "persist-client", secret: "persist-secret" },
+      premiumUnlocked: false,
+    });
+  });
+
+  it("falls back to memory mode when localStorage methods throw", async () => {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: vi.fn(() => {
+          throw new DOMException("blocked");
+        }),
+        setItem: vi.fn(() => {
+          throw new DOMException("blocked");
+        }),
+        removeItem: vi.fn(),
+        clear: vi.fn(),
+        key: vi.fn(() => null),
+        length: 0,
+      } as Storage,
+    });
+
+    const store = new MockStore();
+    await expect(
+      store.invoke("login", {
+        email: "admin@test.aire",
+        password: "password",
+      }),
+    ).resolves.toEqual({
+      success: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
+    await expect(store.invoke("get_session")).resolves.toEqual({
+      authenticated: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
   });
 });

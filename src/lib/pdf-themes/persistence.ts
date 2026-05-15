@@ -8,6 +8,7 @@
  */
 
 import { getTheme } from "./registry";
+import { safeInvoke } from "@/lib/tauri-bridge";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 常數
@@ -76,27 +77,27 @@ export async function setTheme(
   requestedId: string
 ): Promise<ThemePersistenceResult> {
   const found = getTheme(requestedId);
+  const resolvedThemeId = found ? requestedId : FALLBACK_THEME_ID;
+  const didFallback = !found;
 
-  if (found) {
-    _persist(requestedId);
-    _emitBrandingChanged(requestedId, false);
-    return {
-      success: true,
-      themeId: requestedId,
-      didFallback: false,
-    };
+  try {
+    // 優先走 Tauri IPC（set_theme），確保 branding.theme_id 寫回 SQLite
+    await safeInvoke("set_theme", {
+      theme_id: resolvedThemeId,
+      themeId: resolvedThemeId,
+    });
+  } catch {
+    // 非 Tauri / mock 或 IPC 失敗時，仍允許前端 fallback 持續運作
   }
 
-  // 找不到 → fallback 到 theme-a-minimal
-  const fallbackThemeId = FALLBACK_THEME_ID;
-  _persist(fallbackThemeId);
-  _emitBrandingChanged(fallbackThemeId, true);
+  _persist(resolvedThemeId);
+  _emitBrandingChanged(resolvedThemeId, didFallback);
 
   return {
     success: true,
-    themeId: fallbackThemeId,
-    didFallback: true,
-    originalThemeId: requestedId,
+    themeId: resolvedThemeId,
+    didFallback,
+    originalThemeId: didFallback ? requestedId : undefined,
   };
 }
 
@@ -104,5 +105,14 @@ export async function setTheme(
 // loadPersistedTheme — 讀取持久化的 theme id
 // ─────────────────────────────────────────────────────────────────────────────
 export async function loadPersistedTheme(): Promise<string | null> {
+  try {
+    const themeId = await safeInvoke<string>("get_theme");
+    if (themeId) {
+      _persist(themeId);
+      return themeId;
+    }
+  } catch {
+    // 回退 localStorage / memory
+  }
   return _load();
 }

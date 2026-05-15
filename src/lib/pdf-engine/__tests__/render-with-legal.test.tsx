@@ -26,6 +26,10 @@ vi.mock("@react-pdf/renderer", () => ({
   pdf: vi.fn(),
 }));
 
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(),
+}));
+
 // ─── Mock theme-provider ────────────────────────────────────────────────────
 vi.mock("../../pdf-themes/theme-provider", () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) =>
@@ -61,7 +65,10 @@ vi.mock("../../pdf-blocks/legal-notice", () => ({
 }));
 
 import { PdfDocument, type CaseData } from "../document";
+import { renderDisclosurePdf } from "../index";
 import type { PdfTheme } from "../../pdf-themes/types";
+import { invoke } from "@tauri-apps/api/core";
+import { pdf } from "@react-pdf/renderer";
 
 // ─── 測試資料 ───────────────────────────────────────────────────────────────
 
@@ -152,6 +159,30 @@ describe("RWL-001 — LegalNoticeBlock 渲染恰好 1 次，在固定頁之後",
     const lastFixedIndex = Math.max(...fixedPageIndices);
     expect(legalIndex).toBeGreaterThan(lastFixedIndex);
   });
+
+  it("有動態頁時，legal-notice-block 應在第一個動態頁之前", () => {
+    const { getByTestId, getByText } = render(
+      React.createElement(PdfDocument, {
+        caseData: {
+          ...stubCase,
+          dynamicSections: ["現況照片 1/4", "生活機能"],
+        },
+        theme: stubTheme,
+        logo: null,
+        legalClauses: stubClauses,
+      }),
+    );
+
+    const document = getByTestId("pdf-document");
+    const children = Array.from(document.children);
+    const legalBlock = getByTestId("legal-notice-block");
+    const legalIndex = children.indexOf(legalBlock);
+    const firstDynamicPageText = getByText("現況照片 1/4");
+    const firstDynamicPage = firstDynamicPageText.closest("[data-testid='pdf-page']");
+    expect(firstDynamicPage).toBeTruthy();
+    const dynamicIndex = children.indexOf(firstDynamicPage as Element);
+    expect(legalIndex).toBeLessThan(dynamicIndex);
+  });
 });
 
 // ─── RWL-002：legalClauses 未傳入時，LegalNoticeBlock 仍被渲染（空陣列） ────
@@ -211,5 +242,46 @@ describe("RWL-003 — legalClauses 有資料，完整傳入 LegalNoticeBlock", (
 
     const [firstCall] = mockLegalNoticeBlock.mock.calls;
     expect(firstCall![0].theme).toBe(stubTheme.id);
+  });
+});
+
+describe("RWL-004 — renderDisclosurePdf 會取三條法規並傳入 PdfDocument", () => {
+  beforeEach(() => {
+    mockLegalNoticeBlock.mockClear();
+    vi.mocked(invoke).mockReset();
+    (pdf as unknown as { mockReset: () => void }).mockReset();
+  });
+
+  it("未提供 legalClauses 時，應呼叫 get_legal_clause 三次（固定 law_id）", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      law_id: "real-estate-broker-act",
+      title: "不動產經紀業管理條例",
+      content_markdown: "內容",
+      version_date: "2024-08-15",
+      fetched_at: "2026-05-15T00:00:00Z",
+      source_url: "https://law.moj.gov.tw/",
+    });
+    vi.mocked(pdf).mockReturnValue({
+      toBlob: vi.fn().mockResolvedValue(new Blob(["%PDF-1.4"])),
+    } as unknown as ReturnType<typeof pdf>);
+
+    await renderDisclosurePdf(stubCase, stubTheme, null);
+
+    expect(vi.mocked(invoke)).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(invoke)).toHaveBeenNthCalledWith(
+      1,
+      "get_legal_clause",
+      { law_id: "real-estate-broker-act" },
+    );
+    expect(vi.mocked(invoke)).toHaveBeenNthCalledWith(
+      2,
+      "get_legal_clause",
+      { law_id: "consumer-protection-relevant" },
+    );
+    expect(vi.mocked(invoke)).toHaveBeenNthCalledWith(
+      3,
+      "get_legal_clause",
+      { law_id: "fair-trade-relevant" },
+    );
   });
 });

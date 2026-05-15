@@ -39,13 +39,13 @@ describe("PTS-006 — setTheme persists and emits branding-changed within 100ms"
     window.addEventListener(BRANDING_CHANGED_EVENT, handler);
 
     const start = performance.now();
-    await setTheme("theme-b-professional");
+    await setTheme("theme-c-tech-elegant");
     const elapsed = performance.now() - start;
 
     window.removeEventListener(BRANDING_CHANGED_EVENT, handler);
 
     expect(received).toHaveLength(1);
-    expect(received[0].detail).toMatchObject({ themeId: "theme-b-professional" });
+    expect(received[0].detail).toMatchObject({ themeId: "theme-c-tech-elegant" });
     expect(elapsed).toBeLessThan(100);
   });
 

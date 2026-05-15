@@ -120,9 +120,9 @@ export function RealtorLicenseField({
     // 離線且無任何 cache：無法驗證
     if (isOffline && !hasCache) {
       return (
-        <div className="mt-2 inline-flex items-center gap-1.5 text-sm text-amber-600">
+        <div className="mt-2 inline-flex items-center gap-1.5 text-sm text-warning">
           <WifiOff className="h-4 w-4" aria-hidden />
-          <span>離線中、無法驗證</span>
+          <span>⚠ 離線中、無法驗證</span>
         </div>
       );
     }
@@ -130,15 +130,15 @@ export function RealtorLicenseField({
     if (verification.status === "verified") {
       return (
         <div className="mt-2 flex flex-col gap-0.5">
-          <div className="inline-flex items-center gap-1.5 text-sm text-green-600">
+          <div className="inline-flex items-center gap-1.5 text-sm text-success">
             <CheckCircle className="h-4 w-4" aria-hidden />
             {isOffline ? (
               // 離線 + 有 cache：附加最後驗證日期提示
               <span>
-                已驗證（最後驗證日期 {toDateOnly(verification.verifiedAt)}，目前離線中）
+                ✓ 已驗證（最後驗證日期 {toDateOnly(verification.verifiedAt)}，目前離線中）
               </span>
             ) : (
-              <span>已驗證</span>
+              <span>✓ 已驗證</span>
             )}
           </div>
         </div>
@@ -149,7 +149,7 @@ export function RealtorLicenseField({
       return (
         <div className="mt-2 inline-flex items-center gap-1.5 text-sm text-destructive">
           <XCircle className="h-4 w-4" aria-hidden />
-          <span>證號不存在</span>
+          <span>✗ 證號不存在</span>
         </div>
       );
     }
@@ -157,14 +157,14 @@ export function RealtorLicenseField({
     // expired
     return (
       <div className="mt-2 flex flex-col gap-0.5">
-        <div className="inline-flex items-center gap-1.5 text-sm text-amber-600">
+        <div className="inline-flex items-center gap-1.5 text-sm text-warning">
           <AlertTriangle className="h-4 w-4" aria-hidden />
           {isOffline ? (
             <span>
-              證號已過期（最後驗證日期 {toDateOnly(verification.verifiedAt)}，目前離線中）
+              ⚠ 證號已過期（最後驗證日期 {toDateOnly(verification.verifiedAt)}，目前離線中）
             </span>
           ) : (
-            <span>證號已過期</span>
+            <span>⚠ 證號已過期</span>
           )}
         </div>
       </div>
@@ -172,7 +172,7 @@ export function RealtorLicenseField({
   };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 font-sans">
       <label className="text-sm font-medium" htmlFor="realtor-license-input">
         經紀人證號
       </label>

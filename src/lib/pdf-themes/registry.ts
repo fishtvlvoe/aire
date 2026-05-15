@@ -60,10 +60,10 @@ export function resolveThemeOrFallback(id: string): ThemeResolution {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 模組載入時注冊兩個內建主題
-// 測試 PTS-001 expects: theme-a-minimal + theme-b-professional
+// AIRE Phase 1 出貨：theme-a-minimal + theme-c-tech-elegant
 // ─────────────────────────────────────────────────────────────────────────────
 import { themeAMinimal } from "./theme-a-minimal";
-import { themeBProfessional } from "./theme-b-professional";
+import { themeCTechElegant } from "./theme-c-tech-elegant";
 
 registerTheme(themeAMinimal);
-registerTheme(themeBProfessional);
+registerTheme(themeCTechElegant);

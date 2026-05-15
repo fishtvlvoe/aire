@@ -2,6 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 import { useMemo, useState } from "react";
+import { Palette } from "lucide-react";
 import { listThemes } from "@/lib/pdf-themes/registry";
 import { setTheme as persistTheme } from "@/lib/pdf-themes/persistence";
 import { useSelectableTheme } from "@/lib/pdf-themes/theme-provider";
@@ -32,8 +33,11 @@ export function ThemeSelector() {
   }
 
   return (
-    <section className="space-y-3">
-      <h3 className="text-base font-semibold">主題</h3>
+    <section className="space-y-3 font-sans">
+      <h3 className="inline-flex items-center gap-2 text-base font-semibold">
+        <Palette className="h-4 w-4" />
+        主題
+      </h3>
 
       {didFallback && (
         <div

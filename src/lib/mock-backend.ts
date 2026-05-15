@@ -29,6 +29,56 @@ interface LogoAsset {
   mime: string;
 }
 
+interface MockSessionUser {
+  email: string;
+  role: "admin" | "user";
+}
+
+interface AppSettingsState {
+  landApi: {
+    clientId: string;
+    secret: string;
+  };
+  premiumUnlocked: boolean;
+}
+
+interface PersistedMockState {
+  license?: LicenseState;
+  sessionUser?: MockSessionUser | null;
+  appSettings?: AppSettingsState;
+}
+
+const MOCK_STORAGE_KEY = "aire-mock-store";
+
+const TEST_ACCOUNTS = [
+  {
+    email: "admin@test.aire",
+    password: "password",
+    role: "admin" as const,
+    status: "active" as const,
+  },
+  {
+    email: "user@test.aire",
+    password: "password",
+    role: "user" as const,
+    status: "active" as const,
+  },
+  {
+    email: "expired@test.aire",
+    password: "password",
+    role: "user" as const,
+    status: "expired" as const,
+  },
+];
+
+const DEFAULT_APP_SETTINGS: AppSettingsState = {
+  landApi: {
+    clientId: "",
+    secret: "",
+  },
+  premiumUnlocked: false,
+};
+
 const DEFAULT_THEMES = [
   {
     id: "theme-a-minimal",
@@ -37,16 +87,10 @@ const DEFAULT_THEMES = [
     description: "簡潔、專業、適合標準不動產說明書",
   },
   {
-    id: "theme-b-bold",
-    label: "穩重 Bold",
-    displayName: "穩重 Bold",
-    description: "高對比標題與重點資訊布局",
-  },
-  {
-    id: "theme-c-warm",
-    label: "暖色 Warm",
-    displayName: "暖色 Warm",
-    description: "柔和色調，適合親和品牌識別",
+    id: "theme-c-tech-elegant",
+    label: "科技優雅 Tech Elegant",
+    displayName: "科技優雅 Tech Elegant",
+    description: "深藍底色，粉漸層裝飾，金色邊框",
   },
 ];
 
@@ -184,6 +228,17 @@ function makeUuid(): string {
   });
 }
 
+function getBrowserLocalStorage(): Storage | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export class MockStore {
   private license: LicenseState = {
     status: "none",
@@ -195,10 +250,20 @@ export class MockStore {
   private logs: LogEntry[] = [];
   private brandSettings: BrandSettings = { ...SEED_BRAND_SETTINGS };
   private logo: LogoAsset | null = null;
+  private themeId = "theme-a-minimal";
   private clauses = new Map<string, ClauseData>();
+  private sessionUser: MockSessionUser | null = null;
+  private appSettings: AppSettingsState = {
+    landApi: {
+      clientId: DEFAULT_APP_SETTINGS.landApi.clientId,
+      secret: DEFAULT_APP_SETTINGS.landApi.secret,
+    },
+    premiumUnlocked: DEFAULT_APP_SETTINGS.premiumUnlocked,
+  };
 
   constructor() {
     this.reset();
+    this.restorePersistedState();
   }
 
   reset(): void {
@@ -212,71 +277,102 @@ export class MockStore {
     this.logs = SEED_LOGS.map((entry) => ({ ...entry }));
     this.brandSettings = { ...SEED_BRAND_SETTINGS };
     this.logo = null;
+    this.themeId = "theme-a-minimal";
     this.clauses = new Map(SEED_CLAUSES.map((clause) => [clause.law_id, { ...clause }]));
+    this.sessionUser = null;
+    this.appSettings = {
+      landApi: {
+        clientId: DEFAULT_APP_SETTINGS.landApi.clientId,
+        secret: DEFAULT_APP_SETTINGS.landApi.secret,
+      },
+      premiumUnlocked: DEFAULT_APP_SETTINGS.premiumUnlocked,
+    };
   }
 
   async invoke<T>(cmd: string, args?: CommandArgs): Promise<T> {
-    switch (cmd) {
-      case "get_license_status":
-        return this.getLicenseStatus() as T;
-      case "activate_license":
-        return this.activateLicense(args) as T;
-      case "deactivate_license":
-        return this.deactivateLicense() as T;
-      case "check_license":
-        return this.checkLicense() as T;
+    try {
+      switch (cmd) {
+        case "get_license_status":
+          return this.getLicenseStatus() as T;
+        case "activate_license":
+          return this.activateLicense(args) as T;
+        case "deactivate_license":
+          return this.deactivateLicense() as T;
+        case "check_license":
+          return this.checkLicense() as T;
 
-      case "list_cases":
-        return this.listCases() as T;
-      case "get_case":
-        return this.getCase(args) as T;
-      case "create_case":
-        return this.createCase(args) as T;
-      case "update_case":
-        return this.updateCase(args) as T;
-      case "delete_case":
-        return this.deleteCase(args) as T;
-      case "mark_completed":
-        return this.markCompleted(args) as T;
+        case "login":
+          return this.login(args) as T;
+        case "logout":
+          return this.logout() as T;
+        case "get_session":
+          return this.getSession() as T;
+        case "get_app_settings":
+          return this.getAppSettings() as T;
+        case "save_app_settings":
+          return this.saveAppSettings(args) as T;
 
-      case "export_pdf":
-        return this.exportPdf(args) as T;
+        case "list_cases":
+          return this.listCases() as T;
+        case "get_case":
+          return this.getCase(args) as T;
+        case "create_case":
+          return this.createCase(args) as T;
+        case "update_case":
+          return this.updateCase(args) as T;
+        case "delete_case":
+          return this.deleteCase(args) as T;
+        case "mark_completed":
+          return this.markCompleted(args) as T;
 
-      case "save_draft":
-        return this.saveDraft(args) as T;
-      case "load_draft":
-        return this.loadDraft(args) as T;
+        case "export_pdf":
+          return this.exportPdf(args) as T;
 
-      case "write_log":
-        return this.writeLog(args) as T;
-      case "list_recent_logs":
-        return this.listRecentLogs(args) as T;
+        case "save_draft":
+          return this.saveDraft(args) as T;
+        case "load_draft":
+          return this.loadDraft(args) as T;
 
-      case "get_brand_settings":
-        return this.getBrandSettings() as T;
-      case "save_brand_settings":
-        return this.saveBrandSettings(args) as T;
+        case "write_log":
+          return this.writeLog(args) as T;
+        case "list_recent_logs":
+          return this.listRecentLogs(args) as T;
 
-      case "upload_logo":
-      case "save_logo":
-        return this.uploadLogo(args) as T;
-      case "get_logo":
-        return this.getLogo() as T;
-      case "list_themes":
-        return this.listThemes() as T;
+        case "get_brand_settings":
+          return this.getBrandSettings() as T;
+        case "save_brand_settings":
+          return this.saveBrandSettings(args) as T;
 
-      case "get_clause":
-      case "get_legal_clause":
-        return this.getClause(args) as T;
-      case "list_clauses":
-      case "list_legal_clauses":
-        return this.listClauses() as T;
-      case "sync_clauses":
-      case "sync_legal_clauses":
-        return this.syncClauses() as T;
+        case "upload_logo":
+        case "save_logo":
+          return this.uploadLogo(args) as T;
+        case "delete_logo":
+          return this.deleteLogo() as T;
+        case "load_logo":
+        case "get_logo":
+          return this.getLogo() as T;
+        case "set_theme":
+          return this.setTheme(args) as T;
+        case "get_theme":
+          return this.getTheme() as T;
+        case "list_themes":
+          return this.listThemes() as T;
 
-      default:
-        throw new Error(`Mock not implemented: ${cmd}`);
+        case "get_clause":
+        case "get_legal_clause":
+          return this.getClause(args) as T;
+        case "list_clauses":
+        case "list_legal_clauses":
+          return this.listClauses() as T;
+        case "sync_clauses":
+        case "sync_legal_clauses":
+          return this.syncClauses() as T;
+
+        default:
+          throw new Error(`Mock not implemented: ${cmd}`);
+      }
+    } finally {
+      this.persistState();
     }
   }
 
@@ -323,6 +419,95 @@ export class MockStore {
     this.license = {
       status: "none",
       serialKey: null,
+    };
+
+    return { success: true };
+  }
+
+  private login(args?: CommandArgs): { success: true; user: MockSessionUser } {
+    const payload = toRecord(args);
+    const email = pickString(payload, ["email"]);
+    const password = pickString(payload, ["password"]);
+
+    if (!email || !password) {
+      throw new Error("INVALID_CREDENTIALS");
+    }
+
+    const account = TEST_ACCOUNTS.find(
+      (candidate) => candidate.email === email && candidate.password === password,
+    );
+    if (!account) {
+      throw new Error("INVALID_CREDENTIALS");
+    }
+
+    if (account.status === "expired") {
+      throw new Error("ACCOUNT_EXPIRED");
+    }
+
+    this.sessionUser = {
+      email: account.email,
+      role: account.role,
+    };
+    return {
+      success: true,
+      user: { ...this.sessionUser },
+    };
+  }
+
+  private logout(): { success: true } {
+    this.sessionUser = null;
+    return { success: true };
+  }
+
+  private getSession():
+    | { authenticated: false }
+    | { authenticated: true; user: MockSessionUser } {
+    if (!this.sessionUser) {
+      return { authenticated: false };
+    }
+
+    return {
+      authenticated: true,
+      user: { ...this.sessionUser },
+    };
+  }
+
+  private getAppSettings(): {
+    license: { status: LicenseStatus; serialKey: string | null };
+    landApi: { clientId: string; secret: string };
+    premiumUnlocked: boolean;
+  } {
+    return {
+      license: {
+        status: this.license.status,
+        serialKey: this.license.serialKey,
+      },
+      landApi: {
+        clientId: this.appSettings.landApi.clientId,
+        secret: this.appSettings.landApi.secret,
+      },
+      premiumUnlocked: this.appSettings.premiumUnlocked,
+    };
+  }
+
+  private saveAppSettings(args?: CommandArgs): { success: true } {
+    const payload = toRecord(args);
+    const landApi = toRecord(payload.landApi);
+    const premiumUnlocked = payload.premiumUnlocked;
+
+    const clientId = readString(landApi.clientId);
+    const secret = readString(landApi.secret);
+
+    this.appSettings = {
+      ...this.appSettings,
+      landApi: {
+        clientId: clientId ?? this.appSettings.landApi.clientId,
+        secret: secret ?? this.appSettings.landApi.secret,
+      },
+      premiumUnlocked:
+        typeof premiumUnlocked === "boolean"
+          ? premiumUnlocked
+          : this.appSettings.premiumUnlocked,
     };
 
     return { success: true };
@@ -558,6 +743,23 @@ export class MockStore {
     return this.logo ? { ...this.logo } : null;
   }
 
+  private deleteLogo(): { success: true } {
+    this.logo = null;
+    return { success: true };
+  }
+
+  private setTheme(args?: CommandArgs): { success: true; theme_id: string } {
+    const payload = toRecord(args);
+    const next =
+      pickString(payload, ["theme_id", "themeId"]) ?? "theme-a-minimal";
+    this.themeId = next;
+    return { success: true, theme_id: this.themeId };
+  }
+
+  private getTheme(): string {
+    return this.themeId;
+  }
+
   private listThemes(): Array<Record<string, string>> {
     return DEFAULT_THEMES.map((theme) => ({ ...theme }));
   }
@@ -597,6 +799,89 @@ export class MockStore {
       synced_at: syncedAt,
     };
   }
+
+  private restorePersistedState(): void {
+    const storage = getBrowserLocalStorage();
+    if (!storage) {
+      return;
+    }
+
+    try {
+      const raw = storage.getItem(MOCK_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as PersistedMockState;
+      const persistedLicense = parsed.license;
+      const persistedSession = parsed.sessionUser;
+      const persistedSettings = parsed.appSettings;
+
+      if (
+        persistedLicense &&
+        (persistedLicense.status === "none" ||
+          persistedLicense.status === "valid" ||
+          persistedLicense.status === "expired")
+      ) {
+        this.license = {
+          status: persistedLicense.status,
+          serialKey:
+            typeof persistedLicense.serialKey === "string"
+              ? persistedLicense.serialKey
+              : null,
+        };
+      }
+
+      if (
+        persistedSession &&
+        typeof persistedSession.email === "string" &&
+        (persistedSession.role === "admin" || persistedSession.role === "user")
+      ) {
+        this.sessionUser = {
+          email: persistedSession.email,
+          role: persistedSession.role,
+        };
+      }
+
+      if (persistedSettings) {
+        const landApi = toRecord(persistedSettings.landApi);
+        this.appSettings = {
+          landApi: {
+            clientId: readString(landApi.clientId) ?? "",
+            secret: readString(landApi.secret) ?? "",
+          },
+          premiumUnlocked: Boolean(persistedSettings.premiumUnlocked),
+        };
+      }
+    } catch {
+      // Ignore invalid/blocked localStorage in private mode.
+    }
+  }
+
+  private persistState(): void {
+    const storage = getBrowserLocalStorage();
+    if (!storage) {
+      return;
+    }
+
+    const snapshot: PersistedMockState = {
+      license: { ...this.license },
+      sessionUser: this.sessionUser ? { ...this.sessionUser } : null,
+      appSettings: {
+        landApi: {
+          clientId: this.appSettings.landApi.clientId,
+          secret: this.appSettings.landApi.secret,
+        },
+        premiumUnlocked: this.appSettings.premiumUnlocked,
+      },
+    };
+
+    try {
+      storage.setItem(MOCK_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch {
+      // Ignore private-mode localStorage failures and stay memory-only.
+    }
+  }
 }
 
 let defaultStore = new MockStore();
@@ -609,5 +894,13 @@ export async function mockInvoke<T>(
 }
 
 export function __resetMockStoreForTests(): void {
+  const storage = getBrowserLocalStorage();
+  if (storage) {
+    try {
+      storage.removeItem(MOCK_STORAGE_KEY);
+    } catch {
+      // noop
+    }
+  }
   defaultStore = new MockStore();
 }

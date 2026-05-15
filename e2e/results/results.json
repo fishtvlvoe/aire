@@ -1,0 +1,316 @@
+{
+  "config": {
+    "configFile": "/Users/fishtv/Development/products/AIRE/playwright.config.ts",
+    "rootDir": "/Users/fishtv/Development/products/AIRE/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/fishtv/Development/products/AIRE/e2e/results/test-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium-tauri",
+        "name": "chromium-tauri",
+        "testDir": "/Users/fishtv/Development/products/AIRE/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "e2e/results/playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "e2e/results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "pdf-theme-a-visual.spec.ts",
+      "file": "pdf-theme-a-visual.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PDF 主題 A：淡雅 Minimal — 視覺對比",
+          "file": "pdf-theme-a-visual.spec.ts",
+          "line": 94,
+          "column": 6,
+          "specs": [
+            {
+              "title": "封面：與 mockup 視覺差異 < 5%",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-tauri",
+                  "projectName": "chromium-tauri",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1572,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-15T08:09:11.033Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2ca970b70ce7065c4ccf-da67ad2f1014812ec0c4",
+              "file": "pdf-theme-a-visual.spec.ts",
+              "line": 112,
+              "column": 7
+            },
+            {
+              "title": "基本資訊頁：與 mockup 視覺差異 < 5%",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-tauri",
+                  "projectName": "chromium-tauri",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1083,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-15T08:09:12.791Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2ca970b70ce7065c4ccf-597cb13e6852f62865a1",
+              "file": "pdf-theme-a-visual.spec.ts",
+              "line": 126,
+              "column": 7
+            },
+            {
+              "title": "現況照片頁：與 mockup 視覺差異 < 5%",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-tauri",
+                  "projectName": "chromium-tauri",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1055,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-15T08:09:13.884Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "2ca970b70ce7065c4ccf-ef4eb9e75f9107023b3d",
+              "file": "pdf-theme-a-visual.spec.ts",
+              "line": 139,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "pdf-theme-c-visual.spec.ts",
+      "file": "pdf-theme-c-visual.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PDF 主題 C：科技優雅 Tech Elegant — 視覺對比",
+          "file": "pdf-theme-c-visual.spec.ts",
+          "line": 94,
+          "column": 6,
+          "specs": [
+            {
+              "title": "封面：與 mockup 視覺差異 < 5%",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-tauri",
+                  "projectName": "chromium-tauri",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2076,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-15T08:09:14.954Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "592681bcf5cdf8cbd750-23a8b122097e8d088859",
+              "file": "pdf-theme-c-visual.spec.ts",
+              "line": 112,
+              "column": 7
+            },
+            {
+              "title": "基本資訊頁：與 mockup 視覺差異 < 5%",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-tauri",
+                  "projectName": "chromium-tauri",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1076,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-15T08:09:17.040Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "592681bcf5cdf8cbd750-52e36692ec5c7a7a1269",
+              "file": "pdf-theme-c-visual.spec.ts",
+              "line": 124,
+              "column": 7
+            },
+            {
+              "title": "現況照片頁：與 mockup 視覺差異 < 5%",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-tauri",
+                  "projectName": "chromium-tauri",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1085,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-05-15T08:09:18.125Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "592681bcf5cdf8cbd750-85769c178b220ae72f4e",
+              "file": "pdf-theme-c-visual.spec.ts",
+              "line": 136,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-05-15T08:09:10.478Z",
+    "duration": 8781.067000000001,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -67,7 +67,7 @@ describe("CLU-001 — 3 MiB file is rejected without IPC call", () => {
     expect(mockSafeInvoke).not.toHaveBeenCalled();
   });
 
-  it("error message 包含 '大小' 或 '超過' 或 'MB' 提示", async () => {
+  it("error message 包含 '過大' 或 '超過' 或 'MiB' 提示", async () => {
     const input = screen.getByTestId("logo-file-input");
     const bigFile = makeFile(3 * 1024 * 1024, "image/png");
 
@@ -75,7 +75,7 @@ describe("CLU-001 — 3 MiB file is rejected without IPC call", () => {
 
     await waitFor(() => {
       const alert = screen.getByRole("alert");
-      expect(alert.textContent).toMatch(/大小|超過|MB/i);
+      expect(alert.textContent).toMatch(/過大|超過|MiB/i);
     });
   });
 });
