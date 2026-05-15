@@ -16,9 +16,13 @@ type PremiumStatusResponse = {
 type SubscribePremiumResponse = {
   redirect_url: string;
 };
+type SessionResponse =
+  | { authenticated: false }
+  | { authenticated: true; user: { email: string; role: "admin" | "user" } };
 
 export function PremiumUnlockSection() {
   const [loading, setLoading] = React.useState(true);
+  const [isAdmin, setIsAdmin] = React.useState(false);
   const [subscribed, setSubscribed] = React.useState<boolean>(false);
   const [plan, setPlan] = React.useState<string | null>(null);
   const [expiresAt, setExpiresAt] = React.useState<string | null>(null);
@@ -30,8 +34,12 @@ export function PremiumUnlockSection() {
     async function load() {
       setLoading(true);
       try {
-        const res = await mockInvoke<PremiumStatusResponse>("get_premium_status");
+        const [res, session] = await Promise.all([
+          mockInvoke<PremiumStatusResponse>("get_premium_status"),
+          mockInvoke<SessionResponse>("get_session"),
+        ]);
         if (cancelled) return;
+        setIsAdmin(Boolean(session.authenticated && session.user.role === "admin"));
         setSubscribed(res.subscribed);
         setPlan(res.plan);
         setExpiresAt(res.expires_at);
@@ -62,7 +70,9 @@ export function PremiumUnlockSection() {
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
           <CardTitle>實價登錄 MCP Hub</CardTitle>
-          {loading ? null : subscribed ? (
+          {loading ? null : isAdmin ? (
+            <Badge className="border-transparent bg-green-100 text-green-700">已啟用（管理員）</Badge>
+          ) : subscribed ? (
             <Badge className="border-transparent bg-green-100 text-green-700">訂閱中</Badge>
           ) : null}
         </div>
@@ -73,6 +83,10 @@ export function PremiumUnlockSection() {
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-10 w-28" />
+          </div>
+        ) : isAdmin ? (
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">管理員帳號已自動啟用 MCP Hub</div>
           </div>
         ) : subscribed ? (
           <div className="space-y-2">

@@ -3,7 +3,7 @@
  *
  * CLU-001：3 MiB 拒絕 + 無 IPC + error UI < 100ms
  * CLU-002：1.9 MiB 通過 + IPC 呼叫 1 次
- * CLU-003：SVG 拒絕
+ * CLU-003：SVG/AVIF 接受
  * 所有 import 指向尚未實作的模組 → 編譯失敗 = 紅燈
  */
 
@@ -118,47 +118,39 @@ describe("CLU-002 — 1.9 MiB file is accepted and IPC called once", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CLU-003：SVG 檔案拒絕
+// CLU-003：SVG/AVIF 檔案接受
 // ─────────────────────────────────────────────────────────────────────────────
-describe("CLU-003 — SVG file is rejected", () => {
+describe("CLU-003 — SVG/AVIF file is accepted", () => {
   beforeEach(() => {
     mockSafeInvoke.mockReset();
+    mockSafeInvoke.mockResolvedValue({ success: true });
     render(<LogoUploader />);
   });
 
-  it("上傳 SVG 檔案顯示格式不支援 error", async () => {
+  it("上傳 SVG 檔案會通過並呼叫 IPC", async () => {
     const input = screen.getByTestId("logo-file-input");
     const svgFile = makeFile(50 * 1024, "image/svg+xml", "logo.svg");
 
     fireEvent.change(input, { target: { files: [svgFile] } });
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(mockSafeInvoke).toHaveBeenCalledTimes(1);
     });
   });
 
-  it("SVG 拒絕後不呼叫 IPC", async () => {
+  it("上傳 AVIF 檔案會通過並呼叫 IPC", async () => {
     const input = screen.getByTestId("logo-file-input");
-    const svgFile = makeFile(50 * 1024, "image/svg+xml", "logo.svg");
+    const avifFile = makeFile(50 * 1024, "image/avif", "logo.avif");
 
-    fireEvent.change(input, { target: { files: [svgFile] } });
+    fireEvent.change(input, { target: { files: [avifFile] } });
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toBeInTheDocument();
+      expect(mockSafeInvoke).toHaveBeenCalledTimes(1);
     });
-
-    expect(mockSafeInvoke).not.toHaveBeenCalled();
   });
 
-  it("SVG error message 包含格式相關提示", async () => {
+  it("accept 屬性包含 SVG 與 AVIF", async () => {
     const input = screen.getByTestId("logo-file-input");
-    const svgFile = makeFile(50 * 1024, "image/svg+xml", "logo.svg");
-
-    fireEvent.change(input, { target: { files: [svgFile] } });
-
-    await waitFor(() => {
-      const alert = screen.getByRole("alert");
-      expect(alert.textContent).toMatch(/格式|SVG|PNG|JPEG|支援/i);
-    });
+    expect(input).toHaveAttribute("accept", "image/png,image/jpeg,image/svg+xml,image/avif");
   });
 });

@@ -108,3 +108,14 @@ describe("ThemeSelector — shows fallback banner when unknown theme used", () =
     expect(screen.queryByTestId("theme-fallback-banner")).toBeNull();
   });
 });
+
+describe("ThemeSelector — preview modal", () => {
+  it("點擊預覽會開啟預覽 Modal", async () => {
+    renderWithProvider("theme-a-minimal");
+    fireEvent.click(screen.getAllByRole("button", { name: "預覽" })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("不動產說明書（預覽）")).toBeInTheDocument();
+    });
+  });
+});

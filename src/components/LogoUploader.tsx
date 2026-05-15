@@ -7,7 +7,12 @@ import { cn } from "@/lib/utils";
 import { safeInvoke } from "@/lib/tauri-bridge";
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;
-const SUPPORTED_MIME = new Set(["image/png", "image/jpeg"]);
+const SUPPORTED_MIME = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/svg+xml",
+  "image/avif",
+]);
 
 export function LogoUploader() {
   const inputId = useId();
@@ -65,7 +70,7 @@ export function LogoUploader() {
     if (!file) return;
 
     if (!SUPPORTED_MIME.has(file.type)) {
-      showErrorImmediate("僅支援 PNG / JPG 格式");
+      showErrorImmediate("僅支援 PNG、JPEG、SVG、AVIF 格式");
       event.target.value = "";
       return;
     }
@@ -114,7 +119,7 @@ export function LogoUploader() {
         id={inputId}
         data-testid="logo-file-input"
         type="file"
-        accept="image/png,image/jpeg"
+        accept="image/png,image/jpeg,image/svg+xml,image/avif"
         className="sr-only"
         disabled={isSaving}
         onChange={handleFileChange}

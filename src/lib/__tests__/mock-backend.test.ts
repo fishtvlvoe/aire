@@ -366,6 +366,50 @@ describe("MockStore", () => {
     });
   });
 
+  it("persists created cases via localStorage and restores after reload", async () => {
+    const created = await mockInvoke<{ id: string; address: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+      },
+    });
+
+    const reloaded = new MockStore();
+    const restored = await reloaded.invoke<Array<{ id: string; address: string }>>("list_cases");
+    expect(restored.some((row) => row.id === created.id && row.address === created.address)).toBe(
+      true,
+    );
+  });
+
+  it("create_case allows empty land_lot_no", async () => {
+    const created = await mockInvoke<{ land_lot_no: string; owner_name: string | null }>(
+      "create_case",
+      {
+        input: {
+          address: "台南市東區裕農路288巷",
+          property_type: "residential",
+          case_no: "TEST-004",
+        },
+      },
+    );
+
+    expect(created.land_lot_no).toBe("");
+    expect(created.owner_name).toBeNull();
+  });
+
+  it("falls back to seed cases with warning when persisted JSON is corrupted", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    window.localStorage.setItem("aire-mock-store", "CORRUPTED");
+
+    const store = new MockStore();
+    const list = await store.invoke<Array<{ id: string }>>("list_cases");
+    expect(list).toHaveLength(2);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[mock-backend] localStorage parse error, using SEED_CASES",
+    );
+    warnSpy.mockRestore();
+  });
+
   it("falls back to memory mode when localStorage methods throw", async () => {
     Object.defineProperty(window, "localStorage", {
       configurable: true,

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AppTopbar } from "@/components/AppTopbar";
+import { Toaster } from "sonner";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -104,6 +105,7 @@ export default function DashboardLayout({
         />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+      <Toaster position="top-right" />
     </div>
   );
 }

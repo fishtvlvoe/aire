@@ -22,7 +22,7 @@ describe("PremiumUnlockSection", () => {
       subscribed: false,
       plan: null,
       expires_at: null,
-    });
+    }).mockResolvedValueOnce({ authenticated: false });
 
     render(<PremiumUnlockSection />);
 
@@ -36,6 +36,7 @@ describe("PremiumUnlockSection", () => {
   it("點擊前往訂閱呼叫 subscribe_premium", async () => {
     mockInvokeFn
       .mockResolvedValueOnce({ subscribed: false, plan: null, expires_at: null })
+      .mockResolvedValueOnce({ authenticated: false })
       .mockResolvedValueOnce({ redirect_url: "https://opcos.tw/checkout/mcp-hub" });
 
     const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
@@ -63,7 +64,7 @@ describe("PremiumUnlockSection", () => {
       subscribed: true,
       plan: "MCP Hub 年繳",
       expires_at: "2027-05-15",
-    });
+    }).mockResolvedValueOnce({ authenticated: false });
 
     render(<PremiumUnlockSection />);
 
@@ -73,5 +74,23 @@ describe("PremiumUnlockSection", () => {
 
     expect(screen.getByText("MCP Hub 年繳")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "管理訂閱" })).toBeInTheDocument();
+  });
+
+  it("admin 顯示已啟用（管理員）且不顯示前往訂閱按鈕", async () => {
+    mockInvokeFn
+      .mockResolvedValueOnce({ subscribed: false, plan: null, expires_at: null })
+      .mockResolvedValueOnce({
+        authenticated: true,
+        user: { email: "admin@test.aire", role: "admin" },
+      });
+
+    render(<PremiumUnlockSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText("已啟用（管理員）")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole("button", { name: "前往訂閱" })).toBeNull();
+    expect(mockInvokeFn).not.toHaveBeenCalledWith("subscribe_premium");
   });
 });

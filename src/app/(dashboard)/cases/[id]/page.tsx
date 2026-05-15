@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { BalanceBanner } from "@/components/BalanceBanner";
+import { PullParcelDataButton } from "@/components/PullParcelDataButton";
 
 // 必填欄位驗證錯誤
 interface FormErrors {
@@ -282,9 +283,16 @@ export default function CaseDetailPage() {
         </CardHeader>
         <CardContent>
           {pullStatus === "not_queried" && (
-            <p className="text-sm text-muted-foreground">
-              尚未查詢地政資料，請在說明書表單中使用「拉謄本」功能
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                尚未查詢地政資料，可直接在此使用「拉謄本」先取得資料。
+              </p>
+              <PullParcelDataButton
+                caseId={c.id}
+                parcelId={buf.land_lot_no || "0001-0000"}
+                apiIds={["A1", "A2", "A3"]}
+              />
+            </div>
           )}
           {pullStatus === "completed" && (
             <p className="text-sm text-green-700">

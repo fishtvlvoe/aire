@@ -58,6 +58,7 @@ interface PersistedMockState {
   sessionUser?: MockSessionUser | null;
   appSettings?: AppSettingsState;
   featureFlags?: FeatureFlagState[];
+  cases?: CaseRow[];
 }
 
 const MOCK_STORAGE_KEY = "aire-mock-store";
@@ -687,16 +688,11 @@ export class MockStore {
 
     const propertyType = pickString(input, ["property_type"]);
     const address = pickString(input, ["address"]);
-    const landLotNo = pickString(input, ["land_lot_no"]);
-
     if (!propertyType || (propertyType !== "residential" && propertyType !== "land")) {
       throw new Error("create_case requires valid property_type");
     }
     if (!address) {
       throw new Error("create_case requires address");
-    }
-    if (!landLotNo) {
-      throw new Error("create_case requires land_lot_no");
     }
 
     const now = unixNow();
@@ -706,7 +702,7 @@ export class MockStore {
       id,
       case_no: pickString(input, ["case_no"]),
       property_type: propertyType,
-      land_lot_no: landLotNo,
+      land_lot_no: pickString(input, ["land_lot_no"]) ?? "",
       address,
       owner_name: pickString(input, ["owner_name"]),
       status: "draft",
@@ -1027,6 +1023,7 @@ export class MockStore {
       const persistedLicense = parsed.license;
       const persistedSession = parsed.sessionUser;
       const persistedSettings = parsed.appSettings;
+      const persistedCases = parsed.cases;
 
       if (
         persistedLicense &&
@@ -1083,8 +1080,16 @@ export class MockStore {
           )
           .map((flag) => ({ ...flag }));
       }
+      if (Array.isArray(persistedCases)) {
+        this.cases = new Map(
+          persistedCases
+            .filter((row): row is CaseRow => Boolean(row) && typeof row.id === "string")
+            .map((row) => [row.id, { ...row }]),
+        );
+      }
     } catch {
-      // Ignore invalid/blocked localStorage in private mode.
+      this.cases = new Map(SEED_CASES.map((row) => [row.id, { ...row }]));
+      console.warn("[mock-backend] localStorage parse error, using SEED_CASES");
     }
   }
 
@@ -1110,6 +1115,7 @@ export class MockStore {
         premiumUnlocked: this.appSettings.premiumUnlocked,
       },
       featureFlags: this.featureFlags.map((flag) => ({ ...flag })),
+      cases: [...this.cases.values()].map((row) => ({ ...row })),
     };
 
     try {

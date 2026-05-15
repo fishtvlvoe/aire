@@ -14,9 +14,9 @@ import { casesApi } from "@/lib/cases-api";
 
 const schema = z.object({
   property_type: z.enum(["residential", "land"]),
-  land_lot_no: z.string().min(1, "地號為必填"),
+  land_lot_no: z.string().optional(),
   address: z.string().min(1, "地址為必填"),
-  owner_name: z.string().min(1, "屋主姓名為必填"),
+  owner_name: z.string().optional(),
   case_no: z.string().optional(),
 });
 
@@ -57,9 +57,9 @@ export default function NewCasePage() {
     try {
       const created = await casesApi.create({
         property_type: parsed.data.property_type,
-        land_lot_no: parsed.data.land_lot_no,
+        land_lot_no: parsed.data.land_lot_no || "",
         address: parsed.data.address,
-        owner_name: parsed.data.owner_name,
+        owner_name: parsed.data.owner_name || null,
         case_no: parsed.data.case_no || null,
       });
       router.push(`/cases/${created.id}`);
@@ -118,14 +118,14 @@ export default function NewCasePage() {
 
         <section style={{ marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-            地號 *
+            地號
           </label>
           <input
             type="text"
             value={values.land_lot_no}
             onChange={(e) => update("land_lot_no", e.target.value)}
             style={inputStyle}
-            placeholder="例：台北市信義區XX段 123-4"
+            placeholder="可選填，例如：0001-0000（不確定可留空）"
           />
           {errors.land_lot_no ? (
             <span style={{ color: "#b00020", fontSize: 12 }}>{errors.land_lot_no}</span>
@@ -150,7 +150,7 @@ export default function NewCasePage() {
 
         <section style={{ marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-            屋主姓名 *
+            屋主姓名（選填）
           </label>
           <input
             type="text"

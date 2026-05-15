@@ -7,11 +7,33 @@ import { listThemes } from "@/lib/pdf-themes/registry";
 import { setTheme as persistTheme } from "@/lib/pdf-themes/persistence";
 import { useSelectableTheme } from "@/lib/pdf-themes/theme-provider";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const THEME_PRESETS: Record<string, { primary: string; secondary: string; background: string }> = {
+  "theme-a-minimal": {
+    primary: "#2D5A8E",
+    secondary: "#4A7EB5",
+    background: "#F5F7FA",
+  },
+  "theme-c-tech-elegant": {
+    primary: "#1A1A2E",
+    secondary: "#16213E",
+    background: "#0F3460",
+  },
+};
 
 export function ThemeSelector() {
   const themes = useMemo(() => listThemes(), []);
   const { themeId, setThemeId, didFallback, requestedId } = useSelectableTheme();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSelect(nextThemeId: string) {
@@ -67,17 +89,67 @@ export function ThemeSelector() {
                 isSelected && "border-primary bg-primary/10",
               )}
             >
-              <div className="mb-2 h-20 w-full rounded border border-border bg-muted/70" />
+              <div className="mb-2 flex gap-2">
+                {(["primary", "secondary", "background"] as const).map((tone) => (
+                  <span
+                    key={tone}
+                    className="h-5 w-1/3 rounded border border-border"
+                    style={{
+                      backgroundColor:
+                        THEME_PRESETS[theme.id]?.[tone] ??
+                        THEME_PRESETS["theme-a-minimal"][tone],
+                    }}
+                  />
+                ))}
+              </div>
               <p className="text-sm font-semibold">
                 {theme.displayName ?? theme.label}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {theme.description ?? "無描述"}
               </p>
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewThemeId(theme.id);
+                  }}
+                >
+                  預覽
+                </Button>
+              </div>
             </button>
           );
         })}
       </div>
+      <Dialog open={previewThemeId !== null} onOpenChange={(open) => !open && setPreviewThemeId(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>不動產說明書（預覽）</DialogTitle>
+            <DialogDescription>主題預覽僅示意配色與版面，不含真實案件資料。</DialogDescription>
+          </DialogHeader>
+          <div
+            className="rounded border p-4"
+            style={{
+              backgroundColor:
+                THEME_PRESETS[previewThemeId ?? "theme-a-minimal"]?.background ??
+                "#F5F7FA",
+              color: THEME_PRESETS[previewThemeId ?? "theme-a-minimal"]?.primary ?? "#2D5A8E",
+            }}
+          >
+            <h3 className="text-lg font-semibold">不動產說明書</h3>
+            <p className="text-sm">物件地址：台北市信義區市府路1號</p>
+            <p className="text-sm">物件類型：住宅</p>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded border bg-white/70 p-3">基本資訊</div>
+              <div className="rounded border bg-white/70 p-3">交易資訊</div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

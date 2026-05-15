@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { PdfPreviewer } from "@/components/PdfPreviewer";
 import {
   casesApi,
@@ -14,6 +13,7 @@ import { BRANDING_CHANGED_EVENT } from "@/lib/pdf-themes/persistence";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { safeInvoke } from "@/lib/safe-invoke";
 
 interface LoadedLogo {
   bytes: number[];
@@ -40,8 +40,11 @@ export default function CasePreviewPage() {
   async function handleExport() {
     setExporting(true);
     try {
-      const result = await invoke<{ filePath: string }>("export_pdf", { caseId: id });
+      const result = await safeInvoke<{ filePath: string }>("export_pdf", { caseId: id });
       toast.success("PDF 已匯出", { description: result.filePath });
+      if (process.env.NODE_ENV === "development") {
+        toast.message("瀏覽器預覽模式，PDF 未實際產出");
+      }
     } catch (e) {
       toast.error("匯出失敗", { description: String(e) });
     } finally {
@@ -59,8 +62,8 @@ export default function CasePreviewPage() {
       try {
         const [row, storedThemeId, storedLogo] = await Promise.all([
           casesApi.get(id),
-          invoke<string>("get_theme"),
-          invoke<LoadedLogo | null>("load_logo"),
+          safeInvoke<string>("get_theme"),
+          safeInvoke<LoadedLogo | null>("load_logo"),
         ]);
 
         if (cancelled) return;
