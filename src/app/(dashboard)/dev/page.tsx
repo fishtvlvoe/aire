@@ -1,8 +1,20 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { DevSuperAdmin } from "@/components/settings/DevSuperAdmin";
 
 export default function DevPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") {
+      router.replace("/");
+    }
+  }, [router]);
+
+  if (process.env.NODE_ENV !== "development") return null;
+
   return (
     <main className="space-y-4">
       <header className="space-y-1">
