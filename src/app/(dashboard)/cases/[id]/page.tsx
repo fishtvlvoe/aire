@@ -46,6 +46,8 @@ import {
 import { toast } from "sonner";
 import { BalanceBanner } from "@/components/BalanceBanner";
 import { PullParcelDataButton } from "@/components/PullParcelDataButton";
+import { RealPricePanel } from "@/components/RealPricePanel";
+import { parseAddressForQuery } from "@/lib/address-parser";
 
 // 必填欄位驗證錯誤
 interface FormErrors {
@@ -306,6 +308,12 @@ export default function CaseDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 實價登錄參考 */}
+      {(() => {
+        const { district, keyword } = parseAddressForQuery(buf.address);
+        return <RealPricePanel district={district} keyword={keyword} />;
+      })()}
 
       {/* 案件類型 Select（必填） */}
       <div className="space-y-1.5">
