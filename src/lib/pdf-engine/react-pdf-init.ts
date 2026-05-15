@@ -1,6 +1,6 @@
 import { Font } from "@react-pdf/renderer";
 
-const DEFAULT_FONT_ASSET_PATH = "/resources/fonts/NotoSansTC-Subset.ttf";
+const DEFAULT_FONT_ASSET_PATH = "/resources/fonts/NotoSansTC-Regular.otf";
 
 let initialized = false;
 const registeredFamilies = new Set<string>();
@@ -20,12 +20,12 @@ function resolveNotoSubsetSrc(): string {
     typeof (process as unknown as { versions?: { node?: string } }).versions?.node === "string";
   if (isNode && typeof process.cwd === "function") {
     const cwd = process.cwd();
-    if (cwd) return `${cwd.replace(/\/$/, "")}/src/resources/fonts/NotoSansTC-Subset.ttf`;
+    if (cwd) return `${cwd.replace(/\/$/, "")}/src/resources/fonts/NotoSansTC-Regular.otf`;
   }
 
   // ESM / bundlers: try resolving relative to this module.
   try {
-    const url = new URL("../../resources/fonts/NotoSansTC-Subset.ttf", import.meta.url);
+    const url = new URL("../../resources/fonts/NotoSansTC-Regular.otf", import.meta.url);
     return filePathFromUrl(url) ?? url.toString();
   } catch {
     return DEFAULT_FONT_ASSET_PATH;
