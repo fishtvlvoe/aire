@@ -291,6 +291,7 @@ export class MockStore {
   private featureFlags: FeatureFlagState[] = DEFAULT_FEATURE_FLAGS.map((flag) => ({
     ...flag,
   }));
+  private consentedCases = new Set<string>();
 
   constructor() {
     this.reset();
@@ -418,6 +419,21 @@ export class MockStore {
         case "sync_clauses":
         case "sync_legal_clauses":
           return this.syncClauses() as T;
+
+        case "land_registry_address_lookup":
+          return this.landRegistryAddressLookup(args) as T;
+        case "land_registry_pull_data":
+          return this.landRegistryPullData(args) as T;
+        case "land_registry_set_api_key":
+          return this.landRegistrySetApiKey(args) as T;
+        case "land_registry_get_api_key":
+          return this.landRegistryGetApiKey() as T;
+        case "land_registry_test_connection":
+          return (await this.landRegistryTestConnection()) as T;
+        case "land_registry_get_balance":
+          return this.landRegistryGetBalance() as T;
+        case "land_registry_record_consent":
+          return this.landRegistryRecordConsent(args) as T;
 
         default:
           throw new Error(`Mock not implemented: ${cmd}`);
@@ -923,6 +939,76 @@ export class MockStore {
       count: this.clauses.size,
       synced_at: syncedAt,
     };
+  }
+
+  private landRegistryAddressLookup(
+    args?: CommandArgs,
+  ): Array<{ parcel_id: string; address: string; lot_number: string; building_number: string }> {
+    const addr = (args?.address as string) || "未知地址";
+    return [
+      { parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "0000" },
+      { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
+    ];
+  }
+
+  private landRegistryPullData(
+    args?: CommandArgs,
+  ): { results: Record<string, unknown>; total_cost: number } {
+    const apiIds = (args?.apiIds || []) as string[];
+    const results: Record<string, unknown> = {};
+    let totalCost = 0;
+    for (const apiId of apiIds) {
+      results[apiId] = { success: true, data: { source_api: apiId }, source: "api" };
+      totalCost += 10;
+    }
+    return { results, total_cost: totalCost };
+  }
+
+  private landRegistrySetApiKey(args?: CommandArgs): undefined {
+    const payload = toRecord(args);
+    const clientId = payload.clientId ?? payload.client_id;
+    const clientSecret = payload.clientSecret ?? payload.client_secret ?? payload.secret;
+
+    if (typeof clientId === "string") {
+      this.appSettings.landApi.clientId = clientId;
+    }
+    if (typeof clientSecret === "string") {
+      this.appSettings.landApi.secret = clientSecret;
+    }
+
+    return undefined;
+  }
+
+  private landRegistryGetApiKey():
+    | { client_id_masked: string; has_secret: boolean }
+    | null {
+    const { clientId, secret } = this.appSettings.landApi;
+    return {
+      client_id_masked: "****" + (clientId?.slice(-4) || ""),
+      has_secret: secret !== "",
+    };
+  }
+
+  private async landRegistryTestConnection(): Promise<{ success: boolean; message: string }> {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return { success: true, message: "連線成功" };
+  }
+
+  private landRegistryGetBalance(): {
+    month_total_cost: number;
+    month_query_count: number;
+    low_balance_warning: boolean;
+  } {
+    return { month_total_cost: 500, month_query_count: 50, low_balance_warning: false };
+  }
+
+  private landRegistryRecordConsent(args?: CommandArgs): undefined {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    if (caseId) {
+      this.consentedCases.add(caseId);
+    }
+    return undefined;
   }
 
   private restorePersistedState(): void {
