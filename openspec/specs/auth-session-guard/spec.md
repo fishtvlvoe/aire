@@ -306,3 +306,251 @@ tests:
   - src/components/__tests__/AppSidebar.test.tsx
   - src/hooks/__tests__/useAuth.test.tsx
 -->
+
+---
+### Requirement: Session guard with mock auth support
+
+The session guard SHALL check authentication status via `get_session()` and redirect unauthenticated users to `/login`.
+
+#### Scenario: Authenticated user accesses dashboard
+
+- **GIVEN** `get_session` returns `{ authenticated: true, user: { email: "admin@test.aire", role: "admin" } }`
+- **WHEN** the user navigates to any dashboard route
+- **THEN** the page SHALL render normally
+
+##### Example: Admin session active
+
+- **GIVEN** mock session is authenticated as `admin@test.aire`
+- **WHEN** user navigates to `/dashboard`
+- **THEN** dashboard content is visible
+
+#### Scenario: Unauthenticated user redirected
+
+- **GIVEN** `get_session` returns `{ authenticated: false }`
+- **WHEN** the user navigates to any dashboard route
+- **THEN** the system SHALL redirect to `/login`
+
+##### Example: No session
+
+- **GIVEN** no user is logged in
+- **WHEN** user navigates to `/dashboard`
+- **THEN** browser redirects to `/login`
+
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->
+
+---
+### Requirement: Development auto-login
+
+- **WHEN** `NODE_ENV` equals `"development"` and no session exists
+- **THEN** the session guard SHALL auto-login as `admin@test.aire` for development convenience
+
+#### Scenario: Dev auto-login
+
+- **GIVEN** `NODE_ENV` is `"development"` and `get_session` returns `{ authenticated: false }`
+- **WHEN** the user navigates to a dashboard route
+- **THEN** the system SHALL automatically call `login({ email: "admin@test.aire", password: "password" })`
+- **THEN** the dashboard SHALL render without manual login
+
+##### Example: Auto-login in dev
+
+- **GIVEN** development environment, no active session
+- **WHEN** user navigates to `/dashboard`
+- **THEN** `login` is called automatically with dev credentials
+- **THEN** dashboard renders with admin@test.aire session
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->

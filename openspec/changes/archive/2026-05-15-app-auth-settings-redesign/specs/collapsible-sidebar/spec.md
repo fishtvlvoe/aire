@@ -1,75 +1,77 @@
 ## ADDED Requirements
 
-### Requirement: sidebar-collapse-toggle
+### Requirement: Sidebar collapse toggle
 
-The sidebar SHALL provide a collapse toggle button at the bottom. When clicked on desktop (viewport >= 768px), the sidebar SHALL transition between expanded (240px with icon + label) and collapsed (60px with icon only + tooltip) states.
+The sidebar SHALL have a collapse/expand toggle button at the bottom.
 
-#### Scenario: collapse sidebar on desktop
+- **WHEN** the user clicks the collapse button (ChevronsLeft icon)
+- **THEN** the sidebar SHALL animate from 240px to 60px width over 200ms ease-in-out
+- **THEN** navigation items SHALL show only icons (no text labels)
+- **THEN** a tooltip SHALL appear on hover showing the full label
+- **THEN** the toggle icon SHALL change to ChevronsRight
 
-- **WHEN** the user clicks the collapse toggle button on desktop viewport
-- **THEN** the sidebar width SHALL animate from 240px to 60px
-- **THEN** navigation labels SHALL be hidden
-- **THEN** each navigation icon SHALL show a tooltip with the label text on hover
+#### Scenario: Collapse sidebar
 
-##### Example: collapse from expanded
+- **GIVEN** the sidebar is expanded (240px)
+- **WHEN** the user clicks the collapse toggle
+- **THEN** sidebar width transitions to 60px over 200ms
+- **THEN** each nav item shows only its icon
+- **THEN** hovering a nav item shows a tooltip with the full label
 
-- **GIVEN** the sidebar is expanded (240px) showing icon + label for each nav item
-- **WHEN** the user clicks the ChevronLeft collapse button
-- **THEN** the sidebar animates to 60px width
-- **THEN** only icons are visible
-- **THEN** hovering over the cases icon shows tooltip "案件管理"
+##### Example: Collapse transition
 
-#### Scenario: expand sidebar on desktop
+- **GIVEN** sidebar width is `240px`
+- **WHEN** user clicks the ChevronsLeft button
+- **THEN** sidebar CSS transition runs `width 200ms ease-in-out`
+- **THEN** final sidebar width is `60px`
+- **THEN** nav item text has `opacity: 0` or `display: none`
 
-- **WHEN** the user clicks the collapse toggle button while sidebar is collapsed
-- **THEN** the sidebar width SHALL animate from 60px to 240px
-- **THEN** navigation labels SHALL become visible
+#### Scenario: Expand sidebar
 
-##### Example: expand from collapsed
+- **GIVEN** the sidebar is collapsed (60px)
+- **WHEN** the user clicks the expand toggle (ChevronsRight icon)
+- **THEN** sidebar width transitions to 240px over 200ms
+- **THEN** navigation items show icons and text labels
 
-- **GIVEN** the sidebar is collapsed (60px) showing only icons
-- **WHEN** the user clicks the ChevronRight expand button
-- **THEN** the sidebar animates to 240px width showing icon + label
+##### Example: Expand transition
 
-### Requirement: sidebar-collapse-persistence
+- **GIVEN** sidebar width is `60px`
+- **WHEN** user clicks the ChevronsRight button
+- **THEN** sidebar CSS transition runs `width 200ms ease-in-out`
+- **THEN** final sidebar width is `240px`
+- **THEN** nav item text is visible
 
-The sidebar collapse state SHALL be persisted to localStorage. On page load, the sidebar SHALL restore the previously saved collapse state.
+### Requirement: Sidebar state persistence
 
-#### Scenario: persist collapsed state
+The sidebar collapsed state SHALL be persisted to localStorage key `aire-sidebar-collapsed`.
 
-- **WHEN** the user collapses the sidebar and refreshes the page
-- **THEN** the sidebar SHALL load in collapsed state
+- **WHEN** the user collapses the sidebar
+- **THEN** `localStorage.setItem("aire-sidebar-collapsed", "true")` SHALL be called
 
-##### Example: refresh preserves collapsed state
+- **WHEN** the app loads
+- **THEN** the sidebar SHALL read `localStorage.getItem("aire-sidebar-collapsed")`
+- **THEN** if the value is `"true"` the sidebar SHALL start collapsed
 
-- **GIVEN** the user collapsed the sidebar (localStorage key "aire-sidebar-collapsed" = "true")
-- **WHEN** the page reloads
-- **THEN** the sidebar renders in collapsed state (60px)
+#### Scenario: Restore collapsed state on reload
 
-#### Scenario: mobile unaffected by collapse
+- **GIVEN** `localStorage.getItem("aire-sidebar-collapsed")` returns `"true"`
+- **WHEN** the app loads
+- **THEN** the sidebar SHALL render at 60px width without animation
 
-- **WHEN** the viewport width is less than 768px
-- **THEN** the collapse toggle button SHALL NOT be visible
-- **THEN** the sidebar SHALL use the Sheet overlay behavior regardless of collapse state
+##### Example: Persisted collapsed state
 
-##### Example: mobile ignores collapse setting
+- **GIVEN** localStorage `aire-sidebar-collapsed` is `"true"`
+- **WHEN** sidebar component mounts
+- **THEN** initial width is `60px` (no transition on mount)
 
-- **GIVEN** localStorage "aire-sidebar-collapsed" = "true"
-- **WHEN** the viewport is 375px wide
-- **THEN** the sidebar is hidden by default and opens via hamburger as a Sheet overlay
+#### Scenario: Restore expanded state on reload
 
-### Requirement: sidebar-settings-nav-item
+- **GIVEN** `localStorage.getItem("aire-sidebar-collapsed")` returns `"false"` or is absent
+- **WHEN** the app loads
+- **THEN** the sidebar SHALL render at 240px width
 
-The sidebar SHALL include a "設定" navigation item with the Settings icon from lucide-react, linking to /settings.
+##### Example: Default expanded state
 
-#### Scenario: settings nav item visible
-
-- **WHEN** the sidebar renders
-- **THEN** it SHALL display 4 navigation items: 案件管理, 品牌設定, 日誌, 設定
-- **THEN** the 設定 item SHALL use the Settings icon and link to /settings
-
-##### Example: settings item active state
-
-- **GIVEN** the sidebar displays 4 items
-- **WHEN** the current URL path is /settings
-- **THEN** the "設定" link SHALL have blue-50 background and blue-600 text
+- **GIVEN** localStorage `aire-sidebar-collapsed` is not set
+- **WHEN** sidebar component mounts
+- **THEN** initial width is `240px`

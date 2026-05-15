@@ -484,3 +484,283 @@ tests:
   - src/components/__tests__/AppSidebar.test.tsx
   - src/hooks/__tests__/useAuth.test.tsx
 -->
+
+---
+### Requirement: Minimal login page layout
+
+The login page SHALL display only:
+- AIRE Logo (centered, top)
+- Email text input
+- Password text input (masked)
+- "登入" button
+- "忘記密碼" link (below button)
+
+The login page SHALL NOT display any license activation UI, serial key input, or trial period messaging.
+
+#### Scenario: Clean login page render
+
+- **WHEN** the user navigates to `/login`
+- **THEN** the page SHALL display AIRE Logo, Email input, Password input, Login button, and "忘記密碼" link
+- **THEN** no license-related text or UI elements SHALL be present
+
+##### Example: Login page elements
+
+- **GIVEN** user visits `/login`
+- **WHEN** the page renders
+- **THEN** `document.querySelector('[data-testid="license-section"]')` returns `null`
+- **THEN** `document.querySelector('[data-testid="login-form"]')` is present
+
+#### Scenario: Successful login
+
+- **GIVEN** mock user `admin@test.aire` with password `password`
+- **WHEN** the user enters email `"admin@test.aire"` and password `"password"` and clicks "登入"
+- **THEN** the system SHALL call `login({ email: "admin@test.aire", password: "password" })`
+- **THEN** on success the system SHALL redirect to `/dashboard`
+
+##### Example: Admin login
+
+- **GIVEN** email input is `"admin@test.aire"`, password input is `"password"`
+- **WHEN** user clicks "登入"
+- **THEN** `login` returns `{ success: true, user: { email: "admin@test.aire", role: "admin" } }`
+- **THEN** router navigates to `/dashboard`
+
+#### Scenario: Failed login with invalid credentials
+
+- **GIVEN** email `"wrong@example.com"` and password `"wrong"`
+- **WHEN** the user clicks "登入"
+- **THEN** the system SHALL display an error message "帳號或密碼錯誤"
+
+##### Example: Wrong credentials
+
+- **GIVEN** email input is `"wrong@example.com"`, password input is `"wrong"`
+- **WHEN** user clicks "登入"
+- **THEN** `login` throws `"INVALID_CREDENTIALS"`
+- **THEN** error text "帳號或密碼錯誤" is visible
+
+#### Scenario: Failed login with expired account
+
+- **GIVEN** email `"expired@test.aire"` and password `"password"`
+- **WHEN** the user clicks "登入"
+- **THEN** the system SHALL display an error message "帳號已過期"
+
+##### Example: Expired account
+
+- **GIVEN** email input is `"expired@test.aire"`, password input is `"password"`
+- **WHEN** user clicks "登入"
+- **THEN** `login` throws `"ACCOUNT_EXPIRED"`
+- **THEN** error text "帳號已過期" is visible
+
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->
+
+---
+### Requirement: No trial period messaging
+
+The login page and all related auth pages SHALL NOT contain any text referencing "30天", "30 天", "30日", "試用", or "trial".
+
+#### Scenario: No trial text anywhere
+
+- **WHEN** the login page renders
+- **THEN** the rendered HTML SHALL NOT contain "30天", "30 天", "30日", "試用", or "trial"
+
+##### Example: Text search
+
+- **GIVEN** login page rendered
+- **WHEN** searching page text content
+- **THEN** none of ["30天", "30 天", "30日", "試用", "trial"] are found
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->

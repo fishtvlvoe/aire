@@ -1,47 +1,66 @@
 ## Why
 
-AIRE 桌面 App 目前缺少登入流程（直接進 dashboard）、沒有設定頁面（序號和 API 設定無入口）、側邊欄桌面端無法收合，且 UI 風格與 OPCOS/ST 平台不一致。使用者無法在瀏覽器開發環境完整測試授權和設定流程。
+AIRE App 目前的登入頁和設定頁有多個 UX 問題：
+1. 登入頁混合了 license 啟用邏輯，初次使用者困惑（要先輸序號還是先登入？）
+2. 獨立的 activation 頁面多餘 — 序號管理應該在設定裡
+3. 設定頁缺少地政 API 設定區塊（Client ID + 安全碼）
+4. 設定頁缺少「進階功能解鎖」區塊（實價登錄 MCP Hub，月費訂閱跳轉 OPCOS）
+5. 側邊欄在桌面端不可收合，佔用螢幕空間
+6. 「30天試用期」錯誤文案存在
+7. 開發環境缺少 Super Admin 視角
+8. Mock 登入帳號（admin@test.aire / user@test.aire）需要文件化和測試覆蓋
+
+本 change 統一解決以上問題，對齊 OPCOS 平台 UI 規範。
 
 ## What Changes
 
-- **新增** 登入頁面：極簡設計（AIRE Logo + Email + 密碼 + 忘記密碼連結），接 OPCOS auth，dev 環境用 mock auth
-- **新增** 設定頁面：序號管理（AIRE 授權碼）+ 地政 API 設定（Client ID + 安全碼 + 說明連結 + YouTube 教學影片預留）+ 實價登錄 MCP Hub 進階解鎖（月費訂閱，跳轉 OPCOS）
-- **新增** 側邊欄加「設定」入口，桌面端可 collapse 成圖示模式
-- **新增** mock auth 機制：固定測試帳號（admin@test.aire / user@test.aire），mock 狀態持久化到 localStorage
-- **移除** 獨立 /activation 頁面，序號輸入移入設定頁
-- **移除** activation/page.tsx 中「啟動後可離線使用 30 天」錯誤文案（買斷制 = 永久使用）
-- **修改** useLicenseStatus hook 移除 DEV BYPASS 邏輯，統一走 safeInvoke + mock backend
-- **修改** dashboard layout 的 auth guard 從檢查 license 改為檢查登入 session
-- **新增** Super Admin 角色在開發環境下可看到所有設定項
+- 登入頁重設計：極簡風格（AIRE Logo + Email/密碼 + 忘記密碼連結），移除 license 相關 UI
+- 移除獨立 activation 頁面，序號管理移入設定頁
+- 設定頁重組為三個區塊：(1) 序號管理 (2) 地政 API 設定 (3) 進階功能解鎖
+- 地政 API 設定：Client ID + 安全碼輸入 + 說明連結 + YouTube 教學影片預留區
+- 進階功能解鎖：實價登錄 MCP Hub（月費訂閱，跳轉 OPCOS 結帳頁）
+- 側邊欄桌面端可收合（寬 240px ↔ 60px）
+- Mock 持久化改用 localStorage
+- 修正「30天」錯誤文案
+- 開發環境 Super Admin 視角（看到所有 feature flag）
+- Mock 登入測試帳號完善（admin@test.aire / user@test.aire / expired@test.aire）
 
 ## Non-Goals
 
-- 本次不做 Google / LINE 社群登入（未來擴充）
-- 本次不做 OPCOS 正式 API 串接（登入和序號驗證都用 mock）
-- 本次不做角色權限系統的完整實作（只區分 Super Admin 和一般用戶的 mock 行為）
-- 本次不做實價登錄 MCP Hub 的功能實作（只做 UI 殼和「進階解鎖」按鈕跳轉）
-- 本次不做信用卡綁定頁面（跳轉 OPCOS 外部處理）
-- 本次不做地政 API 的實際串接（只做設定欄位 UI + mock 儲存）
+- OPCOS 後台整合（本 change 只處理 AIRE App 端）
+- 真實 OPCOS auth（先用 mock auth，之後切換）
+- 付款流程實作（只跳轉 OPCOS URL）
+- 多語言（先只支援繁體中文）
 
 ## Capabilities
 
 ### New Capabilities
 
-- `auth-login-page`: 登入頁面（Email + 密碼表單 + 忘記密碼連結 + mock auth）
-- `auth-session-guard`: 登入 session 管理 + dashboard auth guard
-- `settings-page`: 設定頁面（序號管理 + 地政 API + 進階功能解鎖 + YouTube 教學影片預留）
-- `collapsible-sidebar`: 側邊欄桌面端可收合 + 新增設定入口
+- `settings-license-section`: 設定頁序號管理區塊（啟用/停用/狀態顯示）
+- `settings-land-api-section`: 設定頁地政 API 設定區塊（Client ID + 安全碼 + 說明連結 + YouTube 預留）
+- `settings-premium-unlock`: 設定頁進階功能解鎖區塊（MCP Hub 訂閱，跳轉 OPCOS）
+- `dev-super-admin`: 開發環境 Super Admin 視角（所有 feature flag 可見 + 切換）
 
 ### Modified Capabilities
 
-- `app-shell`: 側邊欄加「設定」導航項，支援桌面端 collapse
-- `license-activation-ui`: 移除獨立 activation 頁，序號管理移入設定頁
-- `browser-dev-mock`: mock backend 新增 auth 相關 command（login / logout / get_session）+ localStorage 持久化
+- `auth-login-page`: 極簡化，移除 license UI，只留 Email/密碼/忘記密碼
+- `auth-session-guard`: 支援 mock auth + 開發環境 auto-login
+- `collapsible-sidebar`: 修正收合/展開動畫 + 持久化收合狀態到 localStorage
+- `browser-dev-mock`: 擴充 mock commands + localStorage 持久化 + 修正「30天」文案
 
 ## Impact
 
-- Affected specs: auth-login-page, auth-session-guard, settings-page, collapsible-sidebar, app-shell, license-activation-ui, browser-dev-mock
+- Affected specs: `auth-login-page`, `auth-session-guard`, `collapsible-sidebar`, `browser-dev-mock`, `settings-license-section`, `settings-land-api-section`, `settings-premium-unlock`, `dev-super-admin`
 - Affected code:
-  - New: src/app/login/page.tsx, src/app/(dashboard)/settings/page.tsx, src/app/(dashboard)/settings/general/page.tsx, src/lib/auth.ts, src/hooks/useAuth.ts, src/components/CollapsibleSidebar.tsx, src/components/SettingsLayout.tsx
-  - Modified: src/components/AppSidebar.tsx, src/app/(dashboard)/layout.tsx, src/hooks/useLicenseStatus.ts, src/lib/mock-backend.ts, src/lib/tauri-bridge.ts, src/app/activation/page.tsx
-  - Removed: src/app/activation/page.tsx（功能移入 settings，頁面移除）
+  - New:
+    - `src/components/settings/LicenseSection.tsx`
+    - `src/components/settings/LandApiSection.tsx`
+    - `src/components/settings/PremiumUnlockSection.tsx`
+    - `src/components/settings/DevSuperAdmin.tsx`
+  - Modified:
+    - `src/app/(auth)/login/page.tsx`
+    - `src/app/(dashboard)/settings/page.tsx`
+    - `src/components/sidebar.tsx`
+    - `src/lib/mock-backend.ts`
+  - Removed:
+    - `src/app/(auth)/activation/page.tsx`（如果存在）

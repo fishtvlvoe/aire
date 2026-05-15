@@ -467,3 +467,280 @@ tests:
   - src/components/__tests__/AppSidebar.test.tsx
   - src/hooks/__tests__/useAuth.test.tsx
 -->
+
+---
+### Requirement: Sidebar collapse toggle
+
+The sidebar SHALL have a collapse/expand toggle button at the bottom.
+
+- **WHEN** the user clicks the collapse button (ChevronsLeft icon)
+- **THEN** the sidebar SHALL animate from 240px to 60px width over 200ms ease-in-out
+- **THEN** navigation items SHALL show only icons (no text labels)
+- **THEN** a tooltip SHALL appear on hover showing the full label
+- **THEN** the toggle icon SHALL change to ChevronsRight
+
+#### Scenario: Collapse sidebar
+
+- **GIVEN** the sidebar is expanded (240px)
+- **WHEN** the user clicks the collapse toggle
+- **THEN** sidebar width transitions to 60px over 200ms
+- **THEN** each nav item shows only its icon
+- **THEN** hovering a nav item shows a tooltip with the full label
+
+##### Example: Collapse transition
+
+- **GIVEN** sidebar width is `240px`
+- **WHEN** user clicks the ChevronsLeft button
+- **THEN** sidebar CSS transition runs `width 200ms ease-in-out`
+- **THEN** final sidebar width is `60px`
+- **THEN** nav item text has `opacity: 0` or `display: none`
+
+#### Scenario: Expand sidebar
+
+- **GIVEN** the sidebar is collapsed (60px)
+- **WHEN** the user clicks the expand toggle (ChevronsRight icon)
+- **THEN** sidebar width transitions to 240px over 200ms
+- **THEN** navigation items show icons and text labels
+
+##### Example: Expand transition
+
+- **GIVEN** sidebar width is `60px`
+- **WHEN** user clicks the ChevronsRight button
+- **THEN** sidebar CSS transition runs `width 200ms ease-in-out`
+- **THEN** final sidebar width is `240px`
+- **THEN** nav item text is visible
+
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->
+
+---
+### Requirement: Sidebar state persistence
+
+The sidebar collapsed state SHALL be persisted to localStorage key `aire-sidebar-collapsed`.
+
+- **WHEN** the user collapses the sidebar
+- **THEN** `localStorage.setItem("aire-sidebar-collapsed", "true")` SHALL be called
+
+- **WHEN** the app loads
+- **THEN** the sidebar SHALL read `localStorage.getItem("aire-sidebar-collapsed")`
+- **THEN** if the value is `"true"` the sidebar SHALL start collapsed
+
+#### Scenario: Restore collapsed state on reload
+
+- **GIVEN** `localStorage.getItem("aire-sidebar-collapsed")` returns `"true"`
+- **WHEN** the app loads
+- **THEN** the sidebar SHALL render at 60px width without animation
+
+##### Example: Persisted collapsed state
+
+- **GIVEN** localStorage `aire-sidebar-collapsed` is `"true"`
+- **WHEN** sidebar component mounts
+- **THEN** initial width is `60px` (no transition on mount)
+
+#### Scenario: Restore expanded state on reload
+
+- **GIVEN** `localStorage.getItem("aire-sidebar-collapsed")` returns `"false"` or is absent
+- **WHEN** the app loads
+- **THEN** the sidebar SHALL render at 240px width
+
+##### Example: Default expanded state
+
+- **GIVEN** localStorage `aire-sidebar-collapsed` is not set
+- **WHEN** sidebar component mounts
+- **THEN** initial width is `240px`
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->

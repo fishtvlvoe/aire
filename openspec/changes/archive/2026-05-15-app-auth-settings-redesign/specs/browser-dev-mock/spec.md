@@ -1,118 +1,133 @@
 ## ADDED Requirements
 
-### Requirement: mock-auth-commands
+### Requirement: Extended mock commands for settings
 
-The mock backend SHALL support 3 auth-related commands: login, logout, and get_session. The login command SHALL validate against a fixed test account table.
+The mock backend SHALL support the following additional commands:
 
-#### Scenario: mock login with valid credentials
+- `get_land_api_settings() -> { clientId: string, secret: string }`
+- `save_land_api_settings({ clientId: string, secret: string }) -> { success: true }`
+- `test_land_api_connection() -> { success: boolean, latency_ms: number }`
+- `get_premium_status() -> { subscribed: boolean, plan: string | null, expires_at: string | null }`
+- `subscribe_premium() -> { redirect_url: string }`
+- `get_feature_flags() -> Array<{ id: string, name: string, enabled: boolean }>`
+- `toggle_feature_flag({ id: string }) -> { success: true, enabled: boolean }`
 
-- **WHEN** mockInvoke("login", { email, password }) is called with a valid test account
-- **THEN** the mock SHALL return { success: true, user: { email, role } }
-- **THEN** the mock SHALL store the session in memory
+#### Scenario: Get land API settings default
 
-##### Example: admin login
+- **GIVEN** a fresh mock store
+- **WHEN** `get_land_api_settings` is called
+- **THEN** returns `{ clientId: "", secret: "" }`
 
-- **GIVEN** the mock test account table contains { email: "admin@test.aire", password: "password", role: "admin" }
-- **WHEN** mockInvoke("login", { email: "admin@test.aire", password: "password" }) is called
-- **THEN** returns { success: true, user: { email: "admin@test.aire", role: "admin" } }
+##### Example: Default land API settings
 
-#### Scenario: mock login with invalid credentials
+- **GIVEN** `__resetMockStoreForTests()` was called
+- **WHEN** `mockInvoke("get_land_api_settings")`
+- **THEN** result is `{ clientId: "", secret: "" }`
 
-- **WHEN** mockInvoke("login", { email, password }) is called with credentials not in the test table
-- **THEN** the mock SHALL throw Error with message "INVALID_CREDENTIALS"
+#### Scenario: Save and retrieve land API settings
 
-##### Example: wrong credentials
+- **GIVEN** a fresh mock store
+- **WHEN** `save_land_api_settings({ clientId: "c1", secret: "s1" })` is called
+- **THEN** returns `{ success: true }`
+- **THEN** subsequent `get_land_api_settings` returns `{ clientId: "c1", secret: "s1" }`
 
-- **GIVEN** email "wrong@example.com" is not in the test account table
-- **WHEN** mockInvoke("login", { email: "wrong@example.com", password: "wrong" }) is called
-- **THEN** throws Error("INVALID_CREDENTIALS")
+##### Example: Save then get
 
-#### Scenario: mock login with expired account
+- **GIVEN** fresh store
+- **WHEN** `mockInvoke("save_land_api_settings", { clientId: "c1", secret: "s1" })`
+- **THEN** result is `{ success: true }`
+- **WHEN** `mockInvoke("get_land_api_settings")`
+- **THEN** result is `{ clientId: "c1", secret: "s1" }`
 
-- **WHEN** mockInvoke("login") is called with an expired test account
-- **THEN** the mock SHALL throw Error with message "ACCOUNT_EXPIRED"
+#### Scenario: Test land API connection mock
 
-##### Example: expired account login
+- **WHEN** `test_land_api_connection` is called
+- **THEN** the response SHALL be delayed by approximately 500ms
+- **THEN** returns `{ success: true, latency_ms: <number> }`
 
-- **GIVEN** the test account table contains { email: "expired@test.aire", password: "password", status: "expired" }
-- **WHEN** mockInvoke("login", { email: "expired@test.aire", password: "password" }) is called
-- **THEN** throws Error("ACCOUNT_EXPIRED")
+##### Example: Connection test mock
 
-#### Scenario: mock get_session when authenticated
+- **WHEN** `mockInvoke("test_land_api_connection")`
+- **THEN** result has `success: true` and `latency_ms` is a number greater than 0
 
-- **WHEN** mockInvoke("get_session") is called after a successful login
-- **THEN** returns { authenticated: true, user: { email, role } }
+#### Scenario: Get premium status default
 
-##### Example: session after login
+- **GIVEN** a fresh mock store
+- **WHEN** `get_premium_status` is called
+- **THEN** returns `{ subscribed: false, plan: null, expires_at: null }`
 
-- **GIVEN** the user logged in as admin@test.aire
-- **WHEN** mockInvoke("get_session") is called
-- **THEN** returns { authenticated: true, user: { email: "admin@test.aire", role: "admin" } }
+##### Example: Default premium status
 
-#### Scenario: mock get_session when not authenticated
+- **GIVEN** fresh store
+- **WHEN** `mockInvoke("get_premium_status")`
+- **THEN** result is `{ subscribed: false, plan: null, expires_at: null }`
 
-- **WHEN** mockInvoke("get_session") is called without prior login
-- **THEN** returns { authenticated: false }
+#### Scenario: Subscribe premium redirect
 
-##### Example: no session
+- **WHEN** `subscribe_premium` is called
+- **THEN** returns `{ redirect_url: "https://opcos.tw/checkout/mcp-hub" }`
 
-- **GIVEN** no login has occurred
-- **WHEN** mockInvoke("get_session") is called
-- **THEN** returns { authenticated: false }
+##### Example: Subscribe redirect URL
 
-### Requirement: mock-app-settings-commands
+- **WHEN** `mockInvoke("subscribe_premium")`
+- **THEN** result is `{ redirect_url: "https://opcos.tw/checkout/mcp-hub" }`
 
-The mock backend SHALL support get_app_settings and save_app_settings commands for managing license, land API, and premium settings.
+#### Scenario: Feature flags default list
 
-#### Scenario: get default app settings
+- **GIVEN** a fresh mock store
+- **WHEN** `get_feature_flags` is called
+- **THEN** returns at least 3 flags: `premium-unlock` (false), `mcp-hub` (false), `land-registry-api` (true)
 
-- **WHEN** mockInvoke("get_app_settings") is called without prior save
-- **THEN** returns default settings with license status none, empty land API, and premiumUnlocked false
+##### Example: Default flags
 
-##### Example: default settings
+- **GIVEN** fresh store
+- **WHEN** `mockInvoke("get_feature_flags")`
+- **THEN** result includes `{ id: "premium-unlock", name: "進階功能解鎖", enabled: false }`
+- **THEN** result includes `{ id: "mcp-hub", name: "MCP Hub", enabled: false }`
+- **THEN** result includes `{ id: "land-registry-api", name: "地政 API", enabled: true }`
 
-- **GIVEN** fresh mock store
-- **WHEN** mockInvoke("get_app_settings") is called
-- **THEN** returns { license: { status: "none", serialKey: null }, landApi: { clientId: "", secret: "" }, premiumUnlocked: false }
+#### Scenario: Toggle feature flag
 
-#### Scenario: save and retrieve app settings
+- **GIVEN** flag `mcp-hub` is `false`
+- **WHEN** `toggle_feature_flag({ id: "mcp-hub" })` is called
+- **THEN** returns `{ success: true, enabled: true }`
+- **THEN** subsequent `get_feature_flags` shows `mcp-hub` as `true`
 
-- **WHEN** mockInvoke("save_app_settings", data) is called
-- **THEN** the settings SHALL be merged and persisted
-- **THEN** subsequent get_app_settings SHALL return the updated values
+##### Example: Toggle mcp-hub on
 
-##### Example: save land API credentials
+- **GIVEN** `mcp-hub` flag is `false`
+- **WHEN** `mockInvoke("toggle_feature_flag", { id: "mcp-hub" })`
+- **THEN** result is `{ success: true, enabled: true }`
+- **WHEN** `mockInvoke("get_feature_flags")`
+- **THEN** `mcp-hub` item has `enabled: true`
 
-- **GIVEN** the user saves land API settings
-- **WHEN** mockInvoke("save_app_settings", { landApi: { clientId: "c1", secret: "s1" } }) is called
-- **THEN** returns { success: true }
-- **THEN** mockInvoke("get_app_settings") returns { landApi: { clientId: "c1", secret: "s1" }, ... }
+### Requirement: No trial period text in mock responses
 
-### Requirement: mock-localstorage-persistence
+All mock responses SHALL NOT contain text referencing "30天", "30 天", "30日", "試用期", or "trial".
 
-The mock backend SHALL serialize its state to localStorage after each command invocation and deserialize on initialization. If localStorage is unavailable, the mock SHALL fall back to in-memory only without error.
+#### Scenario: Clean mock responses
 
-#### Scenario: state persists across page reload
+- **WHEN** any mock command is called
+- **THEN** the JSON response SHALL NOT contain any trial period references
 
-- **WHEN** the user logs in via mock and reloads the page
-- **THEN** the mock SHALL restore the session from localStorage
-- **THEN** get_session SHALL return authenticated: true
+##### Example: License status text
 
-##### Example: login persists
+- **GIVEN** fresh store, license status is `"none"`
+- **WHEN** `mockInvoke("get_license_status")`
+- **THEN** result does NOT contain string "30天" or "trial"
 
-- **GIVEN** the user logged in as admin@test.aire
-- **WHEN** the page reloads (MockStore re-initializes)
-- **THEN** MockStore reads localStorage key "aire-mock-store"
-- **THEN** get_session returns { authenticated: true, user: { email: "admin@test.aire", role: "admin" } }
+### Requirement: localStorage persistence for all settings
 
-#### Scenario: localStorage unavailable fallback
+All settings data (license, landApi, premium, featureFlags) SHALL be persisted to localStorage via the existing `aire-mock-store` key.
 
-- **WHEN** localStorage throws an error (e.g., private browsing mode)
-- **THEN** the mock SHALL operate in memory-only mode
-- **THEN** no error SHALL be thrown to the caller
+#### Scenario: Settings survive page reload
 
-##### Example: private browsing
+- **GIVEN** user saved land API settings `{ clientId: "c1", secret: "s1" }`
+- **WHEN** a new MockStore instance is created (simulating page reload)
+- **THEN** `get_land_api_settings` returns `{ clientId: "c1", secret: "s1" }`
 
-- **GIVEN** localStorage.getItem throws DOMException
-- **WHEN** MockStore initializes
-- **THEN** MockStore uses default seed data without error
+##### Example: Persistence across instances
+
+- **GIVEN** `save_land_api_settings({ clientId: "c1", secret: "s1" })` was called
+- **WHEN** `new MockStore()` is created
+- **THEN** `store.invoke("get_land_api_settings")` returns `{ clientId: "c1", secret: "s1" }`

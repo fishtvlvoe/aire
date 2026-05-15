@@ -1,44 +1,48 @@
 ## ADDED Requirements
 
-### Requirement: dashboard-auth-guard
+### Requirement: Session guard with mock auth support
 
-The dashboard layout SHALL check the user's authentication status on mount. If the user is not authenticated, the layout SHALL redirect to /login. If authenticated, the layout SHALL render the dashboard content.
+The session guard SHALL check authentication status via `get_session()` and redirect unauthenticated users to `/login`.
 
-#### Scenario: unauthenticated user redirected
+#### Scenario: Authenticated user accesses dashboard
 
-- **WHEN** an unauthenticated user navigates to any dashboard route
-- **THEN** the layout SHALL redirect the browser to /login
+- **GIVEN** `get_session` returns `{ authenticated: true, user: { email: "admin@test.aire", role: "admin" } }`
+- **WHEN** the user navigates to any dashboard route
+- **THEN** the page SHALL render normally
 
-##### Example: unauthenticated visits cases
+##### Example: Admin session active
 
-- **GIVEN** get_session returns { authenticated: false }
-- **WHEN** the user navigates to /cases
-- **THEN** the browser redirects to /login
+- **GIVEN** mock session is authenticated as `admin@test.aire`
+- **WHEN** user navigates to `/dashboard`
+- **THEN** dashboard content is visible
 
-#### Scenario: authenticated user sees dashboard
+#### Scenario: Unauthenticated user redirected
 
-- **WHEN** an authenticated user navigates to a dashboard route
-- **THEN** the layout SHALL render the sidebar, topbar, and page content
+- **GIVEN** `get_session` returns `{ authenticated: false }`
+- **WHEN** the user navigates to any dashboard route
+- **THEN** the system SHALL redirect to `/login`
 
-##### Example: authenticated visits cases
+##### Example: No session
 
-- **GIVEN** get_session returns { authenticated: true, user: { email: "admin@test.aire", role: "admin" } }
-- **WHEN** the user navigates to /cases
-- **THEN** the dashboard renders with sidebar, topbar, and cases page content
+- **GIVEN** no user is logged in
+- **WHEN** user navigates to `/dashboard`
+- **THEN** browser redirects to `/login`
 
-### Requirement: logout-action
+### Requirement: Development auto-login
 
-The dashboard SHALL provide a logout mechanism that calls safeInvoke("logout") and redirects to /login.
+- **WHEN** `NODE_ENV` equals `"development"` and no session exists
+- **THEN** the session guard SHALL auto-login as `admin@test.aire` for development convenience
 
-#### Scenario: user logs out
+#### Scenario: Dev auto-login
 
-- **WHEN** the user triggers the logout action
-- **THEN** the system SHALL call safeInvoke("logout")
-- **THEN** the browser SHALL redirect to /login
+- **GIVEN** `NODE_ENV` is `"development"` and `get_session` returns `{ authenticated: false }`
+- **WHEN** the user navigates to a dashboard route
+- **THEN** the system SHALL automatically call `login({ email: "admin@test.aire", password: "password" })`
+- **THEN** the dashboard SHALL render without manual login
 
-##### Example: logout from dashboard
+##### Example: Auto-login in dev
 
-- **GIVEN** the user is authenticated and on /cases
-- **WHEN** the user clicks the logout button in the topbar
-- **THEN** safeInvoke("logout") is called and returns { success: true }
-- **THEN** the browser redirects to /login
+- **GIVEN** development environment, no active session
+- **WHEN** user navigates to `/dashboard`
+- **THEN** `login` is called automatically with dev credentials
+- **THEN** dashboard renders with admin@test.aire session

@@ -657,3 +657,437 @@ tests:
   - src/components/__tests__/AppSidebar.test.tsx
   - src/hooks/__tests__/useAuth.test.tsx
 -->
+
+---
+### Requirement: Extended mock commands for settings
+
+The mock backend SHALL support the following additional commands:
+
+- `get_land_api_settings() -> { clientId: string, secret: string }`
+- `save_land_api_settings({ clientId: string, secret: string }) -> { success: true }`
+- `test_land_api_connection() -> { success: boolean, latency_ms: number }`
+- `get_premium_status() -> { subscribed: boolean, plan: string | null, expires_at: string | null }`
+- `subscribe_premium() -> { redirect_url: string }`
+- `get_feature_flags() -> Array<{ id: string, name: string, enabled: boolean }>`
+- `toggle_feature_flag({ id: string }) -> { success: true, enabled: boolean }`
+
+#### Scenario: Get land API settings default
+
+- **GIVEN** a fresh mock store
+- **WHEN** `get_land_api_settings` is called
+- **THEN** returns `{ clientId: "", secret: "" }`
+
+##### Example: Default land API settings
+
+- **GIVEN** `__resetMockStoreForTests()` was called
+- **WHEN** `mockInvoke("get_land_api_settings")`
+- **THEN** result is `{ clientId: "", secret: "" }`
+
+#### Scenario: Save and retrieve land API settings
+
+- **GIVEN** a fresh mock store
+- **WHEN** `save_land_api_settings({ clientId: "c1", secret: "s1" })` is called
+- **THEN** returns `{ success: true }`
+- **THEN** subsequent `get_land_api_settings` returns `{ clientId: "c1", secret: "s1" }`
+
+##### Example: Save then get
+
+- **GIVEN** fresh store
+- **WHEN** `mockInvoke("save_land_api_settings", { clientId: "c1", secret: "s1" })`
+- **THEN** result is `{ success: true }`
+- **WHEN** `mockInvoke("get_land_api_settings")`
+- **THEN** result is `{ clientId: "c1", secret: "s1" }`
+
+#### Scenario: Test land API connection mock
+
+- **WHEN** `test_land_api_connection` is called
+- **THEN** the response SHALL be delayed by approximately 500ms
+- **THEN** returns `{ success: true, latency_ms: <number> }`
+
+##### Example: Connection test mock
+
+- **WHEN** `mockInvoke("test_land_api_connection")`
+- **THEN** result has `success: true` and `latency_ms` is a number greater than 0
+
+#### Scenario: Get premium status default
+
+- **GIVEN** a fresh mock store
+- **WHEN** `get_premium_status` is called
+- **THEN** returns `{ subscribed: false, plan: null, expires_at: null }`
+
+##### Example: Default premium status
+
+- **GIVEN** fresh store
+- **WHEN** `mockInvoke("get_premium_status")`
+- **THEN** result is `{ subscribed: false, plan: null, expires_at: null }`
+
+#### Scenario: Subscribe premium redirect
+
+- **WHEN** `subscribe_premium` is called
+- **THEN** returns `{ redirect_url: "https://opcos.tw/checkout/mcp-hub" }`
+
+##### Example: Subscribe redirect URL
+
+- **WHEN** `mockInvoke("subscribe_premium")`
+- **THEN** result is `{ redirect_url: "https://opcos.tw/checkout/mcp-hub" }`
+
+#### Scenario: Feature flags default list
+
+- **GIVEN** a fresh mock store
+- **WHEN** `get_feature_flags` is called
+- **THEN** returns at least 3 flags: `premium-unlock` (false), `mcp-hub` (false), `land-registry-api` (true)
+
+##### Example: Default flags
+
+- **GIVEN** fresh store
+- **WHEN** `mockInvoke("get_feature_flags")`
+- **THEN** result includes `{ id: "premium-unlock", name: "進階功能解鎖", enabled: false }`
+- **THEN** result includes `{ id: "mcp-hub", name: "MCP Hub", enabled: false }`
+- **THEN** result includes `{ id: "land-registry-api", name: "地政 API", enabled: true }`
+
+#### Scenario: Toggle feature flag
+
+- **GIVEN** flag `mcp-hub` is `false`
+- **WHEN** `toggle_feature_flag({ id: "mcp-hub" })` is called
+- **THEN** returns `{ success: true, enabled: true }`
+- **THEN** subsequent `get_feature_flags` shows `mcp-hub` as `true`
+
+##### Example: Toggle mcp-hub on
+
+- **GIVEN** `mcp-hub` flag is `false`
+- **WHEN** `mockInvoke("toggle_feature_flag", { id: "mcp-hub" })`
+- **THEN** result is `{ success: true, enabled: true }`
+- **WHEN** `mockInvoke("get_feature_flags")`
+- **THEN** `mcp-hub` item has `enabled: true`
+
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->
+
+---
+### Requirement: No trial period text in mock responses
+
+All mock responses SHALL NOT contain text referencing "30天", "30 天", "30日", "試用期", or "trial".
+
+#### Scenario: Clean mock responses
+
+- **WHEN** any mock command is called
+- **THEN** the JSON response SHALL NOT contain any trial period references
+
+##### Example: License status text
+
+- **GIVEN** fresh store, license status is `"none"`
+- **WHEN** `mockInvoke("get_license_status")`
+- **THEN** result does NOT contain string "30天" or "trial"
+
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->
+
+---
+### Requirement: localStorage persistence for all settings
+
+All settings data (license, landApi, premium, featureFlags) SHALL be persisted to localStorage via the existing `aire-mock-store` key.
+
+#### Scenario: Settings survive page reload
+
+- **GIVEN** user saved land API settings `{ clientId: "c1", secret: "s1" }`
+- **WHEN** a new MockStore instance is created (simulating page reload)
+- **THEN** `get_land_api_settings` returns `{ clientId: "c1", secret: "s1" }`
+
+##### Example: Persistence across instances
+
+- **GIVEN** `save_land_api_settings({ clientId: "c1", secret: "s1" })` was called
+- **WHEN** `new MockStore()` is created
+- **THEN** `store.invoke("get_land_api_settings")` returns `{ clientId: "c1", secret: "s1" }`
+
+<!-- @trace
+source: app-auth-settings-redesign
+updated: 2026-05-15
+code:
+  - src/lib/mock-backend.ts
+  - src-tauri/src/land_registry/opcos_offline_grace/mod.rs
+  - src/components/disclosure-form-land.tsx
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/billing_log/tests.rs
+  - src-tauri/src/lib.rs
+  - src/app/(dashboard)/layout.tsx
+  - src/app/login/page.tsx
+  - src-tauri/src/secrets.rs
+  - src-tauri/src/land_registry/disk_resilience/mod.rs
+  - src/components/ApiKeySettings.tsx
+  - src-tauri/src/db/mod.rs
+  - src-tauri/src/land_registry/time_sync/tests.rs
+  - src-tauri/src/log.rs
+  - src-tauri/src/db/settings.rs
+  - src-tauri/src/commands/license.rs
+  - src-tauri/src/encryption/tests.rs
+  - src-tauri/src/db/cases.rs
+  - src-tauri/src/land_registry/apis/land_value.rs
+  - src-tauri/src/land_registry/apis/land_registry.rs
+  - src/components/BalanceMonitor.tsx
+  - src-tauri/src/land_registry/apis/zoning.rs
+  - src-tauri/src/land_registry/billing_log/mod.rs
+  - src/components/ManualFallbackInput.tsx
+  - src-tauri/src/land_registry/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/db/drafts.rs
+  - src-tauri/src/commands/log.rs
+  - src-tauri/src/crypto/recovery_code.rs
+  - src-tauri/src/legal_clauses/sync.rs
+  - src/lib/land-registry-api.ts
+  - src/components/BalanceBanner.tsx
+  - src-tauri/migrations/005_owner_consent_log.sql
+  - src-tauri/src/land_registry/cache/tests.rs
+  - src/components/settings/DevSuperAdmin.tsx
+  - src-tauri/src/branding/logo.rs
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src-tauri/src/opcos.rs
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src-tauri/src/commands/pdf.rs
+  - src-tauri/src/land_registry/cache/mod.rs
+  - src-tauri/src/realtor_license/mod.rs
+  - src-tauri/src/land_registry/consent.rs
+  - src-tauri/src/commands/drafts.rs
+  - src-tauri/src/crypto/vault.rs
+  - src-tauri/src/realtor_license/cache.rs
+  - src/app/(dashboard)/settings/api-key/page.tsx
+  - src-tauri/src/land_registry/migration_rollback/tests.rs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src-tauri/src/land_registry/errors/mod.rs
+  - src-tauri/src/land_registry/client/tests.rs
+  - src-tauri/src/crypto/master_password.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/errors/tests.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/legal_clauses/cache.rs
+  - src-tauri/src/encryption/mod.rs
+  - src-tauri/src/branding/mod.rs
+  - src-tauri/src/startup.rs
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/batch/tests.rs
+  - src-tauri/src/realtor_license/client.rs
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/pull.rs
+  - src-tauri/src/land_registry/time_sync/mod.rs
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src-tauri/src/land_registry/disk_resilience/tests.rs
+  - src-tauri/src/land_registry/field_mapping/tests.rs
+  - src/hooks/useAuth.ts
+  - src-tauri/src/land_registry/balance.rs
+  - src-tauri/src/land_registry/migration_rollback/mod.rs
+  - src-tauri/src/land_registry/opcos_offline_grace/tests.rs
+  - src-tauri/src/land_registry/client/mod.rs
+  - src/components/settings/LicenseSection.tsx
+  - src-tauri/Cargo.toml
+  - src-tauri/src/legal_clauses/mod.rs
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/settings/LandApiSection.tsx
+  - src/components/PullParcelDataButton.tsx
+tests:
+  - src/components/__tests__/sidebar.test.tsx
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/components/settings/__tests__/DevSuperAdmin.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+-->

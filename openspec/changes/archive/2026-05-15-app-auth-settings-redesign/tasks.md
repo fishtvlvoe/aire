@@ -1,33 +1,50 @@
 # Tasks
 
-## task group 1: mock backend 擴充（d5: mock 持久化 + auth command）
+## Group 1: Mock Backend 擴充（基礎層）
 
-Implementation Contract 參照：行為（使用者可觀察的）— login 成功回傳 session、失敗拋錯誤碼；介面與資料形狀 — Session { user_id, email, role, token }、AppSettings { land_api_client_id, land_api_security_code, premium_enabled }；失敗模式 — INVALID_CREDENTIALS / ACCOUNT_EXPIRED / localStorage 不可用靜默 fallback；驗收標準 — vitest mock-backend 全綠；範圍邊界 — 只改 mock-backend.ts 和測試檔。
+- [x] 1.1 [P] [Tool: Codex] 擴充 mock-backend.ts — 新增 `get_land_api_settings`、`save_land_api_settings`、`test_land_api_connection` commands，滿足 spec "Extended mock commands for settings" 的 Land API 相關場景，對齊 design "D4: Mock Backend 擴充 — 新增 commands + 持久化完整覆蓋" 的 Interface / Data Shape 定義。`test_land_api_connection` 模擬 500ms 延遲回傳 `{ success: true, latency_ms: <number> }`。資料透過既有 `save_app_settings` / `get_app_settings` 持久化到 localStorage，滿足 spec "localStorage persistence for all settings"。遵循 Observable Behavior 第 5 點和 Failure Modes 中的地政 API 連線測試失敗處理。驗證：`npm test -- mock-backend.test` 新增測試通過。
+- [x] 1.2 [P] [Tool: Codex] 擴充 mock-backend.ts — 新增 `get_premium_status`、`subscribe_premium` commands，滿足 spec "Extended mock commands for settings" 的 Premium 相關場景，對齊 design "D4: Mock Backend 擴充 — 新增 commands + 持久化完整覆蓋"。`subscribe_premium` 回傳 `{ redirect_url: "https://opcos.tw/checkout/mcp-hub" }`，對齊 Failure Modes 中的 Premium subscribe 處理。驗證：`npm test -- mock-backend.test` 新增測試通過。
+- [x] 1.3 [P] [Tool: Codex] 擴充 mock-backend.ts — 新增 `get_feature_flags`、`toggle_feature_flag` commands，滿足 spec "Feature flags default list" 和 "Toggle feature flag" 場景，對齊 design "D4: Mock Backend 擴充 — 新增 commands + 持久化完整覆蓋"。預設 3 個 flag：`premium-unlock`（false）、`mcp-hub`（false）、`land-registry-api`（true）。驗證：`npm test -- mock-backend.test` 新增測試通過。
+- [x] 1.4 [Tool: Codex] 擴充 mock-backend.test.ts — 新增覆蓋所有 Group 1 新 commands 的測試用例，滿足 spec "localStorage persistence for all settings" 場景。驗證：測試跑過，覆蓋 save→get、toggle、persistence across MockStore instances，滿足 Acceptance Criteria 中 mock-backend.test.ts 覆蓋所有新 commands。
 
-- [x] 1.1 [Tool: sonnet] 新增 mock auth command（login / logout / get_session）+ app settings command（get_app_settings / save_app_settings）到 MockStore。login 驗證固定測試帳號表（admin@test.aire → admin, user@test.aire → user, expired@test.aire → expired）。回傳格式符合 spec browser-dev-mock 的 mock-auth-commands 和 mock-app-settings-commands requirement。vitest 測試覆蓋：成功登入、錯誤帳密、過期帳號、登出、get_session 已登入/未登入、get_app_settings 預設值、save_app_settings 合併儲存。驗證目標：npx vitest run mock-backend 全綠。
-- [x] 1.2 [Tool: sonnet] MockStore 加入 localStorage 持久化：constructor 從 localStorage key "aire-mock-store" 反序列化，每次 invoke 後 serialize 存回。localStorage 不可用時（private browsing）靜默 fallback in-memory。vitest 測試：mock localStorage → serialize/deserialize round-trip、localStorage 拋錯時不 crash。符合 spec browser-dev-mock 的 mock-localstorage-persistence requirement。驗證目標：npx vitest run mock-backend 全綠。
+## Group 2: 文案修正（全域掃描）
 
-## task group 2: 登入頁 + auth hook（d1: 登入頁設計與 mock auth + d2: auth guard 替換 license guard）
+- [x] 2.1 [Tool: Codex] 全面搜尋 `src/` 目錄中的 "30天"、"30 天"、"30日"、"試用"、"trial" 文案，全部替換為正確的授權描述（"尚未啟用授權"），滿足 design "D5: 錯誤文案修正 — 移除「30天」，改為正確授權描述" 和 spec "No trial period messaging" 與 "No trial period text in mock responses"。包含 mock-backend.ts 的回傳值。驗證：`grep -r "30天\|30 天\|30日\|試用\|trial" src/` 回傳 0 結果，滿足 Acceptance Criteria。
 
-- [x] 2.1 [Tool: sonnet] 建立 src/lib/auth.ts：export login(email, password) / logout() / getSession() / isAuthenticated()，內部呼叫 safeInvoke。建立 src/hooks/useAuth.ts：React hook 包裝 auth.ts，回傳 { user, isLoading, isAuthenticated, login, logout }。vitest 測試覆蓋 auth.ts 四個函數 + useAuth hook 的 loading/authenticated/error 狀態。符合 spec auth-session-guard 的 dashboard-auth-guard 和 logout-action requirement。驗證目標：npx vitest run auth 全綠。
-- [x] 2.2 [Tool: copilot] 建立 src/app/login/page.tsx：居中卡片、AIRE Logo（src/assets/icon-dark.png）、副標「不動產說明書自動化系統」、Email input、密碼 input、登入按鈕「登入」、忘記密碼連結「忘記密碼？」（外部連結）。表單 submit 呼叫 useAuth().login，成功 redirect /cases，失敗顯示紅色錯誤訊息（INVALID_CREDENTIALS → "帳號或密碼錯誤，請重新輸入"、ACCOUNT_EXPIRED → "此帳號已過期，請聯繫客服"）。空欄位驗證。已登入 redirect /cases。符合 spec auth-login-page 的 login-form-display、login-form-submission、login-redirect-if-authenticated requirement。vitest 測試：render、成功登入、失敗登入、空欄位、已登入 redirect。驗證目標：npx vitest run login 全綠。
-- [x] 2.3 [Tool: copilot] 修改 src/app/(dashboard)/layout.tsx：useAuth() 取代 useLicenseStatus()，未登入 redirect /login。移除 useLicenseStatus import。Topbar 加 logout 按鈕（呼叫 useAuth().logout，logout 後 redirect /login）。符合 spec auth-session-guard 的 dashboard-auth-guard 和 logout-action requirement。驗證目標：npx vitest run layout 全綠 + pnpm build 零錯誤。
+## Group 3: 登入頁重寫
 
-## task group 3: 設定頁（d3: 設定頁結構）
+- [x] 3.1 [Tool: Codex] TDD 紅燈：為登入頁寫失敗測試，驗證 spec "Minimal login page layout" — 測試登入頁不含 license 相關 UI、只有 email/password/login button/forgot password。測試 "Successful login" 和 "Failed login with invalid credentials" 和 "Failed login with expired account" 場景。驗證：測試存在且全部 fail（紅燈）。
+- [x] 3.2 [Tool: Codex] 重寫 `src/app/(auth)/login/page.tsx`，極簡化登入頁，滿足 design "D1: 登入頁架構 — 極簡單頁，license 邏輯完全移除"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（shadcn/ui Card + Input + Button + lucide-react icons）和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"（loading spinner + error message 即時回饋）。只保留 AIRE Logo + Email + Password + Login button + 忘記密碼連結。Failure Modes：INVALID_CREDENTIALS → "帳號或密碼錯誤"，ACCOUNT_EXPIRED → "帳號已過期"。滿足 Observable Behavior 第 1-2 點和 Acceptance Criteria 中 login/page.tsx 不含 license 相關 import。驗證：Group 3.1 紅燈測試全部變綠。
 
-- [x] 3.1 [P] [Tool: copilot] 建立 src/app/(dashboard)/settings/page.tsx：三個 Card 區塊。區塊 1「序號管理」：授權狀態 + 序號 input + 啟動/解除按鈕，呼叫 safeInvoke("activate_license") / safeInvoke("deactivate_license")。錯誤訊息對應 error code（INVALID_KEY / ALREADY_ACTIVATED_OTHER_DEVICE / QUOTA_EXHAUSTED）。符合 spec settings-page 的 settings-license-section requirement。vitest 測試：未啟動 render、啟動成功、啟動失敗、已啟動 render、解除。驗證目標：npx vitest run settings 全綠。
-- [x] 3.2 [P] [Tool: copilot] 建立設定頁區塊 2「地政 API 設定」：Client ID input + 安全碼 input（type=password）+ 儲存按鈕 + 說明連結「如何申請地政 API？」（外部連結）+ YouTube iframe 預留（src 暫空，寬度 100%，16:9 比例）。呼叫 safeInvoke("save_app_settings") / safeInvoke("get_app_settings") 載入和儲存。符合 spec settings-page 的 settings-land-api-section requirement。vitest 測試：render、pre-populated、save 成功。驗證目標：npx vitest run settings 全綠。
-- [x] 3.3 [P] [Tool: copilot] 建立設定頁區塊 3「進階功能」：鎖定/已開通狀態 + 「前往 OPCOS 開通」按鈕（window.open 外部 URL，URL 從環境變數或常數取）。符合 spec settings-page 的 settings-premium-section requirement。vitest 測試：鎖定 render + 按鈕 href、已開通 render。驗證目標：npx vitest run settings 全綠。
+## Group 4: 設定頁元件（可並行）
 
-## task group 4: 側邊欄重構（d4: 側邊欄 collapse + 設定入口）
+- [x] 4.1 [Tool: Codex] TDD 紅燈：為 LicenseSection 寫失敗測試，驗證 spec "License status display" 和 "License deactivation with confirmation" 的所有場景（未啟用/啟用成功/啟用失敗/停用確認/停用取消）。驗證：測試存在且全部 fail。
+- [x] 4.2 [P] [Tool: Codex] 建立 `src/components/settings/LicenseSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的序號管理區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（shadcn Card + Input + Button + Badge + AlertDialog + lucide-react icons）和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"（三態 loading/empty/error + 破壞性操作二次確認 Dialog）。滿足 Observable Behavior 第 4 點和 Scope Boundaries。驗證：Group 4.1 紅燈測試全部變綠。
+- [x] 4.3 [Tool: Codex] TDD 紅燈：為 LandApiSection 寫失敗測試，驗證 spec "Land API credentials input and save" 和 "Connection test" 的所有場景（儲存/空欄位禁用/連線成功/連線失敗）。驗證：測試存在且全部 fail。
+- [x] 4.4 [P] [Tool: Codex] 建立 `src/components/settings/LandApiSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的地政 API 設定區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token" 和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"。包含 Client ID + 安全碼（password）+ 儲存 + 測試連線 + 說明連結 + YouTube 預留區。實作三態。滿足 Observable Behavior 第 5 點。驗證：Group 4.3 紅燈測試全部變綠。
+- [x] 4.5 [Tool: Codex] TDD 紅燈：為 PremiumUnlockSection 寫失敗測試，驗證 spec "Premium unlock section display" 的所有場景（未訂閱/訂閱跳轉/已訂閱）。驗證：測試存在且全部 fail。
+- [x] 4.6 [P] [Tool: Codex] 建立 `src/components/settings/PremiumUnlockSection.tsx`，滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 的進階功能解鎖區塊，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token" 和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"。未訂閱：說明 + 價格 + CTA；已訂閱：Badge + 方案名 + 到期日 + 管理連結。滿足 Observable Behavior 第 6 點。驗證：Group 4.5 紅燈測試全部變綠。
+- [x] 4.7 [Tool: Codex] TDD 紅燈：為 DevSuperAdmin 寫失敗測試，驗證 spec "Developer Super Admin panel visibility" 和 "Feature flags management" 場景。特別驗證 production 環境不渲染。驗證：測試存在且全部 fail。
+- [x] 4.8 [P] [Tool: Codex] 建立 `src/components/settings/DevSuperAdmin.tsx`，滿足 design "D6: 開發環境 Super Admin — DevSuperAdmin 元件"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"。顯示 feature flags toggle list，條件渲染僅 development。滿足 Observable Behavior 第 9 點和 Acceptance Criteria 中 DevSuperAdmin 不渲染條件。驗證：Group 4.7 紅燈測試全部變綠。
 
-- [x] 4.1 [Tool: sonnet] 重構 src/components/AppSidebar.tsx：接受 collapsed prop，collapsed 時寬度 60px 只顯示 icon + tooltip。navItems 加第四項 { label: "設定", href: "/settings", icon: Settings }。底部加 collapse toggle 按鈕（ChevronLeft/ChevronRight），md+ 才顯示。修改 src/app/(dashboard)/layout.tsx：aside 寬度根據 collapse 狀態動態切換（md:w-60 / md:w-[60px]），collapse 狀態存取 localStorage key "aire-sidebar-collapsed"。符合 spec collapsible-sidebar 的 sidebar-collapse-toggle、sidebar-collapse-persistence、sidebar-settings-nav-item requirement + spec app-shell 的 modified sidebar-navigation requirement。vitest 測試：4 個 nav items render、collapse toggle、localStorage persist、mobile 不受影響。驗證目標：npx vitest run sidebar 全綠 + pnpm build 零錯誤。
+## Group 5: 設定頁整合 + Session Guard
 
-## task group 5: 清理 + activation redirect（d2: auth guard 替換 license guard）
+- [x] 5.1 [Tool: Codex] 重組 `src/app/(dashboard)/settings/page.tsx`，import LicenseSection + LandApiSection + PremiumUnlockSection + DevSuperAdmin，由上到下排列為三個 Card + 底部 DevSuperAdmin。移除舊有的獨立 license 管理 UI。滿足 design "D2: 設定頁重組 — 三區塊 Card 佈局" 和 Observable Behavior 第 3 點。驗證：`npm run build` 通過，設定頁顯示三個區塊。
+- [x] 5.2 [Tool: Codex] 更新 session guard，滿足 spec "Session guard with mock auth support" 和 "Development auto-login"。確保 dashboard 路由需要認證，未登入 redirect 到 /login。開發環境自動以 `admin@test.aire` 登入。驗證：未登入訪問 /dashboard 被導向 /login；dev 環境自動登入。
 
-- [x] 5.1 [Tool: copilot] 修改 src/app/activation/page.tsx：移除所有表單內容（移除 activation-page-form），改為 useEffect redirect 到 /settings。移除「30 天」文案。符合 spec license-activation-ui 的 activation-redirect requirement 和 activation-page-form REMOVED。刪除 src/app/activation/__tests__/page.test.tsx 並建立新測試（只測 redirect 行為）。驗證目標：npx vitest run activation 全綠。
-- [x] 5.2 [Tool: copilot] 移除 src/hooks/useLicenseStatus.ts（不再被任何元件使用）。確認 grep -r "useLicenseStatus" src/ 無結果。驗證目標：pnpm build 零錯誤。
+## Group 6: 側邊欄收合
 
-## task group 6: 整合驗證
+- [x] 6.1 [Tool: Codex] TDD 紅燈：為側邊欄收合寫失敗測試，驗證 spec "Sidebar collapse toggle" 和 "Sidebar state persistence" 場景（收合/展開/localStorage 持久化/重載恢復）。驗證：測試存在且全部 fail。
+- [x] 6.2 [Tool: Codex] 修改 `src/components/sidebar.tsx`，加入收合/展開切換，滿足 design "D3: 側邊欄收合 — 寬度 240px ↔ 60px + localStorage 持久化"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（lucide-react ChevronsLeft/ChevronsRight icons）。底部加收合 toggle。收合時只顯示 icon + tooltip。CSS transition 200ms ease-in-out。localStorage key `aire-sidebar-collapsed`。滿足 Observable Behavior 第 7-8 點和 Acceptance Criteria。驗證：Group 6.1 紅燈測試全部變綠。
 
-- [x] 6.1 [Tool: sonnet] 整合測試：npx vitest run 全部通過 + pnpm build 零錯誤。瀏覽器手動驗證：localhost:3000 → 看到登入頁 → admin@test.aire + password 登入 → dashboard（4 個側邊欄項目）→ 點設定 → 三個區塊可見 → 序號啟動 AIRE-TEST-VALID-001 → 重整頁面保持登入和序號狀態 → sidebar collapse toggle → 重整保持 collapse。截圖存 /tmp/ 供主對話驗證。
+## Group 7: 路由清理
+
+- [x] 7.1 [Tool: Codex] 刪除 `src/app/(auth)/activation/page.tsx`（如果存在），或移除 activation 相關路由。加 redirect rule `/activation` → `/settings`。滿足 Acceptance Criteria 中 activation 頁已刪除。驗證：訪問 /activation 會導向 /settings。
+
+## Group 8: 建構驗證
+
+- [x] 8.1 [Tool: Codex] 跑 `npm run build` + `npm test` 全量驗證。修復所有 build error 和 test failure。滿足所有 Acceptance Criteria 和 Scope Boundaries。驗證：build 0 error，test 全綠。
+
+## Group 9: Code Review
+
+- [x] 9.1 [Tool: Kimi] Code Review — 用 Kimi CLI review 所有本 change 的 diff（登入頁 + 設定頁 + 側邊欄 + mock-backend）。檢查：邏輯正確性、型別安全、UX 一致性、設計決策對齊。驗證：CR 無 Critical 發現。
