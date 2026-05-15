@@ -18,7 +18,8 @@ import React from "react";
 
 // 🔴 RED: CaseDossierData 目前不存在於 "../document"
 import { PdfDocument, type CaseDossierData } from "../document";
-import { initReactPdfEngine, pdf } from "../react-pdf-init";
+import { initReactPdfEngine } from "../react-pdf-init";
+import { pdf } from "@react-pdf/renderer";
 
 // ---------------------------------------------------------------------------
 // 測試資料

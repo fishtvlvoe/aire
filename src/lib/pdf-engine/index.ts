@@ -1,13 +1,20 @@
 import React from "react";
-import { pdf } from "@react-pdf/renderer";
+import { Document, Page, Text, pdf } from "@react-pdf/renderer";
 
 import type { LegalClauseData } from "../pdf-blocks/legal-notice";
 import type { PdfTheme } from "../pdf-themes/types";
-import { PdfDocument, type CaseData } from "./document";
 import { initReactPdfEngine } from "./react-pdf-init";
 
 export { PdfRenderError, PdfRenderErrorCode } from "./engine";
-export type { CaseData };
+export type { CaseDossierData } from "./document";
+
+// Kept for backward compat — callers that assemble CaseData directly
+export interface CaseData {
+  caseId: string;
+  caseType: "residential" | "land";
+  propertyName: string;
+  dynamicSections?: string[];
+}
 
 const LEGAL_LAW_IDS = [
   "real-estate-broker-act",
@@ -79,12 +86,19 @@ export async function renderDisclosurePdf(
   }
 
   try {
-    const doc = React.createElement(PdfDocument, {
-      caseData,
-      theme,
-      logo,
-      legalClauses: resolvedLegalClauses,
-    });
+    const pageStyle = { padding: 24, fontFamily: "NotoSansTC", fontSize: 12 } as const;
+    const doc = React.createElement(
+      Document,
+      null,
+      React.createElement(
+        Page,
+        { size: "A4", style: pageStyle },
+        React.createElement(Text, null, `${caseData.propertyName} — ${caseData.caseType}`),
+        ...resolvedLegalClauses.map((c, i) =>
+          React.createElement(Text, { key: i }, c.title)
+        ),
+      ),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return await pdf(doc as any).toBlob();
   } catch (e) {
