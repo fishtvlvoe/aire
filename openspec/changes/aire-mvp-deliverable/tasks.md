@@ -24,9 +24,9 @@
 
 ## 5. 案件 UI 升級
 
-- [ ] [P] 5.1 升級 src/app/(dashboard)/cases/page.tsx：案件列表改用 ST Table + Badge（狀態標籤）+ Button（新增案件），空列表顯示 ST Card 空狀態 "尚無案件"。保留現有 list_cases IPC 呼叫邏輯。驗證：`pnpm build` 零錯誤，頁面渲染 ST Table 元件。對應 spec: case-list-display，design D3: 案件 UI 升級 — 漸進替換保留頁面結構。 [Tool: copilot]
-- [ ] [P] 5.2 升級 src/app/(dashboard)/cases/[id]/page.tsx：表單改用 ST Form + Input + Select + Label + Textarea + Tabs（成屋/土地切換），儲存按鈕呼叫 update_case IPC + 成功 Toast "案件已儲存"，必填欄位空值顯示 ST Form 錯誤樣式。保留現有 IPC 邏輯。驗證：`pnpm build` 零錯誤，表單渲染 ST 元件。對應 spec: case-form-ui，design D3: 案件 UI 升級 — 漸進替換保留頁面結構。 [Tool: copilot]
-- [ ] [P] 5.3 升級 src/app/(dashboard)/cases/[id]/preview/page.tsx：加「匯出 PDF」ST Button 呼叫 export_pdf IPC，按鈕在匯出中顯示 spinner + disabled，成功 Toast "PDF 已匯出" 含檔案路徑，失敗 Toast 顯示錯誤。驗證：`pnpm build` 零錯誤。對應 spec: pdf-export-button，design D3: 案件 UI 升級 — 漸進替換保留頁面結構。 [Tool: copilot]
+- [x] [P] 5.1 升級 src/app/(dashboard)/cases/page.tsx：案件列表改用 ST Table + Badge（狀態標籤）+ Button（新增案件），空列表顯示 ST Card 空狀態 "尚無案件"。保留現有 list_cases IPC 呼叫邏輯。驗證：`pnpm build` 零錯誤，頁面渲染 ST Table 元件。對應 spec: case-list-display，design D3: 案件 UI 升級 — 漸進替換保留頁面結構。 [Tool: copilot]
+- [x] [P] 5.2 升級 src/app/(dashboard)/cases/[id]/page.tsx：表單改用 ST Form + Input + Select + Label + Textarea + Tabs（成屋/土地切換），儲存按鈕呼叫 update_case IPC + 成功 Toast "案件已儲存"，必填欄位空值顯示 ST Form 錯誤樣式。保留現有 IPC 邏輯。驗證：`pnpm build` 零錯誤，表單渲染 ST 元件。對應 spec: case-form-ui，design D3: 案件 UI 升級 — 漸進替換保留頁面結構。 [Tool: copilot]
+- [x] [P] 5.3 升級 src/app/(dashboard)/cases/[id]/preview/page.tsx：加「匯出 PDF」ST Button 呼叫 export_pdf IPC，按鈕在匯出中顯示 spinner + disabled，成功 Toast "PDF 已匯出" 含檔案路徑，失敗 Toast 顯示錯誤。驗證：`pnpm build` 零錯誤。對應 spec: pdf-export-button，design D3: 案件 UI 升級 — 漸進替換保留頁面結構。 [Tool: copilot]
 
 ## 6. 整合驗證
 

@@ -1,10 +1,12 @@
 "use client";
 
-// AIRE 編輯案件頁（Task 5.4）
+// AIRE 編輯案件頁（Task 5.4 — shadcn/ui 升級）
 //
 // - 載入 case 顯示 header + 對應表單
+// - Tabs 切換成屋 / 土地
 // - 「刪除」按鈕 + 確認 modal
 // - 「標示為完成」按鈕僅在 status='draft' 顯示
+// - 儲存成功用 sonner toast，必填欄位空值顯示紅色提示
 //
 // Note: Next.js static export 下動態路由 [id] 用 client-side router 取參數。
 
@@ -17,6 +19,26 @@ import {
   statusLabel,
   type CaseRow,
 } from "@/lib/cases-api";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+
+// 必填欄位驗證錯誤
+interface FormErrors {
+  owner_name?: string;
+  property_type?: string;
+}
 
 export default function CaseDetailPage() {
   const params = useParams<{ id: string }>();
@@ -27,14 +49,24 @@ export default function CaseDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
-  // 編輯 buffer（content 簡化版：只允許改 case_no / land_lot_no / address / owner_name）
+  // 編輯 buffer
   const [buf, setBuf] = useState<{
     case_no: string;
     land_lot_no: string;
     address: string;
     owner_name: string;
-  }>({ case_no: "", land_lot_no: "", address: "", owner_name: "" });
+    notes: string;
+    property_type: "residential" | "land";
+  }>({
+    case_no: "",
+    land_lot_no: "",
+    address: "",
+    owner_name: "",
+    notes: "",
+    property_type: "residential",
+  });
 
   useEffect(() => {
     if (!id) return;
@@ -49,6 +81,8 @@ export default function CaseDetailPage() {
           land_lot_no: row.land_lot_no,
           address: row.address,
           owner_name: row.owner_name ?? "",
+          notes: "",
+          property_type: row.property_type,
         });
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -59,19 +93,29 @@ export default function CaseDetailPage() {
     };
   }, [id]);
 
+  function validate(): boolean {
+    const errors: FormErrors = {};
+    if (!buf.owner_name.trim()) errors.owner_name = "物件名稱為必填";
+    if (!buf.property_type) errors.property_type = "案件類型為必填";
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
   async function handleSave() {
     if (!c) return;
+    if (!validate()) return;
     setSaving(true);
     setError(null);
     try {
       const updated = await casesApi.update(c.id, {
-        property_type: c.property_type,
+        property_type: buf.property_type,
         land_lot_no: buf.land_lot_no,
         address: buf.address,
         owner_name: buf.owner_name || null,
         case_no: buf.case_no || null,
       });
       setCase(updated);
+      toast.success("案件已儲存");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -102,6 +146,7 @@ export default function CaseDetailPage() {
     try {
       const updated = await casesApi.markCompleted(c.id);
       setCase(updated);
+      toast.success("案件已標示為完成");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -111,254 +156,275 @@ export default function CaseDetailPage() {
 
   if (error && !c) {
     return (
-      <main style={{ padding: 24 }}>
-        <p style={{ color: "#b00020" }}>載入失敗：{error}</p>
+      <main className="p-6">
+        <p className="text-destructive">載入失敗：{error}</p>
       </main>
     );
   }
 
   if (!c) {
     return (
-      <main style={{ padding: 24 }}>
-        <p>載入中…</p>
+      <main className="p-6">
+        <p className="text-muted-foreground">載入中…</p>
       </main>
     );
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "8px 12px",
-    border: "1px solid #ccc",
-    borderRadius: 6,
-    fontSize: 14,
-  };
-
   return (
-    <main
-      style={{
-        maxWidth: 720,
-        margin: "32px auto",
-        padding: 24,
-        fontFamily: "system-ui, sans-serif",
-      }}
-    >
-      <header style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            onClick={() => router.push("/cases")}
-            style={{
-              padding: "4px 12px",
-              background: "white",
-              border: "1px solid #ccc",
-              borderRadius: 6,
-              cursor: "pointer",
-            }}
-          >
+    <main className="max-w-2xl mx-auto py-8 px-6 space-y-6">
+      {/* Header */}
+      <header className="space-y-2">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => router.push("/cases")}>
             ← 返回
-          </button>
-          <h1 style={{ margin: 0 }}>
+          </Button>
+          <h1 className="text-xl font-semibold">
             {c.case_no ?? c.id.slice(0, 8)}（{propertyTypeLabel(c.property_type)}）
           </h1>
           <span
-            style={{
-              padding: "2px 8px",
-              background: c.status === "draft" ? "#eee" : "#dff5e1",
-              borderRadius: 4,
-              fontSize: 12,
-            }}
+            className={`px-2 py-0.5 rounded text-xs font-medium ${
+              c.status === "draft"
+                ? "bg-muted text-muted-foreground"
+                : "bg-green-100 text-green-800"
+            }`}
           >
             {statusLabel(c.status)}
           </span>
         </div>
-        <p style={{ color: "#888", fontSize: 12, marginTop: 8 }}>
+        <p className="text-xs text-muted-foreground">
           建立於 {formatTpeDate(c.created_at)} ・ 最後更新 {formatTpeDate(c.updated_at)}
         </p>
       </header>
 
-      <section style={{ marginBottom: 24 }}>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontWeight: 600 }}>
-            案件編號
-          </label>
-          <input
-            value={buf.case_no}
-            onChange={(e) => setBuf({ ...buf, case_no: e.target.value })}
-            style={inputStyle}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontWeight: 600 }}>
-            地號
-          </label>
-          <input
-            value={buf.land_lot_no}
-            onChange={(e) => setBuf({ ...buf, land_lot_no: e.target.value })}
-            style={inputStyle}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontWeight: 600 }}>
-            地址
-          </label>
-          <input
-            value={buf.address}
-            onChange={(e) => setBuf({ ...buf, address: e.target.value })}
-            style={inputStyle}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ display: "block", marginBottom: 4, fontWeight: 600 }}>
-            屋主姓名
-          </label>
-          <input
-            value={buf.owner_name}
-            onChange={(e) => setBuf({ ...buf, owner_name: e.target.value })}
-            style={inputStyle}
-          />
-        </div>
-      </section>
+      {/* 案件類型 Select（必填） */}
+      <div className="space-y-1.5">
+        <Label htmlFor="property_type">
+          案件類型 <span className="text-destructive">*</span>
+        </Label>
+        <Select
+          value={buf.property_type}
+          onValueChange={(v) => {
+            setBuf({ ...buf, property_type: v as "residential" | "land" });
+            if (formErrors.property_type) setFormErrors({ ...formErrors, property_type: undefined });
+          }}
+        >
+          <SelectTrigger
+            id="property_type"
+            className={formErrors.property_type ? "border-destructive" : ""}
+          >
+            <SelectValue placeholder="選擇案件類型" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="residential">成屋</SelectItem>
+            <SelectItem value="land">土地</SelectItem>
+          </SelectContent>
+        </Select>
+        {formErrors.property_type && (
+          <p className="text-xs text-destructive">{formErrors.property_type}</p>
+        )}
+      </div>
 
-      {error ? (
+      {/* Tabs：成屋 / 土地 */}
+      <Tabs defaultValue={c.property_type === "land" ? "land" : "residential"}>
+        <TabsList>
+          <TabsTrigger value="residential">成屋資訊</TabsTrigger>
+          <TabsTrigger value="land">土地資訊</TabsTrigger>
+        </TabsList>
+
+        {/* 成屋 Tab */}
+        <TabsContent value="residential">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">成屋基本資料</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="owner_name">
+                  物件名稱 / 屋主 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="owner_name"
+                  value={buf.owner_name}
+                  onChange={(e) => {
+                    setBuf({ ...buf, owner_name: e.target.value });
+                    if (formErrors.owner_name) setFormErrors({ ...formErrors, owner_name: undefined });
+                  }}
+                  className={formErrors.owner_name ? "border-destructive" : ""}
+                  placeholder="輸入屋主姓名或物件名稱"
+                />
+                {formErrors.owner_name && (
+                  <p className="text-xs text-destructive">{formErrors.owner_name}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="address">地址</Label>
+                <Input
+                  id="address"
+                  value={buf.address}
+                  onChange={(e) => setBuf({ ...buf, address: e.target.value })}
+                  placeholder="輸入物件地址"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="case_no">案件編號</Label>
+                <Input
+                  id="case_no"
+                  value={buf.case_no}
+                  onChange={(e) => setBuf({ ...buf, case_no: e.target.value })}
+                  placeholder="輸入案件編號（選填）"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="notes_residential">備註</Label>
+                <Textarea
+                  id="notes_residential"
+                  value={buf.notes}
+                  onChange={(e) => setBuf({ ...buf, notes: e.target.value })}
+                  placeholder="其他備注事項"
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 土地 Tab */}
+        <TabsContent value="land">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">土地基本資料</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="land_lot_no">地號</Label>
+                <Input
+                  id="land_lot_no"
+                  value={buf.land_lot_no}
+                  onChange={(e) => setBuf({ ...buf, land_lot_no: e.target.value })}
+                  placeholder="輸入地號"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="owner_name_land">
+                  物件名稱 / 地主 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="owner_name_land"
+                  value={buf.owner_name}
+                  onChange={(e) => {
+                    setBuf({ ...buf, owner_name: e.target.value });
+                    if (formErrors.owner_name) setFormErrors({ ...formErrors, owner_name: undefined });
+                  }}
+                  className={formErrors.owner_name ? "border-destructive" : ""}
+                  placeholder="輸入地主姓名或物件名稱"
+                />
+                {formErrors.owner_name && (
+                  <p className="text-xs text-destructive">{formErrors.owner_name}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="address_land">地址</Label>
+                <Input
+                  id="address_land"
+                  value={buf.address}
+                  onChange={(e) => setBuf({ ...buf, address: e.target.value })}
+                  placeholder="輸入土地地址"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="case_no_land">案件編號</Label>
+                <Input
+                  id="case_no_land"
+                  value={buf.case_no}
+                  onChange={(e) => setBuf({ ...buf, case_no: e.target.value })}
+                  placeholder="輸入案件編號（選填）"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="notes_land">備註</Label>
+                <Textarea
+                  id="notes_land"
+                  value={buf.notes}
+                  onChange={(e) => setBuf({ ...buf, notes: e.target.value })}
+                  placeholder="其他備注事項"
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* 全局錯誤 */}
+      {error && (
         <div
           role="alert"
-          style={{
-            marginBottom: 16,
-            padding: 12,
-            background: "#fdecea",
-            color: "#b00020",
-            borderRadius: 6,
-          }}
+          className="px-4 py-3 bg-red-50 text-destructive rounded-md text-sm border border-destructive/20"
         >
           {error}
         </div>
-      ) : null}
+      )}
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          style={{
-            padding: "8px 16px",
-            background: saving ? "#999" : "#111",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: saving ? "not-allowed" : "pointer",
-          }}
-        >
+      {/* 操作按鈕列 */}
+      <div className="flex items-center gap-3">
+        <Button onClick={handleSave} disabled={saving}>
           {saving ? "儲存中…" : "儲存變更"}
-        </button>
+        </Button>
 
-        {c.status === "draft" ? (
-          <button
-            onClick={handleMarkCompleted}
-            disabled={saving}
-            style={{
-              padding: "8px 16px",
-              background: "white",
-              color: "#0a7d2a",
-              border: "1px solid #0a7d2a",
-              borderRadius: 6,
-              cursor: "pointer",
-            }}
-          >
+        {c.status === "draft" && (
+          <Button variant="outline" onClick={handleMarkCompleted} disabled={saving}
+            className="text-green-700 border-green-700 hover:bg-green-50">
             標示為完成
-          </button>
-        ) : null}
+          </Button>
+        )}
 
-        <button
-          onClick={handleExportCase}
-          disabled={saving}
-          title="匯出此案件"
-          style={{
-            padding: "8px 16px",
-            background: "#0b6cdc",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: saving ? "not-allowed" : "pointer",
-          }}
-        >
+        <Button variant="secondary" onClick={handleExportCase} disabled={saving}>
           匯出此案件
-        </button>
+        </Button>
 
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
-        <button
+        <Button
+          variant="outline"
           onClick={() => setShowDeleteConfirm(true)}
           disabled={saving}
-          style={{
-            padding: "8px 16px",
-            background: "white",
-            color: "#b00020",
-            border: "1px solid #b00020",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
+          className="text-destructive border-destructive hover:bg-red-50"
         >
           刪除
-        </button>
+        </Button>
       </div>
 
-      {showDeleteConfirm ? (
+      {/* 刪除確認 Modal */}
+      {showDeleteConfirm && (
         <div
           role="dialog"
           aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-          }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
         >
-          <div
-            style={{
-              background: "white",
-              padding: 24,
-              borderRadius: 8,
-              maxWidth: 400,
-              width: "90%",
-            }}
-          >
-            <h2 style={{ marginTop: 0 }}>確認刪除案件？</h2>
-            <p style={{ color: "#555" }}>
+          <div className="bg-background rounded-lg p-6 max-w-sm w-[90%] space-y-4 shadow-xl">
+            <h2 className="text-lg font-semibold">確認刪除案件？</h2>
+            <p className="text-sm text-muted-foreground">
               此操作不可復原，將永久刪除案件「{c.case_no ?? c.id.slice(0, 8)}」
               以及其表單草稿。
             </p>
-            <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                style={{
-                  padding: "8px 16px",
-                  background: "white",
-                  border: "1px solid #ccc",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                }}
-              >
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
                 取消
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={saving}
-                style={{
-                  padding: "8px 16px",
-                  background: "#b00020",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                }}
-              >
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={saving}>
                 {saving ? "刪除中…" : "確認刪除"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </main>
   );
 }
