@@ -13,11 +13,13 @@
  *
  * 技術備忘：
  *  - fake timers 環境下禁止 userEvent.type()（內部用真實 timer 會 hang）
- *  - 使用 vi.advanceTimersByTimeAsync() 同時推進 timer 並 flush microtasks（Promise 解析）
+ *  - waitFor 的 polling 依賴真實 setTimeout，fake timer 下無法使用
+ *  - 正確做法：advanceTimersByTimeAsync（同時 flush timer + microtasks）後同步 query DOM
  */
 
+import "@testing-library/jest-dom/vitest";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import React from "react";
 
 import {
@@ -37,8 +39,12 @@ import { invoke } from "@tauri-apps/api/core";
 // ─────────────────────────────────────────────────────────────────────────────
 async function typeAndFlush(input: HTMLElement, value: string): Promise<void> {
   fireEvent.change(input, { target: { value } });
-  // advanceTimersByTimeAsync 同時推進 fake timer 並 flush microtasks（Promise 解析）
+  // 推進 fake timer（觸發 debounce callback）並 flush microtasks（invoke Promise 解析）
   await vi.advanceTimersByTimeAsync(600);
+  // 再 flush 一輪 microtasks 確保 React state update 已完成
+  await act(async () => {
+    await Promise.resolve();
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -107,7 +113,7 @@ describe("RLV-001b — Unmount 後不觸發 IPC", () => {
     // unmount 前 debounce 還沒到期
     unmount();
 
-    // 推進 500ms
+    // 推進 600ms
     await vi.advanceTimersByTimeAsync(600);
 
     // unmount 後不應觸發 IPC
@@ -120,53 +126,41 @@ describe("RLV-001b — Unmount 後不觸發 IPC", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-003 — 三態 UI 渲染", () => {
   it("verified：顯示「已驗證」文字", async () => {
-    const mockInvoke = vi.mocked(invoke);
-    mockInvoke.mockResolvedValue({
+    vi.mocked(invoke).mockResolvedValue({
       status: "verified",
       verified_at: "2026-05-14T10:00:00Z",
       source: "fresh",
     });
 
     render(<RealtorLicenseField onChange={vi.fn()} />);
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
-    await typeAndFlush(input, "ABC1234567");
+    await typeAndFlush(screen.getByRole("textbox", { name: /經紀人證號/i }), "ABC1234567");
 
-    await waitFor(() => {
-      expect(screen.getByText(/已驗證/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/已驗證/)).toBeInTheDocument();
   });
 
   it("not_found：顯示「證號不存在」文字", async () => {
-    const mockInvoke = vi.mocked(invoke);
-    mockInvoke.mockResolvedValue({
+    vi.mocked(invoke).mockResolvedValue({
       status: "not_found",
       source: "fresh",
     });
 
     render(<RealtorLicenseField onChange={vi.fn()} />);
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
-    await typeAndFlush(input, "INVALID999");
+    await typeAndFlush(screen.getByRole("textbox", { name: /經紀人證號/i }), "INVALID999");
 
-    await waitFor(() => {
-      expect(screen.getByText(/證號不存在/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/證號不存在/)).toBeInTheDocument();
   });
 
   it("expired：顯示「證號已過期」文字", async () => {
-    const mockInvoke = vi.mocked(invoke);
-    mockInvoke.mockResolvedValue({
+    vi.mocked(invoke).mockResolvedValue({
       status: "expired",
       verified_at: "2025-01-01T00:00:00Z",
       source: "fresh",
     });
 
     render(<RealtorLicenseField onChange={vi.fn()} />);
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
-    await typeAndFlush(input, "EXPIRED123");
+    await typeAndFlush(screen.getByRole("textbox", { name: /經紀人證號/i }), "EXPIRED123");
 
-    await waitFor(() => {
-      expect(screen.getByText(/證號已過期/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/證號已過期/)).toBeInTheDocument();
   });
 });
 
@@ -175,8 +169,7 @@ describe("RLV-003 — 三態 UI 渲染", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-005 — 驗證失敗不阻擋 form submit", () => {
   it("expired 狀態下 form 仍可提交", async () => {
-    const mockInvoke = vi.mocked(invoke);
-    mockInvoke.mockResolvedValue({
+    vi.mocked(invoke).mockResolvedValue({
       status: "expired",
       verified_at: "2025-01-01T00:00:00Z",
       source: "fresh",
@@ -191,12 +184,9 @@ describe("RLV-005 — 驗證失敗不阻擋 form submit", () => {
       </form>,
     );
 
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
-    await typeAndFlush(input, "EXPIRED123");
+    await typeAndFlush(screen.getByRole("textbox", { name: /經紀人證號/i }), "EXPIRED123");
 
-    await waitFor(() => {
-      expect(screen.getByText(/證號已過期/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/證號已過期/)).toBeInTheDocument();
 
     // expired 狀態下仍可按送出
     fireEvent.click(screen.getByRole("button", { name: /送出/i }));
@@ -204,8 +194,7 @@ describe("RLV-005 — 驗證失敗不阻擋 form submit", () => {
   });
 
   it("not_found 狀態下 form 仍可提交", async () => {
-    const mockInvoke = vi.mocked(invoke);
-    mockInvoke.mockResolvedValue({
+    vi.mocked(invoke).mockResolvedValue({
       status: "not_found",
       source: "fresh",
     });
@@ -219,12 +208,9 @@ describe("RLV-005 — 驗證失敗不阻擋 form submit", () => {
       </form>,
     );
 
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
-    await typeAndFlush(input, "NOTEXIST99");
+    await typeAndFlush(screen.getByRole("textbox", { name: /經紀人證號/i }), "NOTEXIST99");
 
-    await waitFor(() => {
-      expect(screen.getByText(/證號不存在/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/證號不存在/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /送出/i }));
     expect(mockSubmit).toHaveBeenCalledTimes(1);
@@ -236,8 +222,7 @@ describe("RLV-005 — 驗證失敗不阻擋 form submit", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-007 — onVerificationChange callback", () => {
   it("verified 驗證結果正確傳出 LicenseVerificationState", async () => {
-    const mockInvoke = vi.mocked(invoke);
-    mockInvoke.mockResolvedValue({
+    vi.mocked(invoke).mockResolvedValue({
       status: "verified",
       verified_at: "2026-05-14T10:00:00Z",
       source: "fresh",
@@ -246,17 +231,14 @@ describe("RLV-007 — onVerificationChange callback", () => {
     const onVerificationChange = vi.fn<(state: LicenseVerificationState | null) => void>();
 
     render(<RealtorLicenseField onChange={vi.fn()} onVerificationChange={onVerificationChange} />);
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
-    await typeAndFlush(input, "ABC1234567");
+    await typeAndFlush(screen.getByRole("textbox", { name: /經紀人證號/i }), "ABC1234567");
 
-    await waitFor(() => {
-      expect(onVerificationChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: "verified",
-          source: "fresh",
-        }),
-      );
-    });
+    expect(onVerificationChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "verified",
+        source: "fresh",
+      }),
+    );
   });
 
   it("清空輸入後 callback 以 null 呼叫", async () => {
@@ -270,9 +252,8 @@ describe("RLV-007 — onVerificationChange callback", () => {
       />,
     );
 
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
     // 清空輸入（空字串不走 debounce，直接重置）
-    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /經紀人證號/i }), { target: { value: "" } });
     await vi.advanceTimersByTimeAsync(100);
 
     // 清空不發 IPC，直接呼叫 null
@@ -285,21 +266,17 @@ describe("RLV-007 — onVerificationChange callback", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-009 — 離線 + 有 cache", () => {
   it("顯示「已驗證（最後驗證日期 YYYY-MM-DD，目前離線中）」", async () => {
-    const mockInvoke = vi.mocked(invoke);
-    mockInvoke.mockResolvedValue({
+    vi.mocked(invoke).mockResolvedValue({
       status: "verified",
       verified_at: "2026-05-01T10:00:00Z",
       source: "offline",
     });
 
     render(<RealtorLicenseField onChange={vi.fn()} />);
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
-    await typeAndFlush(input, "OFFLINE123");
+    await typeAndFlush(screen.getByRole("textbox", { name: /經紀人證號/i }), "OFFLINE123");
 
-    await waitFor(() => {
-      expect(screen.getByText(/目前離線中/)).toBeInTheDocument();
-      expect(screen.getByText(/2026-05-01/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/目前離線中/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-05-01/)).toBeInTheDocument();
   });
 });
 
@@ -308,20 +285,16 @@ describe("RLV-009 — 離線 + 有 cache", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-011 — 離線 + 無 cache", () => {
   it("顯示「離線中、無法驗證」文字", async () => {
-    const mockInvoke = vi.mocked(invoke);
     // offline + 無 verified_at（無 cache）
-    mockInvoke.mockResolvedValue({
+    vi.mocked(invoke).mockResolvedValue({
       status: "not_found",
       source: "offline",
     });
 
     render(<RealtorLicenseField onChange={vi.fn()} />);
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
-    await typeAndFlush(input, "NOCACHE999");
+    await typeAndFlush(screen.getByRole("textbox", { name: /經紀人證號/i }), "NOCACHE999");
 
-    await waitFor(() => {
-      expect(screen.getByText(/離線中、無法驗證/)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/離線中、無法驗證/)).toBeInTheDocument();
   });
 });
 
@@ -330,15 +303,12 @@ describe("RLV-011 — 離線 + 無 cache", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-015 — 空輸入不觸發 IPC", () => {
   it("清空輸入框後 debounce 到期，不發 IPC", async () => {
-    const mockInvoke = vi.mocked(invoke);
-
     render(<RealtorLicenseField onChange={vi.fn()} initialValue="ABC123456" />);
-    const input = screen.getByRole("textbox", { name: /經紀人證號/i });
 
     // 清空
-    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /經紀人證號/i }), { target: { value: "" } });
     await vi.advanceTimersByTimeAsync(600);
 
-    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(vi.mocked(invoke)).not.toHaveBeenCalled();
   });
 });
