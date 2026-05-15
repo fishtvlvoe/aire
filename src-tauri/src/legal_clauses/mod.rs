@@ -1,10 +1,26 @@
-use serde::{Deserialize, Serialize};
+// legal_clauses/mod.rs — 法條快取模組
+//
+// 架構：
+//   sync.rs   — HTTP fetch（reqwest，async）
+//   cache.rs  — SQLite 讀寫（rusqlite，同步）
+//   scheduler.rs — 背景排程（std::thread + Arc<Mutex<Connection>>）
+//
+// 注意：rusqlite::Connection 不實作 Send + Sync。
+// async fn 不得持有 &Connection 跨 .await。
+// 需要跨 await 時，改在 spawn_blocking 內開新連線。
 
 pub mod cache;
 pub mod scheduler;
 pub mod sync;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+use chrono::{DateTime, Utc};
+use reqwest::Client;
+use rusqlite::Connection;
+use serde::{Deserialize, Serialize};
+
+// ── 公開型別 ─────────────────────────────────────────────────────────
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct LegalClause {
     pub law_id: String,
     pub title: String,
@@ -14,59 +30,124 @@ pub struct LegalClause {
     pub source_url: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug)]
 pub enum LegalClausesError {
-    CacheWriteFailed,
+    CacheWriteFailed(String),
     OpcosUnreachable,
-    AuthFailed,
-    LawNotFound,
+    LawNotFound(String),
     EmptyCacheNoNetwork,
-    InvalidData,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+impl std::fmt::Display for LegalClausesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CacheWriteFailed(msg) => write!(f, "cache write failed: {msg}"),
+            Self::OpcosUnreachable => write!(f, "opcos unreachable"),
+            Self::LawNotFound(law_id) => write!(f, "law not found: {law_id}"),
+            Self::EmptyCacheNoNetwork => write!(f, "empty cache and no network"),
+        }
+    }
+}
+
+impl std::error::Error for LegalClausesError {}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum SyncResult {
-    Updated,
-    Unchanged,
-    FallbackToCache { days_old: i64 },
+    Success { updated: Vec<String> },
+    FallbackToCache { stale_days: u32 },
     EmptyCacheNoNetwork,
 }
 
-pub use scheduler::{
-    should_trigger_sync_now, start_sync_scheduler, ClockSource, SchedulerConfig, SchedulerHandle,
-};
-pub use sync::{
-    fetch_law, fetch_version, get_legal_clause, is_remote_version_newer, seed_law_clause,
-    sync_legal_clauses, sync_partial_with_failure_at, sync_with_mock_response,
-    sync_with_mock_sequence, validate_legal_clause,
-};
+// ── 核心 async sync 函式 ──────────────────────────────────────────────
+//
+// 警告：這個函式持有 &Connection 跨多個 .await。
+// 只能在以下情境呼叫：
+//   1. tokio::task::spawn_blocking 內的同步 context（用 block_on）
+//   2. 不需要 Send 的 local task（tokio::task::LocalSet）
+//   3. scheduler::spawn_scheduler（用 std::thread，有自己的 tokio runtime）
+// 不可直接從 tauri::command async fn 呼叫（會違反 Send bound）。
 
-// IPC wrappers (avoid holding UI code in tests)
-use crate::DbState;
-use tauri::State;
+const LAW_IDS: [&str; 3] = ["civil_code", "land_act", "consumer_protection_act"];
 
-#[tauri::command(rename = "sync_legal_clauses")]
-pub async fn sync_ipc(db: State<'_, DbState>) -> Result<SyncResult, LegalClausesError> {
-    let endpoint = std::env::var("OPCOS_LEGAL_CLAUSES_ENDPOINT")
-        .unwrap_or_else(|_| "http://localhost:19999/v1/legal-clauses".to_string());
-    let conn =
-        db.0.lock()
-            .map_err(|_| LegalClausesError::CacheWriteFailed)?
-            .try_clone()
-            .map_err(|_| LegalClausesError::CacheWriteFailed)?;
+pub async fn sync_legal_clauses(
+    conn: &Connection,
+    client: &Client,
+    base_url: &str,
+    token: &str,
+) -> Result<SyncResult, LegalClausesError> {
+    let remote_version = match sync::fetch_version(client, base_url, token).await {
+        Ok(v) => v,
+        Err(LegalClausesError::OpcosUnreachable) => return fallback_result(conn),
+        Err(err) => return Err(err),
+    };
 
-    tauri::async_runtime::spawn_blocking(move || sync_legal_clauses(&conn, &endpoint))
-        .await
-        .map_err(|_| LegalClausesError::CacheWriteFailed)?
+    let local_version = cache::max_fetched_at(conn).map_err(LegalClausesError::CacheWriteFailed)?;
+    if local_version.as_deref() == Some(remote_version.as_str()) {
+        return Ok(SyncResult::Success { updated: Vec::new() });
+    }
+
+    let mut updated = Vec::new();
+    let (c1, c2, c3) = tokio::join!(
+        sync::fetch_law(client, base_url, token, LAW_IDS[0]),
+        sync::fetch_law(client, base_url, token, LAW_IDS[1]),
+        sync::fetch_law(client, base_url, token, LAW_IDS[2]),
+    );
+    for result in [c1, c2, c3] {
+        match result {
+            Ok(clause) => {
+                updated.push(clause.law_id.clone());
+                cache::upsert_law(conn, &clause).map_err(LegalClausesError::CacheWriteFailed)?;
+            }
+            Err(LegalClausesError::OpcosUnreachable) => return fallback_result(conn),
+            Err(err) => return Err(err),
+        }
+    }
+
+    Ok(SyncResult::Success { updated })
 }
 
-#[tauri::command(rename = "get_legal_clause")]
-pub fn get_legal_clause_ipc(
-    law_id: String,
-    db: State<'_, DbState>,
-) -> Result<LegalClause, LegalClausesError> {
-    let conn =
-        db.0.lock()
-            .map_err(|_| LegalClausesError::CacheWriteFailed)?;
-    get_legal_clause(&*conn, &law_id)
+fn fallback_result(conn: &Connection) -> Result<SyncResult, LegalClausesError> {
+    let laws = cache::list_laws(conn).map_err(LegalClausesError::CacheWriteFailed)?;
+    if laws.is_empty() {
+        return Ok(SyncResult::EmptyCacheNoNetwork);
+    }
+
+    let max = cache::max_fetched_at(conn).map_err(LegalClausesError::CacheWriteFailed)?;
+    let stale_days = max
+        .as_deref()
+        .and_then(|ts| DateTime::parse_from_rfc3339(ts).ok())
+        .map(|dt| (Utc::now() - dt.with_timezone(&Utc)).num_days().max(0) as u32)
+        .unwrap_or(0);
+    Ok(SyncResult::FallbackToCache { stale_days })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+
+    fn setup_conn() -> Connection {
+        let conn = Connection::open_in_memory().expect("open in memory");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE legal_clauses (
+              law_id TEXT PRIMARY KEY,
+              title TEXT NOT NULL,
+              content_markdown TEXT NOT NULL,
+              version_date TEXT NOT NULL,
+              fetched_at TEXT NOT NULL,
+              source_url TEXT NOT NULL
+            );
+        "#,
+        )
+        .expect("create table");
+        conn
+    }
+
+    #[test]
+    fn fallback_without_cache_returns_empty() {
+        let conn = setup_conn();
+        let result = fallback_result(&conn).expect("fallback result");
+        assert_eq!(result, SyncResult::EmptyCacheNoNetwork);
+    }
 }

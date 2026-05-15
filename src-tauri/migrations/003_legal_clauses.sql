@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS legal_clauses (
 
 CREATE TABLE IF NOT EXISTS realtor_licenses (
   license_number TEXT PRIMARY KEY,
-  status TEXT NOT NULL CHECK (status IN ('verified','not_found','expired')),
+  status TEXT NOT NULL CHECK(status IN ('verified', 'not_found', 'expired')),
   verified_at TEXT NOT NULL,
   cache_expires_at TEXT NOT NULL
 );
