@@ -3,8 +3,8 @@
 import * as React from "react";
 import "@testing-library/jest-dom/vitest";
 import { Eye, EyeOff, KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export interface MasterPasswordPromptProps {
   onUnlock: (password: string) => Promise<void>;

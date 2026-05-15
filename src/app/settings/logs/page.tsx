@@ -8,7 +8,7 @@ import {
   listRecentLogs,
   type LogEntry,
 } from "@/lib/log";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@/components/ui/card";
 import { LoadingState } from "@/components/ux/LoadingState";
 import { EmptyState } from "@/components/ux/EmptyState";
 import { ErrorState } from "@/components/ux/ErrorState";

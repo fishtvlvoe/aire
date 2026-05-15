@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ux/LoadingState";
 import { EmptyState } from "@/components/ux/EmptyState";
 import { ErrorState } from "@/components/ux/ErrorState";

@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Dialog — Radix Dialog 包裝
+ * Dialog — Radix Dialog 包裝（shadcn/ui 標準風格）
  */
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;

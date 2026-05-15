@@ -3,7 +3,7 @@
 import * as React from "react";
 import "@testing-library/jest-dom/vitest";
 import { Download, Printer, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 type DownloadPdfHandler = (words: string[]) => Promise<void>;
 

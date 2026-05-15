@@ -3,7 +3,7 @@
 import React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AlertTriangle, CheckCircle, XCircle, WifiOff } from "lucide-react";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/input";
 
 type VerifyResultStatus = "verified" | "not_found" | "expired";
 type VerifySource = "fresh" | "offline";

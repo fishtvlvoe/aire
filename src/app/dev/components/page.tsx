@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardHeader,
@@ -11,8 +11,8 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/Card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
+} from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogTrigger,
@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/Dialog";
+} from "@/components/ui/dialog";
 
 /**
  * /dev/components — UI 元件樣態 demo（僅開發用）

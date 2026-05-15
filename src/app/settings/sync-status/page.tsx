@@ -3,8 +3,8 @@
 import React from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { LoadingState } from "@/components/ux/LoadingState";
 import { EmptyState } from "@/components/ux/EmptyState";
 import { ErrorState } from "@/components/ux/ErrorState";

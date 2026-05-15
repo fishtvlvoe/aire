@@ -15,9 +15,9 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { AutosaveIndicator } from "@/components/ux/AutosaveIndicator";
 import {
   residentialFormTabs,

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 /**
- * Input — AIRE atomic 輸入欄
+ * Input — AIRE atomic 輸入欄（shadcn/ui 標準風格）
  */
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {

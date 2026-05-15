@@ -4,8 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Card — AIRE atomic 卡片容器
- * 子元件：CardHeader / CardTitle / CardDescription / CardContent / CardFooter
+ * Card — AIRE atomic 卡片容器（shadcn/ui 標準風格）
  */
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (

@@ -5,7 +5,7 @@ import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { cn } from "@/lib/utils";
 
 /**
- * Tabs — Radix Tabs 包裝
+ * Tabs — Radix Tabs 包裝（shadcn/ui 標準風格）
  */
 const Tabs = TabsPrimitive.Root;
 

@@ -3,7 +3,7 @@
 import * as React from "react";
 import "@testing-library/jest-dom/vitest";
 import { AlertTriangle, CalendarClock, FileWarning } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 type ConflictStrategy = "overwrite" | "keep_newer" | "skip";
 
