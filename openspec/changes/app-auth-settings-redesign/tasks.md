@@ -9,12 +9,12 @@
 
 ## Group 2: 文案修正（全域掃描）
 
-- [ ] 2.1 [Tool: Codex] 全面搜尋 `src/` 目錄中的 "30天"、"30 天"、"30日"、"試用"、"trial" 文案，全部替換為正確的授權描述（"尚未啟用授權"），滿足 design "D5: 錯誤文案修正 — 移除「30天」，改為正確授權描述" 和 spec "No trial period messaging" 與 "No trial period text in mock responses"。包含 mock-backend.ts 的回傳值。驗證：`grep -r "30天\|30 天\|30日\|試用\|trial" src/` 回傳 0 結果，滿足 Acceptance Criteria。
+- [x] 2.1 [Tool: Codex] 全面搜尋 `src/` 目錄中的 "30天"、"30 天"、"30日"、"試用"、"trial" 文案，全部替換為正確的授權描述（"尚未啟用授權"），滿足 design "D5: 錯誤文案修正 — 移除「30天」，改為正確授權描述" 和 spec "No trial period messaging" 與 "No trial period text in mock responses"。包含 mock-backend.ts 的回傳值。驗證：`grep -r "30天\|30 天\|30日\|試用\|trial" src/` 回傳 0 結果，滿足 Acceptance Criteria。
 
 ## Group 3: 登入頁重寫
 
-- [ ] 3.1 [Tool: Codex] TDD 紅燈：為登入頁寫失敗測試，驗證 spec "Minimal login page layout" — 測試登入頁不含 license 相關 UI、只有 email/password/login button/forgot password。測試 "Successful login" 和 "Failed login with invalid credentials" 和 "Failed login with expired account" 場景。驗證：測試存在且全部 fail（紅燈）。
-- [ ] 3.2 [Tool: Codex] 重寫 `src/app/(auth)/login/page.tsx`，極簡化登入頁，滿足 design "D1: 登入頁架構 — 極簡單頁，license 邏輯完全移除"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（shadcn/ui Card + Input + Button + lucide-react icons）和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"（loading spinner + error message 即時回饋）。只保留 AIRE Logo + Email + Password + Login button + 忘記密碼連結。Failure Modes：INVALID_CREDENTIALS → "帳號或密碼錯誤"，ACCOUNT_EXPIRED → "帳號已過期"。滿足 Observable Behavior 第 1-2 點和 Acceptance Criteria 中 login/page.tsx 不含 license 相關 import。驗證：Group 3.1 紅燈測試全部變綠。
+- [x] 3.1 [Tool: Codex] TDD 紅燈：為登入頁寫失敗測試，驗證 spec "Minimal login page layout" — 測試登入頁不含 license 相關 UI、只有 email/password/login button/forgot password。測試 "Successful login" 和 "Failed login with invalid credentials" 和 "Failed login with expired account" 場景。驗證：測試存在且全部 fail（紅燈）。
+- [x] 3.2 [Tool: Codex] 重寫 `src/app/(auth)/login/page.tsx`，極簡化登入頁，滿足 design "D1: 登入頁架構 — 極簡單頁，license 邏輯完全移除"，遵循 design "D7: UI 設計系統 — 與 OPCOS 共用視覺 token"（shadcn/ui Card + Input + Button + lucide-react icons）和 design "D8: UX 互動模式 — 與 OPCOS 共用行為規則"（loading spinner + error message 即時回饋）。只保留 AIRE Logo + Email + Password + Login button + 忘記密碼連結。Failure Modes：INVALID_CREDENTIALS → "帳號或密碼錯誤"，ACCOUNT_EXPIRED → "帳號已過期"。滿足 Observable Behavior 第 1-2 點和 Acceptance Criteria 中 login/page.tsx 不含 license 相關 import。驗證：Group 3.1 紅燈測試全部變綠。
 
 ## Group 4: 設定頁元件（可並行）
 

@@ -30,8 +30,8 @@
 
 ## 6. 前端 IPC wrapper + mock backend
 
-- [ ] 6.1 新增 `src/lib/land-registry-api.ts`（對應 D7: 前端 IPC wrapper — src/lib/land-registry-api.ts）：TypeScript wrapper 封裝所有 Tauri IPC calls（address_lookup, pull_data, set_api_key, get_api_key, test_connection, clear_api_key, get_balance, record_consent）。含 error mapping 到中文訊息（ApiKeyNotConfigured → "請先設定地政 API 金鑰"、ConsentRequired → "請先勾選屋主授權"、InsufficientBalance → "餘額不足"）。驗證：type check 通過。[Tool: Codex]
-- [ ] 6.2 擴充 `src/lib/mock-backend.ts`：新增所有 land-registry IPC commands 的 mock 實作（address_lookup 回 seed 資料、pull_data 回 mock 欄位、balance 回 mock 數值）。驗證：既有 mock-backend test 通過 + 新增 commands 有對應 test。[Tool: Codex]
+- [x] 6.1 新增 `src/lib/land-registry-api.ts`（對應 D7: 前端 IPC wrapper — src/lib/land-registry-api.ts）：TypeScript wrapper 封裝所有 Tauri IPC calls（address_lookup, pull_data, set_api_key, get_api_key, test_connection, clear_api_key, get_balance, record_consent）。含 error mapping 到中文訊息（ApiKeyNotConfigured → "請先設定地政 API 金鑰"、ConsentRequired → "請先勾選屋主授權"、InsufficientBalance → "餘額不足"）。驗證：type check 通過。[Tool: Codex]
+- [x] 6.2 擴充 `src/lib/mock-backend.ts`：新增所有 land-registry IPC commands 的 mock 實作（address_lookup 回 seed 資料、pull_data 回 mock 欄位、balance 回 mock 數值）。驗證：既有 mock-backend test 通過 + 新增 commands 有對應 test。[Tool: Codex]
 
 ## 7. 前端 UI 元件
 
