@@ -24,7 +24,7 @@ const colors = {
 // 元件
 // ─────────────────────────────────────────────────────────────────────────────
 
-const Cover: React.FC<{ caseData?: unknown; logo?: unknown }> = ({
+const Cover: React.FC<{ caseData?: Record<string, unknown>; logo?: string | null }> = ({
   caseData,
   logo,
 }) => (
@@ -61,7 +61,7 @@ const Cover: React.FC<{ caseData?: unknown; logo?: unknown }> = ({
   </div>
 );
 
-const Header: React.FC<{ logo?: unknown }> = ({ logo }) => (
+const Header: React.FC<{ logo?: string | null }> = ({ logo }) => (
   <div
     style={{
       display: "flex",

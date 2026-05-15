@@ -28,8 +28,8 @@ export interface ThemeTokens {
 // PdfThemeComponents — 五個必備元件（PTS-002 expects components.* properties）
 // ─────────────────────────────────────────────────────────────────────────────
 export interface PdfThemeComponents {
-  Cover: React.ComponentType<{ caseData?: unknown; logo?: unknown }>;
-  Header: React.ComponentType<{ logo?: unknown }>;
+  Cover: React.ComponentType<{ caseData?: Record<string, unknown>; logo?: string | null }>;
+  Header: React.ComponentType<{ logo?: string | null }>;
   Footer: React.ComponentType<Record<string, unknown>>;
   Section: React.ComponentType<{ children?: React.ReactNode }>;
   Table: React.ComponentType<{ rows?: unknown[]; columns?: unknown[] }>;

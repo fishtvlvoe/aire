@@ -49,7 +49,8 @@ export async function renderDisclosurePdf(
 
   try {
     const doc = React.createElement(PdfDocument, { caseData, theme, logo, legalClauses });
-    return await pdf(doc).toBlob();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return await pdf(doc as any).toBlob();
   } catch (e) {
     const { PdfRenderError, PdfRenderErrorCode } = await import("./engine");
     throw new PdfRenderError(PdfRenderErrorCode.EngineFailure, e);

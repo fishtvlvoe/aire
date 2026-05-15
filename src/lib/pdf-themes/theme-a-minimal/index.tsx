@@ -26,7 +26,7 @@ const colors = {
 // 真實 PDF render 時由 pdf-engine 包裝，這裡回傳 React 元素供測試用
 // ─────────────────────────────────────────────────────────────────────────────
 
-const Cover: React.FC<{ caseData?: unknown; logo?: unknown }> = ({
+const Cover: React.FC<{ caseData?: Record<string, unknown>; logo?: string | null }> = ({
   caseData,
   logo,
 }) => (
@@ -59,7 +59,7 @@ const Cover: React.FC<{ caseData?: unknown; logo?: unknown }> = ({
   </div>
 );
 
-const Header: React.FC<{ logo?: unknown }> = ({ logo }) => (
+const Header: React.FC<{ logo?: string | null }> = ({ logo }) => (
   <div
     style={{
       display: "flex",
