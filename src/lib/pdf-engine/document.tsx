@@ -92,7 +92,7 @@ export function PdfDocument({
           tokens={tokens}
           caseNo={data.caseNo}
           address={data.address}
-          propertyType="土地"
+          propertyType={data.propertyType}
           companyName={data.companyName}
           generatedAt={data.generatedAt}
           logoBytes={data.logoBytes}

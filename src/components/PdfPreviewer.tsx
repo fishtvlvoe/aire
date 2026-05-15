@@ -4,14 +4,15 @@ import { invoke } from "@tauri-apps/api/core";
 import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
 
-import { createPdfEngine, type PdfEngine, type RenderOptions } from "../lib/pdf-engine/engine";
+import { createPdfEngine, type PdfEngine, type RenderOptions, type CaseDossierData } from "../lib/pdf-engine/engine";
 import { BRANDING_CHANGED_EVENT } from "../lib/pdf-themes/persistence";
 
 type PreviewState = "idle" | "loading" | "ready" | "error";
 
 interface PdfPreviewerProps {
   caseId: string;
-  content: string;
+  content?: string;
+  caseData?: CaseDossierData;
 }
 
 type PreviewErrorCode = "ENGINE_FAILURE" | "DOWNLOAD_FAILURE";
@@ -37,7 +38,7 @@ function toPreviewError(err: unknown, code: PreviewErrorCode): PdfPreviewError {
   return new PdfPreviewError(code, message, err);
 }
 
-export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
+export function PdfPreviewer({ caseId, content = "", caseData }: PdfPreviewerProps) {
   const engineRef = useRef<PdfEngine | null>(null);
   const latestUrlRef = useRef<string | null>(null);
   const latestBlobRef = useRef<Blob | null>(null);
@@ -55,8 +56,9 @@ export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
       const engine = engineRef.current ?? (await createPdfEngine());
       engineRef.current = engine;
 
-      const renderArgs: RenderOptions & { themeId: string } = { caseId, content, themeId };
-      const blob = await engine.render(renderArgs);
+      const blob = caseData
+        ? await engine.renderDossier({ data: caseData, themeId })
+        : await engine.render({ caseId, content, themeId } satisfies RenderOptions);
       const objectUrl = URL.createObjectURL(blob);
 
       if (latestUrlRef.current) {
@@ -73,7 +75,7 @@ export function PdfPreviewer({ caseId, content }: PdfPreviewerProps) {
       setError(typedError);
       setStatus("error");
     }
-  }, [caseId, content, themeId]);
+  }, [caseId, content, caseData, themeId]);
 
   const handleRetry = useCallback(() => {
     void renderPreview();

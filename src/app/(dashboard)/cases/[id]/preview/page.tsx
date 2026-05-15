@@ -8,6 +8,7 @@ import {
   propertyTypeLabel,
   type CaseRow,
 } from "@/lib/cases-api";
+import type { CaseDossierData } from "@/lib/pdf-engine/engine";
 import { resolveThemeOrFallback } from "@/lib/pdf-themes/registry";
 import { BRANDING_CHANGED_EVENT } from "@/lib/pdf-themes/persistence";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export default function CasePreviewPage() {
   const [c, setCase] = useState<CaseRow | null>(null);
   const [themeId, setThemeId] = useState("theme-a-minimal");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoBytes, setLogoBytes] = useState<number[] | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -80,8 +82,10 @@ export default function CasePreviewPage() {
         if (storedLogo?.bytes?.length && storedLogo.mime) {
           createdLogoUrl = bytesToObjectUrl(storedLogo.bytes, storedLogo.mime);
           setLogoUrl(createdLogoUrl);
+          setLogoBytes(storedLogo.bytes);
         } else {
           setLogoUrl(null);
+          setLogoBytes(undefined);
         }
       } catch (err) {
         if (!cancelled) {
@@ -98,16 +102,19 @@ export default function CasePreviewPage() {
     };
   }, [id]);
 
-  const previewContent = useMemo(() => {
-    if (!c) return "";
-    return [
-      `案件編號：${c.case_no ?? c.id.slice(0, 8)}`,
-      `類型：${propertyTypeLabel(c.property_type)}`,
-      `地號：${c.land_lot_no}`,
-      `地址：${c.address}`,
-      `屋主：${c.owner_name ?? "—"}`,
-    ].join("\n");
-  }, [c]);
+  const caseDossierData = useMemo((): CaseDossierData | undefined => {
+    if (!c) return undefined;
+    return {
+      caseNo: c.case_no ?? c.id.slice(0, 8),
+      address: c.address ?? "",
+      propertyType: c.property_type === "land" ? "land" : "building",
+      landLotNo: c.land_lot_no ?? "",
+      ownerName: c.owner_name ?? "",
+      companyName: "建安不動產",
+      generatedAt: new Date().toLocaleDateString("zh-TW"),
+      logoBytes,
+    };
+  }, [c, logoBytes]);
 
   if (error && !c) {
     return (
@@ -181,7 +188,7 @@ export default function CasePreviewPage() {
         ) : null}
       </header>
 
-      <PdfPreviewer caseId={c.id} content={previewContent} />
+      <PdfPreviewer caseId={c.id} caseData={caseDossierData} />
     </main>
   );
 }

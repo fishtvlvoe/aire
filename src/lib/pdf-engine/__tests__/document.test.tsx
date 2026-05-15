@@ -78,7 +78,8 @@ describe("PdfDocument — 土地版", () => {
         data: landData,
         themeId: "theme-a-minimal",
       });
-      const blob = await pdf(element).toBlob();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blob = await pdf(element as any).toBlob();
       expect(blob.size).toBeGreaterThan(1000);
     },
   );
@@ -93,7 +94,8 @@ describe("PdfDocument — 建物版", () => {
         data: buildingData,
         themeId: "theme-a-minimal",
       });
-      const blob = await pdf(element).toBlob();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blob = await pdf(element as any).toBlob();
       expect(blob.size).toBeGreaterThan(0);
     },
   );
@@ -108,7 +110,8 @@ describe("PdfDocument — themeId prop", () => {
         data: landData,
         themeId: "theme-b-professional",
       });
-      const blob = await pdf(element).toBlob();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blob = await pdf(element as any).toBlob();
       expect(blob.size).toBeGreaterThan(0);
     },
   );

@@ -87,7 +87,8 @@ export async function createPdfEngine(): Promise<PdfEngine> {
           data: opts.data,
           themeId: opts.themeId,
         });
-        const blob = await pdf(doc).toBlob();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const blob = await pdf(doc as any).toBlob();
         const isVitest = typeof process !== "undefined" && !!process.env["VITEST"];
         return isVitest ? await toUtf8SafePdfBlob(blob) : blob;
       } catch (err) {
