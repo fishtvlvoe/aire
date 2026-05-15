@@ -93,11 +93,11 @@ export function getLegalNoticeThemeStyles(themeId: string): LegalNoticeThemeStyl
   const tokens = theme.tokens;
   const colors = tokens.colors;
   const fallbackTokens = themeAMinimal.tokens;
-  const fallbackColors = fallbackTokens.colors ?? {};
+  const fallbackColors = fallbackTokens.colors;
   return {
-    headingColor: colors?.primary ?? tokens.primaryColor ?? fallbackColors.primary ?? fallbackTokens.primaryColor,
-    bodyColor: colors?.text ?? tokens.textColor ?? fallbackColors.text ?? fallbackTokens.textColor,
-    accentColor: colors?.accent ?? tokens.accentColor ?? fallbackColors.accent ?? fallbackTokens.accentColor,
+    headingColor: colors?.primary ?? tokens.primaryColor ?? fallbackColors?.primary ?? fallbackTokens.primaryColor ?? '#1a1a1a',
+    bodyColor: colors?.text ?? tokens.textColor ?? fallbackColors?.text ?? fallbackTokens.textColor ?? '#333333',
+    accentColor: colors?.accent ?? tokens.accentColor ?? fallbackColors?.accent ?? fallbackTokens.accentColor ?? '#2563eb',
     headingFontSize: 15,
     bodyFontSize: 10,
     sectionSpacing: 10,
