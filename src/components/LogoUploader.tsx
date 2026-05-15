@@ -2,8 +2,8 @@
 
 import "@testing-library/jest-dom/vitest";
 import { useEffect, useId, useRef, useState, type ChangeEvent } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { cn } from "@/lib/utils";
+import { safeInvoke } from "@/lib/tauri-bridge";
 
 // 內聯 SVG 取代 lucide-react，降低 cold-start render 時間
 // 對 CLU-001「3 MiB 拒絕 < 100ms」效能預算很關鍵
@@ -144,7 +144,7 @@ export function LogoUploader() {
     try {
       const buffer = await file.arrayBuffer();
       const bytes = Array.from(new Uint8Array(buffer));
-      await invoke("save_logo", { bytes, mime: file.type });
+      await safeInvoke("save_logo", { bytes, mime: file.type });
 
       const nextPreview = URL.createObjectURL(file);
       setPreviewUrl(nextPreview);

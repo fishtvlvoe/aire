@@ -13,13 +13,13 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 // ❌ 這個元件還不存在 — 紅燈起點
 import { LogoUploader } from "../LogoUploader";
 
-// Mock Tauri IPC
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+// Mock Tauri bridge
+vi.mock("@/lib/tauri-bridge", () => ({
+  safeInvoke: vi.fn(),
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { safeInvoke } from "@/lib/tauri-bridge";
+const mockSafeInvoke = vi.mocked(safeInvoke);
 
 // Helper：建立 fake File
 function makeFile(sizeBytes: number, type: string, name = "logo.png"): File {
@@ -32,7 +32,7 @@ function makeFile(sizeBytes: number, type: string, name = "logo.png"): File {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("CLU-001 — 3 MiB file is rejected without IPC call", () => {
   beforeEach(() => {
-    mockInvoke.mockReset();
+    mockSafeInvoke.mockReset();
     render(<LogoUploader />);
   });
 
@@ -64,7 +64,7 @@ describe("CLU-001 — 3 MiB file is rejected without IPC call", () => {
       expect(screen.getByRole("alert")).toBeInTheDocument();
     });
 
-    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(mockSafeInvoke).not.toHaveBeenCalled();
   });
 
   it("error message 包含 '大小' 或 '超過' 或 'MB' 提示", async () => {
@@ -85,8 +85,8 @@ describe("CLU-001 — 3 MiB file is rejected without IPC call", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("CLU-002 — 1.9 MiB file is accepted and IPC called once", () => {
   beforeEach(() => {
-    mockInvoke.mockReset();
-    mockInvoke.mockResolvedValue({ success: true });
+    mockSafeInvoke.mockReset();
+    mockSafeInvoke.mockResolvedValue({ success: true });
     render(<LogoUploader />);
   });
 
@@ -98,7 +98,7 @@ describe("CLU-002 — 1.9 MiB file is accepted and IPC called once", () => {
 
     // 等待 IPC 呼叫（代表通過驗證）
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledTimes(1);
+      expect(mockSafeInvoke).toHaveBeenCalledTimes(1);
     });
 
     // 不應有 error alert
@@ -112,7 +112,7 @@ describe("CLU-002 — 1.9 MiB file is accepted and IPC called once", () => {
     fireEvent.change(input, { target: { files: [validFile] } });
 
     await waitFor(() => {
-      expect(mockInvoke).toHaveBeenCalledTimes(1);
+      expect(mockSafeInvoke).toHaveBeenCalledTimes(1);
     });
   });
 });
@@ -122,7 +122,7 @@ describe("CLU-002 — 1.9 MiB file is accepted and IPC called once", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("CLU-003 — SVG file is rejected", () => {
   beforeEach(() => {
-    mockInvoke.mockReset();
+    mockSafeInvoke.mockReset();
     render(<LogoUploader />);
   });
 
@@ -147,7 +147,7 @@ describe("CLU-003 — SVG file is rejected", () => {
       expect(screen.getByRole("alert")).toBeInTheDocument();
     });
 
-    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(mockSafeInvoke).not.toHaveBeenCalled();
   });
 
   it("SVG error message 包含格式相關提示", async () => {

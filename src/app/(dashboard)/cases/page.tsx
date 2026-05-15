@@ -27,6 +27,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { TauriRequired } from "@/components/TauriRequired";
+import { NotInTauriError } from "@/lib/tauri-bridge";
 
 /** 依狀態回傳 Badge variant */
 function StatusBadge({ status }: { status: CaseRow["status"] }) {
@@ -39,6 +41,7 @@ function StatusBadge({ status }: { status: CaseRow["status"] }) {
 export default function CasesPage() {
   const [cases, setCases] = useState<CaseRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requiresTauri, setRequiresTauri] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +50,12 @@ export default function CasesPage() {
         const rows = await casesApi.list();
         if (!cancelled) setCases(rows);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (cancelled) return;
+        if (err instanceof NotInTauriError) {
+          setRequiresTauri(true);
+          return;
+        }
+        setError(err instanceof Error ? err.message : String(err));
       }
     })();
     return () => {
@@ -66,7 +74,9 @@ export default function CasesPage() {
       </header>
 
       {/* 錯誤 */}
-      {error && (
+      {requiresTauri && <TauriRequired />}
+
+      {error && !requiresTauri && (
         <div
           role="alert"
           className="mb-4 rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
@@ -76,12 +86,12 @@ export default function CasesPage() {
       )}
 
       {/* 載入中 */}
-      {!error && cases === null && (
+      {!error && !requiresTauri && cases === null && (
         <p className="text-muted-foreground text-sm">載入中…</p>
       )}
 
       {/* 空狀態 */}
-      {!error && cases !== null && cases.length === 0 && (
+      {!error && !requiresTauri && cases !== null && cases.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-16">
             <p className="text-muted-foreground">尚無案件</p>
@@ -93,7 +103,7 @@ export default function CasesPage() {
       )}
 
       {/* 資料表格 */}
-      {!error && cases !== null && cases.length > 0 && (
+      {!error && !requiresTauri && cases !== null && cases.length > 0 && (
         <Table>
           <TableHeader>
             <TableRow>

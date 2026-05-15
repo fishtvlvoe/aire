@@ -7,7 +7,7 @@
 
 "use client";
 
-import { invoke } from "@tauri-apps/api/core";
+import { NotInTauriError, safeInvoke } from "@/lib/tauri-bridge";
 
 export type LogAction =
   | "license_activate"
@@ -64,7 +64,7 @@ export async function writeLog(
         }
       }
     }
-    await invoke("write_log", {
+    await safeInvoke("write_log", {
       action,
       result,
       payload: Object.keys(sanitized).length > 0 ? sanitized : null,
@@ -80,9 +80,12 @@ export async function writeLog(
  */
 export async function listRecentLogs(limit = 100): Promise<LogEntry[]> {
   try {
-    const entries = await invoke<LogEntry[]>("list_recent_logs", { limit });
+    const entries = await safeInvoke<LogEntry[]>("list_recent_logs", { limit });
     return entries;
   } catch (err) {
+    if (err instanceof NotInTauriError) {
+      return [];
+    }
     console.error("[listRecentLogs] failed:", err);
     return [];
   }

@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { isTauriEnv, safeInvoke } from "@/lib/tauri-bridge";
 
 interface ActivationErrorShape {
   code: string;
@@ -41,15 +42,26 @@ const ERROR_TEXT: Record<string, string> = {
   OPCOS_UNAVAILABLE: "OPCOS 伺服器目前暫時無法服務，請稍後再試。",
 };
 
-function ActivationForm() {
+export function ActivationPage() {
   const router = useRouter();
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isCheckingEnv, setIsCheckingEnv] = useState(true);
   const [isTauri, setIsTauri] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsTauri(typeof window !== "undefined" && "__TAURI__" in window);
+    let mounted = true;
+    (async () => {
+      const detected = await isTauriEnv();
+      if (!mounted) return;
+      setIsTauri(detected);
+      setIsCheckingEnv(false);
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -63,8 +75,7 @@ function ActivationForm() {
 
     setLoading(true);
     try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      await invoke("activate_license", { key: key.trim() });
+      await safeInvoke("activate_license", { key: key.trim() });
       toast.success("授權啟動成功");
       router.replace("/cases");
     } catch (err) {
@@ -94,7 +105,12 @@ function ActivationForm() {
           </p>
         </CardHeader>
         <CardContent>
-          {isTauri ? (
+          {isCheckingEnv ? (
+            <div className="flex items-center justify-center py-8" role="status" aria-live="polite">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <span className="ml-2 text-sm text-muted-foreground">偵測桌面環境中…</span>
+            </div>
+          ) : isTauri ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="license-key">授權序號</Label>
@@ -140,4 +156,4 @@ function ActivationForm() {
 }
 
 // SSR 關閉：window.__TAURI__ 偵測需要在 client 執行
-export default dynamic(() => Promise.resolve(ActivationForm), { ssr: false });
+export default dynamic(() => Promise.resolve(ActivationPage), { ssr: false });

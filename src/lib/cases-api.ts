@@ -1,6 +1,7 @@
 // AIRE — cases IPC 前端 wrapper
 //
 // 集中所有 invoke('xxx_case') 呼叫，避免在 component 內 import @tauri-apps/api/core 散落。
+import { safeInvoke } from "@/lib/tauri-bridge";
 
 export interface CaseRow {
   id: string;
@@ -32,8 +33,7 @@ export interface UpdateCaseInput {
 }
 
 async function invokeIpc<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
-  const { invoke } = await import("@tauri-apps/api/core");
-  return invoke<T>(cmd, args);
+  return safeInvoke<T>(cmd, args);
 }
 
 export const casesApi = {

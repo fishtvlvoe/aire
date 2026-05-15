@@ -12,6 +12,8 @@ import { Card } from "@/components/ui/card";
 import { LoadingState } from "@/components/ux/LoadingState";
 import { EmptyState } from "@/components/ux/EmptyState";
 import { ErrorState } from "@/components/ux/ErrorState";
+import { TauriRequired } from "@/components/TauriRequired";
+import { isTauriEnv } from "@/lib/tauri-bridge";
 
 /**
  * 設定 → 操作紀錄頁
@@ -22,6 +24,8 @@ import { ErrorState } from "@/components/ux/ErrorState";
 export default function LogsPage() {
   const [entries, setEntries] = useState<LogEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoadingEnv, setIsLoadingEnv] = useState(true);
+  const [isTauri, setIsTauri] = useState(false);
 
   async function load() {
     setError(null);
@@ -35,8 +39,31 @@ export default function LogsPage() {
   }
 
   useEffect(() => {
-    void load();
+    let mounted = true;
+    (async () => {
+      const detected = await isTauriEnv();
+      if (!mounted) return;
+      setIsTauri(detected);
+      setIsLoadingEnv(false);
+      if (detected) {
+        await load();
+      } else {
+        setEntries([]);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  if (isLoadingEnv) {
+    return <LoadingState label="偵測桌面環境中" />;
+  }
+
+  if (!isTauri) {
+    return <TauriRequired />;
+  }
 
   if (entries === null) {
     return <LoadingState label="載入操作紀錄中" />;
