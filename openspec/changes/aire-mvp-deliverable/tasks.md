@@ -30,6 +30,6 @@
 
 ## 6. 整合驗證
 
-- [ ] 6.1 執行 `pnpm build` 確認全專案零 TypeScript 錯誤、零 prerender 失敗。驗證：build output 顯示所有頁面成功。 [Tool: copilot]
-- [ ] 6.2 啟動 Tauri dev 模式，走通完整流程截圖驗證：啟動 App → /activation 頁 → 填序號 → /cases 列表 → 新增案件 → 填表 → 預覽 → 匯出 PDF。每個步驟截圖存到 /tmp/aire-mvp-screenshots/。驗證：截圖覆蓋全流程 8 個步驟。 [Tool: sonnet]
-- [ ] 6.3 git add + commit 所有變更（conventional commit: feat: AIRE MVP deliverable — app shell + license UI + case UI upgrade）+ push。驗證：`git status` 乾淨、`git log --oneline -1` 顯示正確 commit。 [Tool: copilot]
+- [x] 6.1 執行 `pnpm build` 確認全專案零 TypeScript 錯誤、零 prerender 失敗。驗證：build output 顯示所有頁面成功。 [Tool: copilot]
+- [x] 6.2 啟動 Tauri dev 模式，走通完整流程截圖驗證：啟動 App → /activation 頁 → 填序號 → /cases 列表 → 新增案件 → 填表 → 預覽 → 匯出 PDF。每個步驟截圖存到 /tmp/aire-mvp-screenshots/。驗證：截圖覆蓋全流程 8 個步驟。 [Tool: sonnet]
+- [x] 6.3 git add + commit 所有變更（conventional commit: feat: AIRE MVP deliverable — app shell + license UI + case UI upgrade）+ push。驗證：`git status` 乾淨、`git log --oneline -1` 顯示正確 commit。 [Tool: copilot]
