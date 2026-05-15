@@ -151,3 +151,97 @@ mod tests {
         assert_eq!(result, SyncResult::EmptyCacheNoNetwork);
     }
 }
+
+// ── 排程器設定（供 lib.rs 引用）──────────────────────────────────────
+
+/// 排程器的時鐘來源
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClockSource {
+    WallClock,
+    #[allow(dead_code)]
+    Monotonic,
+}
+
+/// 排程器設定
+#[derive(Debug, Clone, Copy)]
+pub struct SchedulerConfig {
+    pub interval_days: u32,
+    pub clock_source: ClockSource,
+}
+
+/// 排程器 handle（drop 不中斷排程）
+pub struct SchedulerHandle {
+    _inner: (),
+}
+
+/// 啟動法條同步排程器
+/// 使用 Arc<tokio::sync::Mutex<Connection>>，在獨立 std thread 中定期同步
+/// 每個 thread 有自己的 tokio::runtime::Runtime，Connection 不跨 await
+pub async fn start_sync_scheduler(
+    db: std::sync::Arc<tokio::sync::Mutex<rusqlite::Connection>>,
+    config: SchedulerConfig,
+    endpoint: &str,
+) -> SchedulerHandle {
+    let interval_secs = (config.interval_days as u64).max(1) * 24 * 60 * 60;
+    let endpoint = endpoint.to_string();
+
+    // tokio task 定期觸發，每次觸發時用 block_in_place 做同步工作
+    // block_in_place 讓 tokio worker thread 暫時成為 blocking thread，
+    // 允許建新 runtime + lock（tokio::sync::Mutex）
+    tokio::spawn(async move {
+        let mut ticker = tokio::time::interval(std::time::Duration::from_secs(interval_secs));
+        ticker.tick().await; // 吃掉第一次立即觸發
+        loop {
+            ticker.tick().await;
+            let conn_guard = db.lock().await;
+            let ep = endpoint.clone();
+            let client = reqwest::Client::new();
+            let token = std::env::var("OPCOS_API_TOKEN").unwrap_or_default();
+            // block_in_place：在同一 thread 同步跑 async sync（Connection 不跨 await）
+            tokio::task::block_in_place(|| {
+                let rt = match tokio::runtime::Runtime::new() {
+                    Ok(r) => r,
+                    Err(_) => return,
+                };
+                let _ = rt.block_on(sync_legal_clauses(&conn_guard, &client, &ep, &token));
+            });
+            // conn_guard 在 block_in_place 結束後才 drop，確保不跨 await
+        }
+    });
+
+    SchedulerHandle { _inner: () }
+}
+
+// ── IPC command handlers ──────────────────────────────────────────────
+
+/// 觸發法條同步（async IPC command）
+/// block_in_place：在 tokio worker thread 上安全執行同步 blocking 操作
+/// 讓 Connection（非 Send）不需要跨 await，在同一 thread 完成所有 DB + 網路工作
+#[tauri::command(rename = "sync_legal_clauses")]
+pub async fn sync_ipc(
+    db: tauri::State<'_, crate::DbState>,
+) -> Result<String, String> {
+    let db_mutex = &db.0;
+    tokio::task::block_in_place(|| {
+        let conn = db_mutex.lock().map_err(|e| e.to_string())?;
+        let client = reqwest::Client::new();
+        let token = std::env::var("OPCOS_API_TOKEN").unwrap_or_default();
+        let endpoint = std::env::var("OPCOS_LEGAL_CLAUSES_ENDPOINT")
+            .unwrap_or_else(|_| "https://opcos.aiver.me/v1/legal-clauses".to_string());
+        // block_in_place 允許在 blocking thread 建新 runtime
+        let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
+        rt.block_on(sync_legal_clauses(&conn, &client, &endpoint, &token))
+            .map(|r| format!("{:?}", r))
+            .map_err(|e| e.to_string())
+    })
+}
+
+/// 查詢單筆法條（IPC sync command，純 DB 讀取無 async 問題）
+#[tauri::command(rename = "get_legal_clause")]
+pub fn get_legal_clause_ipc(
+    db: tauri::State<'_, crate::DbState>,
+    law_id: String,
+) -> Result<Option<LegalClause>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    cache::get_law(&conn, &law_id).map_err(|e| e.to_string())
+}
