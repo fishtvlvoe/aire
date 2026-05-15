@@ -46,7 +46,8 @@ pub struct ExportPdfArgs {
 }
 
 fn lock(db: &DbState) -> Result<std::sync::MutexGuard<'_, Connection>, PdfError> {
-    db.0.lock().map_err(|e| PdfError::new("DB_LOCK", format!("db lock poisoned: {e}")))
+    db.0.lock()
+        .map_err(|e| PdfError::new("DB_LOCK", format!("db lock poisoned: {e}")))
 }
 
 fn now_secs() -> i64 {
@@ -67,10 +68,9 @@ fn classify_io_error(err: &std::io::Error, path: &str) -> PdfError {
             "PATH_LOCKED",
             format!("無法寫入 {path}：權限被拒或檔案被其他程式鎖定"),
         ),
-        ErrorKind::NotFound => PdfError::new(
-            "PATH_LOCKED",
-            format!("輸出路徑的父目錄不存在：{path}"),
-        ),
+        ErrorKind::NotFound => {
+            PdfError::new("PATH_LOCKED", format!("輸出路徑的父目錄不存在：{path}"))
+        }
         _ => {
             // Unix / Windows 都有可能用 raw_os_error 表示 ENOSPC
             if let Some(raw) = err.raw_os_error() {
@@ -85,12 +85,12 @@ fn classify_io_error(err: &std::io::Error, path: &str) -> PdfError {
 }
 
 #[tauri::command]
-pub async fn export_pdf(
-    args: ExportPdfArgs,
-    db: State<'_, DbState>,
-) -> Result<String, PdfError> {
+pub async fn export_pdf(args: ExportPdfArgs, db: State<'_, DbState>) -> Result<String, PdfError> {
     if args.pdfBytes.is_empty() {
-        return Err(PdfError::new("TEMPLATE_MISSING", "PDF bytes 為空，無法寫檔"));
+        return Err(PdfError::new(
+            "TEMPLATE_MISSING",
+            "PDF bytes 為空，無法寫檔",
+        ));
     }
     if args.outputPath.trim().is_empty() {
         return Err(PdfError::new("PATH_LOCKED", "輸出路徑為空"));

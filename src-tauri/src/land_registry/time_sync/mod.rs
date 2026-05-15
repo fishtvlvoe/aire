@@ -77,14 +77,21 @@ impl SyncedClock {
     }
 
     pub fn synced_date(&self) -> String {
-        self.synced_now().with_timezone(&Local).date_naive().to_string()
+        self.synced_now()
+            .with_timezone(&Local)
+            .date_naive()
+            .to_string()
     }
 
     pub fn compute_grace_days_remaining(&self, grace_period_days: i64) -> i64 {
         self.compute_grace_days_remaining_from_ts(self.synced_now().timestamp(), grace_period_days)
     }
 
-    pub fn compute_grace_days_remaining_from_ts(&self, last_verified_ts: i64, grace_period_days: i64) -> i64 {
+    pub fn compute_grace_days_remaining_from_ts(
+        &self,
+        last_verified_ts: i64,
+        grace_period_days: i64,
+    ) -> i64 {
         let now_ts = self.synced_now().timestamp();
         let elapsed = (now_ts - last_verified_ts).max(0);
         let remaining_seconds = grace_period_days.saturating_mul(86_400) - elapsed;
@@ -171,7 +178,10 @@ impl TimeSyncModule {
     }
 
     pub fn get_state(&self) -> TimeSyncState {
-        self.state.lock().map(|s| s.clone()).unwrap_or_else(|_| TimeSyncState::uninitialized())
+        self.state
+            .lock()
+            .map(|s| s.clone())
+            .unwrap_or_else(|_| TimeSyncState::uninitialized())
     }
 
     pub fn sync_with_mock_ntp_server(&self) -> Result<(), LandRegistryError> {

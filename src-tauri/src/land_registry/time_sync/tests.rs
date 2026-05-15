@@ -3,10 +3,10 @@
 /// import 尚未實作的 time_sync 模組 → 編譯失敗 = 預期紅燈
 #[cfg(test)]
 mod tests {
-    use crate::land_registry::time_sync::{
-        TimeSyncModule, TimeSyncState, SyncedClock, parse_http_date,
-    };
     use crate::land_registry::errors::LandRegistryError;
+    use crate::land_registry::time_sync::{
+        parse_http_date, SyncedClock, TimeSyncModule, TimeSyncState,
+    };
     use std::time::Duration;
 
     // LTS-001: HTTP Date header 支援多種格式（RFC 7231, RFC 850, ANSI C）
@@ -27,7 +27,10 @@ mod tests {
         let expected_ts = 1747224000i64; // 2026-05-14 12:00:00 UTC
         assert_eq!(ts_7231, expected_ts, "RFC 7231 parsed timestamp must match");
         assert_eq!(ts_850, expected_ts, "RFC 850 parsed timestamp must match");
-        assert_eq!(ts_ansi, expected_ts, "ANSI C asctime parsed timestamp must match");
+        assert_eq!(
+            ts_ansi, expected_ts,
+            "ANSI C asctime parsed timestamp must match"
+        );
     }
 
     // LTS-002: 負數 offset（本機比伺服器時間快）必須正確存入 SQLite（整數型別）
@@ -35,7 +38,9 @@ mod tests {
     fn should_store_negative_offset_correctly_in_sqlite() {
         let module = TimeSyncModule::new_in_memory_db();
         // 本機時間比伺服器快 300 秒（offset = -300）
-        module.store_offset(-300).expect("Negative offset must be stored");
+        module
+            .store_offset(-300)
+            .expect("Negative offset must be stored");
         let retrieved = module.get_offset().expect("Offset retrieval must succeed");
         assert_eq!(
             retrieved, -300,
@@ -49,7 +54,8 @@ mod tests {
         let module = TimeSyncModule::new_fresh_offline();
         let state = module.get_state();
         assert_eq!(
-            state.offset_seconds(), 0,
+            state.offset_seconds(),
+            0,
             "First boot offline must use offset = 0 (safe fallback)"
         );
         assert!(
@@ -116,9 +122,8 @@ mod tests {
         // last_verified = 6 天 23 小時前（= 2026-05-07 13:00:00 UTC）
         let last_verified_ts = 1747224000i64 - (6 * 86400 + 23 * 3600);
         let grace_period_days: i64 = 7;
-        let days_remaining = clock.compute_grace_days_remaining_from_ts(
-            last_verified_ts, grace_period_days
-        );
+        let days_remaining =
+            clock.compute_grace_days_remaining_from_ts(last_verified_ts, grace_period_days);
         // 6d 23h elapsed < 7d → 仍在 grace period → days_remaining should be >= 0
         assert!(
             days_remaining >= 0,

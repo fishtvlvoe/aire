@@ -49,8 +49,7 @@ pub struct OsKeyring;
 
 impl KeyringBackend for OsKeyring {
     fn get(&self, service: &str, name: &str) -> Result<Option<String>, CredError> {
-        let entry = keyring::Entry::new(service, name)
-            .map_err(|e| classify(e))?;
+        let entry = keyring::Entry::new(service, name).map_err(|e| classify(e))?;
         match entry.get_password() {
             Ok(v) => Ok(Some(v)),
             Err(keyring::Error::NoEntry) => Ok(None),
@@ -59,14 +58,12 @@ impl KeyringBackend for OsKeyring {
     }
 
     fn set(&self, service: &str, name: &str, value: &str) -> Result<(), CredError> {
-        let entry = keyring::Entry::new(service, name)
-            .map_err(|e| classify(e))?;
+        let entry = keyring::Entry::new(service, name).map_err(|e| classify(e))?;
         entry.set_password(value).map_err(|e| classify(e))
     }
 
     fn delete(&self, service: &str, name: &str) -> Result<(), CredError> {
-        let entry = keyring::Entry::new(service, name)
-            .map_err(|e| classify(e))?;
+        let entry = keyring::Entry::new(service, name).map_err(|e| classify(e))?;
         match entry.delete_password() {
             Ok(()) => Ok(()),
             Err(keyring::Error::NoEntry) => Ok(()),
@@ -171,10 +168,7 @@ impl KeyringBackend for MockKeyring {
             *self.fail_mode.lock().unwrap(),
             FailMode::StoreUnavailableOnSet
         ) {
-            return Err(CredError::new(
-                "STORE_ERROR",
-                "mock keychain unavailable",
-            ));
+            return Err(CredError::new("STORE_ERROR", "mock keychain unavailable"));
         }
         self.inner
             .lock()

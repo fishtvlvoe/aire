@@ -44,7 +44,10 @@ impl LandRegistryEndpoint<MortgagesData> for MortgagesEndpoint {
                     .and_then(Value::as_str)
                     .unwrap_or_default()
                     .to_string(),
-                amount: row.get("amount").and_then(Value::as_f64).unwrap_or_default(),
+                amount: row
+                    .get("amount")
+                    .and_then(Value::as_f64)
+                    .unwrap_or_default(),
             })
             .collect();
 
@@ -96,7 +99,8 @@ impl<P: ApiKeyProvider> MortgagesApi<P> {
                 let parsed = MortgagesEndpoint::parse_response(json);
                 match parsed {
                     Ok(data) => {
-                        let _ = record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
+                        let _ =
+                            record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
                         Ok(data)
                     }
                     Err(error) => {

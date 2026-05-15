@@ -1,6 +1,9 @@
+use crate::commands::cases::IpcError;
 use crate::land_registry::billing_log::{monthly_count, monthly_total, BillingLog};
+use crate::LandRegistryBillingState;
 use chrono::{Datelike, Local};
 use serde::{Deserialize, Serialize};
+use tauri::State;
 
 const DEFAULT_MONTHLY_LIMIT: usize = 100;
 
@@ -30,8 +33,15 @@ pub fn get_balance_info_with_limit(billing_log: &BillingLog, monthly_limit: usiz
     }
 }
 
-pub fn land_registry_get_balance(billing_log: &BillingLog) -> BalanceInfo {
+pub fn get_balance_from_log(billing_log: &BillingLog) -> BalanceInfo {
     get_balance_info(billing_log)
+}
+
+#[tauri::command]
+pub async fn land_registry_get_balance(
+    billing: State<'_, LandRegistryBillingState>,
+) -> Result<BalanceInfo, IpcError> {
+    Ok(get_balance_from_log(&billing.0))
 }
 
 #[cfg(test)]

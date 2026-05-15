@@ -88,12 +88,7 @@ pub fn write_log(
 }
 
 /// 同步版本（測試 / 啟動序列用）。失敗只印 stderr 不 propagate。
-pub fn write_log_sync(
-    conn: &Connection,
-    action: &str,
-    payload: Option<Value>,
-    result: LogResult,
-) {
+pub fn write_log_sync(conn: &Connection, action: &str, payload: Option<Value>, result: LogResult) {
     let redacted = redact_payload(payload);
     let ts = now_secs();
     if let Err(e) = conn.execute(

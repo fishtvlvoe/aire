@@ -14,7 +14,10 @@ mod tests {
             .collect();
         let dispatcher = BatchDispatcher::new_with_chunk_size(25);
         let api_call_count = dispatcher.count_api_calls_for(&items);
-        assert_eq!(api_call_count, 2, "50 items / chunk_size 25 = exactly 2 API calls");
+        assert_eq!(
+            api_call_count, 2,
+            "50 items / chunk_size 25 = exactly 2 API calls"
+        );
     }
 
     // LRB-002: 餘數 chunk（< 25 items）必須正確發送（不被丟棄）
@@ -25,8 +28,14 @@ mod tests {
             .map(|i| BatchItem::new(format!("BA-0002-{:08}", i)))
             .collect();
         let dispatcher = BatchDispatcher::new_with_chunk_size(25);
-        let results = dispatcher.dispatch_all_sync(&items).expect("Dispatch must not fail");
-        assert_eq!(results.len(), 27, "All 27 items must have results (remainder chunk not dropped)");
+        let results = dispatcher
+            .dispatch_all_sync(&items)
+            .expect("Dispatch must not fail");
+        assert_eq!(
+            results.len(),
+            27,
+            "All 27 items must have results (remainder chunk not dropped)"
+        );
     }
 
     // LRB-003: chunk 回傳順序不同時，結果必須按輸入順序排列
@@ -38,7 +47,9 @@ mod tests {
             BatchItem::new("BA-THIRD-00000001"),
         ];
         let dispatcher = BatchDispatcher::new_with_reverse_chunk_order(); // mock: chunk 2 先回
-        let results = dispatcher.dispatch_all_sync(&items).expect("Dispatch must not fail");
+        let results = dispatcher
+            .dispatch_all_sync(&items)
+            .expect("Dispatch must not fail");
         // 結果順序必須與輸入一致
         assert_eq!(results[0].parcel_id(), "BA-FIRST-00000001");
         assert_eq!(results[1].parcel_id(), "BA-SECOND-00000001");
@@ -52,7 +63,9 @@ mod tests {
             .map(|i| BatchItem::new(format!("BA-ERR-{:08}", i)))
             .collect();
         let dispatcher = BatchDispatcher::new_with_always_failing_api();
-        let results = dispatcher.dispatch_all_sync(&items).expect("Dispatch wrapper must not panic");
+        let results = dispatcher
+            .dispatch_all_sync(&items)
+            .expect("Dispatch wrapper must not panic");
         for result in &results {
             assert!(
                 result.is_err(),
@@ -67,7 +80,9 @@ mod tests {
     fn should_return_empty_vec_for_empty_input() {
         let items: Vec<BatchItem> = vec![];
         let dispatcher = BatchDispatcher::new_with_chunk_size(25);
-        let results = dispatcher.dispatch_all_sync(&items).expect("Empty input must not fail");
+        let results = dispatcher
+            .dispatch_all_sync(&items)
+            .expect("Empty input must not fail");
         assert!(results.is_empty(), "Empty input must produce empty results");
         let api_calls = dispatcher.api_call_count();
         assert_eq!(api_calls, 0, "Empty input must not trigger any API call");
@@ -80,7 +95,9 @@ mod tests {
         let cache = LandRegistryCache::new_in_memory();
         let cached_parcel = "BA-CACHED-00010001";
         let dummy = serde_json::json!({"status": "cached"});
-        cache.store(cached_parcel, "API_001", "2026-05-14", &dummy).unwrap();
+        cache
+            .store(cached_parcel, "API_001", "2026-05-14", &dummy)
+            .unwrap();
 
         let items = vec![
             BatchItem::new(cached_parcel),
@@ -88,7 +105,10 @@ mod tests {
         ];
         let dispatcher = BatchDispatcher::new_with_cache(cache);
         let api_calls = dispatcher.count_api_calls_for(&items);
-        assert_eq!(api_calls, 1, "Cached item must be skipped; only 1 API call for non-cached item");
+        assert_eq!(
+            api_calls, 1,
+            "Cached item must be skipped; only 1 API call for non-cached item"
+        );
     }
 
     // LRB-007: batch 中有重複地號時，只 dispatch 一次，結果共享給兩個 item
@@ -101,9 +121,18 @@ mod tests {
         ];
         let dispatcher = BatchDispatcher::new_with_chunk_size(25);
         let api_calls = dispatcher.count_unique_parcel_api_calls_for(&items);
-        assert_eq!(api_calls, 2, "Duplicate parcel must be deduplicated before dispatch");
-        let results = dispatcher.dispatch_all_sync(&items).expect("Dispatch must not fail");
-        assert_eq!(results.len(), 3, "Results must have same count as input (including duplicates)");
+        assert_eq!(
+            api_calls, 2,
+            "Duplicate parcel must be deduplicated before dispatch"
+        );
+        let results = dispatcher
+            .dispatch_all_sync(&items)
+            .expect("Dispatch must not fail");
+        assert_eq!(
+            results.len(),
+            3,
+            "Results must have same count as input (including duplicates)"
+        );
     }
 
     // LRB-008: 並行 chunk dispatch 數量必須 <= 設定的 max_concurrent
@@ -132,11 +161,19 @@ mod tests {
             .collect();
         let dispatcher = BatchDispatcher::new_with_chunk_size(25);
 
-        let single_results = dispatcher.dispatch_all_sync(&single_item).expect("Single item must not fail");
-        let multi_results = dispatcher.dispatch_all_sync(&multi_items).expect("Multi item must not fail");
+        let single_results = dispatcher
+            .dispatch_all_sync(&single_item)
+            .expect("Single item must not fail");
+        let multi_results = dispatcher
+            .dispatch_all_sync(&multi_items)
+            .expect("Multi item must not fail");
 
         // 單 item 回傳 1 個結果（不是空 Vec 或 panic）
-        assert_eq!(single_results.len(), 1, "Single item batch must return exactly 1 result");
+        assert_eq!(
+            single_results.len(),
+            1,
+            "Single item batch must return exactly 1 result"
+        );
         // API 呼叫行為一致（都走 chunk dispatch 路徑）
         assert_eq!(
             single_results[0].is_from_chunk_dispatch(),

@@ -62,7 +62,10 @@ impl Drop for SecretPassword {
 }
 
 /// Derive a 32-byte master key from password + 16-byte salt using Argon2id.
-pub fn derive_master_key(password: &str, salt: &[u8]) -> Result<[u8; MASTER_KEY_LEN], MasterKeyError> {
+pub fn derive_master_key(
+    password: &str,
+    salt: &[u8],
+) -> Result<[u8; MASTER_KEY_LEN], MasterKeyError> {
     if salt.len() != SALT_LEN {
         return Err(MasterKeyError::InvalidSaltLength {
             expected: SALT_LEN,

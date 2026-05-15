@@ -56,12 +56,10 @@ impl LandRegistryEndpoint<CoOwnersData> for CoOwnersEndpoint {
     }
 
     fn field_mappings() -> Vec<FieldMapping> {
-        vec![
-            FieldMapping {
-                target_field: "co_owners".to_string(),
-                json_path: "$.data[*]".to_string(),
-            },
-        ]
+        vec![FieldMapping {
+            target_field: "co_owners".to_string(),
+            json_path: "$.data[*]".to_string(),
+        }]
     }
 }
 
@@ -102,7 +100,8 @@ impl<P: ApiKeyProvider> CoOwnersApi<P> {
                 let parsed = CoOwnersEndpoint::parse_response(json);
                 match parsed {
                     Ok(data) => {
-                        let _ = record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
+                        let _ =
+                            record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
                         Ok(data)
                     }
                     Err(error) => {

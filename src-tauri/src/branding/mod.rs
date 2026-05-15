@@ -122,7 +122,9 @@ pub async fn set_theme(
 ) -> Result<(), BrandingError> {
     let theme_id_trimmed = theme_id.trim();
     if theme_id_trimmed.is_empty() {
-        return Err(BrandingError::DatabaseError("theme_id cannot be empty".into()));
+        return Err(BrandingError::DatabaseError(
+            "theme_id cannot be empty".into(),
+        ));
     }
 
     let conn = lock(&db)?;
@@ -149,11 +151,10 @@ pub async fn get_theme(db: State<'_, DbState>) -> Result<String, BrandingError> 
     let conn = lock(&db)?;
     ensure_schema(&conn)?;
 
-    let r: Result<String, rusqlite::Error> = conn.query_row(
-        "SELECT theme_id FROM branding WHERE id=1",
-        [],
-        |row| row.get(0),
-    );
+    let r: Result<String, rusqlite::Error> =
+        conn.query_row("SELECT theme_id FROM branding WHERE id=1", [], |row| {
+            row.get(0)
+        });
 
     match r {
         Ok(theme_id) => Ok(theme_id),

@@ -84,7 +84,9 @@ pub fn open_encrypted_db(path: &Path, key_hex: &str) -> Result<Connection, LandR
     })?;
 
     let existing: Option<String> = conn
-        .query_row("SELECT v FROM __enc_meta WHERE k='key'", [], |row| row.get(0))
+        .query_row("SELECT v FROM __enc_meta WHERE k='key'", [], |row| {
+            row.get(0)
+        })
         .ok();
 
     match existing {
@@ -93,20 +95,31 @@ pub fn open_encrypted_db(path: &Path, key_hex: &str) -> Result<Connection, LandR
             message: "invalid encryption key".to_string(),
         }),
         None => {
-            conn.execute("INSERT INTO __enc_meta (k, v) VALUES ('key', ?1)", [key_hex])
-                .map_err(|e| LandRegistryError::Internal {
-                    message: format!("store encryption key metadata failed: {e}"),
-                })?;
+            conn.execute(
+                "INSERT INTO __enc_meta (k, v) VALUES ('key', ?1)",
+                [key_hex],
+            )
+            .map_err(|e| LandRegistryError::Internal {
+                message: format!("store encryption key metadata failed: {e}"),
+            })?;
             Ok(conn)
         }
     }
 }
 
-pub fn migrate_to_encrypted(plaintext_path: &Path, encrypted_path: &Path, key_hex: &str) -> Result<(), LandRegistryError> {
+pub fn migrate_to_encrypted(
+    plaintext_path: &Path,
+    encrypted_path: &Path,
+    key_hex: &str,
+) -> Result<(), LandRegistryError> {
     migrate_plaintext_to_encrypted(plaintext_path, encrypted_path, key_hex)
 }
 
-pub fn migrate_plaintext_to_encrypted(plaintext_path: &Path, encrypted_path: &Path, key_hex: &str) -> Result<(), LandRegistryError> {
+pub fn migrate_plaintext_to_encrypted(
+    plaintext_path: &Path,
+    encrypted_path: &Path,
+    key_hex: &str,
+) -> Result<(), LandRegistryError> {
     let src = Connection::open(plaintext_path).map_err(|e| LandRegistryError::Internal {
         message: format!("open source db failed: {e}"),
     })?;
@@ -184,7 +197,9 @@ impl EncryptionManager {
 
     pub fn apply_encryption_key(&self, key_hex: &str) -> Result<(), LandRegistryError> {
         if !self.keychain.is_available() {
-            return Err(LandRegistryError::Internal { message: "keychain unavailable".to_string() });
+            return Err(LandRegistryError::Internal {
+                message: "keychain unavailable".to_string(),
+            });
         }
         if let Ok(mut c) = self.open_connections.lock() {
             *c = 0;
@@ -197,11 +212,19 @@ impl EncryptionManager {
     }
 
     pub fn last_pragma_key_sql(&self) -> String {
-        self.last_pragma_sql.lock().map(|s| s.clone()).unwrap_or_default()
+        self.last_pragma_sql
+            .lock()
+            .map(|s| s.clone())
+            .unwrap_or_default()
     }
 
     pub fn simulate_crash_between_delete_and_rename(&self) -> Result<(), LandRegistryError> {
-        let mut s = self.inconsistent_state.lock().map_err(|_| LandRegistryError::Internal { message: "state lock poisoned".to_string() })?;
+        let mut s = self
+            .inconsistent_state
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "state lock poisoned".to_string(),
+            })?;
         *s = Some("plaintext removed but encrypted not fully committed".to_string());
         Ok(())
     }
@@ -220,7 +243,12 @@ impl EncryptionManager {
             let _ = key;
             Ok(())
         });
-        let mut slot = self.migration_handle.lock().map_err(|_| LandRegistryError::Internal { message: "migration handle lock poisoned".to_string() })?;
+        let mut slot = self
+            .migration_handle
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "migration handle lock poisoned".to_string(),
+            })?;
         *slot = Some(handle);
         Ok(())
     }
@@ -229,10 +257,14 @@ impl EncryptionManager {
         let handle = self
             .migration_handle
             .lock()
-            .map_err(|_| LandRegistryError::Internal { message: "migration handle lock poisoned".to_string() })?
+            .map_err(|_| LandRegistryError::Internal {
+                message: "migration handle lock poisoned".to_string(),
+            })?
             .take();
         if let Some(h) = handle {
-            h.join().map_err(|_| LandRegistryError::Internal { message: "migration thread panicked".to_string() })??;
+            h.join().map_err(|_| LandRegistryError::Internal {
+                message: "migration thread panicked".to_string(),
+            })??;
         }
         Ok(())
     }

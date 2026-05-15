@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests {
     use crate::land_registry::cache::{
-        LandRegistryCache, CacheKey, CacheEntry, generate_cache_key,
+        generate_cache_key, CacheEntry, CacheKey, LandRegistryCache,
     };
     use crate::land_registry::errors::LandRegistryError;
     use serde_json::Value;
@@ -16,8 +16,14 @@ mod tests {
         let key2 = generate_cache_key("ba-0001-00010001", "API_001", "2026-05-14");
         let key3 = generate_cache_key("BA000100010001", "API_001", "2026-05-14");
         // 三種格式代表同一地號，cache key 必須相同
-        assert_eq!(key1, key2, "Cache key must be normalized: uppercase == lowercase");
-        assert_eq!(key1, key3, "Cache key must be normalized: with/without separators");
+        assert_eq!(
+            key1, key2,
+            "Cache key must be normalized: uppercase == lowercase"
+        );
+        assert_eq!(
+            key1, key3,
+            "Cache key must be normalized: with/without separators"
+        );
     }
 
     // LCC-002: query_date 必須用校正後的 synced_now() 而非本機時鐘
@@ -63,14 +69,25 @@ mod tests {
         let cache = LandRegistryCache::new_in_memory();
         let parcel = "BA-0001-00010001";
         let dummy = serde_json::json!({"x": 1});
-        cache.store(parcel, "API_001", "2026-05-14", &dummy).unwrap();
-        cache.store(parcel, "API_002", "2026-05-14", &dummy).unwrap();
-        cache.store(parcel, "API_003", "2026-05-14", &dummy).unwrap();
+        cache
+            .store(parcel, "API_001", "2026-05-14", &dummy)
+            .unwrap();
+        cache
+            .store(parcel, "API_002", "2026-05-14", &dummy)
+            .unwrap();
+        cache
+            .store(parcel, "API_003", "2026-05-14", &dummy)
+            .unwrap();
 
         // api_id = None 代表刪除整個地號的所有 API cache entry
-        cache.invalidate(parcel, None).expect("Invalidate must succeed");
+        cache
+            .invalidate(parcel, None)
+            .expect("Invalidate must succeed");
         let remaining = cache.count_entries(parcel);
-        assert_eq!(remaining, 0, "All API entries for parcel must be deleted when api_id = None");
+        assert_eq!(
+            remaining, 0,
+            "All API entries for parcel must be deleted when api_id = None"
+        );
     }
 
     // LCC-005: 磁碟將滿時 SQLite WAL 寫入失敗，必須 graceful 包成 DiskFull（不 panic）
@@ -121,25 +138,32 @@ mod tests {
         // 至少一個成功（UPSERT），或兩個都回 Internal（可接受）；不允許 panic
         assert!(
             r1.is_ok() || matches!(r1, Err(LandRegistryError::Internal { .. })),
-            "Concurrent write result 1 must be Ok or Internal, got {:?}", r1
+            "Concurrent write result 1 must be Ok or Internal, got {:?}",
+            r1
         );
         assert!(
             r2.is_ok() || matches!(r2, Err(LandRegistryError::Internal { .. })),
-            "Concurrent write result 2 must be Ok or Internal, got {:?}", r2
+            "Concurrent write result 2 must be Ok or Internal, got {:?}",
+            r2
         );
     }
 
     // LCC-008: invalidate 後並行的 get_or_fetch 必須觸發 upstream 抓取（cache miss）
     #[test]
     fn should_enforce_cache_miss_after_invalidate_under_concurrency() {
-        use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        };
         let cache = Arc::new(LandRegistryCache::new_in_memory());
         let fetch_count = Arc::new(AtomicUsize::new(0));
         let dummy = serde_json::json!({"x": 1});
         let parcel = "BA-0001-00010001";
 
         // 先寫入 cache
-        cache.store(parcel, "API_001", "2026-05-14", &dummy).unwrap();
+        cache
+            .store(parcel, "API_001", "2026-05-14", &dummy)
+            .unwrap();
         // invalidate
         cache.invalidate(parcel, Some("API_001")).unwrap();
 
@@ -162,7 +186,9 @@ mod tests {
         let cache = LandRegistryCache::new_in_memory();
         let dummy = serde_json::json!({"x": 1});
         // 昨天寫入
-        cache.store("BA-0001-00010001", "API_001", "2026-05-13", &dummy).unwrap();
+        cache
+            .store("BA-0001-00010001", "API_001", "2026-05-13", &dummy)
+            .unwrap();
         // 今天查詢
         let result = cache.get("BA-0001-00010001", "API_001", "2026-05-14");
         assert!(
@@ -191,24 +217,31 @@ mod tests {
     // LCC-011: 並行 cache miss 場景必須有 mutex / db lock 防止 double-fetch
     #[test]
     fn should_use_database_lock_or_mutex_to_prevent_double_fetch() {
-        use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        };
         let cache = Arc::new(LandRegistryCache::new_in_memory());
         let fetch_count = Arc::new(AtomicUsize::new(0));
         let dummy = serde_json::json!({"x": 1});
 
         // 同時發出 N=5 個 get_or_fetch，全部 cache miss
-        let handles: Vec<_> = (0..5).map(|_| {
-            let c = Arc::clone(&cache);
-            let fc = Arc::clone(&fetch_count);
-            let d = dummy.clone();
-            std::thread::spawn(move || {
-                c.get_or_fetch("BA-0001-00010001", "API_001", "2026-05-14", || {
-                    fc.fetch_add(1, Ordering::SeqCst);
-                    Ok(d)
+        let handles: Vec<_> = (0..5)
+            .map(|_| {
+                let c = Arc::clone(&cache);
+                let fc = Arc::clone(&fetch_count);
+                let d = dummy.clone();
+                std::thread::spawn(move || {
+                    c.get_or_fetch("BA-0001-00010001", "API_001", "2026-05-14", || {
+                        fc.fetch_add(1, Ordering::SeqCst);
+                        Ok(d)
+                    })
                 })
             })
-        }).collect();
-        for h in handles { h.join().expect("Thread must not panic"); }
+            .collect();
+        for h in handles {
+            h.join().expect("Thread must not panic");
+        }
 
         // 有 lock 機制時，upstream 只應該被呼叫 1 次
         assert_eq!(

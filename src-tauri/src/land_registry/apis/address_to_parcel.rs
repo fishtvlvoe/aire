@@ -1,6 +1,6 @@
 use crate::land_registry::apis::{
-    address_cache_parcel_id, normalize_address, post_json_with_key, require_api_key, ApiKeyProvider,
-    FieldMapping, LandRegistryEndpoint,
+    address_cache_parcel_id, normalize_address, post_json_with_key, require_api_key,
+    ApiKeyProvider, FieldMapping, LandRegistryEndpoint,
 };
 use crate::land_registry::cache::LandRegistryCache;
 use crate::land_registry::errors::LandRegistryError;
@@ -133,7 +133,8 @@ impl<P: ApiKeyProvider> AddressToParcelApi<P> {
         )
         .await?;
 
-        self.cache.store(&cache_parcel_id, API_ID, &query_date, &json)?;
+        self.cache
+            .store(&cache_parcel_id, API_ID, &query_date, &json)?;
         AddressToParcelEndpoint::parse_response(json)
     }
 }

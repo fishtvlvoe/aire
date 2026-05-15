@@ -79,7 +79,8 @@ impl DiskGuard {
     }
 
     pub fn simulate_space_freed(&mut self, available_bytes: u64) {
-        self.available_bytes.store(available_bytes, Ordering::SeqCst);
+        self.available_bytes
+            .store(available_bytes, Ordering::SeqCst);
     }
 
     pub fn check_before_write(&self, required_bytes: u64) -> Result<(), LandRegistryError> {

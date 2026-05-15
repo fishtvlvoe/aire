@@ -30,11 +30,10 @@ pub struct SaveDraftArgs {
 }
 
 fn lock(db: &DbState) -> Result<std::sync::MutexGuard<'_, Connection>, IpcError> {
-    db.0.lock()
-        .map_err(|e| IpcError {
-            code: "db_lock".into(),
-            message: format!("db lock poisoned: {e}"),
-        })
+    db.0.lock().map_err(|e| IpcError {
+        code: "db_lock".into(),
+        message: format!("db lock poisoned: {e}"),
+    })
 }
 
 fn now_secs() -> i64 {
@@ -45,10 +44,7 @@ fn now_secs() -> i64 {
 }
 
 #[tauri::command]
-pub async fn save_draft(
-    args: SaveDraftArgs,
-    db: State<'_, DbState>,
-) -> Result<(), IpcError> {
+pub async fn save_draft(args: SaveDraftArgs, db: State<'_, DbState>) -> Result<(), IpcError> {
     if args.caseId.trim().is_empty() {
         return Err(IpcError {
             code: "missing_field".into(),
@@ -63,11 +59,12 @@ pub async fn save_draft(
     let saved_at = now_secs();
 
     let conn = lock(&db)?;
-    drafts::upsert_draft(&conn, &args.caseId, &payload_json, schema_version, saved_at)
-        .map_err(|e| IpcError {
+    drafts::upsert_draft(&conn, &args.caseId, &payload_json, schema_version, saved_at).map_err(
+        |e| IpcError {
             code: e.code,
             message: e.message,
-        })?;
+        },
+    )?;
     Ok(())
 }
 

@@ -145,7 +145,10 @@ impl VaultRecoveryManager {
     }
 }
 
-pub fn unlock_vault_with_recovery(vault_id: &str, code: &RecoveryCode) -> Result<(), RecoveryCodeError> {
+pub fn unlock_vault_with_recovery(
+    vault_id: &str,
+    code: &RecoveryCode,
+) -> Result<(), RecoveryCodeError> {
     let map = store().lock().expect("vault recovery store poisoned");
     match map.get(vault_id) {
         Some(current) => {

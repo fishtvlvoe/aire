@@ -75,6 +75,12 @@ pub struct AsyncIpcState {
     pub opcos_token: String,
 }
 
+/// 共享狀態：land registry cache（記憶體快取，供 address_lookup 使用）。
+pub struct LandRegistryCacheState(pub land_registry::cache::LandRegistryCache);
+
+/// 共享狀態：land registry billing log（供 pull_data / balance 共用）。
+pub struct LandRegistryBillingState(pub land_registry::billing_log::BillingLog);
+
 /// 整合 spike 用的 hello-world IPC 命令。
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -170,8 +176,8 @@ pub fn run() {
                 .map_err(|err| format!("failed to ensure app data directories: {err}"))?;
 
             let db_path = app_dir.join("aire.db");
-            let conn = db::init_db(&db_path)
-                .map_err(|err| format!("failed to init SQLite db: {err}"))?;
+            let conn =
+                db::init_db(&db_path).map_err(|err| format!("failed to init SQLite db: {err}"))?;
 
             // device_id 首次啟動產生（Task 4.2）
             commands::license::ensure_device_id(&conn)
@@ -209,6 +215,12 @@ pub fn run() {
                 opcos_base_url,
                 opcos_token,
             });
+            app.manage(LandRegistryCacheState(
+                land_registry::cache::LandRegistryCache::new_in_memory(),
+            ));
+            app.manage(LandRegistryBillingState(
+                land_registry::billing_log::BillingLog::new_in_memory(),
+            ));
 
             let version = app.package_info().version.to_string();
             let title = format!("AIRE {version}");
@@ -243,6 +255,14 @@ pub fn run() {
             list_legal_clauses,
             sync_legal_clauses,
             verify_realtor_license,
+            // land_registry IPC commands（tasks 12-15）
+            land_registry::pull::land_registry_address_lookup,
+            land_registry::pull::land_registry_pull_data,
+            land_registry::api_key_storage::land_registry_set_api_key,
+            land_registry::api_key_storage::land_registry_get_api_key,
+            land_registry::api_key_storage::land_registry_test_connection,
+            land_registry::balance::land_registry_get_balance,
+            land_registry::consent::land_registry_record_consent,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");

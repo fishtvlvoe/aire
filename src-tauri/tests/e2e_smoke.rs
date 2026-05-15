@@ -4,7 +4,7 @@
 // 使用 tempdir 確保測試不汙染真實環境
 
 use aire_lib::db::{
-    cases::{insert_case, get_case, list_cases, update_case, Case},
+    cases::{get_case, insert_case, list_cases, update_case, Case},
     init_db,
 };
 use tempfile::TempDir;

@@ -1,18 +1,20 @@
+pub mod api_key_storage;
+pub mod apis;
+pub mod balance;
+pub mod batch;
+pub mod billing_log;
+pub mod cache;
 /// land_registry 主模組（Phase 2 結構佔位符）
 /// Phase 3 實作時在各子模組加入實際代碼
 pub mod client;
-pub mod cache;
-pub mod errors;
-pub mod batch;
-pub mod field_mapping;
-pub mod billing_log;
-pub mod apis;
-pub mod api_key_storage;
-pub mod balance;
-pub mod time_sync;
+pub mod consent;
 pub mod disk_resilience;
+pub mod errors;
+pub mod field_mapping;
 pub mod migration_rollback;
 pub mod opcos_offline_grace;
+pub mod pull;
+pub mod time_sync;
 
 #[cfg(test)]
 mod integration_tests {
@@ -48,7 +50,9 @@ mod integration_tests {
         let make_checker = || {
             OfflineGraceChecker::new_with_clock_and_config(
                 SyncedClock::with_fixed_offset(0),
-                GraceConfig { grace_period_days: grace_days },
+                GraceConfig {
+                    grace_period_days: grace_days,
+                },
             )
         };
 
@@ -101,11 +105,7 @@ mod integration_tests {
         std::thread::sleep(std::time::Duration::from_millis(10));
         let t2 = clock.synced_now().timestamp();
 
-        assert!(
-            t2 >= t1,
-            "synced_now 不可倒退：t1={}, t2={}",
-            t1, t2
-        );
+        assert!(t2 >= t1, "synced_now 不可倒退：t1={}, t2={}", t1, t2);
 
         // 模組層級 helper synced_now() 也必須回正常時間（不 panic、不 < 0）。
         let module_now = synced_now().timestamp();
@@ -116,7 +116,9 @@ mod integration_tests {
         // → 從 synced clock 看 elapsed > 1 年，必過期。
         let checker = OfflineGraceChecker::new_with_clock_and_config(
             clock,
-            GraceConfig { grace_period_days: 7 },
+            GraceConfig {
+                grace_period_days: 7,
+            },
         );
         match checker.check_grace_period_from_ts(module_now) {
             Err(LandRegistryError::GracePeriodExpired) => {}
@@ -131,7 +133,9 @@ mod integration_tests {
         let normal_clock = SyncedClock::with_fixed_offset(0);
         let normal_checker = OfflineGraceChecker::new_with_clock_and_config(
             normal_clock,
-            GraceConfig { grace_period_days: 7 },
+            GraceConfig {
+                grace_period_days: 7,
+            },
         );
         let future_ts = synced_now().timestamp() + one_year_seconds;
         assert!(

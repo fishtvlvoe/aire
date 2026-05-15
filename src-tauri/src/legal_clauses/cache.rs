@@ -78,8 +78,10 @@ pub fn list_laws(conn: &Connection) -> Result<Vec<LegalClause>, String> {
 }
 
 pub fn max_fetched_at(conn: &Connection) -> Result<Option<String>, String> {
-    conn.query_row("SELECT MAX(fetched_at) FROM legal_clauses", [], |row| row.get(0))
-        .map_err(|e| e.to_string())
+    conn.query_row("SELECT MAX(fetched_at) FROM legal_clauses", [], |row| {
+        row.get(0)
+    })
+    .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

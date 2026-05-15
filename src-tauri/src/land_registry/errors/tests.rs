@@ -23,11 +23,21 @@ mod tests {
     fn should_report_disk_available_bytes_in_bytes_not_kilobytes() {
         // 模擬 10 MB 可用空間
         let available_bytes: u64 = 10 * 1024 * 1024;
-        let err = LandRegistryError::DiskFull { available_bytes, required_bytes: 50 * 1024 * 1024 };
+        let err = LandRegistryError::DiskFull {
+            available_bytes,
+            required_bytes: 50 * 1024 * 1024,
+        };
         match err {
-            LandRegistryError::DiskFull { available_bytes: ab, .. } => {
+            LandRegistryError::DiskFull {
+                available_bytes: ab,
+                ..
+            } => {
                 // 確認值是 bytes（10MB = 10,485,760），不是 10240（KB）
-                assert_eq!(ab, 10 * 1024 * 1024, "DiskFull.available_bytes must be in bytes, not KB");
+                assert_eq!(
+                    ab,
+                    10 * 1024 * 1024,
+                    "DiskFull.available_bytes must be in bytes, not KB"
+                );
             }
             _ => panic!("Expected DiskFull variant"),
         }
@@ -45,6 +55,7 @@ mod tests {
                 LandRegistryError::Network { .. } => "network",
                 LandRegistryError::InsufficientBalance { .. } => "insufficient_balance",
                 LandRegistryError::ApiKeyNotConfigured => "api_key_not_configured",
+                LandRegistryError::ConsentRequired => "consent_required",
                 LandRegistryError::DiskFull { .. } => "disk_full",
                 LandRegistryError::TimeSkew { .. } => "time_skew",
                 LandRegistryError::MigrationFailed { .. } => "migration_failed",
@@ -66,7 +77,9 @@ mod tests {
             source: Box::new(io_err),
         };
         // std::error::Error::source() 必須能取到原始 io::Error
-        let source = err.source().expect("Network error must have a source error in the chain");
+        let source = err
+            .source()
+            .expect("Network error must have a source error in the chain");
         assert!(
             source.to_string().contains("refused"),
             "Source error must contain original error message"

@@ -4,8 +4,8 @@
 #[cfg(test)]
 mod tests {
     use crate::encryption::{
-        KeychainState, SqlCipherConfig, EncryptionManager,
-        open_encrypted_db, open_plaintext_db, migrate_to_encrypted,
+        migrate_to_encrypted, open_encrypted_db, open_plaintext_db, EncryptionManager,
+        KeychainState, SqlCipherConfig,
     };
     use crate::land_registry::errors::LandRegistryError;
 
@@ -16,9 +16,16 @@ mod tests {
         let version = SqlCipherConfig::bundled_version();
         // 版本格式：major.minor.patch（如 "4.6.1"）
         let parts: Vec<&str> = version.split('.').collect();
-        assert_eq!(parts.len(), 3, "SQLCipher version must be in major.minor.patch format");
+        assert_eq!(
+            parts.len(),
+            3,
+            "SQLCipher version must be in major.minor.patch format"
+        );
         let major: u32 = parts[0].parse().expect("Major version must be numeric");
-        assert!(major >= 4, "SQLCipher major version must be >= 4 (format v4)");
+        assert!(
+            major >= 4,
+            "SQLCipher major version must be >= 4 (format v4)"
+        );
     }
 
     // SEC-002: Linux headless 環境（無 keyring daemon）→ 回 Internal error（不 panic）
@@ -43,13 +50,11 @@ mod tests {
         // 版本升級不應改變這兩個 identifier（否則 DB 無法開啟）
         // 用固定字串驗證（若 Phase 3 改了 identifier，這個測試會失敗作為提醒）
         assert_eq!(
-            service_id,
-            "com.opcos.aire.db-encryption",
+            service_id, "com.opcos.aire.db-encryption",
             "Keychain service identifier must be stable across versions"
         );
         assert_eq!(
-            account_id,
-            "main-db-key",
+            account_id, "main-db-key",
             "Keychain account identifier must be stable across versions"
         );
     }
@@ -69,16 +74,22 @@ mod tests {
             conn.execute(
                 "CREATE TABLE test_blobs (id INTEGER PRIMARY KEY, data BLOB NOT NULL)",
                 [],
-            ).expect("Create table");
+            )
+            .expect("Create table");
             conn.execute(
                 "INSERT INTO test_blobs (data) VALUES (?1)",
                 [&original_blob as &dyn rusqlite::ToSql],
-            ).expect("Insert blob");
+            )
+            .expect("Insert blob");
         }
 
         // 執行 migration（plaintext → encrypted）
-        migrate_to_encrypted(&plaintext_path, &encrypted_path, "test_hex_key_00000000000000000000")
-            .expect("Migration must succeed");
+        migrate_to_encrypted(
+            &plaintext_path,
+            &encrypted_path,
+            "test_hex_key_00000000000000000000",
+        )
+        .expect("Migration must succeed");
 
         // 驗證 BLOB 資料 binary-exact
         let conn = open_encrypted_db(&encrypted_path, "test_hex_key_00000000000000000000")
@@ -121,8 +132,11 @@ mod tests {
         let corrupt_path = tmp_dir.join("test_corrupted_sec006.sqlite");
 
         // 寫入 corrupt 資料（非 SQLite magic bytes）
-        std::fs::write(&corrupt_path, b"THIS IS NOT A SQLITE DATABASE FILE!!! CORRUPTED!!!!")
-            .expect("Write corrupt file");
+        std::fs::write(
+            &corrupt_path,
+            b"THIS IS NOT A SQLITE DATABASE FILE!!! CORRUPTED!!!!",
+        )
+        .expect("Write corrupt file");
 
         let result = open_encrypted_db(&corrupt_path, "any_key");
         // Corrupted DB 必須回 Internal error（不靜默 skip migration）
@@ -141,7 +155,9 @@ mod tests {
         let _conn = manager.open_connection_for_test();
         // 嘗試套用加密 key（必須先關閉所有 connections）
         let open_count_before_key = manager.open_connection_count();
-        manager.apply_encryption_key("test_key").expect("Apply key must succeed");
+        manager
+            .apply_encryption_key("test_key")
+            .expect("Apply key must succeed");
         let open_count_after_key = manager.open_connection_count();
 
         // apply_encryption_key 後，必須有 PRAGMA key 的 connection（= 0 舊連線殘留）
@@ -176,7 +192,10 @@ mod tests {
     // SEC-009: plaintext → encrypted migration 必須在背景執行緒（不 block main thread）
     #[test]
     fn should_run_plaintext_to_encrypted_migration_on_background_thread() {
-        use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+        use std::sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        };
         let main_thread_id = std::thread::current().id();
         let migration_ran_on_main = Arc::new(AtomicBool::new(false));
         let flag = Arc::clone(&migration_ran_on_main);
@@ -188,9 +207,13 @@ mod tests {
         });
 
         // 啟動 migration（如果同步執行，會在 main thread 上跑）
-        manager.start_migration_async("test_key").expect("Start async migration");
+        manager
+            .start_migration_async("test_key")
+            .expect("Start async migration");
         // 等待 migration 完成
-        manager.wait_for_migration().expect("Migration must complete");
+        manager
+            .wait_for_migration()
+            .expect("Migration must complete");
 
         assert!(
             !migration_ran_on_main.load(Ordering::SeqCst),

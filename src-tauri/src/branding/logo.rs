@@ -39,8 +39,9 @@ fn now_string() -> String {
 
 fn header_matches_mime(bytes: &[u8], mime_type: &str) -> bool {
     match mime_type {
-        "image/png" => bytes.len() >= 8
-            && bytes[0..8] == [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+        "image/png" => {
+            bytes.len() >= 8 && bytes[0..8] == [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        }
         "image/jpeg" => bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xD8,
         _ => false,
     }
@@ -52,10 +53,7 @@ fn header_matches_mime(bytes: &[u8], mime_type: &str) -> bool {
 /// - 只接受 image/png, image/jpeg
 /// - >2 MiB 拒絕
 /// - corrupted header 拒絕，回傳 InvalidFormat（reason 不可為空）
-pub fn validate_logo_bytes(
-    bytes: &[u8],
-    mime_type: &str,
-) -> Result<(), LogoValidationError> {
+pub fn validate_logo_bytes(bytes: &[u8], mime_type: &str) -> Result<(), LogoValidationError> {
     if mime_type != "image/png" && mime_type != "image/jpeg" {
         return Err(LogoValidationError::UnsupportedFormat {
             mime_type: mime_type.to_string(),

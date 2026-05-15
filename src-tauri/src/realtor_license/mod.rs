@@ -54,7 +54,9 @@ pub async fn verify_realtor_license(
     token: &str,
     license_number: &str,
 ) -> Result<LicenseVerificationResult, RealtorLicenseError> {
-    if let Some(cached) = cache::get_cached(conn, license_number).map_err(RealtorLicenseError::CacheFailed)? {
+    if let Some(cached) =
+        cache::get_cached(conn, license_number).map_err(RealtorLicenseError::CacheFailed)?
+    {
         return Ok(LicenseVerificationResult {
             status: cached.status,
             source: VerificationSource::Cache,
@@ -74,7 +76,8 @@ pub async fn verify_realtor_license(
             })
         }
         Err(RealtorLicenseError::OpcosUnreachable) => {
-            let latest = cache::get_latest(conn, license_number).map_err(RealtorLicenseError::CacheFailed)?;
+            let latest = cache::get_latest(conn, license_number)
+                .map_err(RealtorLicenseError::CacheFailed)?;
             if let Some(last) = latest {
                 Ok(LicenseVerificationResult {
                     status: last.status,

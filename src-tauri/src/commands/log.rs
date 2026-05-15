@@ -42,10 +42,7 @@ pub async fn list_recent_logs(
     })
 }
 
-pub fn query_recent_logs(
-    conn: &Connection,
-    limit: i64,
-) -> rusqlite::Result<Vec<LogEntry>> {
+pub fn query_recent_logs(conn: &Connection, limit: i64) -> rusqlite::Result<Vec<LogEntry>> {
     let mut stmt = conn.prepare(
         "SELECT id, ts, action, payload, result FROM operation_log \
          ORDER BY ts DESC LIMIT ?1",

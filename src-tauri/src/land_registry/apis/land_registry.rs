@@ -27,12 +27,11 @@ impl LandRegistryEndpoint<LandRegistryData> for LandRegistryEndpointImpl {
     fn parse_response(json: Value) -> Result<LandRegistryData, LandRegistryError> {
         let root = json.get("data").unwrap_or(&json);
         Ok(LandRegistryData {
-            land_area: root
-                .get("land_area")
-                .and_then(Value::as_f64)
-                .ok_or(LandRegistryError::Internal {
+            land_area: root.get("land_area").and_then(Value::as_f64).ok_or(
+                LandRegistryError::Internal {
                     message: "missing land_area".to_string(),
-                })?,
+                },
+            )?,
             land_purpose: root
                 .get("land_purpose")
                 .and_then(Value::as_str)
@@ -101,7 +100,8 @@ impl<P: ApiKeyProvider> LandRegistryApi<P> {
                 let parsed = LandRegistryEndpointImpl::parse_response(json);
                 match parsed {
                     Ok(data) => {
-                        let _ = record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
+                        let _ =
+                            record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
                         Ok(data)
                     }
                     Err(error) => {

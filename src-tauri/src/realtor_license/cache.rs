@@ -33,7 +33,10 @@ pub fn upsert_verification(
     Ok(())
 }
 
-pub fn get_cached(conn: &Connection, license_number: &str) -> Result<Option<CachedLicense>, String> {
+pub fn get_cached(
+    conn: &Connection,
+    license_number: &str,
+) -> Result<Option<CachedLicense>, String> {
     let mut stmt = conn
         .prepare(
             r#"
@@ -43,7 +46,9 @@ pub fn get_cached(conn: &Connection, license_number: &str) -> Result<Option<Cach
         "#,
         )
         .map_err(|e| e.to_string())?;
-    let mut rows = stmt.query(params![license_number]).map_err(|e| e.to_string())?;
+    let mut rows = stmt
+        .query(params![license_number])
+        .map_err(|e| e.to_string())?;
     let Some(row) = rows.next().map_err(|e| e.to_string())? else {
         return Ok(None);
     };
@@ -64,7 +69,10 @@ pub fn get_cached(conn: &Connection, license_number: &str) -> Result<Option<Cach
     }))
 }
 
-pub fn get_latest(conn: &Connection, license_number: &str) -> Result<Option<CachedLicense>, String> {
+pub fn get_latest(
+    conn: &Connection,
+    license_number: &str,
+) -> Result<Option<CachedLicense>, String> {
     let mut stmt = conn
         .prepare(
             r#"
@@ -74,7 +82,9 @@ pub fn get_latest(conn: &Connection, license_number: &str) -> Result<Option<Cach
         "#,
         )
         .map_err(|e| e.to_string())?;
-    let mut rows = stmt.query(params![license_number]).map_err(|e| e.to_string())?;
+    let mut rows = stmt
+        .query(params![license_number])
+        .map_err(|e| e.to_string())?;
     let Some(row) = rows.next().map_err(|e| e.to_string())? else {
         return Ok(None);
     };

@@ -159,8 +159,7 @@ pub async fn mark_completed(
     db: State<'_, DbState>,
 ) -> Result<cases::Case, IpcError> {
     let conn = lock(&db)?;
-    let mut c =
-        cases::get_case(&conn, &case_id).map_err(|e| IpcError::new(&e.code, e.message))?;
+    let mut c = cases::get_case(&conn, &case_id).map_err(|e| IpcError::new(&e.code, e.message))?;
     if c.status == "exported" {
         return Err(IpcError::new(
             "invalid_status_transition",

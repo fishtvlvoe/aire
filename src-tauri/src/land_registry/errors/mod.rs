@@ -21,6 +21,9 @@ pub enum LandRegistryError {
     #[error("api key not configured")]
     ApiKeyNotConfigured,
 
+    #[error("consent required")]
+    ConsentRequired,
+
     #[error("disk full: available_bytes={available_bytes} required_bytes={required_bytes}")]
     DiskFull {
         available_bytes: u64,
@@ -97,6 +100,7 @@ impl LandRegistryError {
                 message: "insufficient balance".to_string(),
             },
             LandRegistryError::ApiKeyNotConfigured,
+            LandRegistryError::ConsentRequired,
             LandRegistryError::DiskFull {
                 available_bytes: 1,
                 required_bytes: 2,

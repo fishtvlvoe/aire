@@ -75,9 +75,7 @@ pub fn decide(status: Option<&str>, verified_at: Option<i64>, now: i64) -> Start
 
 /// 從 DB 讀狀態 → 套用決策 → 寫 operation_log + settings.license_runtime_state。
 pub fn run_startup_decision(conn: &Connection) -> StartupDecision {
-    let status = settings::get_setting(conn, "license_status")
-        .ok()
-        .flatten();
+    let status = settings::get_setting(conn, "license_status").ok().flatten();
     let verified_at = settings::get_setting(conn, "license_verified_at")
         .ok()
         .flatten()
@@ -89,7 +87,9 @@ pub fn run_startup_decision(conn: &Connection) -> StartupDecision {
     let payload = format!(
         "{{\"status\":\"{}\",\"verified_at\":{}}}",
         status.as_deref().unwrap_or(""),
-        verified_at.map(|v| v.to_string()).unwrap_or_else(|| "null".to_string())
+        verified_at
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "null".to_string())
     );
     let _ = oplog::insert_log(conn, "startup_decision", Some(&payload), "ok");
 
@@ -105,28 +105,40 @@ mod tests {
 
     #[test]
     fn no_status_returns_need_activation() {
-        assert_eq!(decide(None, None, 1_000_000), StartupDecision::NeedActivation);
+        assert_eq!(
+            decide(None, None, 1_000_000),
+            StartupDecision::NeedActivation
+        );
     }
 
     #[test]
     fn active_within_seven_days_returns_active() {
         let now = 10_000_000;
         let v = now - SEVEN_DAYS_SECS + 60; // 6 天 23 分前
-        assert_eq!(decide(Some("active"), Some(v), now), StartupDecision::Active);
+        assert_eq!(
+            decide(Some("active"), Some(v), now),
+            StartupDecision::Active
+        );
     }
 
     #[test]
     fn active_between_seven_and_thirty_days_returns_needs_verify() {
         let now = 10_000_000;
         let v = now - (SEVEN_DAYS_SECS + 60);
-        assert_eq!(decide(Some("active"), Some(v), now), StartupDecision::NeedsVerify);
+        assert_eq!(
+            decide(Some("active"), Some(v), now),
+            StartupDecision::NeedsVerify
+        );
     }
 
     #[test]
     fn active_over_thirty_days_returns_verify_required() {
         let now = 10_000_000;
         let v = now - (THIRTY_DAYS_SECS + 60);
-        assert_eq!(decide(Some("active"), Some(v), now), StartupDecision::VerifyRequired);
+        assert_eq!(
+            decide(Some("active"), Some(v), now),
+            StartupDecision::VerifyRequired
+        );
     }
 
     #[test]

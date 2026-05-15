@@ -114,7 +114,10 @@ pub fn store_vault_recovery(
     Ok(())
 }
 
-pub fn unlock_vault_with_master(vault: &Vault, master_key: &[u8; 32]) -> Result<[u8; 32], VaultError> {
+pub fn unlock_vault_with_master(
+    vault: &Vault,
+    master_key: &[u8; 32],
+) -> Result<[u8; 32], VaultError> {
     let data = {
         let inner = vault.inner.borrow();
         inner.master.clone().ok_or(VaultError::MissingEntry)?

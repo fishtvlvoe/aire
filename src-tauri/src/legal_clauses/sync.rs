@@ -24,7 +24,10 @@ pub async fn fetch_version(
     base_url: &str,
     token: &str,
 ) -> Result<String, LegalClausesError> {
-    let url = format!("{}/v1/legal-clauses/version", base_url.trim_end_matches('/'));
+    let url = format!(
+        "{}/v1/legal-clauses/version",
+        base_url.trim_end_matches('/')
+    );
     let response = client
         .get(url)
         .bearer_auth(token)

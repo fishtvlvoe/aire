@@ -3,10 +3,10 @@
 /// import 尚未實作的 opcos_offline_grace 模組 → 編譯失敗 = 預期紅燈
 #[cfg(test)]
 mod tests {
-    use crate::land_registry::opcos_offline_grace::{
-        OfflineGraceChecker, OfflineGraceState, GraceConfig,
-    };
     use crate::land_registry::errors::LandRegistryError;
+    use crate::land_registry::opcos_offline_grace::{
+        GraceConfig, OfflineGraceChecker, OfflineGraceState,
+    };
 
     // OOG-001: 第一次成功驗證後，offline state 必須 upsert（last_verified_at 有值）
     #[test]
@@ -16,7 +16,9 @@ mod tests {
         checker
             .record_successful_verification("SERIAL-001")
             .expect("First verification record must succeed");
-        let state = checker.get_state().expect("State must exist after first verification");
+        let state = checker
+            .get_state()
+            .expect("State must exist after first verification");
         assert!(
             state.last_verified_at().is_some(),
             "last_verified_at must be set after first successful verification"
@@ -30,7 +32,9 @@ mod tests {
         let clock = SyncedClock::with_fixed_utc_time("2026-05-14T12:00:00Z");
         // last_verified = 6 天 23 小時前
         let last_verified_ts = 1747224000i64 - (6 * 86400 + 23 * 3600);
-        let config = GraceConfig { grace_period_days: 7 };
+        let config = GraceConfig {
+            grace_period_days: 7,
+        };
         let checker = OfflineGraceChecker::new_with_clock_and_config(clock, config);
 
         let days_remaining = checker.compute_days_remaining_from_ts(last_verified_ts);
@@ -57,7 +61,10 @@ mod tests {
     #[test]
     fn should_initialize_time_sync_before_grace_period_check() {
         use crate::land_registry::time_sync::TimeSyncModule;
-        use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+        use std::sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        };
 
         let time_sync_initialized = Arc::new(AtomicBool::new(false));
         let ts_flag = Arc::clone(&time_sync_initialized);
@@ -84,7 +91,9 @@ mod tests {
         let clock = SyncedClock::with_fixed_utc_time("2026-05-14T12:00:00Z");
         // last_verified = 未來時間（本機時鐘被調前 → elapsed < 0）
         let future_ts = 1747224000i64 + 86400; // last_verified 在「未來」
-        let config = GraceConfig { grace_period_days: 7 };
+        let config = GraceConfig {
+            grace_period_days: 7,
+        };
         let checker = OfflineGraceChecker::new_with_clock_and_config(clock, config);
 
         let days_remaining = checker.compute_days_remaining_from_ts(future_ts);
@@ -119,7 +128,9 @@ mod tests {
     fn should_read_grace_period_days_from_config_not_hardcode() {
         use crate::land_registry::time_sync::SyncedClock;
         // config 設定 14 天 grace period
-        let config = GraceConfig { grace_period_days: 14 };
+        let config = GraceConfig {
+            grace_period_days: 14,
+        };
         let clock = SyncedClock::with_fixed_utc_time("2026-05-14T12:00:00Z");
         // last_verified = 13 天前（若 hardcode 7 天，這裡應該 GracePeriodExpired）
         let last_verified = 1747224000i64 - 13 * 86400;
@@ -138,9 +149,13 @@ mod tests {
     fn should_update_serial_when_serial_changes_on_successful_verification() {
         let checker = OfflineGraceChecker::new_in_memory();
         // 第一次驗證（serial = OLD-001）
-        checker.record_successful_verification("SERIAL-OLD-001").unwrap();
+        checker
+            .record_successful_verification("SERIAL-OLD-001")
+            .unwrap();
         // 第二次驗證（serial 改變 = NEW-002）
-        checker.record_successful_verification("SERIAL-NEW-002").unwrap();
+        checker
+            .record_successful_verification("SERIAL-NEW-002")
+            .unwrap();
 
         let state = checker.get_state().expect("State must exist");
         assert_eq!(

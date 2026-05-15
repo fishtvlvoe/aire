@@ -12,7 +12,9 @@ pub struct GraceConfig {
 
 impl Default for GraceConfig {
     fn default() -> Self {
-        Self { grace_period_days: 7 }
+        Self {
+            grace_period_days: 7,
+        }
     }
 }
 
@@ -126,7 +128,10 @@ impl OfflineGraceChecker {
         Ok(())
     }
 
-    pub fn check_grace_period_from_ts(&self, last_verified_ts: i64) -> Result<(), LandRegistryError> {
+    pub fn check_grace_period_from_ts(
+        &self,
+        last_verified_ts: i64,
+    ) -> Result<(), LandRegistryError> {
         if self.compute_days_remaining_from_ts(last_verified_ts) < 0 {
             Err(LandRegistryError::GracePeriodExpired)
         } else {
@@ -134,13 +139,21 @@ impl OfflineGraceChecker {
         }
     }
 
-    pub fn evaluate_opcos_status(&self, status: u16, is_timeout: bool) -> Result<(), LandRegistryError> {
+    pub fn evaluate_opcos_status(
+        &self,
+        status: u16,
+        is_timeout: bool,
+    ) -> Result<(), LandRegistryError> {
         if (400..500).contains(&status) {
             return Err(LandRegistryError::GracePeriodExpired);
         }
         if is_timeout || (500..600).contains(&status) {
-            let st = self.state.lock().map_err(|_| LandRegistryError::Internal { message: "offline grace state lock poisoned".to_string() })?;
-            let last = st.last_verified_at.unwrap_or_else(|| synced_now().timestamp());
+            let st = self.state.lock().map_err(|_| LandRegistryError::Internal {
+                message: "offline grace state lock poisoned".to_string(),
+            })?;
+            let last = st
+                .last_verified_at
+                .unwrap_or_else(|| synced_now().timestamp());
             drop(st);
             return self.check_grace_period_from_ts(last);
         }

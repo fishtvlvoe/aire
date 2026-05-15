@@ -34,6 +34,7 @@ pub mod migrations {
 /// 2. 客戶端跑時路徑解析錯誤
 const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/001_initial.sql"),
+    include_str!("../../migrations/005_owner_consent_log.sql"),
 ];
 
 /// AIRE 資料庫統一錯誤型別。
@@ -93,8 +94,7 @@ pub fn init_db(path: &Path) -> Result<Connection, DbError> {
     let conn = Connection::open(path)?;
     conn.execute_batch("PRAGMA foreign_keys = ON;")?;
 
-    let mut current: i64 =
-        conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    let mut current: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
 
     let target = MIGRATIONS.len() as i64;
     while current < target {
@@ -129,17 +129,33 @@ fn password_verifier_hex(derived_key: &[u8; 32], salt: &[u8]) -> String {
 }
 
 fn read_keystore_value(path: &Path) -> Result<serde_json::Value, DbError> {
-    let raw = std::fs::read_to_string(path)
-        .map_err(|e| DbError::new("keystore_read_failed", format!("keystore.json read failed: {e}")))?;
-    serde_json::from_str::<serde_json::Value>(&raw)
-        .map_err(|e| DbError::new("keystore_read_failed", format!("keystore.json parse failed: {e}")))
+    let raw = std::fs::read_to_string(path).map_err(|e| {
+        DbError::new(
+            "keystore_read_failed",
+            format!("keystore.json read failed: {e}"),
+        )
+    })?;
+    serde_json::from_str::<serde_json::Value>(&raw).map_err(|e| {
+        DbError::new(
+            "keystore_read_failed",
+            format!("keystore.json parse failed: {e}"),
+        )
+    })
 }
 
 fn write_keystore_value(path: &Path, value: &serde_json::Value) -> Result<(), DbError> {
-    let body = serde_json::to_string_pretty(value)
-        .map_err(|e| DbError::new("keystore_write_failed", format!("keystore.json serialize failed: {e}")))?;
-    std::fs::write(path, body)
-        .map_err(|e| DbError::new("keystore_write_failed", format!("keystore.json write failed: {e}")))
+    let body = serde_json::to_string_pretty(value).map_err(|e| {
+        DbError::new(
+            "keystore_write_failed",
+            format!("keystore.json serialize failed: {e}"),
+        )
+    })?;
+    std::fs::write(path, body).map_err(|e| {
+        DbError::new(
+            "keystore_write_failed",
+            format!("keystore.json write failed: {e}"),
+        )
+    })
 }
 
 fn has_any_user_row(conn: &Connection) -> Result<bool, DbError> {
@@ -327,10 +343,20 @@ pub(crate) mod tests {
         let v: i64 = conn
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 1, "fresh DB should be at user_version = 1");
+        assert_eq!(
+            v,
+            MIGRATIONS.len() as i64,
+            "fresh DB should be at latest user_version"
+        );
 
         // 表存在性檢查
-        for table in ["cases", "disclosure_drafts", "settings", "operation_log"] {
+        for table in [
+            "cases",
+            "disclosure_drafts",
+            "settings",
+            "operation_log",
+            "owner_consent_log",
+        ] {
             let count: i64 = conn
                 .query_row(
                     "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
@@ -365,13 +391,11 @@ pub(crate) mod tests {
         let v: i64 = conn2
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 1);
+        assert_eq!(v, MIGRATIONS.len() as i64);
         let val: String = conn2
-            .query_row(
-                "SELECT value FROM settings WHERE key=?1",
-                ["probe"],
-                |r| r.get(0),
-            )
+            .query_row("SELECT value FROM settings WHERE key=?1", ["probe"], |r| {
+                r.get(0)
+            })
             .expect("probe row should still exist");
         assert_eq!(val, "v1");
 
@@ -420,7 +444,8 @@ pub(crate) mod tests {
             let conn = Connection::open(&path).expect("create db");
             let key_spec = format!("x'{}'", hex_encode(&derived_key));
             conn.pragma_update(None, "key", key_spec.as_str()).unwrap();
-            conn.execute_batch("CREATE TABLE probe (v INTEGER);").unwrap();
+            conn.execute_batch("CREATE TABLE probe (v INTEGER);")
+                .unwrap();
             conn.execute("INSERT INTO probe VALUES (99)", []).unwrap();
         }
 
@@ -429,10 +454,7 @@ pub(crate) mod tests {
         // 這裡我們繞過：把 keystore_path 的 parent 對齊到 db 的 parent，
         // 因為 open_with_master_password 固定找 parent/keystore.json，
         // 所以用標準的 keystore.json 路徑（db 同目錄）
-        let std_keystore = path
-            .parent()
-            .unwrap()
-            .join("keystore.json");
+        let std_keystore = path.parent().unwrap().join("keystore.json");
         std::fs::write(
             &std_keystore,
             serde_json::to_string_pretty(&keystore_content).unwrap(),
@@ -490,7 +512,9 @@ pub(crate) mod tests {
         assert!(result.is_err(), "錯誤密碼應回傳 error");
         let err = result.unwrap_err();
         assert!(
-            err.code == "wrong_password" || err.code == "key_derive_failed" || err.code == "sqlite_unlock_failed",
+            err.code == "wrong_password"
+                || err.code == "key_derive_failed"
+                || err.code == "sqlite_unlock_failed",
             "error code 應為 wrong_password 或相關加密錯誤，實際：{}",
             err.code
         );

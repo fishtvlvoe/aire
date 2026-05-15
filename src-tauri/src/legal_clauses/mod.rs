@@ -83,7 +83,9 @@ pub async fn sync_legal_clauses(
 
     let local_version = cache::max_fetched_at(conn).map_err(LegalClausesError::CacheWriteFailed)?;
     if local_version.as_deref() == Some(remote_version.as_str()) {
-        return Ok(SyncResult::Success { updated: Vec::new() });
+        return Ok(SyncResult::Success {
+            updated: Vec::new(),
+        });
     }
 
     let mut updated = Vec::new();
@@ -218,9 +220,7 @@ pub async fn start_sync_scheduler(
 /// block_in_place：在 tokio worker thread 上安全執行同步 blocking 操作
 /// 讓 Connection（非 Send）不需要跨 await，在同一 thread 完成所有 DB + 網路工作
 #[tauri::command(rename = "sync_legal_clauses")]
-pub async fn sync_ipc(
-    db: tauri::State<'_, crate::DbState>,
-) -> Result<String, String> {
+pub async fn sync_ipc(db: tauri::State<'_, crate::DbState>) -> Result<String, String> {
     let db_mutex = &db.0;
     tokio::task::block_in_place(|| {
         let conn = db_mutex.lock().map_err(|e| e.to_string())?;

@@ -3,9 +3,7 @@
 /// import 尚未實作的 billing_log 模組 → 編譯失敗 = 預期紅燈
 #[cfg(test)]
 mod tests {
-    use crate::land_registry::billing_log::{
-        BillingLog, BillingLogEntry, aggregate_daily_cost,
-    };
+    use crate::land_registry::billing_log::{aggregate_daily_cost, BillingLog, BillingLogEntry};
     use crate::land_registry::errors::LandRegistryError;
 
     // LBL-001: transaction_id 必須 case-insensitively 從 response 中提取
@@ -57,17 +55,21 @@ mod tests {
         let api_error = LandRegistryError::Network {
             message: "connection refused".to_string(),
             source: Box::new(std::io::Error::new(
-                std::io::ErrorKind::ConnectionRefused, "refused"
+                std::io::ErrorKind::ConnectionRefused,
+                "refused",
             )),
         };
         log.record_failed_call("BA-0001-00010001", "API_001", api_error, "TXN-FAIL-001")
             .expect("Recording failed call must not itself fail");
 
         let entries = log.get_entries_for("BA-0001-00010001");
-        let failed_entry = entries.iter().find(|e| e.transaction_id() == "TXN-FAIL-001")
+        let failed_entry = entries
+            .iter()
+            .find(|e| e.transaction_id() == "TXN-FAIL-001")
             .expect("Failed call entry must exist");
         assert_eq!(
-            failed_entry.cost(), 0.0,
+            failed_entry.cost(),
+            0.0,
             "Failed API call must record cost = 0, not the last known cost"
         );
     }
@@ -81,7 +83,8 @@ mod tests {
         // UTC: 2026-05-13 23:30 → 台灣 2026-05-14 07:30（跨日！）
         let clock_utc_23_30 = SyncedClock::with_fixed_utc_time("2026-05-13T23:30:00Z");
         let log = BillingLog::new_with_clock(clock_utc_23_30);
-        log.record_call("BA-0001-00010001", "API_001", 1.0, "TXN-A").unwrap();
+        log.record_call("BA-0001-00010001", "API_001", 1.0, "TXN-A")
+            .unwrap();
 
         // 台灣時間 = UTC+8，所以 2026-05-13 23:30 UTC = 2026-05-14 07:30 台灣
         // 費用應該彙總到 2026-05-14（台灣本地日期）
@@ -96,9 +99,12 @@ mod tests {
     #[test]
     fn should_handle_zero_and_negative_cost_in_aggregation() {
         let log = BillingLog::new_in_memory();
-        log.record_call("BA-0001-00010001", "API_001", 1.0, "TXN-001").unwrap();
-        log.record_call("BA-0001-00010001", "API_002", 0.0, "TXN-002").unwrap();
-        log.record_call("BA-0001-00010001", "API_003", -0.5, "TXN-REFUND").unwrap(); // 退款/修正
+        log.record_call("BA-0001-00010001", "API_001", 1.0, "TXN-001")
+            .unwrap();
+        log.record_call("BA-0001-00010001", "API_002", 0.0, "TXN-002")
+            .unwrap();
+        log.record_call("BA-0001-00010001", "API_003", -0.5, "TXN-REFUND")
+            .unwrap(); // 退款/修正
 
         let daily_cost = log.aggregate_daily("2026-05-14");
         // 1.0 + 0.0 + (-0.5) = 0.5（負數是合法的退款修正）
@@ -113,12 +119,17 @@ mod tests {
     #[test]
     fn should_call_disk_resilience_check_before_billing_log_insert() {
         use crate::land_registry::disk_resilience::DiskGuard;
-        use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+        use std::sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        };
 
         let disk_check_called = Arc::new(AtomicBool::new(false));
         let guard = DiskGuard::with_spy_hook({
             let flag = Arc::clone(&disk_check_called);
-            move || { flag.store(true, Ordering::SeqCst); }
+            move || {
+                flag.store(true, Ordering::SeqCst);
+            }
         });
         let log = BillingLog::new_with_disk_guard(guard);
         let _ = log.record_call("BA-0001-00010001", "API_001", 1.0, "TXN-001");
@@ -136,10 +147,13 @@ mod tests {
         // 固定 synced time：2026-05-14T12:00:00Z
         let fixed_clock = SyncedClock::with_fixed_utc_time("2026-05-14T12:00:00Z");
         let log = BillingLog::new_with_clock(fixed_clock);
-        log.record_call("BA-0001-00010001", "API_001", 1.0, "TXN-SYNC").unwrap();
+        log.record_call("BA-0001-00010001", "API_001", 1.0, "TXN-SYNC")
+            .unwrap();
 
         let entries = log.get_entries_for("BA-0001-00010001");
-        let entry = entries.iter().find(|e| e.transaction_id() == "TXN-SYNC")
+        let entry = entries
+            .iter()
+            .find(|e| e.transaction_id() == "TXN-SYNC")
             .expect("Entry must exist");
         // timestamp 必須是 synced clock 的時間，不是本機 system clock
         assert!(
@@ -153,7 +167,8 @@ mod tests {
     #[test]
     fn should_return_zero_for_inverted_date_range() {
         let log = BillingLog::new_in_memory();
-        log.record_call("BA-0001-00010001", "API_001", 100.0, "TXN-001").unwrap();
+        log.record_call("BA-0001-00010001", "API_001", 100.0, "TXN-001")
+            .unwrap();
 
         // end_date < start_date（inverted range）
         let cost = log.aggregate_range("2026-05-20", "2026-05-01");

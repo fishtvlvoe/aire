@@ -46,7 +46,9 @@ impl LandRegistryCache {
         }
     }
 
-    pub fn new_with_keychain(keychain: crate::encryption::KeychainState) -> Result<Self, LandRegistryError> {
+    pub fn new_with_keychain(
+        keychain: crate::encryption::KeychainState,
+    ) -> Result<Self, LandRegistryError> {
         if !keychain.is_available() {
             return Err(LandRegistryError::Internal {
                 message: "encryption init failed".to_string(),
@@ -86,7 +88,11 @@ impl LandRegistryCache {
         self.map.lock().ok()?.get(&key).cloned()
     }
 
-    pub fn invalidate(&self, parcel_id: &str, api_id: Option<&str>) -> Result<(), LandRegistryError> {
+    pub fn invalidate(
+        &self,
+        parcel_id: &str,
+        api_id: Option<&str>,
+    ) -> Result<(), LandRegistryError> {
         let parcel_norm = normalize_parcel_id(parcel_id);
         let mut map = self.map.lock().map_err(|_| LandRegistryError::Internal {
             message: "cache mutex poisoned".to_string(),
@@ -108,7 +114,11 @@ impl LandRegistryCache {
         let parcel_norm = normalize_parcel_id(parcel_id);
         self.map
             .lock()
-            .map(|m| m.keys().filter(|k| k.starts_with(&format!("{}|", parcel_norm))).count())
+            .map(|m| {
+                m.keys()
+                    .filter(|k| k.starts_with(&format!("{}|", parcel_norm)))
+                    .count()
+            })
             .unwrap_or(0)
     }
 
@@ -128,18 +138,23 @@ impl LandRegistryCache {
 
         let key = generate_cache_key(parcel_id, api_id, query_date);
         let per_key_lock = {
-            let mut locks = self.inflight.lock().map_err(|_| LandRegistryError::Internal {
-                message: "inflight mutex poisoned".to_string(),
-            })?;
+            let mut locks = self
+                .inflight
+                .lock()
+                .map_err(|_| LandRegistryError::Internal {
+                    message: "inflight mutex poisoned".to_string(),
+                })?;
             locks
                 .entry(key.clone())
                 .or_insert_with(|| Arc::new(Mutex::new(())))
                 .clone()
         };
 
-        let _g = per_key_lock.lock().map_err(|_| LandRegistryError::Internal {
-            message: "per-key lock poisoned".to_string(),
-        })?;
+        let _g = per_key_lock
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "per-key lock poisoned".to_string(),
+            })?;
 
         if let Some(v) = self.get(parcel_id, api_id, query_date) {
             return Ok(v);

@@ -106,7 +106,8 @@ mod tests {
         let cid = "44444444-4444-4444-4444-444444444444";
         parent_case(&conn, cid);
         upsert_draft(&conn, cid, "{}", 1, 1).unwrap();
-        conn.execute("DELETE FROM cases WHERE id = ?1", [cid]).unwrap();
+        conn.execute("DELETE FROM cases WHERE id = ?1", [cid])
+            .unwrap();
         assert!(get_draft(&conn, cid).unwrap().is_none());
     }
 }

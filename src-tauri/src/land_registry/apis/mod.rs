@@ -1,5 +1,5 @@
-use crate::land_registry::errors::LandRegistryError;
 use crate::land_registry::billing_log::BillingLog;
+use crate::land_registry::errors::LandRegistryError;
 use serde_json::Value;
 use std::sync::Arc;
 
@@ -90,10 +90,13 @@ pub async fn post_json_with_key(
         })?;
 
     let status = response.status().as_u16();
-    let body = response.text().await.map_err(|error| LandRegistryError::Network {
-        message: format!("read response failed for endpoint={endpoint_path}"),
-        source: Box::new(error),
-    })?;
+    let body = response
+        .text()
+        .await
+        .map_err(|error| LandRegistryError::Network {
+            message: format!("read response failed for endpoint={endpoint_path}"),
+            source: Box::new(error),
+        })?;
     if !(200..300).contains(&status) {
         return Err(LandRegistryError::from_http_response(status, &body));
     }
@@ -104,7 +107,9 @@ pub async fn post_json_with_key(
     Ok((status, json))
 }
 
-pub fn require_api_key<P: ApiKeyProvider>(provider: &P) -> Result<ApiCredentials, LandRegistryError> {
+pub fn require_api_key<P: ApiKeyProvider>(
+    provider: &P,
+) -> Result<ApiCredentials, LandRegistryError> {
     provider
         .get_api_key()?
         .ok_or(LandRegistryError::ApiKeyNotConfigured)
@@ -154,10 +159,7 @@ pub fn normalize_address(input: &str) -> String {
         }
     }
 
-    normalized
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
+    normalized.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 #[cfg(test)]

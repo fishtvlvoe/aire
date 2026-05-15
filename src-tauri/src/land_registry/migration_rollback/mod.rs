@@ -117,20 +117,32 @@ impl MigrationManager {
     }
 
     pub fn run_migration_001(&self) -> Result<(), LandRegistryError> {
-        self.applied.lock().map_err(|_| LandRegistryError::Internal { message: "lock poisoned".to_string() })?
+        self.applied
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "lock poisoned".to_string(),
+            })?
             .insert("001".to_string());
         Ok(())
     }
 
     pub fn run_migration_002_that_fails(&self) -> Result<(), LandRegistryError> {
-        Err(LandRegistryError::MigrationFailed { message: "002 failed".to_string() })
+        Err(LandRegistryError::MigrationFailed {
+            message: "002 failed".to_string(),
+        })
     }
 
     pub fn run_migration_002(&self) -> Result<(), LandRegistryError> {
         if self.create_backup().is_err() {
-            return Err(LandRegistryError::MigrationFailed { message: "backup failed".to_string() });
+            return Err(LandRegistryError::MigrationFailed {
+                message: "backup failed".to_string(),
+            });
         }
-        self.applied.lock().map_err(|_| LandRegistryError::Internal { message: "lock poisoned".to_string() })?
+        self.applied
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "lock poisoned".to_string(),
+            })?
             .insert("002".to_string());
         Ok(())
     }
@@ -141,7 +153,9 @@ impl MigrationManager {
 
     pub fn create_backup(&self) -> Result<String, LandRegistryError> {
         if self.fail_vacuum {
-            return Err(LandRegistryError::MigrationFailed { message: "VACUUM INTO failed".to_string() });
+            return Err(LandRegistryError::MigrationFailed {
+                message: "VACUUM INTO failed".to_string(),
+            });
         }
         if let Some(limit) = self.tight_disk_limit {
             if limit < 1024 {
@@ -151,18 +165,34 @@ impl MigrationManager {
                 });
             }
         }
-        self.backup_sizes.lock().map_err(|_| LandRegistryError::Internal { message: "lock poisoned".to_string() })?.push(4096);
+        self.backup_sizes
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "lock poisoned".to_string(),
+            })?
+            .push(4096);
         let path = "backup_2026-05-14T00-00-00Z.sqlite".to_string();
-        self.backup_files.lock().map_err(|_| LandRegistryError::Internal { message: "lock poisoned".to_string() })?.insert(path.clone(), true);
+        self.backup_files
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "lock poisoned".to_string(),
+            })?
+            .insert(path.clone(), true);
         Ok(path)
     }
 
     pub fn last_backup_size_bytes(&self) -> u64 {
-        self.backup_sizes.lock().ok().and_then(|v| v.last().copied()).unwrap_or(0)
+        self.backup_sizes
+            .lock()
+            .ok()
+            .and_then(|v| v.last().copied())
+            .unwrap_or(0)
     }
 
     pub fn rollback_with_long_delay(&self) -> Result<(), LandRegistryError> {
-        let _guard = self.lock.write().map_err(|_| LandRegistryError::Internal { message: "lock poisoned".to_string() })?;
+        let _guard = self.lock.write().map_err(|_| LandRegistryError::Internal {
+            message: "lock poisoned".to_string(),
+        })?;
         thread::sleep(Duration::from_millis(100));
         Ok(())
     }
@@ -170,7 +200,9 @@ impl MigrationManager {
     pub fn try_read_during_rollback(&self) -> Result<(), LandRegistryError> {
         match self.lock.try_read() {
             Ok(_) => Ok(()),
-            Err(_) => Err(LandRegistryError::Internal { message: "db locked".to_string() }),
+            Err(_) => Err(LandRegistryError::Internal {
+                message: "db locked".to_string(),
+            }),
         }
     }
 
@@ -183,17 +215,28 @@ impl MigrationManager {
     }
 
     pub fn simulate_backup_with_future_mtime(&self, name: &str) {
-        let _ = self.backup_files.lock().map(|mut m| m.insert(name.to_string(), true));
+        let _ = self
+            .backup_files
+            .lock()
+            .map(|mut m| m.insert(name.to_string(), true));
     }
 
     pub fn cleanup_old_backups(&self) -> Result<(), LandRegistryError> {
         if self.cleanup_disk_full {
-            return Err(LandRegistryError::DiskFull { available_bytes: 0, required_bytes: 1 });
+            return Err(LandRegistryError::DiskFull {
+                available_bytes: 0,
+                required_bytes: 1,
+            });
         }
         let cutoff = match self.backup_policy {
             BackupPolicy::KeepLast7Days => "2026-05-07",
         };
-        let mut files = self.backup_files.lock().map_err(|_| LandRegistryError::Internal { message: "lock poisoned".to_string() })?;
+        let mut files = self
+            .backup_files
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "lock poisoned".to_string(),
+            })?;
         let names: Vec<String> = files.keys().cloned().collect();
         for name in names {
             if let Some(ts) = extract_date_from_backup_filename(&name) {
@@ -206,13 +249,22 @@ impl MigrationManager {
     }
 
     pub fn backup_exists(&self, name: &str) -> bool {
-        self.backup_files.lock().map(|m| m.contains_key(name)).unwrap_or(false)
+        self.backup_files
+            .lock()
+            .map(|m| m.contains_key(name))
+            .unwrap_or(false)
     }
 
-    pub fn open_backup_with_key(&self, _backup_path: &str, key: &str) -> Result<(), LandRegistryError> {
+    pub fn open_backup_with_key(
+        &self,
+        _backup_path: &str,
+        key: &str,
+    ) -> Result<(), LandRegistryError> {
         match &self.encrypted_key {
             Some(expected) if expected == key => Ok(()),
-            Some(_) => Err(LandRegistryError::Internal { message: "wrong key".to_string() }),
+            Some(_) => Err(LandRegistryError::Internal {
+                message: "wrong key".to_string(),
+            }),
             None => Ok(()),
         }
     }
@@ -227,13 +279,21 @@ impl MigrationManager {
         }
     }
 
-    pub fn backup_before_migration(&self, db_path: &Path, key_hex: Option<&str>) -> Result<PathBuf, LandRegistryError> {
+    pub fn backup_before_migration(
+        &self,
+        db_path: &Path,
+        key_hex: Option<&str>,
+    ) -> Result<PathBuf, LandRegistryError> {
         let _pragma_key = key_hex.map(|k| format!("PRAGMA key = x'{k}'"));
         let backup = db_path.with_extension("backup.sqlite");
         Ok(backup)
     }
 
-    pub fn restore_on_failure(&self, backup_path: &Path, db_path: &Path) -> Result<(), LandRegistryError> {
+    pub fn restore_on_failure(
+        &self,
+        backup_path: &Path,
+        db_path: &Path,
+    ) -> Result<(), LandRegistryError> {
         #[cfg(windows)]
         {
             let _ = (backup_path, db_path);

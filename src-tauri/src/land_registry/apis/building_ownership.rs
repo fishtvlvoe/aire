@@ -100,7 +100,8 @@ impl<P: ApiKeyProvider> BuildingOwnershipApi<P> {
                 let parsed = BuildingOwnershipEndpoint::parse_response(json);
                 match parsed {
                     Ok(data) => {
-                        let _ = record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
+                        let _ =
+                            record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
                         Ok(data)
                     }
                     Err(error) => {

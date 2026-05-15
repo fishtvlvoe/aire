@@ -36,7 +36,10 @@ impl std::fmt::Display for SettingsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SettingsError::ReservedKey(k) => {
-                write!(f, "[reserved_key] '{k}' must be stored in OS keychain, not SQLite")
+                write!(
+                    f,
+                    "[reserved_key] '{k}' must be stored in OS keychain, not SQLite"
+                )
             }
             SettingsError::Db(e) => write!(f, "{e}"),
         }
@@ -59,11 +62,9 @@ impl From<rusqlite::Error> for SettingsError {
 
 /// 取得 setting；不存在回 `Ok(None)`。
 pub fn get_setting(conn: &Connection, key: &str) -> Result<Option<String>, DbError> {
-    let r = conn.query_row(
-        "SELECT value FROM settings WHERE key = ?1",
-        [key],
-        |row| row.get::<_, String>(0),
-    );
+    let r = conn.query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
+        row.get::<_, String>(0)
+    });
     match r {
         Ok(v) => Ok(Some(v)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
@@ -114,12 +115,16 @@ mod tests {
         let conn = open_in_memory();
         set_setting(&conn, "k", "v1").unwrap();
         let t1: i64 = conn
-            .query_row("SELECT updated_at FROM settings WHERE key='k'", [], |r| r.get(0))
+            .query_row("SELECT updated_at FROM settings WHERE key='k'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         std::thread::sleep(std::time::Duration::from_millis(1100));
         set_setting(&conn, "k", "v2").unwrap();
         let t2: i64 = conn
-            .query_row("SELECT updated_at FROM settings WHERE key='k'", [], |r| r.get(0))
+            .query_row("SELECT updated_at FROM settings WHERE key='k'", [], |r| {
+                r.get(0)
+            })
             .unwrap();
         assert!(t2 >= t1);
         let v = get_setting(&conn, "k").unwrap().unwrap();

@@ -3,10 +3,10 @@
 /// import 尚未實作的 field_mapping 模組 → 編譯失敗 = 預期紅燈
 #[cfg(test)]
 mod tests {
-    use crate::land_registry::field_mapping::{
-        FieldMappingConfig, FieldMapper, ApiFieldSchema, resolve_json_path,
-    };
     use crate::land_registry::errors::LandRegistryError;
+    use crate::land_registry::field_mapping::{
+        resolve_json_path, ApiFieldSchema, FieldMapper, FieldMappingConfig,
+    };
 
     // LRF-001: config 檔案不存在時回 error（不 panic）
     #[test]
@@ -26,19 +26,28 @@ mod tests {
     // LRF-002: api_id lookup 必須 normalize 大小寫（"api_owner" == "API_OWNER"）
     #[test]
     fn should_normalize_api_id_case_before_lookup() {
-        let config = FieldMappingConfig::from_toml_str(r#"
+        let config = FieldMappingConfig::from_toml_str(
+            r#"
             [apis.api_owner]
             target_field = "owner_name"
             json_path = "$.data.name"
-        "#).expect("Config parse must succeed");
+        "#,
+        )
+        .expect("Config parse must succeed");
         let mapper = FieldMapper::new(config);
 
         // 用大寫 API_ID 查，應該 match 到小寫定義的 api_owner
         let result_upper = mapper.get_target_field("API_OWNER");
         let result_lower = mapper.get_target_field("api_owner");
         let result_mixed = mapper.get_target_field("Api_Owner");
-        assert_eq!(result_upper, result_lower, "API ID lookup must be case-insensitive");
-        assert_eq!(result_upper, result_mixed, "API ID lookup must be case-insensitive");
+        assert_eq!(
+            result_upper, result_lower,
+            "API ID lookup must be case-insensitive"
+        );
+        assert_eq!(
+            result_upper, result_mixed,
+            "API ID lookup must be case-insensitive"
+        );
     }
 
     // LRF-003: 巢狀 JSON path（如 $.data.parcel.owner）必須正確解析
@@ -52,13 +61,21 @@ mod tests {
                 }
             }
         });
-        let name = resolve_json_path(&json, "$.data.parcel.owner")
-            .expect("Nested JSON path must resolve");
-        assert_eq!(name.as_str().unwrap(), "王小明", "Nested JSON path must resolve correctly");
+        let name =
+            resolve_json_path(&json, "$.data.parcel.owner").expect("Nested JSON path must resolve");
+        assert_eq!(
+            name.as_str().unwrap(),
+            "王小明",
+            "Nested JSON path must resolve correctly"
+        );
 
-        let area = resolve_json_path(&json, "$.data.parcel.area")
-            .expect("Nested JSON path must resolve");
-        assert_eq!(area.as_f64().unwrap(), 150.5, "Nested numeric JSON path must resolve correctly");
+        let area =
+            resolve_json_path(&json, "$.data.parcel.area").expect("Nested JSON path must resolve");
+        assert_eq!(
+            area.as_f64().unwrap(),
+            150.5,
+            "Nested numeric JSON path must resolve correctly"
+        );
     }
 
     // LRF-004: app 重啟後必須 reload config（不使用舊 mapping）
@@ -68,21 +85,29 @@ mod tests {
         // 建立臨時 config 檔
         let tmp_dir = std::env::temp_dir();
         let config_path = tmp_dir.join("test-field-mapping.toml");
-        std::fs::write(&config_path, r#"
+        std::fs::write(
+            &config_path,
+            r#"
             [apis.api_v1]
             target_field = "owner_v1"
             json_path = "$.owner"
-        "#).expect("Write temp config");
+        "#,
+        )
+        .expect("Write temp config");
 
         let mapper = FieldMapper::load_from_path(&config_path).expect("Load config v1");
         assert_eq!(mapper.get_target_field("api_v1").unwrap(), "owner_v1");
 
         // 模擬 config 更新（v2）
-        std::fs::write(&config_path, r#"
+        std::fs::write(
+            &config_path,
+            r#"
             [apis.api_v1]
             target_field = "owner_v2"
             json_path = "$.owner_new"
-        "#).expect("Write updated config");
+        "#,
+        )
+        .expect("Write updated config");
 
         // reload 後必須使用新 mapping
         let mapper_v2 = FieldMapper::load_from_path(&config_path).expect("Load config v2");
@@ -118,14 +143,13 @@ mod tests {
     fn should_accept_long_api_ids_in_billing_log() {
         use crate::land_registry::billing_log::BillingLogEntry;
         let long_api_id = "a".repeat(255);
-        let entry = BillingLogEntry::new(
-            "BA-0001-00010001",
-            &long_api_id,
-            0.5,
-            "TXN-001",
-        );
+        let entry = BillingLogEntry::new("BA-0001-00010001", &long_api_id, 0.5, "TXN-001");
         // 建立 entry 不應截斷或 panic
-        assert_eq!(entry.api_id().len(), 255, "Long api_id (255 chars) must be accepted without truncation");
+        assert_eq!(
+            entry.api_id().len(),
+            255,
+            "Long api_id (255 chars) must be accepted without truncation"
+        );
     }
 
     // LRF-007: config 載入時必須驗證 schema version（不接受過時 config 格式）

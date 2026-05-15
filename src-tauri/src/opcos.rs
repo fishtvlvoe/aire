@@ -65,15 +65,15 @@ struct ActivateReq<'a> {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct VerifyResp {
-    pub status: String,             // "active"
+    pub status: String, // "active"
     pub valid_until: Option<String>,
     pub last_verified_at: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ActivateResp {
-    pub status: String,             // "active"
-    pub token: String,              // JWT
+    pub status: String, // "active"
+    pub token: String,  // JWT
     pub valid_until: Option<String>,
 }
 
@@ -114,7 +114,11 @@ pub async fn verify_license(license_key: &str, device_id: &str) -> Result<Verify
             .map_err(|e| OpcosError::new("bad_response", Some(status.as_u16()), e.to_string()))
     } else {
         let code = parse_api_error(resp).await;
-        Err(OpcosError::new(code, Some(status.as_u16()), "verify failed"))
+        Err(OpcosError::new(
+            code,
+            Some(status.as_u16()),
+            "verify failed",
+        ))
     }
 }
 

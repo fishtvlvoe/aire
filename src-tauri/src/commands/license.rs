@@ -111,11 +111,10 @@ pub async fn activate_license(
 ) -> Result<LicenseStatus, ActivationError> {
     // 1. 取 device_id（已在啟動時建）
     let device_id = {
-        let conn = db.0.lock().map_err(|e| {
-            ActivationError::new("db_lock", format!("db lock poisoned: {e}"))
-        })?;
-        read_device_id(&conn)
-            .map_err(|e| ActivationError::new("device_id_missing", e))?
+        let conn =
+            db.0.lock()
+                .map_err(|e| ActivationError::new("db_lock", format!("db lock poisoned: {e}")))?;
+        read_device_id(&conn).map_err(|e| ActivationError::new("device_id_missing", e))?
     };
 
     // 2. 呼叫 OPCOS activate
@@ -128,14 +127,12 @@ pub async fn activate_license(
                 "ALREADY_ACTIVATED_OTHER_DEVICE",
                 "此序號已綁定其他裝置，請聯絡客服解除原裝置綁定",
             ),
-            (Some(422), "invalid_key") => ActivationError::new(
-                "INVALID_KEY",
-                "序號無效，請確認輸入是否正確",
-            ),
-            (Some(422), "quota_exhausted") => ActivationError::new(
-                "QUOTA_EXHAUSTED",
-                "授權額度已用盡，請聯絡客服加購",
-            ),
+            (Some(422), "invalid_key") => {
+                ActivationError::new("INVALID_KEY", "序號無效，請確認輸入是否正確")
+            }
+            (Some(422), "quota_exhausted") => {
+                ActivationError::new("QUOTA_EXHAUSTED", "授權額度已用盡，請聯絡客服加購")
+            }
             (Some(s), c) if s >= 500 => ActivationError::new(
                 "OPCOS_UNAVAILABLE",
                 format!("OPCOS 伺服器錯誤（{s} {c}），請稍後再試"),
@@ -170,9 +167,9 @@ pub async fn activate_license(
     // 4. 寫 settings（非敏感資料）
     let now = now_secs();
     {
-        let conn = db.0.lock().map_err(|e| {
-            ActivationError::new("db_lock", format!("db lock poisoned: {e}"))
-        })?;
+        let conn =
+            db.0.lock()
+                .map_err(|e| ActivationError::new("db_lock", format!("db lock poisoned: {e}")))?;
         settings::set_setting(&conn, "license_status", "active")
             .map_err(|e| ActivationError::new("db_write", e.to_string()))?;
         settings::set_setting(&conn, "license_verified_at", &now.to_string())
@@ -191,23 +188,21 @@ pub async fn verify_license(
     keyring: State<'_, KeyringState>,
 ) -> Result<LicenseStatus, ActivationError> {
     let (device_id, license_key) = {
-        let conn = db.0.lock().map_err(|e| {
-            ActivationError::new("db_lock", format!("db lock poisoned: {e}"))
-        })?;
-        let did = read_device_id(&conn)
-            .map_err(|e| ActivationError::new("device_id_missing", e))?;
+        let conn =
+            db.0.lock()
+                .map_err(|e| ActivationError::new("db_lock", format!("db lock poisoned: {e}")))?;
+        let did =
+            read_device_id(&conn).map_err(|e| ActivationError::new("device_id_missing", e))?;
         let lk = secrets::get_credential(keyring.0.as_ref(), "license_key")
             .map_err(|e| ActivationError::new("CREDENTIAL_STORE_UNAVAILABLE", e.to_string()))?
-            .ok_or_else(|| {
-                ActivationError::new("NOT_ACTIVATED", "尚未啟用，請先輸入序號")
-            })?;
+            .ok_or_else(|| ActivationError::new("NOT_ACTIVATED", "尚未啟用，請先輸入序號"))?;
         (did, lk)
     };
 
     let res = opcos::verify_license(&license_key, &device_id).await;
-    let conn = db.0.lock().map_err(|e| {
-        ActivationError::new("db_lock", format!("db lock poisoned: {e}"))
-    })?;
+    let conn =
+        db.0.lock()
+            .map_err(|e| ActivationError::new("db_lock", format!("db lock poisoned: {e}")))?;
     match res {
         Ok(_resp) => {
             let now = now_secs();
@@ -243,9 +238,9 @@ pub async fn verify_license(
 
 #[tauri::command]
 pub async fn get_license_status(db: State<'_, DbState>) -> Result<LicenseStatus, ActivationError> {
-    let conn = db.0.lock().map_err(|e| {
-        ActivationError::new("db_lock", format!("db lock poisoned: {e}"))
-    })?;
+    let conn =
+        db.0.lock()
+            .map_err(|e| ActivationError::new("db_lock", format!("db lock poisoned: {e}")))?;
     Ok(read_status(&conn))
 }
 

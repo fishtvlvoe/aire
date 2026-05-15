@@ -26,12 +26,11 @@ impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
 
     fn parse_response(json: Value) -> Result<BuildingRegistryData, LandRegistryError> {
         let root = json.get("data").unwrap_or(&json);
-        let building_area = root
-            .get("building_area")
-            .and_then(Value::as_f64)
-            .ok_or(LandRegistryError::Internal {
+        let building_area = root.get("building_area").and_then(Value::as_f64).ok_or(
+            LandRegistryError::Internal {
                 message: "missing building_area".to_string(),
-            })?;
+            },
+        )?;
         let building_purpose = root
             .get("building_purpose")
             .and_then(Value::as_str)
@@ -106,7 +105,8 @@ impl<P: ApiKeyProvider> BuildingRegistryApi<P> {
                 let parsed = BuildingRegistryEndpoint::parse_response(json);
                 match parsed {
                     Ok(data) => {
-                        let _ = record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
+                        let _ =
+                            record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
                         Ok(data)
                     }
                     Err(error) => {

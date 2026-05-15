@@ -1,7 +1,11 @@
+use crate::commands::cases::IpcError;
 use crate::land_registry::apis::{ApiCredentials, ApiKeyProvider};
+use crate::land_registry::client::{ClientConfig, LandRegistryClient};
 use crate::land_registry::errors::LandRegistryError;
 use crate::secrets::{delete_credential, get_credential, set_credential, KeyringBackend};
+use crate::{AsyncIpcState, KeyringState};
 use serde::{Deserialize, Serialize};
+use tauri::State;
 
 pub const LAND_REGISTRY_API_KEY_NAME: &str = "aire-land-registry-api-key";
 
@@ -24,7 +28,11 @@ pub struct ConnectionTestResult {
 }
 
 pub trait TokenConnectionTester {
-    fn test_connection(&self, client_id: &str, client_secret: &str) -> Result<(), LandRegistryError>;
+    fn test_connection(
+        &self,
+        client_id: &str,
+        client_secret: &str,
+    ) -> Result<(), LandRegistryError>;
 }
 
 pub struct ApiKeyStorage<'a> {
@@ -144,7 +152,7 @@ pub fn test_connection<T: TokenConnectionTester>(
     ApiKeyStorage::new(backend).test_connection(tester)
 }
 
-pub fn land_registry_set_api_key(
+pub fn set_api_key_with_backend(
     backend: &dyn KeyringBackend,
     client_id: String,
     client_secret: String,
@@ -152,21 +160,89 @@ pub fn land_registry_set_api_key(
     set_api_key(backend, client_id, client_secret)
 }
 
-pub fn land_registry_get_api_key(
+pub fn get_api_key_with_backend(
     backend: &dyn KeyringBackend,
 ) -> Result<Option<ApiKeyInfo>, LandRegistryError> {
     get_api_key(backend)
 }
 
-pub fn land_registry_clear_api_key(backend: &dyn KeyringBackend) -> Result<(), LandRegistryError> {
+pub fn clear_api_key_with_backend(backend: &dyn KeyringBackend) -> Result<(), LandRegistryError> {
     clear_api_key(backend)
 }
 
-pub fn land_registry_test_connection<T: TokenConnectionTester>(
+pub fn test_connection_with_backend<T: TokenConnectionTester>(
     backend: &dyn KeyringBackend,
     tester: &T,
 ) -> Result<ConnectionTestResult, LandRegistryError> {
     test_connection(backend, tester)
+}
+
+fn to_ipc_error(error: LandRegistryError) -> IpcError {
+    let code = match error {
+        LandRegistryError::ApiKeyNotConfigured => "ApiKeyNotConfigured",
+        LandRegistryError::ConsentRequired => "ConsentRequired",
+        LandRegistryError::InsufficientBalance { .. } => "InsufficientBalance",
+        _ => "InternalError",
+    };
+    IpcError {
+        code: code.to_string(),
+        message: error.to_string(),
+    }
+}
+
+struct RuntimeConnectionTester {
+    base_url: String,
+}
+
+impl TokenConnectionTester for RuntimeConnectionTester {
+    fn test_connection(
+        &self,
+        client_id: &str,
+        client_secret: &str,
+    ) -> Result<(), LandRegistryError> {
+        let mut config = ClientConfig::default_test();
+        config.client_id = client_id.to_string();
+        config.client_secret = client_secret.to_string();
+        config.base_url = self.base_url.clone();
+        config.token_endpoint = format!("{}/oauth/token", self.base_url.trim_end_matches('/'));
+        let client = LandRegistryClient::new(config);
+
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|error| LandRegistryError::Internal {
+                message: format!("create runtime failed: {error}"),
+            })?;
+
+        runtime.block_on(client.get_token()).map(|_| ())
+    }
+}
+
+#[tauri::command]
+pub async fn land_registry_set_api_key(
+    client_id: String,
+    client_secret: String,
+    keyring: State<'_, KeyringState>,
+) -> Result<(), IpcError> {
+    set_api_key_with_backend(keyring.0.as_ref(), client_id, client_secret).map_err(to_ipc_error)
+}
+
+#[tauri::command]
+pub async fn land_registry_get_api_key(
+    keyring: State<'_, KeyringState>,
+) -> Result<Option<ApiKeyInfo>, IpcError> {
+    get_api_key_with_backend(keyring.0.as_ref()).map_err(to_ipc_error)
+}
+
+#[tauri::command]
+pub async fn land_registry_test_connection(
+    keyring: State<'_, KeyringState>,
+    ipc: State<'_, AsyncIpcState>,
+) -> Result<ConnectionTestResult, IpcError> {
+    let tester = RuntimeConnectionTester {
+        base_url: ipc.opcos_base_url.clone(),
+    };
+    test_connection_with_backend(keyring.0.as_ref(), &tester).map_err(to_ipc_error)
 }
 
 fn mask_keep_last4(input: &str) -> String {

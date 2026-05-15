@@ -3,10 +3,10 @@
 /// import 尚未實作的 migration_rollback 模組 → 編譯失敗 = 預期紅燈
 #[cfg(test)]
 mod tests {
-    use crate::land_registry::migration_rollback::{
-        MigrationManager, BackupPolicy, MigrationState,
-    };
     use crate::land_registry::errors::LandRegistryError;
+    use crate::land_registry::migration_rollback::{
+        BackupPolicy, MigrationManager, MigrationState,
+    };
 
     // LMR-001: VACUUM INTO 備份失敗時，migration 必須 abort（不繼續執行）
     #[test]
@@ -44,7 +44,10 @@ mod tests {
     // LMR-003: rollback 執行期間必須鎖定 DB，阻止並行讀取
     #[test]
     fn should_lock_db_during_rollback_to_prevent_concurrent_reads() {
-        use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+        use std::sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        };
         let manager = Arc::new(MigrationManager::new_in_memory());
         let read_attempted_during_rollback = Arc::new(AtomicBool::new(false));
 
@@ -61,7 +64,9 @@ mod tests {
         let read_result = manager.try_read_during_rollback();
         flag.store(read_result.is_ok(), Ordering::SeqCst);
 
-        rollback_handle.join().expect("Rollback thread must not panic");
+        rollback_handle
+            .join()
+            .expect("Rollback thread must not panic");
 
         assert!(
             !read_attempted_during_rollback.load(Ordering::SeqCst),
@@ -92,7 +97,9 @@ mod tests {
         let backup_name = "backup_2026-04-01T00-00-00Z.sqlite";
         manager.simulate_backup_with_future_mtime(backup_name);
 
-        manager.cleanup_old_backups().expect("Cleanup must not fail");
+        manager
+            .cleanup_old_backups()
+            .expect("Cleanup must not fail");
 
         // 此備份的 mtime 是今天，但檔名 timestamp 是 43 天前 → 必須被清除
         let exists = manager.backup_exists(backup_name);
@@ -119,11 +126,16 @@ mod tests {
     // LMR-007: 備份必須使用與主 DB 相同的加密 key
     #[test]
     fn should_create_encrypted_backup_with_same_key() {
-        let manager = MigrationManager::new_with_encrypted_db("test_hex_key_64chars_00000000000000");
+        let manager =
+            MigrationManager::new_with_encrypted_db("test_hex_key_64chars_00000000000000");
         let backup_path = manager.create_backup().expect("Backup must succeed");
         // 嘗試用正確的 key 開啟備份
-        let open_with_key = manager.open_backup_with_key(&backup_path, "test_hex_key_64chars_00000000000000");
-        assert!(open_with_key.is_ok(), "Backup must be openable with correct encryption key");
+        let open_with_key =
+            manager.open_backup_with_key(&backup_path, "test_hex_key_64chars_00000000000000");
+        assert!(
+            open_with_key.is_ok(),
+            "Backup must be openable with correct encryption key"
+        );
         // 嘗試用錯誤的 key 開啟備份（必須失敗）
         let open_with_wrong_key = manager.open_backup_with_key(&backup_path, "wrong_key");
         assert!(
@@ -150,7 +162,9 @@ mod tests {
     fn should_mark_migration_001_as_applied_before_attempting_002() {
         let manager = MigrationManager::new_fresh();
         // 執行 001（成功）+ 002（失敗）
-        manager.run_migration_001().expect("Migration 001 must succeed");
+        manager
+            .run_migration_001()
+            .expect("Migration 001 must succeed");
         let _ = manager.run_migration_002_that_fails(); // 故意失敗
 
         // rollback 002 後，001 必須仍被標記為 applied

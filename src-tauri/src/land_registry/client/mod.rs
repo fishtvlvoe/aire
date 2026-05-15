@@ -114,9 +114,12 @@ impl LandRegistryClient {
         let token = make_test_jwt_no_padding_impl(now + 3600)?;
         let exp = decode_jwt_exp(&token)?;
 
-        let mut cache = self.token_cache.lock().map_err(|_| LandRegistryError::Internal {
-            message: "token cache poisoned".to_string(),
-        })?;
+        let mut cache = self
+            .token_cache
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "token cache poisoned".to_string(),
+            })?;
         cache.token = Some(token.clone());
         cache.exp = Some(exp);
         Ok(token)
@@ -231,7 +234,10 @@ impl LandRegistryClient {
         Ok(())
     }
 
-    pub fn test_connect_with_tls_version(&self, version: TlsVersion) -> Result<(), LandRegistryError> {
+    pub fn test_connect_with_tls_version(
+        &self,
+        version: TlsVersion,
+    ) -> Result<(), LandRegistryError> {
         match version {
             TlsVersion::Tls10 | TlsVersion::Tls11 => Err(LandRegistryError::Network {
                 message: "tls version rejected".to_string(),
@@ -277,9 +283,10 @@ fn decode_jwt_exp(jwt: &str) -> Result<i64, LandRegistryError> {
             message: format!("jwt payload decode failed: {e}"),
         })?;
 
-    let v: Value = serde_json::from_slice(&payload_bytes).map_err(|e| LandRegistryError::Internal {
-        message: format!("jwt payload json parse failed: {e}"),
-    })?;
+    let v: Value =
+        serde_json::from_slice(&payload_bytes).map_err(|e| LandRegistryError::Internal {
+            message: format!("jwt payload json parse failed: {e}"),
+        })?;
     let exp = v
         .get("exp")
         .and_then(|x| x.as_i64())

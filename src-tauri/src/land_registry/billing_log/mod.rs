@@ -15,7 +15,12 @@ pub struct BillingLogEntry {
 }
 
 impl BillingLogEntry {
-    pub fn new(parcel_id: impl Into<String>, endpoint: impl Into<String>, cost: f64, transaction_id: impl Into<String>) -> Self {
+    pub fn new(
+        parcel_id: impl Into<String>,
+        endpoint: impl Into<String>,
+        cost: f64,
+        transaction_id: impl Into<String>,
+    ) -> Self {
         Self {
             parcel_id: parcel_id.into(),
             endpoint: endpoint.into(),
@@ -81,11 +86,20 @@ impl BillingLog {
         }
     }
 
-    pub fn record_call(&self, parcel_id: &str, endpoint: &str, cost: f64, transaction_id: &str) -> Result<(), LandRegistryError> {
+    pub fn record_call(
+        &self,
+        parcel_id: &str,
+        endpoint: &str,
+        cost: f64,
+        transaction_id: &str,
+    ) -> Result<(), LandRegistryError> {
         self.disk_guard.check_before_write(1)?;
-        let mut entries = self.entries.lock().map_err(|_| LandRegistryError::Internal {
-            message: "billing log lock poisoned".to_string(),
-        })?;
+        let mut entries = self
+            .entries
+            .lock()
+            .map_err(|_| LandRegistryError::Internal {
+                message: "billing log lock poisoned".to_string(),
+            })?;
         entries.push(BillingLogEntry {
             parcel_id: parcel_id.to_string(),
             endpoint: endpoint.to_string(),
@@ -121,7 +135,12 @@ impl BillingLog {
     pub fn get_entries_for(&self, parcel_id: &str) -> Vec<BillingLogEntry> {
         self.entries
             .lock()
-            .map(|v| v.iter().filter(|e| e.parcel_id == parcel_id).cloned().collect())
+            .map(|v| {
+                v.iter()
+                    .filter(|e| e.parcel_id == parcel_id)
+                    .cloned()
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -168,8 +187,16 @@ pub fn aggregate_daily_cost(entries: &[BillingLogEntry], date_yyyy_mm_dd: &str) 
         .sum()
 }
 
-pub fn write_billing_entry(log: &BillingLog, entry: BillingLogEntry) -> Result<(), LandRegistryError> {
-    log.record_call(&entry.parcel_id, &entry.endpoint, entry.cost, &entry.transaction_id)
+pub fn write_billing_entry(
+    log: &BillingLog,
+    entry: BillingLogEntry,
+) -> Result<(), LandRegistryError> {
+    log.record_call(
+        &entry.parcel_id,
+        &entry.endpoint,
+        entry.cost,
+        &entry.transaction_id,
+    )
 }
 
 pub fn monthly_total(log: &BillingLog, prefix_yyyy_mm: &str) -> f64 {

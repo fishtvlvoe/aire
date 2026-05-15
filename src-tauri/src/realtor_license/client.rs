@@ -54,7 +54,8 @@ mod tests {
     #[tokio::test]
     async fn unreachable_returns_error() {
         let client = Client::new();
-        let result = fetch_license_status(&client, "http://127.0.0.1:9", "token", "A123456789").await;
+        let result =
+            fetch_license_status(&client, "http://127.0.0.1:9", "token", "A123456789").await;
         assert!(matches!(result, Err(RealtorLicenseError::OpcosUnreachable)));
     }
 }

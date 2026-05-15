@@ -4,8 +4,8 @@
 #[cfg(test)]
 mod tests {
     use crate::land_registry::client::{
-        LandRegistryClient, ClientConfig, TokenCache, build_auth_header,
-        is_token_valid, is_token_expired,
+        build_auth_header, is_token_expired, is_token_valid, ClientConfig, LandRegistryClient,
+        TokenCache,
     };
     use crate::land_registry::errors::LandRegistryError;
     use std::time::Duration;
@@ -19,7 +19,10 @@ mod tests {
         let header = build_auth_header(client_id, client_secret);
         // RFC 7617: credentials 必須先 concat 再 base64，不能對個別字元做 url-encode
         // 特殊字元在 base64 輸出中已被編碼，不應出現原始的 `:`、`+`、`=`（除了 base64 padding）
-        assert!(header.starts_with("Basic "), "Authorization header must start with 'Basic '");
+        assert!(
+            header.starts_with("Basic "),
+            "Authorization header must start with 'Basic '"
+        );
         // 驗證 base64 解碼後能還原原始 credentials
         let encoded = header.trim_start_matches("Basic ");
         let decoded = base64_decode_standard(encoded).expect("Must be valid base64");
@@ -66,7 +69,10 @@ mod tests {
         // 建構一個 exp 在未來的 JWT（payload 無 = padding）
         let jwt_no_padding = make_test_jwt_no_padding(chrono::Utc::now().timestamp() + 3600);
         let result = is_token_valid(&jwt_no_padding);
-        assert!(result, "JWT without base64url padding must be decoded as valid");
+        assert!(
+            result,
+            "JWT without base64url padding must be decoded as valid"
+        );
     }
 
     fn make_test_jwt_no_padding(exp: i64) -> String {
@@ -235,7 +241,9 @@ mod tests {
         let config = ClientConfig::default_test();
         let client = LandRegistryClient::new(config);
         let headers = client.capture_request_headers_for_business_call();
-        let ua = headers.get("user-agent").expect("user-agent header must be present");
+        let ua = headers
+            .get("user-agent")
+            .expect("user-agent header must be present");
         assert!(!ua.is_empty(), "User-Agent header must not be empty");
     }
 }

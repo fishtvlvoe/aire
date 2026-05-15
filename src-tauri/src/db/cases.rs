@@ -42,9 +42,7 @@ const COLS: &str =
 /// 插入新案件。
 pub fn insert_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
     conn.execute(
-        &format!(
-            "INSERT INTO cases ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"
-        ),
+        &format!("INSERT INTO cases ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"),
         params![
             c.id,
             c.case_no,
@@ -75,8 +73,9 @@ pub fn get_case(conn: &Connection, id: &str) -> Result<Case, DbError> {
 
 /// 列出所有案件（依 updated_at DESC）。空表回 `Ok(vec![])`。
 pub fn list_cases(conn: &Connection) -> Result<Vec<Case>, DbError> {
-    let mut stmt =
-        conn.prepare(&format!("SELECT {COLS} FROM cases ORDER BY updated_at DESC"))?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {COLS} FROM cases ORDER BY updated_at DESC"
+    ))?;
     let rows = stmt.query_map([], map_row)?;
     let mut out = Vec::new();
     for r in rows {

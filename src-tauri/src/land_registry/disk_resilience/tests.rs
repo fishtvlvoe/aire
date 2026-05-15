@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests {
     use crate::land_registry::disk_resilience::{
-        DiskGuard, check_writable, get_free_bytes, DiskResilienceConfig,
+        check_writable, get_free_bytes, DiskGuard, DiskResilienceConfig,
     };
     use crate::land_registry::errors::LandRegistryError;
 
@@ -15,7 +15,11 @@ mod tests {
         let path = std::env::temp_dir();
         let free_bytes = get_free_bytes(&path).expect("Must get free bytes for temp dir");
         // 磁碟可用空間 > 0（測試環境不可能磁碟完全為 0）
-        assert!(free_bytes > 0, "Free bytes must be positive: got {}", free_bytes);
+        assert!(
+            free_bytes > 0,
+            "Free bytes must be positive: got {}",
+            free_bytes
+        );
         // 合理上限：不超過 100TB（防止 API 回傳亂數）
         assert!(
             free_bytes < 100 * 1024u64.pow(4),
@@ -61,7 +65,7 @@ mod tests {
     fn should_check_sufficient_space_for_backup_before_vacuum_into() {
         use crate::land_registry::migration_rollback::MigrationManager;
         let manager = MigrationManager::new_with_tight_disk(100); // 只有 100 bytes 可用
-        // 嘗試 VACUUM INTO 備份（需要 > 100 bytes）
+                                                                  // 嘗試 VACUUM INTO 備份（需要 > 100 bytes）
         let result = manager.create_backup();
         // 必須在 VACUUM 開始前失敗，不是到一半才失敗
         assert!(

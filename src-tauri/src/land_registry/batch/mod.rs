@@ -2,7 +2,10 @@ use crate::land_registry::cache::LandRegistryCache;
 use crate::land_registry::errors::LandRegistryError;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::sync::{atomic::{AtomicUsize, Ordering}, Arc};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 
 #[derive(Debug, Clone)]
 pub struct BatchItem {
@@ -131,7 +134,10 @@ impl BatchDispatcher {
             .count()
     }
 
-    pub fn dispatch_all_sync(&self, items: &[BatchItem]) -> Result<Vec<BatchResult>, LandRegistryError> {
+    pub fn dispatch_all_sync(
+        &self,
+        items: &[BatchItem],
+    ) -> Result<Vec<BatchResult>, LandRegistryError> {
         if items.is_empty() {
             return Ok(vec![]);
         }
@@ -146,10 +152,8 @@ impl BatchDispatcher {
         }
 
         // Chunk unique parcels.
-        let mut chunks: Vec<Vec<String>> = unique
-            .chunks(self.chunk_size)
-            .map(|c| c.to_vec())
-            .collect();
+        let mut chunks: Vec<Vec<String>> =
+            unique.chunks(self.chunk_size).map(|c| c.to_vec()).collect();
         if self.reverse_chunk_order {
             chunks.reverse();
         }
@@ -179,10 +183,7 @@ impl BatchDispatcher {
         for it in items {
             // Cache hit?
             if let Some(cache) = &self.cache {
-                if cache
-                    .get(it.parcel_id(), "API_001", "2026-05-14")
-                    .is_some()
-                {
+                if cache.get(it.parcel_id(), "API_001", "2026-05-14").is_some() {
                     let v = serde_json::json!({"parcel_id": it.parcel_id(), "status": "cached"});
                     out.push(BatchResult::ok(it.parcel_id(), v, false));
                     continue;
@@ -214,9 +215,7 @@ impl BatchDispatcher {
             .iter()
             .filter(|it| {
                 if let Some(cache) = &self.cache {
-                    cache
-                        .get(it.parcel_id(), "API_001", "2026-05-14")
-                        .is_none()
+                    cache.get(it.parcel_id(), "API_001", "2026-05-14").is_none()
                 } else {
                     true
                 }
