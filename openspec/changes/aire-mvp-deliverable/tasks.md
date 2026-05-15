@@ -1,8 +1,8 @@
 ## 1. 舊 Change 收尾封存
 
 - [x] 1.1 執行 `cargo test` 驗證 Rust 後端所有測試通過，確認 data-portability、legal-clauses、pdf-assets 三個 Change 的後端實作無回歸。驗證：cargo test 零失敗。 [Tool: copilot]
-- [ ] 1.2 在 Tauri dev 模式下執行真機 smoke test：建立測試案件 → 填入欄位 → 匯出 PDF → 確認 PDF 檔案產出且可開啟。驗證：PDF 檔案存在且大小 > 0。對應 spec: pdf-assets 3.2 真機 smoke test。 [Tool: copilot]
-- [ ] 1.3 執行 legal-clauses-autofill 視覺驗收：啟動 Tauri dev → 開啟 PDF 預覽 → 截圖確認 legal notice block 正確渲染（位置、字體、邊框）。驗證：截圖中 legal notice block 可見且格式正確。對應 spec: legal-clauses 11.3 視覺驗收。 [Tool: sonnet]
+- [x] 1.2 在 Tauri dev 模式下執行真機 smoke test：建立測試案件 → 填入欄位 → 匯出 PDF → 確認 PDF 檔案產出且可開啟。驗證：PDF 檔案存在且大小 > 0。對應 spec: pdf-assets 3.2 真機 smoke test。 [Tool: copilot]
+- [x] 1.3 執行 legal-clauses-autofill 視覺驗收：啟動 Tauri dev → 開啟 PDF 預覽 → 截圖確認 legal notice block 正確渲染（位置、字體、邊框）。驗證：截圖中 legal notice block 可見且格式正確。對應 spec: legal-clauses 11.3 視覺驗收。 [Tool: sonnet]
 - [x] 1.4 三個舊 Change 全部封存：`spectra archive aire-phase1-data-portability`、`spectra archive aire-phase1-legal-clauses-autofill`、`spectra archive aire-phase1-pdf-assets`。驗證：`spectra list` 不再顯示這三個 Change。 [Tool: copilot]
 
 ## 2. ST 元件引入

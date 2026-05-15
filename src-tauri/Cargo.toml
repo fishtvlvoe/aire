@@ -60,6 +60,7 @@ fs2 = "0.4.3"
 phase2-red-tests = []
 
 [dev-dependencies]
+tempfile = "3"
 # Phase 2 紅燈測試用 stub 說明（Phase 3 實作時移到 [dependencies]）
 # 注意：以下 crates 是 Phase 3 預期使用的，測試檔案 import 了對應的模組路徑
 # 目前 cargo test 會因「模組不存在」而編譯失敗 = 這就是紅燈的預期行為
