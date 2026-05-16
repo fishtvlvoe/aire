@@ -85,21 +85,27 @@ export function ThemeSelector() {
         </div>
       )}
 
-      <div className="flex flex-row gap-3 overflow-x-auto pb-1">
+      <div role="listbox" aria-label="主題選擇" className="flex flex-row gap-3 overflow-x-auto pb-1">
         {themes.map((theme) => {
           const isSelected = theme.id === themeId;
           return (
-            <button
+            <div
               key={theme.id}
-              type="button"
+              role="option"
               data-testid={`theme-item-${theme.id}`}
               aria-selected={isSelected}
-              disabled={isUpdating}
-              onClick={() => void handleSelect(theme.id)}
+              tabIndex={0}
+              onClick={() => !isUpdating && void handleSelect(theme.id)}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && !isUpdating) {
+                  e.preventDefault();
+                  void handleSelect(theme.id);
+                }
+              }}
               className={cn(
-                "min-w-72 rounded-md border p-3 text-left transition-colors",
+                "min-w-72 cursor-pointer rounded-md border p-3 text-left transition-colors",
                 "hover:bg-accent hover:text-accent-foreground",
-                "disabled:cursor-not-allowed disabled:opacity-50",
+                isUpdating && "cursor-not-allowed opacity-50",
                 isSelected && "border-primary bg-primary/10",
               )}
             >
@@ -135,7 +141,7 @@ export function ThemeSelector() {
                   預覽
                 </Button>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
