@@ -28,6 +28,7 @@ interface PullParcelDataButtonProps {
   caseId: string;
   parcelId: string;
   apiIds: string[];
+  onSaved?: (data: Record<string, unknown>) => void;
 }
 
 type FlowStep = "idle" | "auth-dialog" | "charge-dialog" | "pulling" | "done";
@@ -41,6 +42,7 @@ export function PullParcelDataButton({
   caseId,
   parcelId,
   apiIds,
+  onSaved,
 }: PullParcelDataButtonProps) {
   const [step, setStep] = React.useState<FlowStep>("idle");
   const [results, setResults] = React.useState<Record<string, ApiResult> | null>(null);
@@ -160,6 +162,7 @@ export function PullParcelDataButton({
       await casesApi.update(caseId, { land_registry_data: previewData });
       setPersistedData(previewData);
       setSaveMessage("已儲存");
+      onSaved?.(previewData);
     } catch (error) {
       setSaveMessage(
         error instanceof Error ? `儲存失敗：${error.message}` : "儲存失敗，請稍後再試",
