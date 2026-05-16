@@ -38,11 +38,6 @@ const Cover: React.FC<{ caseData?: Record<string, unknown>; logo?: string | null
     <div style={{ fontSize: "14px", marginTop: "8px", color: colors.secondary }}>
       REAL ESTATE INFORMATION
     </div>
-    {caseData && (
-      <pre style={{ fontSize: "10px", color: colors.secondary }}>
-        {JSON.stringify(caseData)}
-      </pre>
-    )}
   </div>
 );
 

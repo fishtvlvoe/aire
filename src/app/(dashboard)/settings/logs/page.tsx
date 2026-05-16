@@ -48,10 +48,13 @@ export default function LogsPage() {
     setError(null);
     try {
       const result = await mockInvoke<OperationLogEntry[]>("list_logs");
-      const sorted = [...result].sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      );
+      if (!Array.isArray(result)) { setEntries([]); return; }
+      const sorted = [...result].sort((a, b) => {
+        const tsa = new Date(a.timestamp).getTime();
+        const tsb = new Date(b.timestamp).getTime();
+        if (Number.isNaN(tsa) || Number.isNaN(tsb)) return 0;
+        return tsb - tsa;
+      });
       setEntries(sorted);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

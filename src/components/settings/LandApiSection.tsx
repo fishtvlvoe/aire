@@ -120,14 +120,15 @@ export function LandApiSection() {
               <Button onClick={handleSave} disabled={actionsDisabled}>
                 儲存
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleTestConnection}
-                disabled={actionsDisabled}
-                title={testConnectionTooltip}
-              >
-                測試連線
-              </Button>
+              <span title={actionsDisabled ? testConnectionTooltip : undefined}>
+                <Button
+                  variant="outline"
+                  onClick={handleTestConnection}
+                  disabled={actionsDisabled}
+                >
+                  測試連線
+                </Button>
+              </span>
             </div>
 
             {connectionStatus ? (
