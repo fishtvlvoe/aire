@@ -30,6 +30,22 @@ describe("Settings page（重組後）", () => {
     vi.clearAllMocks();
   });
 
+  it("顯示設定分頁 tabs", async () => {
+    render(<SettingsPage />);
+    expect(screen.getByRole("link", { name: "一般設定" })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
+    expect(screen.getByRole("link", { name: "品牌設定" })).toHaveAttribute(
+      "href",
+      "/settings/branding",
+    );
+    expect(screen.getByRole("link", { name: "操作日誌" })).toHaveAttribute(
+      "href",
+      "/settings/logs",
+    );
+  });
+
   it("顯示頁面標題「設定」", async () => {
     render(<SettingsPage />);
     expect(screen.getByText("設定")).toBeInTheDocument();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import {
   formatLogTime,
@@ -13,6 +13,7 @@ import { LoadingState } from "@/components/ux/LoadingState";
 import { EmptyState } from "@/components/ux/EmptyState";
 import { ErrorState } from "@/components/ux/ErrorState";
 import { TauriRequired } from "@/components/TauriRequired";
+import { SettingsTabs } from "@/components/SettingsTabs";
 import { isTauriEnv } from "@/lib/tauri-bridge";
 
 /**
@@ -58,55 +59,55 @@ export default function LogsPage() {
     };
   }, []);
 
+  let content: ReactNode;
   if (isLoadingEnv) {
-    return <LoadingState label="偵測桌面環境中" />;
-  }
-
-  if (!isTauri && !isDevelopment) {
-    return <TauriRequired />;
-  }
-
-  if (entries === null) {
-    return <LoadingState label="載入操作紀錄中" />;
-  }
-
-  if (error) {
-    return <ErrorState reason={error} onRetry={load} />;
-  }
-
-  if (entries.length === 0) {
-    return (
+    content = <LoadingState label="偵測桌面環境中" />;
+  } else if (!isTauri && !isDevelopment) {
+    content = <TauriRequired />;
+  } else if (entries === null) {
+    content = <LoadingState label="載入操作紀錄中" />;
+  } else if (error) {
+    content = <ErrorState reason={error} onRetry={load} />;
+  } else if (entries.length === 0) {
+    content = (
       <EmptyState
         title="尚無操作紀錄"
         description="完成首次啟用、新增案件、匯出 PDF 等動作後會出現在此"
       />
     );
+  } else {
+    content = (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold">操作紀錄</h2>
+        <p className="text-sm text-muted-foreground">
+          最近 100 筆，依時間倒序。所有時間為 Asia/Taipei。
+        </p>
+
+        <Card className="overflow-hidden p-0">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b text-left">
+                <th className="px-4 py-2 font-medium">時間</th>
+                <th className="px-4 py-2 font-medium">動作</th>
+                <th className="px-4 py-2 font-medium">結果</th>
+                <th className="px-4 py-2 font-medium">備註</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <LogRow key={entry.id} entry={entry} />
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-semibold">操作紀錄</h2>
-      <p className="text-sm text-muted-foreground">
-        最近 100 筆，依時間倒序。所有時間為 Asia/Taipei。
-      </p>
-
-      <Card className="overflow-hidden p-0">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b text-left">
-              <th className="px-4 py-2 font-medium">時間</th>
-              <th className="px-4 py-2 font-medium">動作</th>
-              <th className="px-4 py-2 font-medium">結果</th>
-              <th className="px-4 py-2 font-medium">備註</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <LogRow key={entry.id} entry={entry} />
-            ))}
-          </tbody>
-        </table>
-      </Card>
+    <div className="space-y-6">
+      <SettingsTabs />
+      {content}
     </div>
   );
 }

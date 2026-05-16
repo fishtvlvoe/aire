@@ -19,7 +19,7 @@ function isTabActive(pathname: string, href: string): boolean {
 }
 
 export function SettingsTabs() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   return (
     <nav aria-label="設定分頁" className="border-b">
