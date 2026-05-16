@@ -47,6 +47,30 @@ tests:
   - src/lib/pdf-engine/__tests__/document.test.tsx
 -->
 
+
+<!-- @trace
+source: api-data-to-pdf-mapping
+updated: 2026-05-16
+code:
+  - src/components/PullParcelDataButton.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/pdf-engine/react-pdf-components.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-themes/theme-a-minimal/index.tsx
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - src/lib/safe-invoke.ts
+  - src/lib/pdf-themes/theme-c-tech-elegant/index.tsx
+tests:
+  - src/lib/pdf-themes/__tests__/cover-no-json.test.tsx
+  - src/lib/pdf-engine/__tests__/react-pdf-components.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+-->
+
 ### Requirement: System SHALL derive regulatory restriction text from zoning_type using a static lookup table
 
 The system SHALL maintain a static `ZONING_RESTRICTIONS` lookup table in `src/lib/pdf-engine/assemble-dossier-data.ts` mapping known `zoning_type` strings to `soilConservation` and `buildingLineNote` text. When `zoningType` is not found in the table, both fields SHALL equal `"依主管機關規定辦理"`.
@@ -122,3 +146,5 @@ code:
 tests:
   - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
 -->
+
+## Requirements

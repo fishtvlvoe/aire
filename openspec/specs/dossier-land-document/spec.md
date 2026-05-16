@@ -70,6 +70,30 @@ The Cover component of each PDF theme SHALL NOT render `JSON.stringify(caseData)
 - **THEN** the cover page SHALL NOT contain any JSON-formatted text block
 - **AND** the cover page SHALL display the case number, address, and generation date in their designated layout positions
 
+
+<!-- @trace
+source: api-data-to-pdf-mapping
+updated: 2026-05-16
+code:
+  - src/components/PullParcelDataButton.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/pdf-engine/react-pdf-components.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-themes/theme-a-minimal/index.tsx
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - src/lib/safe-invoke.ts
+  - src/lib/pdf-themes/theme-c-tech-elegant/index.tsx
+tests:
+  - src/lib/pdf-themes/__tests__/cover-no-json.test.tsx
+  - src/lib/pdf-engine/__tests__/react-pdf-components.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+-->
+
 ---
 ### Requirement: LandPages SHALL render a 10-page document aligned with the government 105-year format
 
