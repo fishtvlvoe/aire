@@ -6,16 +6,12 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-  Palette,
-  ScrollText,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "案件管理", href: "/cases", icon: FileText },
-  { label: "品牌設定", href: "/settings/branding", icon: Palette },
-  { label: "日誌", href: "/settings/logs", icon: ScrollText },
   { label: "設定", href: "/settings", icon: Settings },
 ];
 

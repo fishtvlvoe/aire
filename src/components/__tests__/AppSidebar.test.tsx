@@ -13,13 +13,15 @@ describe("AppSidebar", () => {
     vi.clearAllMocks();
   });
 
-  it("renders four navigation items including settings", () => {
+  it("renders only two navigation items: cases and settings", () => {
     render(<AppSidebar collapsed={false} onToggle={vi.fn()} />);
 
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(2);
     expect(screen.getByRole("link", { name: "案件管理" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "品牌設定" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "日誌" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "設定" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "品牌設定" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "日誌" })).not.toBeInTheDocument();
   });
 
   it("supports collapsed mode and collapse toggle", () => {
