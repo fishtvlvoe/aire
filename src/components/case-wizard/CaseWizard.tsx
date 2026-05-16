@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
 import { safeInvoke } from "@/lib/safe-invoke";
@@ -17,7 +16,6 @@ interface CaseWizardProps {
 const STEP_LABELS = ["基本資料", "地政資料", "實價登錄", "預覽匯出"];
 
 export function CaseWizard({ caseId }: CaseWizardProps) {
-  const router = useRouter();
   const [caseData, setCaseData] = useState<CaseRow | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [draft, setDraft] = useState<UpdateCaseInput>({});
@@ -65,8 +63,8 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
     if (currentStep === 3) {
       return <CaseWizardStep3 />;
     }
-    return <CaseWizardStep4 onExport={() => router.push(`/cases/${caseData.id}/preview`)} />;
-  }, [caseData, currentStep, draft, router]);
+    return <CaseWizardStep4 caseId={caseData.id} />;
+  }, [caseData, currentStep, draft]);
 
   if (!caseData) {
     return <p className="text-sm text-muted-foreground">載入中…</p>;
