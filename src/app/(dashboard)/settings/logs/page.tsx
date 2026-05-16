@@ -2,12 +2,7 @@
 
 import { type ReactNode, useEffect, useState } from "react";
 
-import {
-  formatLogTime,
-  labelForAction,
-  listRecentLogs,
-  type LogEntry,
-} from "@/lib/log";
+import { mockInvoke } from "@/lib/mock-backend";
 import { Card } from "@/components/ui/card";
 import { LoadingState } from "@/components/ux/LoadingState";
 import { EmptyState } from "@/components/ux/EmptyState";
@@ -16,15 +11,35 @@ import { TauriRequired } from "@/components/TauriRequired";
 import { SettingsTabs } from "@/components/SettingsTabs";
 import { isTauriEnv } from "@/lib/tauri-bridge";
 
-/**
- * 設定 → 操作紀錄頁
- *
- * 對應 AIRE Phase 1 Group 9.2 frontend 對應。
- * 顯示最近 100 筆 operation_log，給老闆 / 助理查驗操作歷程用。
- */
+interface OperationLogEntry {
+  id: string;
+  timestamp: string;
+  action: string;
+  detail: string;
+  user_email: string;
+}
+
+function formatTimestamp(isoString: string): string {
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) {
+    return isoString;
+  }
+
+  const formatter = new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return formatter.format(date);
+}
+
 export default function LogsPage() {
   const isDevelopment = process.env.NODE_ENV === "development";
-  const [entries, setEntries] = useState<LogEntry[] | null>(null);
+  const [entries, setEntries] = useState<OperationLogEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingEnv, setIsLoadingEnv] = useState(true);
   const [isTauri, setIsTauri] = useState(false);
@@ -32,8 +47,12 @@ export default function LogsPage() {
   async function load() {
     setError(null);
     try {
-      const result = await listRecentLogs(100);
-      setEntries(result);
+      const result = await mockInvoke<OperationLogEntry[]>("list_logs");
+      const sorted = [...result].sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+      setEntries(sorted);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setEntries([]);
@@ -72,30 +91,33 @@ export default function LogsPage() {
     content = (
       <EmptyState
         title="尚無操作紀錄"
-        description="完成首次啟用、新增案件、匯出 PDF 等動作後會出現在此"
+        description="建立、更新、刪除案件或匯出 PDF 後會顯示在這裡"
       />
     );
   } else {
     content = (
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold">操作紀錄</h2>
-        <p className="text-sm text-muted-foreground">
-          最近 100 筆，依時間倒序。所有時間為 Asia/Taipei。
-        </p>
-
         <Card className="overflow-hidden p-0">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b text-left">
                 <th className="px-4 py-2 font-medium">時間</th>
-                <th className="px-4 py-2 font-medium">動作</th>
-                <th className="px-4 py-2 font-medium">結果</th>
-                <th className="px-4 py-2 font-medium">備註</th>
+                <th className="px-4 py-2 font-medium">操作類型</th>
+                <th className="px-4 py-2 font-medium">詳細說明</th>
               </tr>
             </thead>
             <tbody>
               {entries.map((entry) => (
-                <LogRow key={entry.id} entry={entry} />
+                <tr key={entry.id} className="border-b last:border-0">
+                  <td className="px-4 py-2 font-mono text-xs">
+                    {formatTimestamp(entry.timestamp)}
+                  </td>
+                  <td className="px-4 py-2">{entry.action}</td>
+                  <td className="px-4 py-2 text-xs text-muted-foreground">
+                    {entry.detail}
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>
@@ -109,35 +131,5 @@ export default function LogsPage() {
       <SettingsTabs />
       {content}
     </div>
-  );
-}
-
-function LogRow({ entry }: { entry: LogEntry }) {
-  const resultClass =
-    entry.result === "ok"
-      ? "text-success"
-      : "text-destructive";
-
-  let detail = "";
-  if (entry.payload) {
-    try {
-      const obj = JSON.parse(entry.payload) as Record<string, unknown>;
-      detail = Object.entries(obj)
-        .map(([k, v]) => `${k}=${String(v)}`)
-        .join(", ");
-    } catch {
-      detail = entry.payload;
-    }
-  }
-
-  return (
-    <tr className="border-b last:border-0">
-      <td className="px-4 py-2 font-mono text-xs">{formatLogTime(entry.ts)}</td>
-      <td className="px-4 py-2">{labelForAction(entry.action)}</td>
-      <td className={`px-4 py-2 ${resultClass}`}>
-        {entry.result === "ok" ? "成功" : "失敗"}
-      </td>
-      <td className="px-4 py-2 text-xs text-muted-foreground">{detail || "—"}</td>
-    </tr>
   );
 }
