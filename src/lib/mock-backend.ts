@@ -119,10 +119,28 @@ const DEFAULT_THEMES = [
     description: "簡潔、專業、適合標準不動產說明書",
   },
   {
+    id: "theme-b-professional",
+    label: "專業沉穩 Professional",
+    displayName: "專業沉穩 Professional",
+    description: "深藍灰主色，商務感與專業感兼具",
+  },
+  {
     id: "theme-c-tech-elegant",
     label: "科技優雅 Tech Elegant",
     displayName: "科技優雅 Tech Elegant",
     description: "深藍底色，粉漸層裝飾，金色邊框",
+  },
+  {
+    id: "theme-d-fresh",
+    label: "清新自然 Fresh",
+    displayName: "清新自然 Fresh",
+    description: "綠色系主色，清新自然風格",
+  },
+  {
+    id: "theme-e-warm",
+    label: "溫暖親切 Warm",
+    displayName: "溫暖親切 Warm",
+    description: "橘色系主色，溫暖親和風格",
   },
 ];
 

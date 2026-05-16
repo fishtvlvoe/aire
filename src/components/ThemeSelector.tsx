@@ -21,10 +21,25 @@ const THEME_PRESETS: Record<string, { primary: string; secondary: string; backgr
     secondary: "#4A7EB5",
     background: "#F5F7FA",
   },
+  "theme-b-professional": {
+    primary: "#2C3E50",
+    secondary: "#4B5563",
+    background: "#F3F4F6",
+  },
   "theme-c-tech-elegant": {
     primary: "#1A1A2E",
     secondary: "#16213E",
     background: "#0F3460",
+  },
+  "theme-d-fresh": {
+    primary: "#27AE60",
+    secondary: "#2D8A4E",
+    background: "#EAF7EF",
+  },
+  "theme-e-warm": {
+    primary: "#E67E22",
+    secondary: "#B86A23",
+    background: "#FFF3E8",
   },
 };
 

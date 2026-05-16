@@ -56,6 +56,15 @@ describe("ThemeSelector — displays available themes", () => {
     const activeItem = screen.getByTestId("theme-item-theme-a-minimal");
     expect(activeItem).toHaveAttribute("aria-selected", "true");
   });
+
+  it("顯示新增主題並共 5 張主題卡", () => {
+    renderWithProvider();
+    expect(screen.getByText(/professional/i)).toBeInTheDocument();
+    expect(screen.getByText(/fresh/i)).toBeInTheDocument();
+    expect(screen.getByText(/warm/i)).toBeInTheDocument();
+    const cards = screen.getAllByTestId(/theme-item-/);
+    expect(cards).toHaveLength(5);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,6 +99,23 @@ describe("ThemeSelector — theme selection triggers setTheme", () => {
 
     await waitFor(() => {
       expect(proItem).toHaveAttribute("aria-selected", "true");
+    });
+  });
+
+  it("點擊專業沉穩主題可切換", async () => {
+    mockSetTheme.mockResolvedValue({
+      success: true,
+      themeId: "theme-b-professional",
+      didFallback: false,
+    });
+
+    renderWithProvider("theme-a-minimal");
+    const professionalCard = screen.getByTestId("theme-item-theme-b-professional");
+    fireEvent.click(professionalCard);
+
+    await waitFor(() => {
+      expect(mockSetTheme).toHaveBeenCalledWith("theme-b-professional");
+      expect(professionalCard).toHaveAttribute("aria-selected", "true");
     });
   });
 });

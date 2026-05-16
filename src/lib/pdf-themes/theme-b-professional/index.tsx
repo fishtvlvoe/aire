@@ -1,7 +1,7 @@
 /**
  * 主題 B — 專業 Professional
  *
- * 深藍 #1E3A5F / 白底 #FFFFFF / 金邊 #C9A961 / 文字 #1F2937
+ * 深藍灰 #2C3E50 / 白底 #FFFFFF / 金邊 #C9A961 / 文字 #1F2937
  */
 
 import React from "react";
@@ -11,7 +11,7 @@ import type { PdfTheme } from "../types";
 // Token 定義
 // ─────────────────────────────────────────────────────────────────────────────
 const colors = {
-  primary: "#1E3A5F",   // 深藍
+  primary: "#2C3E50",   // 深藍灰
   secondary: "#4B5563", // 灰色次要
   text: "#1F2937",      // 深色文字
   bgPrimary: "#FFFFFF", // 白底
@@ -161,8 +161,8 @@ const Table: React.FC<{ rows?: unknown[]; columns?: unknown[] }> = ({
 // ─────────────────────────────────────────────────────────────────────────────
 export const themeBProfessional: PdfTheme = {
   id: "theme-b-professional",
-  label: "專業 Professional",
-  displayName: "專業 Professional",
+  label: "專業沉穩 Professional",
+  displayName: "專業沉穩 Professional",
   description: "深藍底色，金色邊框，專業沉穩風格",
   version: "1",
   components: {

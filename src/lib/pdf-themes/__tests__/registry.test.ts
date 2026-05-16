@@ -17,19 +17,22 @@ import {
 } from "../registry";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PTS-001：listThemes() 回傳恰好兩個主題
+// PTS-001：listThemes() 回傳 5 個內建主題
 // ─────────────────────────────────────────────────────────────────────────────
-describe("PTS-001 — listThemes returns exactly 2 built-in themes", () => {
-  it("listThemes() 回傳 2 個主題", () => {
+describe("PTS-001 — listThemes returns exactly 5 built-in themes", () => {
+  it("listThemes() 回傳 5 個主題", () => {
     const themes = listThemes();
-    expect(themes).toHaveLength(2);
+    expect(themes).toHaveLength(5);
   });
 
-  it("兩個主題 id 分別是 theme-a-minimal 和 theme-c-tech-elegant", () => {
+  it("包含 5 個預期主題 id", () => {
     const themes = listThemes();
     const ids = themes.map((t) => t.id);
     expect(ids).toContain("theme-a-minimal");
+    expect(ids).toContain("theme-b-professional");
     expect(ids).toContain("theme-c-tech-elegant");
+    expect(ids).toContain("theme-d-fresh");
+    expect(ids).toContain("theme-e-warm");
   });
 });
 
@@ -112,10 +115,10 @@ describe("PTS-003 — getTheme by id returns correct theme", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PTS-004：re-register same id 不重複（listThemes 仍只有兩個）
+// PTS-004：re-register same id 不重複（listThemes 仍維持 5 個）
 // ─────────────────────────────────────────────────────────────────────────────
 describe("PTS-004 — re-registering same theme id does not create duplicate", () => {
-  it("重複 register theme-a-minimal 後 listThemes 仍回傳 2 個", () => {
+  it("重複 register theme-a-minimal 後 listThemes 仍回傳 5 個", () => {
     // 取得現有 theme-a-minimal
     const existingTheme = getTheme("theme-a-minimal")!;
 
@@ -123,7 +126,7 @@ describe("PTS-004 — re-registering same theme id does not create duplicate", (
     registerTheme(existingTheme);
 
     const themes = listThemes();
-    expect(themes).toHaveLength(2);
+    expect(themes).toHaveLength(5);
   });
 
   it("register 全新 id 後 listThemes 回傳 3 個（確認 register 本身有效）", () => {

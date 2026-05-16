@@ -63,7 +63,13 @@ export function resolveThemeOrFallback(id: string): ThemeResolution {
 // AIRE Phase 1 出貨：theme-a-minimal + theme-c-tech-elegant
 // ─────────────────────────────────────────────────────────────────────────────
 import { themeAMinimal } from "./theme-a-minimal";
+import { themeBProfessional } from "./theme-b-professional";
 import { themeCTechElegant } from "./theme-c-tech-elegant";
+import { themeDFresh } from "./theme-d-fresh";
+import { themeEWarm } from "./theme-e-warm";
 
 registerTheme(themeAMinimal);
+registerTheme(themeBProfessional);
 registerTheme(themeCTechElegant);
+registerTheme(themeDFresh);
+registerTheme(themeEWarm);
