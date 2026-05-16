@@ -24,4 +24,4 @@
 
 ## Group 5：驗收
 
-- [ ] 5.1 人工驗收 checklist：(1) `/dev` 路由可訪問且 toggle 可用；(2) 重啟 dev server 案件不消失；(3) 儲存顯示 toast；(4) 瀏覽器下匯出案件不崩潰；(5) 案件頁有拉謄本按鈕；(6) SVG/AVIF Logo 可上傳；(7) 主題卡片有色塊；(8) 主題預覽 Modal 可開關；(9) 地號/屋主姓名可留空；(10) Admin 看到 MCP Hub 已啟用[Tool: sonnet]
+- [x] 5.1 人工驗收 checklist：(1) `/dev` 路由可訪問且 toggle 可用；(2) 重啟 dev server 案件不消失；(3) 儲存顯示 toast；(4) 瀏覽器下匯出案件不崩潰；(5) 案件頁有拉謄本按鈕；(6) SVG/AVIF Logo 可上傳；(7) 主題卡片有色塊；(8) 主題預覽 Modal 可開關；(9) 地號/屋主姓名可留空；(10) Admin 看到 MCP Hub 已啟用[Tool: sonnet]

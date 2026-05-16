@@ -279,3 +279,220 @@ tests:
   - src/components/settings/__tests__/LandApiSection.test.tsx
   - src/components/settings/__tests__/LicenseSection.test.tsx
 -->
+
+---
+### Requirement: dev-page-route
+
+The application SHALL expose a dashboard route at `/dev` with a corresponding `page.tsx` so that the dev superadmin panel is accessible in browser dev mode.
+
+#### Scenario: /dev route resolves
+
+WHEN a user navigates to `http://localhost:3000/dev` in browser dev mode
+THEN the page SHALL render without a 404 error
+
+##### Example:
+- URL: http://localhost:3000/dev
+- Expected HTTP status: 200 (page renders)
+- Not expected: Next.js 404 page
+
+
+<!-- @trace
+source: aire-ux-bugfix-wave1
+updated: 2026-05-16
+code:
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/components/RealPricePanel.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+  - src/lib/pdf-themes/registry.ts
+  - next.config.ts
+  - src/lib/pdf-engine/document.tsx
+  - src-tauri/src/lib.rs
+  - src/app/login/page.tsx
+  - src/components/LogoUploader.tsx
+  - src/lib/cases-api.ts
+  - src/app/(dashboard)/layout.tsx
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src/lib/pdf-themes/theme-d-fresh/index.tsx
+  - src/components/settings/LandApiSection.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src-tauri/src/commands/mod.rs
+  - src/lib/pdf-themes/theme-e-warm/index.tsx
+  - src/app/(dashboard)/settings/page.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/PdfPreviewer.tsx
+  - src-tauri/src/mcp_client.rs
+  - src/app/(dashboard)/dev/page.tsx
+  - vitest.config.ts
+  - src/components/CaseSupplementDialog.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/lib/pdf-engine/index.ts
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/components/ComingSoonCard.tsx
+  - src/lib/safe-invoke.ts
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/lib/pdf-themes/index.ts
+  - src/components/AppSidebar.tsx
+  - src/resources/fonts/NotoSansTC-Regular.otf
+  - src/lib/pdf-engine/engine.ts
+  - src/lib/pdf-engine/react-pdf-components.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - vitest.setup.ts
+  - src/components/SettingsTabs.tsx
+  - src/lib/address-parser.ts
+  - src/components/CaseListActions.tsx
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/ThemeSelector.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src-tauri/src/commands/real_price.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src/app/(dashboard)/settings/branding/page.tsx
+  - src/app/(dashboard)/cases/page.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+tests:
+  - src/lib/__tests__/address-parser.test.ts
+  - src/components/__tests__/ThemeSelector.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+  - src/lib/pdf-engine/__tests__/render-with-legal.test.tsx
+  - src/lib/pdf-engine/__tests__/document.test.tsx
+  - src/lib/pdf-engine/__tests__/react-pdf-components.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/lib/pdf-engine/__tests__/engine.test.ts
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/ComingSoonCard.test.tsx
+  - src/components/__tests__/AppSidebar.test.tsx
+  - src/components/__tests__/RealPricePanel.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/lib/pdf-themes/__tests__/registry.test.ts
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+-->
+
+---
+### Requirement: feature-flag-toggle-ui
+
+The `/dev` page SHALL display a list of all known feature flags with their current state (enabled/disabled) and provide a toggle control for each flag.
+
+#### Scenario: Toggle enables a feature flag
+
+WHEN a user clicks the toggle for feature flag `mcp-hub` on the `/dev` page
+AND `mcp-hub` is currently disabled
+THEN the flag state SHALL switch to enabled
+AND mock-backend featureFlags["mcp-hub"] SHALL equal true
+AND the toggle UI SHALL visually indicate enabled without page reload
+
+##### Example:
+- Before: featureFlags = { "mcp-hub": false }
+- Action: click toggle for mcp-hub
+- After: featureFlags = { "mcp-hub": true }; toggle shows enabled state
+
+#### Scenario: Toggle disables a feature flag
+
+WHEN a user clicks the toggle for feature flag `mcp-hub` on the `/dev` page
+AND `mcp-hub` is currently enabled
+THEN the flag state SHALL switch to disabled
+AND the UI SHALL reflect the new state immediately
+
+##### Example:
+- Before: featureFlags = { "mcp-hub": true }
+- Action: click toggle for mcp-hub
+- After: featureFlags = { "mcp-hub": false }; toggle shows disabled state
+
+#### Scenario: Feature flags load on mount
+
+WHEN the `/dev` page first renders with featureFlags = { "mcp-hub": false }
+THEN the page SHALL display a row for "mcp-hub" with toggle in disabled position
+
+##### Example:
+- Mock state: featureFlags = { "mcp-hub": false }
+- Output: page shows "mcp-hub" row with toggle in off position
+
+<!-- @trace
+source: aire-ux-bugfix-wave1
+updated: 2026-05-16
+code:
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/components/RealPricePanel.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+  - src/lib/pdf-themes/registry.ts
+  - next.config.ts
+  - src/lib/pdf-engine/document.tsx
+  - src-tauri/src/lib.rs
+  - src/app/login/page.tsx
+  - src/components/LogoUploader.tsx
+  - src/lib/cases-api.ts
+  - src/app/(dashboard)/layout.tsx
+  - src/components/settings/PremiumUnlockSection.tsx
+  - src/lib/pdf-themes/theme-d-fresh/index.tsx
+  - src/components/settings/LandApiSection.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src-tauri/src/commands/mod.rs
+  - src/lib/pdf-themes/theme-e-warm/index.tsx
+  - src/app/(dashboard)/settings/page.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/PdfPreviewer.tsx
+  - src-tauri/src/mcp_client.rs
+  - src/app/(dashboard)/dev/page.tsx
+  - vitest.config.ts
+  - src/components/CaseSupplementDialog.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/lib/pdf-engine/index.ts
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/components/ComingSoonCard.tsx
+  - src/lib/safe-invoke.ts
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/lib/pdf-themes/index.ts
+  - src/components/AppSidebar.tsx
+  - src/resources/fonts/NotoSansTC-Regular.otf
+  - src/lib/pdf-engine/engine.ts
+  - src/lib/pdf-engine/react-pdf-components.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - vitest.setup.ts
+  - src/components/SettingsTabs.tsx
+  - src/lib/address-parser.ts
+  - src/components/CaseListActions.tsx
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/ThemeSelector.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src-tauri/src/commands/real_price.rs
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src-tauri/src/land_registry/batch/mod.rs
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src/app/(dashboard)/settings/branding/page.tsx
+  - src/app/(dashboard)/cases/page.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+tests:
+  - src/lib/__tests__/address-parser.test.ts
+  - src/components/__tests__/ThemeSelector.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+  - src/lib/pdf-engine/__tests__/render-with-legal.test.tsx
+  - src/lib/pdf-engine/__tests__/document.test.tsx
+  - src/lib/pdf-engine/__tests__/react-pdf-components.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/lib/pdf-engine/__tests__/engine.test.ts
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/ComingSoonCard.test.tsx
+  - src/components/__tests__/AppSidebar.test.tsx
+  - src/components/__tests__/RealPricePanel.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/lib/pdf-themes/__tests__/registry.test.ts
+  - src/components/settings/__tests__/PremiumUnlockSection.test.tsx
+-->

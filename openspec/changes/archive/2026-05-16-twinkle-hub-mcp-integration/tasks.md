@@ -23,4 +23,4 @@
 ## Group 5：端對端驗收
 
 - [x] 5.1 瀏覽器 dev mode 驗收：打開 /cases/TEST-001 → 點「查實價登錄」→ 顯示 3 筆 mock 資料 → 格式正確（NT$格式、坪數換算）（對應：real-price-query / result-display-card）[Tool: sonnet]
-- [ ] 5.2 Tauri dev mode 驗收（`pnpm tauri dev`）：點「查實價登錄」→ 確認 Rust 呼叫 Twinkle Hub 成功（network log 有 POST 到 api.twinkleai.tw）→ 前端顯示真實資料（對應：twinkle-hub-mcp-client / mcp-http-json-rpc-call）[Tool: sonnet]
+- [x] 5.2 Tauri dev mode 驗收（`pnpm tauri dev`）：點「查實價登錄」→ 確認 Rust 呼叫 Twinkle Hub 成功（network log 有 POST 到 api.twinkleai.tw）→ 前端顯示真實資料（對應：twinkle-hub-mcp-client / mcp-http-json-rpc-call）[Tool: sonnet]
