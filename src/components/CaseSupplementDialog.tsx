@@ -34,15 +34,27 @@ export function CaseSupplementDialog({ caseId, open, onClose }: CaseSupplementDi
   const [address, setAddress] = useState("");
   const [caseName, setCaseName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
+  // C2: cancelled flag 防止 race condition；加 try/catch 防白屏
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
     void (async () => {
-      const row = await casesApi.get(caseId);
-      setOwnerName(row.owner_name ?? "");
-      setAddress(row.address ?? "");
-      setCaseName(row.case_name ?? "");
+      try {
+        const row = await casesApi.get(caseId);
+        if (cancelled) return;
+        setOwnerName(row.owner_name ?? "");
+        setAddress(row.address ?? "");
+        setCaseName(row.case_name ?? "");
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[CaseSupplementDialog] 載入案件失敗", err);
+      }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [caseId, open]);
 
   const missingFields = useMemo(() => {
@@ -70,8 +82,10 @@ export function CaseSupplementDialog({ caseId, open, onClose }: CaseSupplementDi
     }
   }
 
+  // C2: 儲存失敗時顯示 error state，不讓 dialog 卡住
   async function handleSave() {
     setSaving(true);
+    setSaveError(null);
     try {
       await casesApi.update(caseId, {
         owner_name: ownerName || null,
@@ -79,6 +93,9 @@ export function CaseSupplementDialog({ caseId, open, onClose }: CaseSupplementDi
         case_name: caseName || null,
       });
       onClose();
+    } catch (err) {
+      console.error("[CaseSupplementDialog] 儲存失敗", err);
+      setSaveError(err instanceof Error ? err.message : "儲存失敗，請稍後再試");
     } finally {
       setSaving(false);
     }
@@ -139,6 +156,9 @@ export function CaseSupplementDialog({ caseId, open, onClose }: CaseSupplementDi
           )}
         </div>
 
+        {saveError ? (
+          <p role="alert" className="text-xs text-destructive">{saveError}</p>
+        ) : null}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>取消</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? "儲存中…" : "儲存"}</Button>

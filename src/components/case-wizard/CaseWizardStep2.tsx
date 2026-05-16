@@ -4,14 +4,15 @@ import { PullParcelDataButton } from "@/components/PullParcelDataButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { casesApi } from "@/lib/cases-api";
-import type { CaseRow, UpdateCaseInput } from "@/lib/cases-api";
+import type { CaseRow } from "@/lib/cases-api";
 import { useMemo, useState } from "react";
 
+// W3: 移除未使用的 draft prop
 interface CaseWizardStep2Props {
   caseData: CaseRow;
-  draft: UpdateCaseInput;
 }
 
+// W3: function signature 已不含 draft（interface 移除後對齊）
 export function CaseWizardStep2({ caseData }: CaseWizardStep2Props) {
   const [landLotNo, setLandLotNo] = useState(caseData.land_lot_no);
   const [buildingLotNo, setBuildingLotNo] = useState(caseData.building_lot_no ?? "");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
 import { safeInvoke } from "@/lib/safe-invoke";
@@ -21,31 +21,62 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
   const [draft, setDraft] = useState<UpdateCaseInput>({});
   const [step1Valid, setStep1Valid] = useState(false);
   const [step3Enabled, setStep3Enabled] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // C1: 載入 case 加 try/catch，失敗時顯示 error state
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [row, flags] = await Promise.all([
-        casesApi.get(caseId),
-        safeInvoke<Array<{ id: string; enabled: boolean }>>("get_feature_flags"),
-      ]);
-      if (cancelled) return;
-      setCaseData(row);
-      setCurrentStep(row.current_step ?? 1);
-      const step3Flag = flags.find((flag) => flag.id === "premium_real_price_enabled");
-      setStep3Enabled(Boolean(step3Flag?.enabled));
+      try {
+        const [row, flags] = await Promise.all([
+          casesApi.get(caseId),
+          safeInvoke<Array<{ id: string; enabled: boolean }>>("get_feature_flags"),
+        ]);
+        if (cancelled) return;
+        setCaseData(row);
+        setCurrentStep(row.current_step ?? 1);
+        const step3Flag = flags.find((flag) => flag.id === "premium_real_price_enabled");
+        setStep3Enabled(Boolean(step3Flag?.enabled));
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[CaseWizard] 載入案件失敗", err);
+        setLoadError(err instanceof Error ? err.message : String(err));
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [caseId]);
 
-  useEffect(() => {
+  // W8: 只在使用者點下一步/上一步時更新 current_step，不在 useEffect 自動更新
+  async function updateStep(nextStep: number) {
+    setCurrentStep(nextStep);
     if (!caseData) return;
-    void casesApi.update(caseData.id, { current_step: currentStep });
-  }, [caseData, currentStep]);
+    try {
+      await casesApi.update(caseData.id, { current_step: nextStep });
+    } catch (err) {
+      console.error("[CaseWizard] 更新 current_step 失敗", err);
+    }
+  }
 
-  const stepContent = useMemo(() => {
+  // C1: 白屏防護 — 載入失敗顯示錯誤而非空白
+  if (loadError) {
+    return (
+      <div
+        role="alert"
+        className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive"
+      >
+        載入失敗：{loadError}
+      </div>
+    );
+  }
+
+  if (!caseData) {
+    return <p className="text-sm text-muted-foreground">載入中…</p>;
+  }
+
+  // W5: 移除無效的 useMemo，直接在 JSX inline 渲染
+  function renderStepContent() {
     if (!caseData) return null;
     if (currentStep === 1) {
       return (
@@ -58,25 +89,22 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
       );
     }
     if (currentStep === 2) {
-      return <CaseWizardStep2 caseData={caseData} draft={draft} />;
+      return <CaseWizardStep2 caseData={caseData} />;
     }
     if (currentStep === 3) {
       return <CaseWizardStep3 />;
     }
     return <CaseWizardStep4 caseId={caseData.id} />;
-  }, [caseData, currentStep, draft]);
-
-  if (!caseData) {
-    return <p className="text-sm text-muted-foreground">載入中…</p>;
   }
 
+  // W8: 使用者點下一步才呼叫 API
   function handleNextStep() {
-    setCurrentStep((prev) => {
-      if (prev === 2 && !step3Enabled) {
-        return 4;
-      }
-      return Math.min(4, prev + 1);
-    });
+    const next = currentStep === 2 && !step3Enabled ? 4 : Math.min(4, currentStep + 1);
+    void updateStep(next);
+  }
+
+  function handlePrevStep() {
+    void updateStep(Math.max(1, currentStep - 1));
   }
 
   return (
@@ -99,12 +127,12 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
         })}
       </div>
 
-      <div className="rounded-md border p-4">{stepContent}</div>
+      <div className="rounded-md border p-4">{renderStepContent()}</div>
 
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
-          onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
+          onClick={handlePrevStep}
           disabled={currentStep === 1}
         >
           上一步

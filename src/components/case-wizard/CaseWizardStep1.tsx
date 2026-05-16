@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CaseRow, UpdateCaseInput } from "@/lib/cases-api";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface CaseWizardStep1Props {
   draft: UpdateCaseInput;
@@ -21,14 +21,19 @@ export function CaseWizardStep1({
   const isResidential = (draft.property_type ?? caseData.property_type) === "residential";
   const addressValue = (draft.address ?? caseData.address ?? "").trim();
 
+  // W4: useRef 儲存 callback，useEffect 只依賴 addressValue，不依賴 onValidChange
+  const onValidChangeRef = useRef(onValidChange);
+  onValidChangeRef.current = onValidChange;
+
   useEffect(() => {
-    onValidChange(addressValue.length > 0);
-  }, [addressValue, onValidChange]);
+    onValidChangeRef.current(addressValue.length > 0);
+  }, [addressValue]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="wizard-owner-name">所有權人</Label>
+        {/* W4: ?? "" 防 undefined 造成 uncontrolled input */}
         <Input
           id="wizard-owner-name"
           value={draft.owner_name ?? caseData.owner_name ?? ""}
@@ -37,9 +42,10 @@ export function CaseWizardStep1({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="wizard-address">地址</Label>
+        {/* W4: ?? "" 防 caseData.address 為 null/undefined */}
         <Input
           id="wizard-address"
-          value={draft.address ?? caseData.address}
+          value={draft.address ?? caseData.address ?? ""}
           onChange={(event) => onChange({ ...draft, address: event.target.value })}
         />
         {addressValue.length === 0 ? (
@@ -66,9 +72,10 @@ export function CaseWizardStep1({
         <>
           <div className="space-y-1.5">
             <Label htmlFor="wizard-land-lot-no">地號</Label>
+            {/* W4: ?? "" 防 land_lot_no 為 null/undefined */}
             <Input
               id="wizard-land-lot-no"
-              value={draft.land_lot_no ?? caseData.land_lot_no}
+              value={draft.land_lot_no ?? caseData.land_lot_no ?? ""}
               onChange={(event) => onChange({ ...draft, land_lot_no: event.target.value })}
             />
           </div>

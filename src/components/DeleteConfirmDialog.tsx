@@ -14,12 +14,15 @@ interface DeleteConfirmDialogProps {
   open: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  // W6: 防連點
+  isLoading?: boolean;
 }
 
 export function DeleteConfirmDialog({
   open,
   onConfirm,
   onCancel,
+  isLoading = false,
 }: DeleteConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
@@ -31,8 +34,10 @@ export function DeleteConfirmDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>取消</Button>
-          <Button variant="destructive" onClick={onConfirm}>確認刪除</Button>
+          <Button variant="outline" onClick={onCancel} disabled={isLoading}>取消</Button>
+          <Button variant="destructive" onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? "刪除中…" : "確認刪除"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

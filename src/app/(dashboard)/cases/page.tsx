@@ -51,6 +51,8 @@ export default function CasesPage() {
   const [requiresTauri, setRequiresTauri] = useState(false);
   const [deletingCase, setDeletingCase] = useState<CaseRow | null>(null);
   const [supplementCaseId, setSupplementCaseId] = useState<string | null>(null);
+  // W6: 刪除 loading state，防連點
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,11 +79,20 @@ export default function CasesPage() {
     setCases(rows);
   }
 
+  // W1: 加 try/catch，W6: 加 loading state 防連點
   async function handleDeleteConfirm() {
     if (!deletingCase) return;
-    await casesApi.delete(deletingCase.id);
-    setDeletingCase(null);
-    await refreshCases();
+    setDeleting(true);
+    try {
+      await casesApi.delete(deletingCase.id);
+      setDeletingCase(null);
+      await refreshCases();
+    } catch (err) {
+      console.error("[CasesPage] 刪除案件失敗", err);
+      toast.error(err instanceof Error ? err.message : "刪除失敗，請稍後再試");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleDownload(caseId: string) {
@@ -194,6 +205,7 @@ export default function CasesPage() {
         open={Boolean(deletingCase)}
         onCancel={() => setDeletingCase(null)}
         onConfirm={handleDeleteConfirm}
+        isLoading={deleting}
       />
       {supplementCaseId ? (
         <CaseSupplementDialog
