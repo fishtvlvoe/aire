@@ -8,6 +8,7 @@
 // - updated_at 用 Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei' }) 格式化
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   casesApi,
@@ -29,6 +30,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TauriRequired } from "@/components/TauriRequired";
 import { NotInTauriError } from "@/lib/tauri-bridge";
+import { CaseListActions } from "@/components/CaseListActions";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 
 /** 依狀態回傳 Badge variant */
 function StatusBadge({ status }: { status: CaseRow["status"] }) {
@@ -39,9 +42,11 @@ function StatusBadge({ status }: { status: CaseRow["status"] }) {
 }
 
 export default function CasesPage() {
+  const router = useRouter();
   const [cases, setCases] = useState<CaseRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requiresTauri, setRequiresTauri] = useState(false);
+  const [deletingCase, setDeletingCase] = useState<CaseRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +67,18 @@ export default function CasesPage() {
       cancelled = true;
     };
   }, []);
+
+  async function refreshCases() {
+    const rows = await casesApi.list();
+    setCases(rows);
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deletingCase) return;
+    await casesApi.delete(deletingCase.id);
+    setDeletingCase(null);
+    await refreshCases();
+  }
 
   return (
     <main className="p-6">
@@ -107,7 +124,8 @@ export default function CasesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>物件名稱</TableHead>
+              <TableHead>案件名稱</TableHead>
+              <TableHead>地址 + 所有權人</TableHead>
               <TableHead>案件類型</TableHead>
               <TableHead>狀態</TableHead>
               <TableHead>建立日期</TableHead>
@@ -116,10 +134,20 @@ export default function CasesPage() {
           </TableHeader>
           <TableBody>
             {cases.map((c) => (
-              <TableRow key={c.id}>
-                {/* 物件名稱（地址 or case_no） */}
+              <TableRow
+                key={c.id}
+                className="cursor-pointer"
+                onClick={() => router.push(`/cases/${c.id}`)}
+              >
                 <TableCell className="font-medium">
-                  {c.address || c.case_no || c.id.slice(0, 8)}
+                  {c.case_name ?? c.case_no ?? c.id.slice(0, 8)}
+                </TableCell>
+
+                <TableCell>
+                  <div className="text-sm">{c.address || "-"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    所有權人：{c.owner_name || "-"}
+                  </div>
                 </TableCell>
 
                 {/* 案件類型 */}
@@ -135,15 +163,25 @@ export default function CasesPage() {
 
                 {/* 操作 */}
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/cases/${c.id}`}>查看</Link>
-                  </Button>
+                  <CaseListActions
+                    onSupplement={() => {}}
+                    onView={() => router.push(`/cases/${c.id}`)}
+                    onEdit={() => router.push(`/cases/${c.id}`)}
+                    onDelete={() => setDeletingCase(c)}
+                    onDownload={() => router.push(`/cases/${c.id}/preview`)}
+                  />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       )}
+
+      <DeleteConfirmDialog
+        open={Boolean(deletingCase)}
+        onCancel={() => setDeletingCase(null)}
+        onConfirm={handleDeleteConfirm}
+      />
     </main>
   );
 }
