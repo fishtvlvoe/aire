@@ -126,17 +126,31 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     total_cost: number;
   };
 
-  let pullResult: PullResult | undefined;
-  try {
-    pullResult = await invoke<PullResult>("land_registry_pull_data", {
-      parcelId: caseRow.land_lot_no,
-      apiIds,
-    });
-  } catch {
-    // 組裝層捕捉錯誤，API 欄位降級為 undefined
+  const persisted = caseRow.land_registry_data;
+  let apiData: Record<string, { data: unknown }> = {};
+  if (persisted && typeof persisted === "object" && !Array.isArray(persisted)) {
+    // 兼容兩種格式：{ apiId: { data } } 與 { apiId: rawData }
+    apiData = Object.fromEntries(
+      Object.entries(persisted).map(([apiId, value]) => {
+        const wrapped =
+          value && typeof value === "object" && "data" in (value as Record<string, unknown>)
+            ? (value as { data: unknown })
+            : { data: value };
+        return [apiId, wrapped];
+      }),
+    );
+  } else {
+    let pullResult: PullResult | undefined;
+    try {
+      pullResult = await invoke<PullResult>("land_registry_pull_data", {
+        parcelId: caseRow.land_lot_no,
+        apiIds,
+      });
+    } catch {
+      // 組裝層捕捉錯誤，API 欄位降級為 undefined
+    }
+    apiData = pullResult?.results ?? {};
   }
-
-  const apiData = pullResult?.results ?? {};
 
   // ── 法規條文 ──────────────────────────────────────────────────────────────
 
