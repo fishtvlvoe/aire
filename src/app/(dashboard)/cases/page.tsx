@@ -33,6 +33,8 @@ import { NotInTauriError } from "@/lib/tauri-bridge";
 import { CaseListActions } from "@/components/CaseListActions";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { CaseSupplementDialog } from "@/components/CaseSupplementDialog";
+import { safeInvoke } from "@/lib/safe-invoke";
+import { toast } from "sonner";
 
 /** 依狀態回傳 Badge variant */
 function StatusBadge({ status }: { status: CaseRow["status"] }) {
@@ -80,6 +82,15 @@ export default function CasesPage() {
     await casesApi.delete(deletingCase.id);
     setDeletingCase(null);
     await refreshCases();
+  }
+
+  async function handleDownload(caseId: string) {
+    try {
+      await safeInvoke("export_pdf", { caseId });
+      toast.success("已觸發 PDF 匯出");
+    } catch (downloadError) {
+      toast.error(downloadError instanceof Error ? downloadError.message : "匯出失敗");
+    }
   }
 
   return (
@@ -170,7 +181,7 @@ export default function CasesPage() {
                     onView={() => router.push(`/cases/${c.id}`)}
                     onEdit={() => router.push(`/cases/${c.id}`)}
                     onDelete={() => setDeletingCase(c)}
-                    onDownload={() => router.push(`/cases/${c.id}/preview`)}
+                    onDownload={() => void handleDownload(c.id)}
                   />
                 </TableCell>
               </TableRow>
