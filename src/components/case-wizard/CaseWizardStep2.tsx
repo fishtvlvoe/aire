@@ -24,15 +24,27 @@ export function CaseWizardStep2({ caseData }: CaseWizardStep2Props) {
   }
 
   async function handleSaved(data: Record<string, unknown>) {
-    const landRegistry = (data.land_registry ?? data.building_registry ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const payload =
+      data.land_registry_data && typeof data.land_registry_data === "object"
+        ? (data.land_registry_data as Record<string, unknown>)
+        : data;
+    const landRegistryEntry = payload.land_registry as Record<string, unknown> | undefined;
+    const buildingRegistryEntry =
+      payload.building_registry as Record<string, unknown> | undefined;
+    const landRegistry =
+      (landRegistryEntry?.data as Record<string, unknown> | undefined) ?? landRegistryEntry ?? {};
+    const buildingRegistry =
+      (buildingRegistryEntry?.data as Record<string, unknown> | undefined) ??
+      buildingRegistryEntry ??
+      {};
+
     const nextLand = readStringValue(
       data.land_lot_no ?? landRegistry.lot_number ?? landRegistry.lot ?? landLotNo,
     );
     const nextBuilding = readStringValue(
       data.building_lot_no ??
+        buildingRegistry.building_number ??
+        buildingRegistry.building_lot_no ??
         landRegistry.building_number ??
         landRegistry.building_lot_no ??
         buildingLotNo,

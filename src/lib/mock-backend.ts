@@ -169,7 +169,38 @@ const SEED_CASES: CaseRow[] = [
     building_lot_no: null,
     address: "新北市板橋區文化路一段 188 號",
     owner_name: "林大華",
-    land_registry_data: null,
+    land_registry_data: {
+      land_registry: { data: { area: 268.34, purpose: "建" } },
+      zoning: { data: { zoning_type: "住宅區", usage_category: "乙種住宅用地" } },
+      land_value: { data: { announced_value: 236000, assessed_value: 188000 } },
+      mortgages: { data: [{ creditor: "台灣銀行", amount: 12000000 }] },
+      dossier_preview: {
+        data: {
+          restriction_registration: "無限制登記",
+          trust_registration: "無信託登記",
+          caution_registration: "無預告登記",
+          other_rights_detail: "無其他權利登記事項",
+          current_rental_status: "部分出租（月租 NT$28,000）",
+          current_occupation: "現況自用",
+          shared_management: "依分管協議",
+          existing_road: "臨 8 米計畫道路",
+          other_usage_status: "空地／停車使用",
+          urban_plan_zone: "住宅區",
+          non_urban_land_category: "乙種住宅用地",
+          floor_area_ratio: "225%",
+          building_coverage_ratio: "60%",
+          special_designated_area: "無",
+          transaction_total_price: "NT$ 38,000,000",
+          payment_method: "簽約 10%、過戶 90%",
+          tax_burden_agreement: "依契約約定分擔",
+          penalty_clause: "逾期每日千分之一違約金",
+          environmental_impact: "無明顯污染源",
+          major_incident: "無重大事故紀錄",
+          nearby_public_facilities: "捷運站約 600m、公園約 200m",
+          surrounding_transaction_price: "近半年成交均價約 NT$ 46 萬/坪",
+        },
+      },
+    },
     current_step: 1,
     status: "completed",
     created_at: 1763203600,
@@ -473,6 +504,8 @@ export class MockStore {
           return this.landRegistryAddressLookup(args) as T;
         case "land_registry_pull_data":
           return this.landRegistryPullData(args) as T;
+        case "query_real_price":
+          return this.queryRealPrice() as T;
         case "land_registry_set_api_key":
           return this.landRegistrySetApiKey(args) as T;
         case "land_registry_get_api_key":
@@ -1038,12 +1071,69 @@ export class MockStore {
   ): { results: Record<string, unknown>; total_cost: number } {
     const apiIds = (args?.apiIds || []) as string[];
     const results: Record<string, unknown> = {};
+    const mockDataMap: Record<string, unknown> = {
+      land_registry: { area: 125.8, purpose: "田", lot_number: "0456-0000" },
+      zoning: { zoning_type: "住宅區", usage_category: "甲種建築用地" },
+      land_value: { announced_value: 58000, assessed_value: 42000 },
+      mortgages: [{ creditor: "台灣銀行", amount: 3000000 }],
+      building_registry: {
+        area: 85.5,
+        purpose: "住家用",
+        construction_date: "2015-06-15",
+        building_number: "建號 778-2",
+      },
+      building_ownership: {
+        certificate_no: "北松字第012345號",
+        ownership_date: "2015-08-20",
+      },
+    };
+
     let totalCost = 0;
     for (const apiId of apiIds) {
-      results[apiId] = { success: true, data: { source_api: apiId }, source: "api" };
+      results[apiId] = {
+        success: true,
+        data: mockDataMap[apiId] ?? { source_api: apiId },
+        source: "api",
+      };
       totalCost += 10;
     }
     return { results, total_cost: totalCost };
+  }
+
+  private queryRealPrice(): Array<{
+    unit_price: number;
+    total_price: number;
+    area: number;
+    address: string;
+    date: string;
+    type: string;
+  }> {
+    return [
+      {
+        address: "台南市東區裕農路123號",
+        total_price: 12800000,
+        area: 32.5,
+        unit_price: 393846,
+        date: "2024-01-15",
+        type: "大樓",
+      },
+      {
+        address: "台南市東區裕農路456號5樓",
+        total_price: 9500000,
+        area: 24.8,
+        unit_price: 383065,
+        date: "2023-11-20",
+        type: "大樓",
+      },
+      {
+        address: "台南市東區裕農路789號3樓之2",
+        total_price: 15200000,
+        area: 42.1,
+        unit_price: 361045,
+        date: "2024-03-08",
+        type: "大樓",
+      },
+    ];
   }
 
   private landRegistrySetApiKey(args?: CommandArgs): undefined {

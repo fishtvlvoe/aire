@@ -4,7 +4,7 @@
 
 Define the rendering rules for the signature block (簽章欄) at the end of the land disclosure PDF, aligned with the 105-year government-mandated format.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: LandPages SHALL render a signature block page after Section Seven
 
@@ -34,26 +34,3 @@ The signature block is purely presentational — it does not accept data from `C
 - **WHEN** the signature block page is rendered
 - **THEN** each of the four columns SHALL contain a header label, a signature line, and a date line
 - **AND** the layout SHALL be a 4-column horizontal arrangement fitting within A4 width
-
-<!-- @trace
-source: pdf-template-land-complete
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/land-pages.tsx
-  - src/lib/pdf-engine/react-pdf-components.tsx
-tests:
-  - src/lib/pdf-engine/__tests__/document.test.tsx
--->
-
-<!-- @trace
-source: pdf-template-land-complete
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/document.tsx
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/lib/pdf-engine/react-pdf-components.tsx
-  - src/lib/mock-backend.ts
-tests:
-  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
-  - src/lib/pdf-engine/__tests__/react-pdf-components.test.tsx
--->

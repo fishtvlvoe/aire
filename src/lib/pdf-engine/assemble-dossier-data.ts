@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { safeInvoke as invoke } from "@/lib/tauri-bridge";
 import type { CaseRow } from "@/lib/cases-api";
 import type { CaseDossierData } from "./document";
 
@@ -187,6 +187,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const zoning = apiData["zoning"]?.data;
     const landValue = apiData["land_value"]?.data;
     const mortgagesRaw = apiData["mortgages"]?.data;
+    const dossierPreview = apiData["dossier_preview"]?.data;
 
     const zoningType = safeGet(zoning, "zoning_type", isString);
     const restrictions = getZoningRestrictions(zoningType);
@@ -212,6 +213,34 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       recentSalePricePerSqm,
       recentSaleCount,
       legalClauses,
+      restrictionRegistration: safeGet(dossierPreview, "restriction_registration", isString),
+      trustRegistration: safeGet(dossierPreview, "trust_registration", isString),
+      cautionRegistration: safeGet(dossierPreview, "caution_registration", isString),
+      otherRightsDetail: safeGet(dossierPreview, "other_rights_detail", isString),
+      currentRentalStatus: safeGet(dossierPreview, "current_rental_status", isString),
+      currentOccupation: safeGet(dossierPreview, "current_occupation", isString),
+      sharedManagement: safeGet(dossierPreview, "shared_management", isString),
+      existingRoad: safeGet(dossierPreview, "existing_road", isString),
+      otherUsageStatus: safeGet(dossierPreview, "other_usage_status", isString),
+      urbanPlanZone: safeGet(dossierPreview, "urban_plan_zone", isString) ?? zoningType,
+      nonUrbanLandCategory:
+        safeGet(dossierPreview, "non_urban_land_category", isString) ??
+        safeGet(zoning, "usage_category", isString),
+      floorAreaRatio: safeGet(dossierPreview, "floor_area_ratio", isString),
+      buildingCoverageRatio: safeGet(dossierPreview, "building_coverage_ratio", isString),
+      specialDesignatedArea: safeGet(dossierPreview, "special_designated_area", isString),
+      transactionTotalPrice: safeGet(dossierPreview, "transaction_total_price", isString),
+      paymentMethod: safeGet(dossierPreview, "payment_method", isString),
+      taxBurdenAgreement: safeGet(dossierPreview, "tax_burden_agreement", isString),
+      penaltyClause: safeGet(dossierPreview, "penalty_clause", isString),
+      environmentalImpact: safeGet(dossierPreview, "environmental_impact", isString),
+      majorIncident: safeGet(dossierPreview, "major_incident", isString),
+      nearbyPublicFacilities: safeGet(dossierPreview, "nearby_public_facilities", isString),
+      surroundingTransactionPrice: safeGet(
+        dossierPreview,
+        "surrounding_transaction_price",
+        isString,
+      ),
     };
   } else {
     const buildingReg = apiData["building_registry"]?.data;

@@ -7,15 +7,15 @@ import {
 import type { CaseRow } from "@/lib/cases-api";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock @tauri-apps/api/core
+// Mock tauri-bridge safeInvoke
 // ─────────────────────────────────────────────────────────────────────────────
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
+vi.mock("@/lib/tauri-bridge", () => ({
+  safeInvoke: vi.fn(),
 }));
 
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+import { safeInvoke } from "@/lib/tauri-bridge";
+const mockInvoke = vi.mocked(safeInvoke);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 測試資料

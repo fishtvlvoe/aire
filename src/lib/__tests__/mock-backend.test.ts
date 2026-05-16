@@ -176,6 +176,78 @@ describe("MockStore", () => {
     await expect(mockInvoke("sync_clauses")).resolves.toMatchObject({ success: true });
   });
 
+  it("land_registry_pull_data returns field-accurate mock payloads", async () => {
+    const result = await mockInvoke<{
+      results: Record<string, { success: boolean; data: unknown; source: string }>;
+      total_cost: number;
+    }>("land_registry_pull_data", {
+      parcelId: "0001-0000",
+      apiIds: [
+        "land_registry",
+        "zoning",
+        "land_value",
+        "mortgages",
+        "building_registry",
+        "building_ownership",
+        "unknown_api",
+      ],
+    });
+
+    expect(result.total_cost).toBe(70);
+    expect(result.results.land_registry.data).toMatchObject({
+      area: 125.8,
+      purpose: "田",
+      lot_number: "0456-0000",
+    });
+    expect(result.results.zoning.data).toMatchObject({
+      zoning_type: "住宅區",
+      usage_category: "甲種建築用地",
+    });
+    expect(result.results.land_value.data).toMatchObject({
+      announced_value: 58000,
+      assessed_value: 42000,
+    });
+    expect(result.results.mortgages.data).toEqual([
+      { creditor: "台灣銀行", amount: 3000000 },
+    ]);
+    expect(result.results.building_registry.data).toMatchObject({
+      area: 85.5,
+      purpose: "住家用",
+      construction_date: "2015-06-15",
+    });
+    expect(result.results.building_ownership.data).toMatchObject({
+      certificate_no: "北松字第012345號",
+      ownership_date: "2015-08-20",
+    });
+    expect(result.results.unknown_api.data).toEqual({ source_api: "unknown_api" });
+  });
+
+  it("query_real_price returns 3 Tainan records with numeric unit_price", async () => {
+    const records = await mockInvoke<
+      Array<{
+        unit_price: number;
+        total_price: number;
+        area: number;
+        address: string;
+        date: string;
+      }>
+    >("query_real_price", {
+      district: "台南市東區",
+      keyword: "裕農路",
+      limit: 5,
+    });
+
+    expect(records).toHaveLength(3);
+    for (const row of records) {
+      expect(typeof row.unit_price).toBe("number");
+      expect(typeof row.total_price).toBe("number");
+      expect(typeof row.area).toBe("number");
+      expect(typeof row.address).toBe("string");
+      expect(row.address).toContain("台南市");
+      expect(typeof row.date).toBe("string");
+    }
+  });
+
   it("resets state to initial seed", async () => {
     const store = new MockStore();
 

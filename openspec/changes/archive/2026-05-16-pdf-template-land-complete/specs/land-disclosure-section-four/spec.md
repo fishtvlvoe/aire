@@ -4,7 +4,7 @@
 
 Define the field layout and rendering rules for Section Four (四、目前管理與使用情況) of the land disclosure PDF, aligned with the 105-year government-mandated format.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: LandPages SHALL render Section Four with all government-mandated fields
 
@@ -27,26 +27,3 @@ Each field SHALL be rendered using `PdfFieldTable`. When the corresponding `Case
 
 - **WHEN** `PdfDocument` renders with `propertyType: 'land'` and no Section Four fields populated
 - **THEN** the Section Four page SHALL render without errors AND all value cells SHALL display "待補"
-
-<!-- @trace
-source: pdf-template-land-complete
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/land-pages.tsx
-  - src/lib/pdf-engine/react-pdf-components.tsx
-tests:
-  - src/lib/pdf-engine/__tests__/document.test.tsx
--->
-
-<!-- @trace
-source: pdf-template-land-complete
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/document.tsx
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/lib/pdf-engine/react-pdf-components.tsx
-  - src/lib/mock-backend.ts
-tests:
-  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
-  - src/lib/pdf-engine/__tests__/react-pdf-components.test.tsx
--->

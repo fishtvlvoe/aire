@@ -9,6 +9,7 @@ import {
   PdfPageFooter,
   PdfSection,
   PdfFieldTable,
+  PdfSignatureBlock,
 } from "../react-pdf-components";
 
 beforeAll(() => initReactPdfEngine());
@@ -141,6 +142,18 @@ describe("PdfFieldTable", () => {
       tokens,
       rows: [["備註", ""]],
     });
+    const size = await blobSize(element);
+    expect(size).toBeGreaterThan(0);
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// PdfSignatureBlock
+// ────────────────────────────────────────────────────────────
+describe("PdfSignatureBlock", () => {
+  it("renders to PDF blob size > 0 with tokens", async () => {
+    const tokens = getThemePdfTokens("theme-a-minimal");
+    const element = React.createElement(PdfSignatureBlock, { tokens });
     const size = await blobSize(element);
     expect(size).toBeGreaterThan(0);
   });

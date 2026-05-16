@@ -405,3 +405,62 @@ export function PdfFieldTable({
     </View>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PdfSignatureBlock — 土地版簽章欄
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PdfSignatureBlockProps {
+  tokens: PdfTokens;
+}
+
+const SIGNATURE_PARTIES = ["不動產經紀業", "經紀人", "買方", "賣方"] as const;
+
+export function PdfSignatureBlock({
+  tokens,
+}: PdfSignatureBlockProps): React.ReactElement {
+  return (
+    <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+      {SIGNATURE_PARTIES.map((party) => (
+        <View
+          key={party}
+          style={{
+            flex: 1,
+            borderWidth: 1,
+            borderColor: tokens.border,
+            borderStyle: "solid",
+            paddingVertical: 8,
+            paddingHorizontal: 6,
+            minHeight: 90,
+            justifyContent: "space-between",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: "bold",
+              color: tokens.text,
+              textAlign: "center",
+            }}
+          >
+            {party}
+          </Text>
+          <View style={{ alignItems: "center", gap: 6 }}>
+            <View
+              style={{
+                width: 60,
+                borderBottomWidth: 1,
+                borderBottomColor: tokens.textMuted,
+                borderBottomStyle: "solid",
+                height: 1,
+              }}
+            />
+            <Text style={{ fontSize: 8.5, color: tokens.textMuted }}>
+              日期：＿＿年＿＿月＿＿日
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}

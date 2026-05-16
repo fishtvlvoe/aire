@@ -8,6 +8,7 @@ import {
   PdfPageFooter,
   PdfSection,
   PdfFieldTable,
+  PdfSignatureBlock,
 } from "./react-pdf-components";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -35,6 +36,28 @@ export interface CaseDossierData {
   announcedLandValue?: number;
   assessedLandValue?: number;
   mortgages?: Array<{ creditor: string; amount: number }>;
+  restrictionRegistration?: string;
+  trustRegistration?: string;
+  cautionRegistration?: string;
+  otherRightsDetail?: string;
+  currentRentalStatus?: string;
+  currentOccupation?: string;
+  sharedManagement?: string;
+  existingRoad?: string;
+  otherUsageStatus?: string;
+  urbanPlanZone?: string;
+  nonUrbanLandCategory?: string;
+  floorAreaRatio?: string;
+  buildingCoverageRatio?: string;
+  specialDesignatedArea?: string;
+  transactionTotalPrice?: string;
+  paymentMethod?: string;
+  taxBurdenAgreement?: string;
+  penaltyClause?: string;
+  environmentalImpact?: string;
+  majorIncident?: string;
+  nearbyPublicFacilities?: string;
+  surroundingTransactionPrice?: string;
 
   // 建物版欄位
   buildingArea?: number;
@@ -144,16 +167,25 @@ function LandPages({
   data: CaseDossierData;
   tokens: ReturnType<typeof getThemePdfTokens>;
 }) {
-  const totalPages = 7;
+  const totalPages = 10;
   const header = (pageNum: number) => (
     <PdfPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pageNum} totalPages={totalPages} />
   );
   const footer = <PdfPageFooter tokens={tokens} generatedAt={data.generatedAt} />;
 
-  const firstMortgage = data.mortgages?.[0];
-  const mortgageCreditor = firstMortgage?.creditor ?? "";
-  const mortgageAmount = firstMortgage
-    ? `NT$ ${firstMortgage.amount.toLocaleString("zh-TW")}`
+  const sectionThreeMortgageDetail = data.mortgages && data.mortgages.length > 0
+    ? data.mortgages
+      .map((mortgage) => `${mortgage.creditor} / NT$ ${mortgage.amount.toLocaleString("zh-TW")}`)
+      .join("；")
+    : "";
+
+  const urbanPlanZone = data.urbanPlanZone ?? data.zoningType ?? "";
+  const nonUrbanLandCategory = data.nonUrbanLandCategory ?? data.usageCategory ?? "";
+  const recentSalePriceDisplay = data.recentSalePricePerSqm
+    ? `NT$ ${data.recentSalePricePerSqm.toLocaleString("zh-TW")}/㎡`
+    : "";
+  const recentSaleCountDisplay = data.recentSaleCount != null
+    ? data.recentSaleCount.toString()
     : "";
 
   return (
@@ -179,10 +211,10 @@ function LandPages({
         legalClauses={data.legalClauses ?? []}
       />
 
-      {/* 頁 3 — 產權調查表：土地標示 */}
+      {/* 頁 3 — 一、標示及權利範圍 */}
       <Page size="A4" style={PAGE_STYLE}>
         {header(3)}
-        <PdfSection tokens={tokens} title="二、產權調查表—土地標示">
+        <PdfSection tokens={tokens} title="一、標示及權利範圍">
           <PdfFieldTable
             tokens={tokens}
             rows={[
@@ -193,72 +225,129 @@ function LandPages({
               ["使用地類別", data.usageCategory ?? ""],
               ["水土保持", data.soilConservation ?? ""],
               ["建築線指定", data.buildingLineNote ?? ""],
-              ["地上權登記", ""],
+              ["權利範圍", ""],
+              ["持分比例", ""],
             ]}
           />
         </PdfSection>
         {footer}
       </Page>
 
-      {/* 頁 4 — 產權調查表：權利/他項權利 */}
+      {/* 頁 4 — 二、所有權人及其基本資料 */}
       <Page size="A4" style={PAGE_STYLE}>
         {header(4)}
-        <PdfSection tokens={tokens} title="三、產權調查表—所有權及他項權利">
+        <PdfSection tokens={tokens} title="二、所有權人及其基本資料">
           <PdfFieldTable
             tokens={tokens}
             rows={[
               ["所有權人", data.ownerName],
               ["持分比例", ""],
-              ["他項權利種類", mortgageCreditor],
-              ["他項權利人", ""],
-              ["擔保金額", mortgageAmount],
-              ["存續期間", ""],
             ]}
           />
         </PdfSection>
         {footer}
       </Page>
 
-      {/* 頁 5 — 基地/土地現況調查 */}
+      {/* 頁 5 — 三、權利種類及登記狀態 */}
       <Page size="A4" style={PAGE_STYLE}>
         {header(5)}
-        <PdfSection tokens={tokens} title="四、基地╱土地現況調查">
+        <PdfSection tokens={tokens} title="三、權利種類及登記狀態">
           <PdfFieldTable
             tokens={tokens}
             rows={[
-              ["臨路狀況", ""],
-              ["道路寬度（m）", ""],
-              ["地勢高低", ""],
-              ["排水設施", ""],
-              ["土地使用管制", ""],
-              ["特定目的事業用地", ""],
+              ["限制登記", data.restrictionRegistration ?? ""],
+              ["他項權利明細", sectionThreeMortgageDetail],
+              ["信託登記", data.trustRegistration ?? ""],
+              ["預告登記", data.cautionRegistration ?? ""],
+              ["其他權利登記事項", data.otherRightsDetail ?? ""],
             ]}
           />
         </PdfSection>
         {footer}
       </Page>
 
-      {/* 頁 6 — 稅費/規費 */}
+      {/* 頁 6 — 四、目前管理與使用情況 */}
       <Page size="A4" style={PAGE_STYLE}>
         {header(6)}
-        <PdfSection tokens={tokens} title="五、稅費╱規費">
+        <PdfSection tokens={tokens} title="四、目前管理與使用情況">
           <PdfFieldTable
             tokens={tokens}
             rows={[
-              ["土地增值稅（元）", ""],
-              ["公告現值（元/㎡）", data.announcedLandValue ? String(data.announcedLandValue) : ""],
-              ["評估地價（元/㎡）", data.assessedLandValue ? String(data.assessedLandValue) : ""],
-              ["地價稅（元/年）", ""],
-              ["代書費（元）", ""],
-              ["登記規費（元）", ""],
+              ["出租情形", data.currentRentalStatus ?? ""],
+              ["占用情形", data.currentOccupation ?? ""],
+              ["共有物分管情形", data.sharedManagement ?? ""],
+              ["既成道路", data.existingRoad ?? ""],
+              ["其他使用情況", data.otherUsageStatus ?? ""],
             ]}
           />
         </PdfSection>
         {footer}
       </Page>
 
-      {/* 頁 7 — 成交行情/周遭設施 */}
-      <SalePage tokens={tokens} header={header(7)} footer={footer} data={data} />
+      {/* 頁 7 — 五、使用管制內容 */}
+      <Page size="A4" style={PAGE_STYLE}>
+        {header(7)}
+        <PdfSection tokens={tokens} title="五、使用管制內容">
+          <PdfFieldTable
+            tokens={tokens}
+            rows={[
+              ["都市計畫使用分區", urbanPlanZone],
+              ["非都市土地使用分區及編定", nonUrbanLandCategory],
+              ["容積率", data.floorAreaRatio ?? ""],
+              ["建蔽率", data.buildingCoverageRatio ?? ""],
+              ["特定目的事業用地", data.specialDesignatedArea ?? ""],
+            ]}
+          />
+        </PdfSection>
+        {footer}
+      </Page>
+
+      {/* 頁 8 — 六、重要交易條件 */}
+      <Page size="A4" style={PAGE_STYLE}>
+        {header(8)}
+        <PdfSection tokens={tokens} title="六、重要交易條件">
+          <PdfFieldTable
+            tokens={tokens}
+            rows={[
+              ["交易總價", data.transactionTotalPrice ?? ""],
+              ["付款方式", data.paymentMethod ?? ""],
+              ["稅費負擔約定", data.taxBurdenAgreement ?? ""],
+              ["違約處理", data.penaltyClause ?? ""],
+              ["公告現值", data.announcedLandValue ? String(data.announcedLandValue) : ""],
+              ["評估地價", data.assessedLandValue ? String(data.assessedLandValue) : ""],
+            ]}
+          />
+        </PdfSection>
+        {footer}
+      </Page>
+
+      {/* 頁 9 — 七、其他重要事項 */}
+      <Page size="A4" style={PAGE_STYLE}>
+        {header(9)}
+        <PdfSection tokens={tokens} title="七、其他重要事項">
+          <PdfFieldTable
+            tokens={tokens}
+            rows={[
+              ["環境影響", data.environmentalImpact ?? ""],
+              ["重大事故", data.majorIncident ?? ""],
+              ["鄰近公共設施", data.nearbyPublicFacilities ?? ""],
+              ["周遭成交行情", data.surroundingTransactionPrice ?? ""],
+              ["近期成交均價", recentSalePriceDisplay],
+              ["近期成交案件數", recentSaleCountDisplay],
+            ]}
+          />
+        </PdfSection>
+        {footer}
+      </Page>
+
+      {/* 頁 10 — 簽章欄 */}
+      <Page size="A4" style={PAGE_STYLE}>
+        {header(10)}
+        <PdfSection tokens={tokens} title="簽章欄">
+          <PdfSignatureBlock tokens={tokens} />
+        </PdfSection>
+        {footer}
+      </Page>
     </>
   );
 }

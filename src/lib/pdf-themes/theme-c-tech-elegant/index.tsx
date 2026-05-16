@@ -33,7 +33,7 @@ const gradientBarStyle: React.CSSProperties = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Cover: React.FC<{ caseData?: Record<string, unknown>; logo?: string | null }> = ({
-  caseData,
+  caseData: _caseData,
   logo,
 }) => (
   <div
@@ -71,13 +71,7 @@ const Cover: React.FC<{ caseData?: Record<string, unknown>; logo?: string | null
       }}
     />
     {/* 內容區 */}
-    <div style={{ padding: "24px 40px" }}>
-      {caseData && (
-        <pre style={{ fontSize: "10px", color: colors.secondary }}>
-          {JSON.stringify(caseData)}
-        </pre>
-      )}
-    </div>
+    <div style={{ padding: "24px 40px" }} />
   </div>
 );
 

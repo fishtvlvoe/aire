@@ -25,7 +25,7 @@ const colors = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Cover: React.FC<{ caseData?: Record<string, unknown>; logo?: string | null }> = ({
-  caseData,
+  caseData: _caseData,
   logo,
 }) => (
   <div
@@ -53,11 +53,6 @@ const Cover: React.FC<{ caseData?: Record<string, unknown>; logo?: string | null
     <div style={{ fontSize: "14px", marginTop: "8px", opacity: 0.8 }}>
       REAL ESTATE INFORMATION
     </div>
-    {caseData && (
-      <pre style={{ fontSize: "10px", opacity: 0.7 }}>
-        {JSON.stringify(caseData)}
-      </pre>
-    )}
   </div>
 );
 

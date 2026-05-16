@@ -50,35 +50,10 @@ export function PullParcelDataButton({
   const [pullError, setPullError] = React.useState<string | null>(null);
   // 需要手動填入的 API 列表（apiId → 已填資料 or null）
   const [manualEntries, setManualEntries] = React.useState<ManualEntry[]>([]);
-  const [persistedData, setPersistedData] = React.useState<Record<string, unknown> | null>(
-    null,
-  );
   const [savingResult, setSavingResult] = React.useState(false);
   const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
 
   const estimatedCost = apiIds.length * COST_PER_API;
-
-  React.useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const row = await casesApi.get(caseId);
-        const raw = row.land_registry_data;
-        const normalized =
-          raw && typeof raw === "object" && !Array.isArray(raw)
-            ? (raw as Record<string, unknown>)
-            : null;
-        if (!cancelled) {
-          setPersistedData(normalized);
-        }
-      } catch {
-        // 忽略查詢錯誤，避免阻塞主流程
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [caseId]);
 
   // 步驟 1：點擊「拉謄本」→ 打開授權 Dialog
   function handleClick() {
@@ -160,7 +135,6 @@ export function PullParcelDataButton({
     setSaveMessage(null);
     try {
       await casesApi.update(caseId, { land_registry_data: previewData });
-      setPersistedData(previewData);
       setSaveMessage("已儲存");
       onSaved?.(previewData);
     } catch (error) {
@@ -203,9 +177,8 @@ export function PullParcelDataButton({
           <p className="text-sm font-medium">查詢完成</p>
           <div className="flex gap-4 text-sm">
             {successCount > 0 && (
-              <span className="flex items-center gap-1.5 text-green-700">
-                <CheckCircle className="h-4 w-4" />
-                {successCount} 項成功
+              <span className="text-green-700">
+                已取得 {successCount} 項地政資料
               </span>
             )}
             {failedCount > 0 && (
@@ -218,15 +191,14 @@ export function PullParcelDataButton({
           <p className="text-xs text-muted-foreground">
             實際扣款：NT${totalCost.toLocaleString()}
           </p>
-        </div>
-      )}
-
-      {persistedData && (
-        <div className="rounded-md border border-green-200 bg-green-50/50 p-4 space-y-2">
-          <p className="text-sm font-medium text-green-800">已儲存資料</p>
-          <pre className="text-xs overflow-auto rounded bg-white/80 p-2">
-            {JSON.stringify(persistedData, null, 2)}
-          </pre>
+          {previewData ? (
+            <Button onClick={handleConfirmSave} disabled={savingResult} size="sm">
+              {savingResult ? "儲存中…" : "確認儲存"}
+            </Button>
+          ) : null}
+          {saveMessage ? (
+            <p className="text-xs text-muted-foreground">{saveMessage}</p>
+          ) : null}
         </div>
       )}
 
@@ -259,21 +231,6 @@ export function PullParcelDataButton({
               )}
             </div>
           ))}
-        </div>
-      )}
-
-      {previewData && (
-        <div className="space-y-2 rounded-md border border-border p-4">
-          <p className="text-sm font-medium">結果預覽</p>
-          <pre className="text-xs overflow-auto rounded bg-muted p-2">
-            {JSON.stringify(previewData, null, 2)}
-          </pre>
-          <Button onClick={handleConfirmSave} disabled={savingResult} size="sm">
-            {savingResult ? "儲存中…" : "確認儲存"}
-          </Button>
-          {saveMessage ? (
-            <p className="text-xs text-muted-foreground">{saveMessage}</p>
-          ) : null}
         </div>
       )}
 

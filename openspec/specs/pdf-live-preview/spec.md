@@ -2023,3 +2023,31 @@ tests:
   - e2e/pdf-theme-a-visual.spec.ts
   - docs/data-recovery-guide.test.ts
 -->
+
+---
+### Requirement: Browser dev mode compatibility
+
+PdfPreviewer SHALL NOT import Tauri-specific modules (`@tauri-apps/api/core`, `@tauri-apps/plugin-dialog`) at the top level. These imports SHALL use dynamic import (`await import(...)`) inside the functions that need them, guarded by Tauri environment detection.
+
+#### Scenario: PdfPreviewer renders in browser dev mode
+
+- **WHEN** PdfPreviewer is mounted in a browser without Tauri runtime
+- **THEN** PDF preview iframe renders normally; no import errors in console; download button uses browser-native download (anchor element)
+
+#### Scenario: PdfPreviewer renders in Tauri desktop mode
+
+- **WHEN** PdfPreviewer is mounted inside Tauri desktop shell
+- **THEN** PDF preview iframe renders normally; download button opens native save dialog via Tauri plugin-dialog
+
+<!-- @trace
+source: wizard-step4-preview-fix
+updated: 2026-05-16
+code:
+  - src/components/PdfPreviewer.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+tests:
+  - src/components/__tests__/CaseWizardStep4.test.tsx
+  - src/components/__tests__/CaseWizard.test.tsx
+  - src/components/__tests__/PdfPreviewer.browser-compat.test.tsx
+-->

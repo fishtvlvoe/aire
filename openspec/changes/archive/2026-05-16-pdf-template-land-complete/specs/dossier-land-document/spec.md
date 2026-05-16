@@ -1,6 +1,6 @@
-# dossier-land-document Specification
+# dossier-land-document Specification Delta
 
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: System SHALL define a CaseDossierData interface for dossier rendering
 
@@ -45,21 +45,6 @@ All new fields are optional. Adding them SHALL NOT cause TypeScript compilation 
 - **WHEN** a `CaseDossierData` object is constructed with all required fields plus all new Section Three through Seven optional fields
 - **THEN** TypeScript compilation SHALL succeed with no type errors
 
-
-<!-- @trace
-source: pdf-template-land-complete
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/document.tsx
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/lib/pdf-engine/react-pdf-components.tsx
-  - src/lib/mock-backend.ts
-tests:
-  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
-  - src/lib/pdf-engine/__tests__/react-pdf-components.test.tsx
--->
-
----
 ### Requirement: LandPages SHALL render a 10-page document aligned with the government 105-year format
 
 The system SHALL render a 10-page land dossier when `CaseDossierData.propertyType === 'land'`. The pages SHALL be:
@@ -87,86 +72,11 @@ The `totalPages` constant in `LandPages` SHALL be updated from 7 to 10.
 - **WHEN** `PdfDocument` renders with `propertyType: 'land'` and all optional fields populated
 - **THEN** the rendered PDF SHALL contain exactly 10 pages with all data values displayed in their respective fields
 
+### Requirement: BuildingPages SHALL remain unchanged at 7 pages
 
-<!-- @trace
-source: pdf-template-land-complete
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/document.tsx
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/lib/pdf-engine/react-pdf-components.tsx
-  - src/lib/mock-backend.ts
-tests:
-  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
-  - src/lib/pdf-engine/__tests__/react-pdf-components.test.tsx
--->
-
----
-### Requirement: System SHALL render 建物版 as a full 7-page document for property_type = 'building'
-
-The system SHALL render a 7-page building dossier when `CaseDossierData.propertyType === 'building'`. The building dossier pages SHALL be:
-- Page 1: Cover (同土地版，顯示 caseNo、address、companyName)
-- Page 2: 法規告知 — displays `legalClauses` array items; if `legalClauses` is undefined or empty, the page body is blank
-- Page 3: 建物標示 — displays `buildingArea`、`buildingPurpose`、`constructionDate`；undefined values display as empty cells
-- Page 4: 建物所有權/他項權利 — displays `buildingCertificateNo`、`buildingOwnershipDate`、`ownerName`、`mortgages`；undefined values display as empty cells
-- Page 5: 建物現況調查 — all cells blank (手填欄位，由業務員現場填寫)
-- Page 6: 管理組織 — all cells blank with note "請洽管理委員會確認"
-- Page 7: 成交行情 — displays `recentSalePricePerSqm`、`recentSaleCount`；undefined values display as empty cells
-
-The previous single-page placeholder "建物版說明書（建置中）" SHALL be replaced by this 7-page layout.
-
-BuildingPages SHALL NOT be modified by the pdf-template-land-complete change. It SHALL continue to render 7 pages for `propertyType === 'building'`.
-
-#### Scenario: Building document renders 7 pages with API data
-
-- **WHEN** `PdfDocument` is rendered with `propertyType: 'building'` and `buildingArea: 85.5`
-- **THEN** the rendered PDF SHALL contain 7 pages AND page 3 SHALL display "85.5" in the building area cell
-
-#### Scenario: Building document renders 7 pages when optional fields are undefined
-
-- **WHEN** `PdfDocument` is rendered with `propertyType: 'building'` and no optional API fields
-- **THEN** the rendered PDF SHALL contain 7 pages without throwing errors AND all data cells SHALL display as empty
+The `BuildingPages` component SHALL NOT be modified by this change. It SHALL continue to render 7 pages for `propertyType === 'building'`.
 
 #### Scenario: Building document remains 7 pages
 
 - **WHEN** `PdfDocument` renders with `propertyType: 'building'`
 - **THEN** the rendered PDF SHALL contain exactly 7 pages, identical to pre-change behavior
-
-<!-- @trace
-source: pdf-api-autofill, pdf-template-land-complete
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/app/(dashboard)/cases/[id]/preview/page.tsx
-  - src/lib/pdf-engine/document.tsx
-tests:
-  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
-  - src/lib/pdf-engine/__tests__/document.test.tsx
--->
-
----
-### Requirement: preview/page.tsx SHALL assemble CaseDossierData from the case SQLite row AND API calls
-
-The `src/app/(dashboard)/cases/[id]/preview/page.tsx` page SHALL query the local SQLite database for the case row identified by `params.id`, call `assembleDossierData(caseRow)` from `src/lib/pdf-engine/assemble-dossier-data.ts` to fetch API data, and pass the enriched `CaseDossierData` to `PdfPreviewer`.
-
-#### Scenario: Preview page renders with valid case data and successful API calls
-
-- **WHEN** the preview page is loaded with a valid `caseId` and `assembleDossierData` returns a fully populated `CaseDossierData`
-- **THEN** `PdfPreviewer` SHALL receive the enriched `CaseDossierData` with API-fetched optional fields populated
-
-#### Scenario: Preview page renders when API calls fail
-
-- **WHEN** the preview page is loaded with a valid `caseId` AND `assembleDossierData` encounters IPC errors (e.g., ConsentRequired)
-- **THEN** `PdfPreviewer` SHALL still receive a `CaseDossierData` with all required fields populated and optional API fields set to `undefined`, resulting in empty cells in the PDF
-
-<!-- @trace
-source: pdf-api-autofill
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/app/(dashboard)/cases/[id]/preview/page.tsx
-  - src/lib/pdf-engine/document.tsx
-tests:
-  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
-  - src/lib/pdf-engine/__tests__/document.test.tsx
--->
