@@ -20,6 +20,7 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
   const [caseData, setCaseData] = useState<CaseRow | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [draft, setDraft] = useState<UpdateCaseInput>({});
+  const [step1Valid, setStep1Valid] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +43,14 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
   const stepContent = useMemo(() => {
     if (!caseData) return null;
     if (currentStep === 1) {
-      return <CaseWizardStep1 caseData={caseData} draft={draft} onChange={setDraft} />;
+      return (
+        <CaseWizardStep1
+          caseData={caseData}
+          draft={draft}
+          onChange={setDraft}
+          onValidChange={setStep1Valid}
+        />
+      );
     }
     if (currentStep === 2) {
       return <CaseWizardStep2 caseData={caseData} draft={draft} />;
@@ -85,7 +93,10 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
         >
           上一步
         </Button>
-        <Button onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))} disabled={currentStep === 4}>
+        <Button
+          onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))}
+          disabled={currentStep === 4 || (currentStep === 1 && !step1Valid)}
+        >
           下一步
         </Button>
       </div>

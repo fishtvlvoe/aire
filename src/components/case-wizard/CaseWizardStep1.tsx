@@ -3,15 +3,27 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CaseRow, UpdateCaseInput } from "@/lib/cases-api";
+import { useEffect } from "react";
 
 interface CaseWizardStep1Props {
   draft: UpdateCaseInput;
   caseData: CaseRow;
   onChange: (next: UpdateCaseInput) => void;
+  onValidChange: (isValid: boolean) => void;
 }
 
-export function CaseWizardStep1({ draft, caseData, onChange }: CaseWizardStep1Props) {
+export function CaseWizardStep1({
+  draft,
+  caseData,
+  onChange,
+  onValidChange,
+}: CaseWizardStep1Props) {
   const isResidential = (draft.property_type ?? caseData.property_type) === "residential";
+  const addressValue = (draft.address ?? caseData.address ?? "").trim();
+
+  useEffect(() => {
+    onValidChange(addressValue.length > 0);
+  }, [addressValue, onValidChange]);
 
   return (
     <div className="space-y-4">
@@ -30,6 +42,9 @@ export function CaseWizardStep1({ draft, caseData, onChange }: CaseWizardStep1Pr
           value={draft.address ?? caseData.address}
           onChange={(event) => onChange({ ...draft, address: event.target.value })}
         />
+        {addressValue.length === 0 ? (
+          <p className="text-xs text-destructive">地址為必填</p>
+        ) : null}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="wizard-case-name">案件名稱</Label>
