@@ -1,16 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { PdfPreviewer } from "@/components/PdfPreviewer";
 import { Button } from "@/components/ui/button";
+import type { CaseRow } from "@/lib/cases-api";
+import { assembleDossierData } from "@/lib/pdf-engine/assemble-dossier-data";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { toast } from "sonner";
 
 interface CaseWizardStep4Props {
   caseId: string;
+  caseData: CaseRow;
 }
 
-export function CaseWizardStep4({ caseId }: CaseWizardStep4Props) {
+export function CaseWizardStep4({ caseId, caseData }: CaseWizardStep4Props) {
   const [exporting, setExporting] = useState(false);
+  const [dossierData, setDossierData] = useState<Awaited<ReturnType<typeof assembleDossierData>>>();
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const assembled = await assembleDossierData(caseData);
+        if (!cancelled) setDossierData(assembled);
+      } catch (error) {
+        if (!cancelled) {
+          console.error("[CaseWizardStep4] 組裝預覽資料失敗", error);
+          toast.error("預覽資料載入失敗");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [caseData]);
 
   async function handleExport() {
     setExporting(true);
@@ -26,6 +49,7 @@ export function CaseWizardStep4({ caseId }: CaseWizardStep4Props) {
 
   return (
     <div className="space-y-4">
+      <PdfPreviewer caseId={caseId} caseData={dossierData} />
       <p className="text-sm text-muted-foreground">請確認資料後匯出 PDF。</p>
       <Button type="button" onClick={handleExport} disabled={exporting}>
         {exporting ? "匯出中…" : "匯出"}

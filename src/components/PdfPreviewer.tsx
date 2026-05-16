@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import "@testing-library/jest-dom/vitest";
-import { invoke } from "@tauri-apps/api/core";
-import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
 
 import { createPdfEngine, type PdfEngine, type RenderOptions, type CaseDossierData } from "../lib/pdf-engine/engine";
@@ -98,6 +95,7 @@ export function PdfPreviewer({ caseId, content = "", caseData }: PdfPreviewerPro
         return;
       }
 
+      const { save: saveDialog } = await import("@tauri-apps/plugin-dialog");
       const chosenPath = await saveDialog({
         title: "下載 PDF",
         defaultPath: `${caseId || "AIRE"}.pdf`,
@@ -105,6 +103,7 @@ export function PdfPreviewer({ caseId, content = "", caseData }: PdfPreviewerPro
       });
       if (!chosenPath) return;
 
+      const { invoke } = await import("@tauri-apps/api/core");
       const bytes = await toUint8Array(latestBlobRef.current);
       await invoke("write_file", {
         path: chosenPath,

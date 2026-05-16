@@ -94,7 +94,12 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
     if (currentStep === 3) {
       return <CaseWizardStep3 />;
     }
-    return <CaseWizardStep4 caseId={caseData.id} />;
+    return (
+      <CaseWizardStep4
+        caseId={caseData.id}
+        caseData={caseData}
+      />
+    );
   }
 
   // W8: 使用者點下一步才呼叫 API
@@ -116,9 +121,19 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
           const done = step < currentStep;
           return (
             <div key={label} className="flex items-center gap-2">
-              <div className={`h-8 w-8 rounded-full border text-xs font-medium flex items-center justify-center ${active ? "bg-primary text-primary-foreground border-primary" : done ? "bg-green-600 text-white border-green-600" : "bg-background text-muted-foreground"}`}>
-                {step}
-              </div>
+              {done ? (
+                <button
+                  type="button"
+                  onClick={() => void updateStep(step)}
+                  className="h-8 w-8 cursor-pointer rounded-full border border-green-600 bg-green-600 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                >
+                  {step}
+                </button>
+              ) : (
+                <div className={`h-8 w-8 rounded-full border text-xs font-medium flex items-center justify-center ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground"}`}>
+                  {step}
+                </div>
+              )}
               <span className={`text-xs ${active ? "text-foreground" : "text-muted-foreground"}`}>
                 {step === 3 && !step3Enabled ? `${label}（跳過）` : label}
               </span>
@@ -137,12 +152,14 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
         >
           上一步
         </Button>
-        <Button
-          onClick={handleNextStep}
-          disabled={currentStep === 4 || (currentStep === 1 && !step1Valid)}
-        >
-          下一步
-        </Button>
+        {currentStep < 4 ? (
+          <Button
+            onClick={handleNextStep}
+            disabled={currentStep === 1 && !step1Valid}
+          >
+            下一步
+          </Button>
+        ) : null}
       </div>
     </div>
   );
