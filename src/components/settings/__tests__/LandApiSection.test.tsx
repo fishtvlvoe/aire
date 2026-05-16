@@ -26,7 +26,26 @@ describe("LandApiSection", () => {
     });
 
     expect(screen.getByRole("button", { name: "儲存" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "測試連線" })).toBeDisabled();
+    const testButton = screen.getByRole("button", { name: "測試連線" });
+    expect(testButton).toBeDisabled();
+    expect(testButton).toHaveAttribute("title", "請先填入 Client ID 和安全碼");
+  });
+
+  it("client id 與安全碼皆有值時，測試連線按鈕啟用且無 tooltip", async () => {
+    render(<LandApiSection />);
+
+    await waitFor(() => screen.getByLabelText(/Client ID/));
+
+    fireEvent.change(screen.getByLabelText(/Client ID/), {
+      target: { value: "my-client-id" },
+    });
+    fireEvent.change(screen.getByLabelText(/安全碼/), {
+      target: { value: "my-secret" },
+    });
+
+    const testButton = screen.getByRole("button", { name: "測試連線" });
+    expect(testButton).toBeEnabled();
+    expect(testButton).not.toHaveAttribute("title");
   });
 
   it("填入值後點儲存呼叫 save_land_api_settings", async () => {

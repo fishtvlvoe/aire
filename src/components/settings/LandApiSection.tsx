@@ -53,6 +53,7 @@ export function LandApiSection() {
 
   const hasValues = clientId.trim().length > 0 && secret.trim().length > 0;
   const actionsDisabled = !hasValues || loading || saving || testing;
+  const testConnectionTooltip = !hasValues ? "請先填入 Client ID 和安全碼" : undefined;
 
   async function handleSave() {
     setSaving(true);
@@ -119,7 +120,12 @@ export function LandApiSection() {
               <Button onClick={handleSave} disabled={actionsDisabled}>
                 儲存
               </Button>
-              <Button variant="outline" onClick={handleTestConnection} disabled={actionsDisabled}>
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={actionsDisabled}
+                title={testConnectionTooltip}
+              >
                 測試連線
               </Button>
             </div>
