@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ComingSoonCard } from "@/components/ComingSoonCard";
 
 type ConnectionStatus = null | { success: boolean; latency_ms?: number };
 
@@ -93,16 +94,7 @@ export function LandApiSection() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <a
-                href="#"
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-primary underline-offset-4 hover:underline"
-              >
-                申請說明
-              </a>
-            </div>
+            <ComingSoonCard title="申請說明" />
 
             <div className="space-y-2">
               <Label htmlFor="land-api-client-id">Client ID</Label>
@@ -142,9 +134,7 @@ export function LandApiSection() {
               )
             ) : null}
 
-            <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
-              教學影片即將上線
-            </div>
+            <ComingSoonCard title="教學影片" />
           </div>
         )}
       </CardContent>

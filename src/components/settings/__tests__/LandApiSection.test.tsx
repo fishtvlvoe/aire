@@ -92,4 +92,13 @@ describe("LandApiSection", () => {
       expect(screen.getByText("連線失敗")).toBeInTheDocument();
     });
   });
+
+  it("申請說明與教學影片區塊顯示敬請期待元件", async () => {
+    render(<LandApiSection />);
+
+    await waitFor(() => screen.getByLabelText(/Client ID/));
+
+    expect(screen.getAllByText("敬請期待")).toHaveLength(2);
+    expect(screen.queryByText("教學影片即將上線")).not.toBeInTheDocument();
+  });
 });
