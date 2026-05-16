@@ -32,6 +32,7 @@ import { TauriRequired } from "@/components/TauriRequired";
 import { NotInTauriError } from "@/lib/tauri-bridge";
 import { CaseListActions } from "@/components/CaseListActions";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { CaseSupplementDialog } from "@/components/CaseSupplementDialog";
 
 /** 依狀態回傳 Badge variant */
 function StatusBadge({ status }: { status: CaseRow["status"] }) {
@@ -47,6 +48,7 @@ export default function CasesPage() {
   const [error, setError] = useState<string | null>(null);
   const [requiresTauri, setRequiresTauri] = useState(false);
   const [deletingCase, setDeletingCase] = useState<CaseRow | null>(null);
+  const [supplementCaseId, setSupplementCaseId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,7 +166,7 @@ export default function CasesPage() {
                 {/* 操作 */}
                 <TableCell className="text-right">
                   <CaseListActions
-                    onSupplement={() => {}}
+                    onSupplement={() => setSupplementCaseId(c.id)}
                     onView={() => router.push(`/cases/${c.id}`)}
                     onEdit={() => router.push(`/cases/${c.id}`)}
                     onDelete={() => setDeletingCase(c)}
@@ -182,6 +184,16 @@ export default function CasesPage() {
         onCancel={() => setDeletingCase(null)}
         onConfirm={handleDeleteConfirm}
       />
+      {supplementCaseId ? (
+        <CaseSupplementDialog
+          caseId={supplementCaseId}
+          open={Boolean(supplementCaseId)}
+          onClose={() => {
+            setSupplementCaseId(null);
+            void refreshCases();
+          }}
+        />
+      ) : null}
     </main>
   );
 }
