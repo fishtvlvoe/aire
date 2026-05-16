@@ -8,16 +8,18 @@ TBD - created by archiving change 'aire-desktop-phase1'. Update Purpose after ar
 
 ### Requirement: Case list view
 
-The system SHALL provide a `/cases` page that lists all cases ordered by `updated_at DESC`, displaying for each case: `case_no` (or `--` if empty), `property_type` (display as `成屋` or `土地`), `land_lot_no`, `address`, `owner_name`, `status` (display as `草稿` / `已完成` / `已匯出`), and `updated_at` formatted as `YYYY-MM-DD HH:mm` in Asia/Taipei timezone.
+The system SHALL provide a `/cases` page that lists all cases ordered by `updated_at DESC`, displaying columns: "案件名稱" (optional user-defined name), "地址/所有權人" (address as primary text, owner_name as secondary text below), "案件類型" (display as `成屋` or `土地`), "狀態" (display as `草稿` / `已完成` / `已匯出`), "建立日期" formatted as `YYYY/MM/DD HH:mm` in Asia/Taipei timezone, and "操作" (5 SVG icon action buttons defined in `case-list-actions` spec).
 
 ##### Example: list rendering
 
 | Column | Source | Display rule |
 | --- | --- | --- |
-| Type | `property_type` | `residential` → `成屋`, `land` → `土地` |
-| Status | `status` | `draft` → `草稿`, `completed` → `已完成`, `exported` → `已匯出` |
-| Updated | `updated_at` | Unix seconds → `YYYY-MM-DD HH:mm` in Asia/Taipei |
-| Case No | `case_no` | Empty string or NULL → `--` |
+| 案件名稱 | `case_name` | Optional field; empty → show `—` |
+| 地址/所有權人 | `address` + `owner_name` | Primary line: address; Secondary line: owner_name |
+| 案件類型 | `property_type` | `residential` → `成屋`, `land` → `土地` |
+| 狀態 | `status` | `draft` → `草稿`, `completed` → `已完成`, `exported` → `已匯出` |
+| 建立日期 | `created_at` | Unix seconds → `YYYY/MM/DD HH:mm` in Asia/Taipei |
+| 操作 | — | 5 SVG icon buttons (see `case-list-actions`) |
 
 #### Scenario: Empty list state
 
@@ -27,27 +29,77 @@ The system SHALL provide a `/cases` page that lists all cases ordered by `update
 #### Scenario: List with cases
 
 - **WHEN** the user opens `/cases` with three cases in the database
-- **THEN** all three rows are visible, ordered with the most recently updated at the top
+- **THEN** all three rows are visible, ordered with the most recently updated at the top, each row showing address as primary text and owner name as secondary text
+
+
+<!-- @trace
+source: aire-ux-wizard-refactor
+updated: 2026-05-16
+code:
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/components/CaseListActions.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/mock-backend.ts
+  - src/app/(dashboard)/cases/page.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - src/lib/cases-api.ts
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/case-wizard/CaseWizard.tsx
+-->
 
 ---
 ### Requirement: Create case flow
 
-The system SHALL provide a `/cases/new` page that asks the user to select `property_type` (`residential` or `land`) and enter required fields `land_lot_no` and `address`; on submit, the system SHALL create the row in `cases` and navigate to `/cases/<id>` for that new case.
+The system SHALL provide a `/cases/new` page that asks the user to select `property_type` (`residential` or `land`) and enter required field `address` and optional fields `owner_name` (label: "所有權人（選填）"), `case_name` (label: "案件名稱（選填）"), and `case_no` (label: "案件編號（選填）"). On submit, the system SHALL create the row in `cases` with `status='draft'` and navigate to `/cases/<id>`.
 
 #### Scenario: Successful creation
 
-- **WHEN** the user submits `property_type='residential'`, `land_lot_no='台南市東區大同段123-4'`, `address='台南市東區大同路100號'`, `owner_name='王小明'`
+- **WHEN** the user submits `property_type='residential'`, `address='台南市東區大同路100號'`, `owner_name='王小明'`
 - **THEN** a new row is inserted with `status='draft'` and the browser navigates to `/cases/<new-id>`
 
 #### Scenario: Missing required field is rejected
 
-- **WHEN** the user submits with `land_lot_no` empty
-- **THEN** the form displays `地號為必填` next to the field and does NOT submit
+- **WHEN** the user submits with `address` empty
+- **THEN** the form displays `地址為必填` next to the field and does NOT submit
 
 #### Scenario: Property type is required
 
 - **WHEN** the user submits without selecting `property_type`
 - **THEN** the form displays `請選擇物件類型` and does NOT submit
+
+
+<!-- @trace
+source: aire-ux-wizard-refactor
+updated: 2026-05-16
+code:
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/components/CaseListActions.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/mock-backend.ts
+  - src/app/(dashboard)/cases/page.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - src/lib/cases-api.ts
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/case-wizard/CaseWizard.tsx
+-->
 
 ---
 ### Requirement: Edit case page
@@ -1195,4 +1247,106 @@ tests:
   - src/lib/pdf-engine/__tests__/render-with-legal.test.tsx
   - src/components/__tests__/TauriRequired.test.tsx
   - src/hooks/__tests__/useAuth.test.tsx
+-->
+
+---
+### Requirement: Case data includes land registry data
+The case record SHALL include a `land_registry_data` field (JSON object or null) to store the land registry query result. The `update_case` API SHALL accept `land_registry_data` as an optional parameter.
+
+#### Scenario: Save land registry data
+- **WHEN** `update_case` is called with `land_registry_data` containing query results
+- **THEN** the case record stores the land registry data and subsequent reads return it
+
+
+<!-- @trace
+source: aire-ux-wizard-refactor
+updated: 2026-05-16
+code:
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/components/CaseListActions.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/mock-backend.ts
+  - src/app/(dashboard)/cases/page.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - src/lib/cases-api.ts
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/case-wizard/CaseWizard.tsx
+-->
+
+---
+### Requirement: Case data includes case name
+The case record SHALL include a `case_name` field (string, optional) for user-defined case names.
+
+#### Scenario: Create case with name
+- **WHEN** user creates a case with `case_name='和平東路案'`
+- **THEN** the case record stores `case_name='和平東路案'` and the list displays it in the "案件名稱" column
+
+
+<!-- @trace
+source: aire-ux-wizard-refactor
+updated: 2026-05-16
+code:
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/components/CaseListActions.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/mock-backend.ts
+  - src/app/(dashboard)/cases/page.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - src/lib/cases-api.ts
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/case-wizard/CaseWizard.tsx
+-->
+
+---
+### Requirement: Field label uses "所有權人"
+All UI labels referring to the property owner SHALL use "所有權人" regardless of property type. The system SHALL NOT use "屋主", "地主", or "物件名稱 / 屋主".
+
+#### Scenario: Residential case detail
+- **WHEN** user views a residential case detail page
+- **THEN** the owner field label reads "所有權人", not "屋主" or "物件名稱 / 屋主"
+
+#### Scenario: Land case detail
+- **WHEN** user views a land case detail page
+- **THEN** the owner field label reads "所有權人", not "地主" or "物件名稱 / 地主"
+
+<!-- @trace
+source: aire-ux-wizard-refactor
+updated: 2026-05-16
+code:
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/components/CaseListActions.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/mock-backend.ts
+  - src/app/(dashboard)/cases/page.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - src/lib/cases-api.ts
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/case-wizard/CaseWizard.tsx
 -->
