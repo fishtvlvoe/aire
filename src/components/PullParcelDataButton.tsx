@@ -19,7 +19,7 @@ const COST_PER_API = 30;
  * PullParcelDataButton — 拉謄本按鈕（整合所有授權/確認/查詢流程）
  *
  * 點擊流程：
- *   1. OwnerAuthorizationDialog（屋主授權）
+ *   1. OwnerAuthorizationDialog（所有權人授權）
  *   2. PreChargeConfirmDialog（扣款確認）
  *   3. 呼叫 pullData → 顯示結果
  *   4. 失敗的 API 項目 → 顯示 ManualFallbackInput

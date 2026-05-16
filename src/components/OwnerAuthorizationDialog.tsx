@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { recordConsent } from "@/lib/land-registry-api";
 
 /**
- * OwnerAuthorizationDialog — 屋主授權確認 Dialog
+ * OwnerAuthorizationDialog — 所有權人授權確認 Dialog
  * 強制使用者勾選授權 checkbox 才能確認，
  * 確認後呼叫 recordConsent 記錄同意紀錄。
  */
@@ -63,7 +63,7 @@ export function OwnerAuthorizationDialog({
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck className="h-5 w-5 text-primary" />
-            <DialogTitle>屋主授權確認</DialogTitle>
+            <DialogTitle>所有權人授權確認</DialogTitle>
           </div>
           <DialogDescription>
             依個人資料保護法，查詢不動產登記資料前須取得當事人書面授權。

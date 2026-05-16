@@ -3,7 +3,7 @@
 // AIRE 新增案件頁（Task 5.3）
 //
 // - property_type 選擇器（成屋/土地 radio）
-// - 必填欄位：地號、地址、屋主姓名
+// - 必填欄位：地址
 // - zod 驗證
 // - 提交成功後 router.push('/cases/<new-id>')
 
@@ -150,7 +150,7 @@ export default function NewCasePage() {
 
         <section style={{ marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-            屋主姓名（選填）
+            所有權人（選填）
           </label>
           <input
             type="text"
