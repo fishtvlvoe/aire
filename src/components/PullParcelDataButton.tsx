@@ -7,6 +7,7 @@ import { OwnerAuthorizationDialog } from "@/components/OwnerAuthorizationDialog"
 import { PreChargeConfirmDialog } from "@/components/PreChargeConfirmDialog";
 import { ManualFallbackInput } from "@/components/ManualFallbackInput";
 import { pullData, type ApiResult } from "@/lib/land-registry-api";
+import { casesApi } from "@/lib/cases-api";
 
 /**
  * 每支 API 的費用估算（新台幣）
@@ -47,8 +48,35 @@ export function PullParcelDataButton({
   const [pullError, setPullError] = React.useState<string | null>(null);
   // 需要手動填入的 API 列表（apiId → 已填資料 or null）
   const [manualEntries, setManualEntries] = React.useState<ManualEntry[]>([]);
+  const [persistedData, setPersistedData] = React.useState<Record<string, unknown> | null>(
+    null,
+  );
+  const [savingResult, setSavingResult] = React.useState(false);
+  const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
 
   const estimatedCost = apiIds.length * COST_PER_API;
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const row = await casesApi.get(caseId);
+        const raw = row.land_registry_data;
+        const normalized =
+          raw && typeof raw === "object" && !Array.isArray(raw)
+            ? (raw as Record<string, unknown>)
+            : null;
+        if (!cancelled) {
+          setPersistedData(normalized);
+        }
+      } catch {
+        // 忽略查詢錯誤，避免阻塞主流程
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId]);
 
   // 步驟 1：點擊「拉謄本」→ 打開授權 Dialog
   function handleClick() {
@@ -56,6 +84,7 @@ export function PullParcelDataButton({
     setResults(null);
     setPullError(null);
     setManualEntries([]);
+    setSaveMessage(null);
   }
 
   // 步驟 2：授權確認後 → 打開扣款確認 Dialog
@@ -107,6 +136,39 @@ export function PullParcelDataButton({
   // 按鈕在查詢中或已完成時都 disabled，防止重複觸發扣款
   const buttonDisabled = step === "pulling" || step === "done" || apiIds.length === 0;
 
+  const previewData = React.useMemo(() => {
+    if (!results) return null;
+    const preview: Record<string, unknown> = {};
+    for (const [apiId, result] of Object.entries(results)) {
+      if (result.success && result.data) {
+        preview[apiId] = result.data;
+      }
+    }
+    for (const entry of manualEntries) {
+      if (entry.data) {
+        preview[entry.apiId] = entry.data;
+      }
+    }
+    return Object.keys(preview).length > 0 ? preview : null;
+  }, [manualEntries, results]);
+
+  async function handleConfirmSave() {
+    if (!previewData) return;
+    setSavingResult(true);
+    setSaveMessage(null);
+    try {
+      await casesApi.update(caseId, { land_registry_data: previewData });
+      setPersistedData(previewData);
+      setSaveMessage("已儲存");
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error ? `儲存失敗：${error.message}` : "儲存失敗，請稍後再試",
+      );
+    } finally {
+      setSavingResult(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* 主按鈕 */}
@@ -156,6 +218,15 @@ export function PullParcelDataButton({
         </div>
       )}
 
+      {persistedData && (
+        <div className="rounded-md border border-green-200 bg-green-50/50 p-4 space-y-2">
+          <p className="text-sm font-medium text-green-800">已儲存資料</p>
+          <pre className="text-xs overflow-auto rounded bg-white/80 p-2">
+            {JSON.stringify(persistedData, null, 2)}
+          </pre>
+        </div>
+      )}
+
       {/* 查詢錯誤 */}
       {step === "done" && pullError && (
         <div className="flex items-center gap-2 text-sm text-destructive rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2">
@@ -185,6 +256,21 @@ export function PullParcelDataButton({
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {previewData && (
+        <div className="space-y-2 rounded-md border border-border p-4">
+          <p className="text-sm font-medium">結果預覽</p>
+          <pre className="text-xs overflow-auto rounded bg-muted p-2">
+            {JSON.stringify(previewData, null, 2)}
+          </pre>
+          <Button onClick={handleConfirmSave} disabled={savingResult} size="sm">
+            {savingResult ? "儲存中…" : "確認儲存"}
+          </Button>
+          {saveMessage ? (
+            <p className="text-xs text-muted-foreground">{saveMessage}</p>
+          ) : null}
         </div>
       )}
 
