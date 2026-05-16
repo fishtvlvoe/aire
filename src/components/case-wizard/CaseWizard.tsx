@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
+import { safeInvoke } from "@/lib/safe-invoke";
 import { CaseWizardStep1 } from "@/components/case-wizard/CaseWizardStep1";
 import { CaseWizardStep2 } from "@/components/case-wizard/CaseWizardStep2";
 import { CaseWizardStep3 } from "@/components/case-wizard/CaseWizardStep3";
@@ -21,14 +22,20 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [draft, setDraft] = useState<UpdateCaseInput>({});
   const [step1Valid, setStep1Valid] = useState(false);
+  const [step3Enabled, setStep3Enabled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const row = await casesApi.get(caseId);
+      const [row, flags] = await Promise.all([
+        casesApi.get(caseId),
+        safeInvoke<Array<{ id: string; enabled: boolean }>>("get_feature_flags"),
+      ]);
       if (cancelled) return;
       setCaseData(row);
       setCurrentStep(row.current_step ?? 1);
+      const step3Flag = flags.find((flag) => flag.id === "premium_real_price_enabled");
+      setStep3Enabled(Boolean(step3Flag?.enabled));
     })();
     return () => {
       cancelled = true;
@@ -65,6 +72,15 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
     return <p className="text-sm text-muted-foreground">載入中…</p>;
   }
 
+  function handleNextStep() {
+    setCurrentStep((prev) => {
+      if (prev === 2 && !step3Enabled) {
+        return 4;
+      }
+      return Math.min(4, prev + 1);
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-2">
@@ -77,7 +93,9 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
               <div className={`h-8 w-8 rounded-full border text-xs font-medium flex items-center justify-center ${active ? "bg-primary text-primary-foreground border-primary" : done ? "bg-green-600 text-white border-green-600" : "bg-background text-muted-foreground"}`}>
                 {step}
               </div>
-              <span className={`text-xs ${active ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
+              <span className={`text-xs ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                {step === 3 && !step3Enabled ? `${label}（跳過）` : label}
+              </span>
             </div>
           );
         })}
@@ -94,7 +112,7 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
           上一步
         </Button>
         <Button
-          onClick={() => setCurrentStep((prev) => Math.min(4, prev + 1))}
+          onClick={handleNextStep}
           disabled={currentStep === 4 || (currentStep === 1 && !step1Valid)}
         >
           下一步
