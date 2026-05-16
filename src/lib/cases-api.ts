@@ -6,10 +6,14 @@ import { safeInvoke } from "@/lib/tauri-bridge";
 export interface CaseRow {
   id: string;
   case_no: string | null;
+  case_name?: string | null;
   property_type: "residential" | "land";
   land_lot_no: string;
+  building_lot_no?: string | null;
   address: string;
   owner_name: string | null;
+  land_registry_data?: Record<string, unknown> | null;
+  current_step?: number;
   status: "draft" | "completed" | "exported";
   created_at: number;
   updated_at: number;
@@ -21,14 +25,22 @@ export interface CreateCaseInput {
   address: string;
   owner_name?: string | null;
   case_no?: string | null;
+  case_name?: string | null;
+  land_registry_data?: Record<string, unknown> | null;
+  current_step?: number;
+  building_lot_no?: string | null;
 }
 
 export interface UpdateCaseInput {
-  property_type: "residential" | "land";
-  land_lot_no: string;
-  address: string;
+  property_type?: "residential" | "land";
+  land_lot_no?: string;
+  building_lot_no?: string | null;
+  address?: string;
   owner_name?: string | null;
   case_no?: string | null;
+  case_name?: string | null;
+  land_registry_data?: Record<string, unknown> | null;
+  current_step?: number;
   status?: "draft" | "completed" | "exported";
 }
 

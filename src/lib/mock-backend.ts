@@ -122,10 +122,14 @@ const SEED_CASES: CaseRow[] = [
   {
     id: "11111111-1111-4111-8111-111111111111",
     case_no: "AIRE-2026-001",
+    case_name: "和平東路案",
     property_type: "residential",
     land_lot_no: "大安段一小段 123-4",
+    building_lot_no: "建號 556-1",
     address: "台北市大安區和平東路一段 100 號",
     owner_name: "陳小美",
+    land_registry_data: null,
+    current_step: 1,
     status: "draft",
     created_at: 1763200000,
     updated_at: 1763200000,
@@ -133,10 +137,14 @@ const SEED_CASES: CaseRow[] = [
   {
     id: "22222222-2222-4222-8222-222222222222",
     case_no: "AIRE-2026-002",
+    case_name: "文化路土地案",
     property_type: "land",
     land_lot_no: "板橋段二小段 88-1",
+    building_lot_no: null,
     address: "新北市板橋區文化路一段 188 號",
     owner_name: "林大華",
+    land_registry_data: null,
+    current_step: 1,
     status: "completed",
     created_at: 1763203600,
     updated_at: 1763207200,
@@ -238,6 +246,16 @@ function toRecord(value: unknown): Record<string, unknown> {
     return value as Record<string, unknown>;
   }
   return {};
+}
+
+function readNullableJson(value: unknown): Record<string, unknown> | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return undefined;
 }
 
 function makeUuid(): string {
@@ -701,10 +719,17 @@ export class MockStore {
     const row: CaseRow = {
       id,
       case_no: pickString(input, ["case_no"]),
+      case_name: pickString(input, ["case_name"]),
       property_type: propertyType,
       land_lot_no: pickString(input, ["land_lot_no"]) ?? "",
+      building_lot_no: pickString(input, ["building_lot_no"]),
       address,
       owner_name: pickString(input, ["owner_name"]),
+      land_registry_data: readNullableJson(input["land_registry_data"]) ?? null,
+      current_step:
+        typeof input.current_step === "number" && Number.isFinite(input.current_step)
+          ? Math.max(1, Math.floor(input.current_step))
+          : 1,
       status: "draft",
       created_at: now,
       updated_at: now,
@@ -737,6 +762,15 @@ export class MockStore {
       address: pickString(input, ["address"]) ?? existing.address,
       owner_name: pickString(input, ["owner_name"]) ?? existing.owner_name,
       case_no: pickString(input, ["case_no"]) ?? existing.case_no,
+      case_name: pickString(input, ["case_name"]) ?? existing.case_name ?? null,
+      building_lot_no:
+        pickString(input, ["building_lot_no"]) ?? existing.building_lot_no ?? null,
+      land_registry_data:
+        readNullableJson(input["land_registry_data"]) ?? existing.land_registry_data ?? null,
+      current_step:
+        typeof input.current_step === "number" && Number.isFinite(input.current_step)
+          ? Math.max(1, Math.floor(input.current_step))
+          : existing.current_step ?? 1,
       status:
         (pickString(input, ["status"]) as UpdateCaseInput["status"]) ?? existing.status,
       updated_at: unixNow(),
