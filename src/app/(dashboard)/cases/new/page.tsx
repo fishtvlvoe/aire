@@ -18,6 +18,7 @@ const schema = z.object({
   address: z.string().min(1, "地址為必填"),
   owner_name: z.string().optional(),
   case_no: z.string().optional(),
+  case_name: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -30,6 +31,7 @@ export default function NewCasePage() {
     address: "",
     owner_name: "",
     case_no: "",
+    case_name: "",
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -61,6 +63,7 @@ export default function NewCasePage() {
         address: parsed.data.address,
         owner_name: parsed.data.owner_name || null,
         case_no: parsed.data.case_no || null,
+        case_name: parsed.data.case_name || null,
       });
       router.push(`/cases/${created.id}`);
     } catch (err) {
@@ -161,6 +164,18 @@ export default function NewCasePage() {
           {errors.owner_name ? (
             <span style={{ color: "#b00020", fontSize: 12 }}>{errors.owner_name}</span>
           ) : null}
+        </section>
+
+        <section style={{ marginBottom: 24 }}>
+          <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+            案件名稱（選填）
+          </label>
+          <input
+            type="text"
+            value={values.case_name ?? ""}
+            onChange={(e) => update("case_name", e.target.value)}
+            style={inputStyle}
+          />
         </section>
 
         <section style={{ marginBottom: 24 }}>
