@@ -49,19 +49,6 @@ Shared optional fields:
 - **WHEN** a `CaseDossierData` object is constructed with all required fields and all land optional fields set to non-undefined values
 - **THEN** TypeScript compilation SHALL succeed with no type errors
 
-
-<!-- @trace
-source: pdf-api-autofill
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/app/(dashboard)/cases/[id]/preview/page.tsx
-  - src/lib/pdf-engine/document.tsx
-tests:
-  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
-  - src/lib/pdf-engine/__tests__/document.test.tsx
--->
-
 ### Requirement: System SHALL render 建物版 as a full 7-page document for property_type = 'building'
 
 The system SHALL render a 7-page building dossier when `CaseDossierData.propertyType === 'building'`. The building dossier pages SHALL be:
@@ -85,19 +72,6 @@ The previous single-page placeholder "建物版說明書（建置中）" SHALL b
 - **WHEN** `PdfDocument` is rendered with `propertyType: 'building'` and no optional API fields
 - **THEN** the rendered PDF SHALL contain 7 pages without throwing errors AND all data cells SHALL display as empty
 
-
-<!-- @trace
-source: pdf-api-autofill
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/app/(dashboard)/cases/[id]/preview/page.tsx
-  - src/lib/pdf-engine/document.tsx
-tests:
-  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
-  - src/lib/pdf-engine/__tests__/document.test.tsx
--->
-
 ### Requirement: preview/page.tsx SHALL assemble CaseDossierData from the case SQLite row AND API calls
 
 The `src/app/(dashboard)/cases/[id]/preview/page.tsx` page SHALL query the local SQLite database for the case row identified by `params.id`, call `assembleDossierData(caseRow)` from `src/lib/pdf-engine/assemble-dossier-data.ts` to fetch API data, and pass the enriched `CaseDossierData` to `PdfPreviewer`.
@@ -111,17 +85,3 @@ The `src/app/(dashboard)/cases/[id]/preview/page.tsx` page SHALL query the local
 
 - **WHEN** the preview page is loaded with a valid `caseId` AND `assembleDossierData` encounters IPC errors (e.g., ConsentRequired)
 - **THEN** `PdfPreviewer` SHALL still receive a `CaseDossierData` with all required fields populated and optional API fields set to `undefined`, resulting in empty cells in the PDF
-
-## Requirements
-
-<!-- @trace
-source: pdf-api-autofill
-updated: 2026-05-16
-code:
-  - src/lib/pdf-engine/assemble-dossier-data.ts
-  - src/app/(dashboard)/cases/[id]/preview/page.tsx
-  - src/lib/pdf-engine/document.tsx
-tests:
-  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
-  - src/lib/pdf-engine/__tests__/document.test.tsx
--->
