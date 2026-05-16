@@ -499,3 +499,188 @@ tests:
   - src/components/__tests__/AppSidebar.test.tsx
   - src/hooks/__tests__/useAuth.test.tsx
 -->
+
+---
+### Requirement: Settings page tab navigation
+The settings page SHALL render a `SettingsTabs` component at the top with three tabs: "一般設定" (active when on `/settings`), "品牌設定" (active when on `/settings/branding`), and "操作日誌" (active when on `/settings/logs`). Clicking a tab SHALL navigate to the corresponding sub-route.
+
+#### Scenario: Tab switching
+- **WHEN** user is on `/settings` and clicks the "品牌設定" tab
+- **THEN** the browser navigates to `/settings/branding` and the "品牌設定" tab shows as active
+
+#### Scenario: Direct URL access
+- **WHEN** user navigates directly to `/settings/logs`
+- **THEN** the settings page renders with the "操作日誌" tab active
+
+
+<!-- @trace
+source: aire-settings-polish
+updated: 2026-05-16
+code:
+  - src/components/ThemeSelector.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/lib/pdf-themes/theme-e-warm/index.tsx
+  - src/app/(dashboard)/settings/page.tsx
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - src/lib/pdf-themes/theme-d-fresh/index.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/AppSidebar.tsx
+  - src/lib/pdf-themes/registry.ts
+  - src/components/settings/LandApiSection.tsx
+  - src/app/(dashboard)/settings/branding/page.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src/lib/cases-api.ts
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/components/SettingsTabs.tsx
+  - src/components/ComingSoonCard.tsx
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src/lib/pdf-themes/index.ts
+  - src/components/case-wizard/CaseWizard.tsx
+  - src/components/CaseListActions.tsx
+  - src/app/(dashboard)/cases/page.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/components/case-wizard/CaseWizardStep2.tsx
+tests:
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/AppSidebar.test.tsx
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+  - src/components/__tests__/ComingSoonCard.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/page.test.tsx
+  - src/lib/pdf-themes/__tests__/registry.test.ts
+  - src/components/__tests__/ThemeSelector.test.tsx
+-->
+
+---
+### Requirement: Coming soon placeholder cards
+The settings page SHALL render a `ComingSoonCard` component for the "申請說明" section and the "教學影片" section. Each card SHALL display a clock or info icon and the text "敬請期待". The card SHALL NOT display "申請說明" content or "教學影片即將上線" text.
+
+#### Scenario: API help section
+- **WHEN** user views the land registry API settings area
+- **THEN** the "申請說明" section displays a `ComingSoonCard` with text "敬請期待"
+
+#### Scenario: Tutorial video section
+- **WHEN** user views the settings page
+- **THEN** the "教學影片" section displays a `ComingSoonCard` with text "敬請期待"
+
+
+<!-- @trace
+source: aire-settings-polish
+updated: 2026-05-16
+code:
+  - src/components/ThemeSelector.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/lib/pdf-themes/theme-e-warm/index.tsx
+  - src/app/(dashboard)/settings/page.tsx
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - src/lib/pdf-themes/theme-d-fresh/index.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/AppSidebar.tsx
+  - src/lib/pdf-themes/registry.ts
+  - src/components/settings/LandApiSection.tsx
+  - src/app/(dashboard)/settings/branding/page.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src/lib/cases-api.ts
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/components/SettingsTabs.tsx
+  - src/components/ComingSoonCard.tsx
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src/lib/pdf-themes/index.ts
+  - src/components/case-wizard/CaseWizard.tsx
+  - src/components/CaseListActions.tsx
+  - src/app/(dashboard)/cases/page.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/components/case-wizard/CaseWizardStep2.tsx
+tests:
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/AppSidebar.test.tsx
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+  - src/components/__tests__/ComingSoonCard.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/page.test.tsx
+  - src/lib/pdf-themes/__tests__/registry.test.ts
+  - src/components/__tests__/ThemeSelector.test.tsx
+-->
+
+---
+### Requirement: Test connection button tooltip
+The "測試連線" button SHALL display a tooltip "請先填入 Client ID 和安全碼" when disabled (Client ID or security code is empty). The button SHALL become enabled when both fields have non-empty values.
+
+#### Scenario: Fields empty
+- **WHEN** the Client ID and security code fields are both empty and user hovers over the "測試連線" button
+- **THEN** a tooltip reading "請先填入 Client ID 和安全碼" appears
+
+#### Scenario: Fields filled
+- **WHEN** both Client ID and security code fields have values
+- **THEN** the "測試連線" button is enabled and clickable without tooltip
+
+<!-- @trace
+source: aire-settings-polish
+updated: 2026-05-16
+code:
+  - src/components/ThemeSelector.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/lib/pdf-engine/document.tsx
+  - src/components/PullParcelDataButton.tsx
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/lib/pdf-themes/theme-e-warm/index.tsx
+  - src/app/(dashboard)/settings/page.tsx
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-themes/theme-b-professional/index.tsx
+  - src/lib/pdf-themes/theme-d-fresh/index.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/lib/land-registry-api.ts
+  - src/components/AppSidebar.tsx
+  - src/lib/pdf-themes/registry.ts
+  - src/components/settings/LandApiSection.tsx
+  - src/app/(dashboard)/settings/branding/page.tsx
+  - src/components/DeleteConfirmDialog.tsx
+  - src/lib/cases-api.ts
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/components/SettingsTabs.tsx
+  - src/components/ComingSoonCard.tsx
+  - src/app/(dashboard)/settings/logs/page.tsx
+  - src/components/case-wizard/CaseWizardStep1.tsx
+  - src/lib/pdf-themes/index.ts
+  - src/components/case-wizard/CaseWizard.tsx
+  - src/components/CaseListActions.tsx
+  - src/app/(dashboard)/cases/page.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/components/case-wizard/CaseWizardStep2.tsx
+tests:
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/AppSidebar.test.tsx
+  - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
+  - src/components/__tests__/ComingSoonCard.test.tsx
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/page.test.tsx
+  - src/lib/pdf-themes/__tests__/registry.test.ts
+  - src/components/__tests__/ThemeSelector.test.tsx
+-->
