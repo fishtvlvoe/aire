@@ -397,6 +397,28 @@ describe("MockStore", () => {
     expect(created.owner_name).toBeNull();
   });
 
+  it("records operation logs for case creation", async () => {
+    await mockInvoke("create_case", {
+      input: {
+        address: "台北市信義區信義路五段 7 號",
+        property_type: "residential",
+      },
+    });
+
+    const logs = await mockInvoke<
+      Array<{ id: string; timestamp: string; action: string; detail: string; user_email: string }>
+    >("list_logs");
+
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      action: "建立案件",
+      detail: expect.stringContaining("台北市信義區信義路五段 7 號"),
+      user_email: "system@local",
+    });
+    expect(isUuid(logs[0].id)).toBe(true);
+    expect(logs[0].timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
   it("falls back to seed cases with warning when persisted JSON is corrupted", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     window.localStorage.setItem("aire-mock-store", "CORRUPTED");

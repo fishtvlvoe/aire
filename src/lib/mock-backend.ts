@@ -53,6 +53,14 @@ interface FeatureFlagState {
   enabled: boolean;
 }
 
+interface OperationLogEntry {
+  id: string;
+  timestamp: string;
+  action: string;
+  detail: string;
+  user_email: string;
+}
+
 interface PersistedMockState {
   license?: LicenseState;
   sessionUser?: MockSessionUser | null;
@@ -290,6 +298,7 @@ export class MockStore {
   private cases = new Map<string, CaseRow>();
   private drafts = new Map<string, unknown>();
   private logs: LogEntry[] = [];
+  private operationLogs: OperationLogEntry[] = [];
   private brandSettings: BrandSettings = { ...SEED_BRAND_SETTINGS };
   private logo: LogoAsset | null = null;
   private themeId = "theme-a-minimal";
@@ -326,6 +335,7 @@ export class MockStore {
     this.cases = new Map(SEED_CASES.map((row) => [row.id, { ...row }]));
     this.drafts = new Map<string, unknown>();
     this.logs = SEED_LOGS.map((entry) => ({ ...entry }));
+    this.operationLogs = [];
     this.brandSettings = { ...SEED_BRAND_SETTINGS };
     this.logo = null;
     this.themeId = "theme-a-minimal";
@@ -408,6 +418,8 @@ export class MockStore {
           return this.writeLog(args) as T;
         case "list_recent_logs":
           return this.listRecentLogs(args) as T;
+        case "list_logs":
+          return this.listLogs() as T;
 
         case "get_brand_settings":
           return this.getBrandSettings() as T;
@@ -736,6 +748,7 @@ export class MockStore {
     };
 
     this.cases.set(id, row);
+    this.addLog("建立案件", `建立案件：${row.address}`);
     return { ...row };
   }
 
@@ -777,6 +790,7 @@ export class MockStore {
     };
 
     this.cases.set(id, next);
+    this.addLog("更新案件", `更新案件：${id}`);
     return { ...next };
   }
 
@@ -789,6 +803,7 @@ export class MockStore {
     }
 
     this.cases.delete(id);
+    this.addLog("刪除案件", `刪除案件：${id}`);
   }
 
   private markCompleted(args?: CommandArgs): CaseRow {
@@ -823,7 +838,9 @@ export class MockStore {
       pickString(nestedArgs, ["caseId", "case_id"]) ??
       "mock-case";
 
-    return `/mock/exports/${caseId}-${Date.now()}.pdf`;
+    const path = `/mock/exports/${caseId}-${Date.now()}.pdf`;
+    this.addLog("匯出 PDF", `匯出 PDF：${caseId}`);
+    return path;
   }
 
   private saveDraft(args?: CommandArgs): { success: true } {
@@ -876,6 +893,23 @@ export class MockStore {
         : 100;
 
     return this.logs.slice(0, limit).map((entry) => ({ ...entry }));
+  }
+
+  private addLog(action: string, detail: string): void {
+    this.operationLogs = [
+      {
+        id: makeUuid(),
+        timestamp: new Date().toISOString(),
+        action,
+        detail,
+        user_email: this.sessionUser?.email ?? "system@local",
+      },
+      ...this.operationLogs,
+    ];
+  }
+
+  private listLogs(): OperationLogEntry[] {
+    return this.operationLogs.map((entry) => ({ ...entry }));
   }
 
   private getBrandSettings(): BrandSettings {
