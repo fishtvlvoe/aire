@@ -271,12 +271,36 @@ function LandPages({
 
   const urbanPlanZone = data.urbanPlanZone ?? data.zoningType ?? "";
   const nonUrbanLandCategory = data.nonUrbanLandCategory ?? data.usageCategory ?? "";
-  const recentSalePriceDisplay = data.recentSalePricePerSqm
-    ? `NT$ ${data.recentSalePricePerSqm.toLocaleString("zh-TW")}/㎡`
-    : "";
-  const recentSaleCountDisplay = data.recentSaleCount != null
-    ? data.recentSaleCount.toString()
-    : "";
+  // 優先從 transactionHistory 自動計算，fallback 到舊欄位
+  const txHistory = data.transactionHistory ?? [];
+  const hasTxHistory = txHistory.length > 0;
+
+  const surroundingTransactionPriceDisplay = (() => {
+    if (hasTxHistory) {
+      const latest = txHistory[txHistory.length - 1];
+      return `${latest.address}　NT$ ${latest.totalPrice.toLocaleString("zh-TW")}`;
+    }
+    return data.surroundingTransactionPrice ?? "";
+  })();
+
+  const recentSalePriceDisplay = (() => {
+    if (hasTxHistory) {
+      const avg = Math.round(
+        txHistory.reduce((sum, tx) => sum + tx.unitPrice, 0) / txHistory.length
+      );
+      return `NT$ ${avg.toLocaleString("zh-TW")}/㎡`;
+    }
+    if (data.recentSalePricePerSqm) {
+      return `NT$ ${data.recentSalePricePerSqm.toLocaleString("zh-TW")}/㎡`;
+    }
+    return "";
+  })();
+
+  const recentSaleCountDisplay = (() => {
+    if (hasTxHistory) return `${txHistory.length} 筆`;
+    if (data.recentSaleCount != null) return data.recentSaleCount.toString();
+    return "";
+  })();
 
   return (
     <>
@@ -424,7 +448,7 @@ function LandPages({
               ["環境影響", data.environmentalImpact ?? ""],
               ["重大事故", data.majorIncident ?? ""],
               ["鄰近公共設施", data.nearbyPublicFacilities ?? ""],
-              ["周遭成交行情", data.surroundingTransactionPrice ?? ""],
+              ["周遭成交行情", surroundingTransactionPriceDisplay],
               ["近期成交均價", recentSalePriceDisplay],
               ["近期成交案件數", recentSaleCountDisplay],
             ]}

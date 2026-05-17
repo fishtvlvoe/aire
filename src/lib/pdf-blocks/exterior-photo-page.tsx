@@ -13,6 +13,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#F3F4F6",
+    fontFamily: "NotoSansTC",
   },
   image: {
     width: "100%",
@@ -35,9 +36,9 @@ export function ExteriorPhotoPage({
   const textColor = tokens.colors?.text ?? tokens.textColor ?? "#111827";
 
   return (
-    <Page size="A4" style={{ padding: 24, paddingTop: 120 }}>
+    <Page size="A4" style={{ padding: 24, paddingTop: 120, fontFamily: "NotoSansTC" }}>
       <PdfHeaderWithLogo logoDataUrl={logo} />
-      <Text style={{ fontSize: 20, marginBottom: 16, color: headingColor }}>
+      <Text style={{ fontSize: 20, marginBottom: 16, color: headingColor, fontFamily: "NotoSansTC" }}>
         建物外觀
       </Text>
       <View style={styles.placeholder}>
@@ -47,9 +48,14 @@ export function ExteriorPhotoPage({
             src={{ data: Buffer.from(exteriorPhoto), format: "png" as const }}
           />
         ) : (
-          <Text style={{ color: textColor, fontSize: 12 }}>
-            請於現場拍攝建物外觀後上傳
-          </Text>
+          <View style={{ alignItems: "center" }}>
+            <Text style={{ color: textColor, fontSize: 14, fontFamily: "NotoSansTC", marginBottom: 8 }}>
+              建物外觀
+            </Text>
+            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "NotoSansTC" }}>
+              請於現場拍攝後上傳
+            </Text>
+          </View>
         )}
       </View>
       <PageFooter />

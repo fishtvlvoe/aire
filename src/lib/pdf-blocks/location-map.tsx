@@ -22,9 +22,9 @@ export function LocationMapPage({
   const hasImage = locationMapImage && locationMapImage.length > 0;
 
   return (
-    <Page size="A4" style={{ padding: 24, paddingTop: 120 }}>
+    <Page size="A4" style={{ padding: 24, paddingTop: 120, fontFamily: "NotoSansTC" }}>
       <PdfHeaderWithLogo logoDataUrl={logo} />
-      <Text style={{ fontSize: 20, marginBottom: 16, color: headingColor }}>
+      <Text style={{ fontSize: 20, marginBottom: 16, color: headingColor, fontFamily: "NotoSansTC" }}>
         位置圖
       </Text>
       <View
@@ -36,6 +36,7 @@ export function LocationMapPage({
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#F9FAFB",
+          fontFamily: "NotoSansTC",
         }}
       >
         {hasImage ? (
@@ -47,13 +48,20 @@ export function LocationMapPage({
             }}
           />
         ) : (
-          <Text style={{ color: textColor }}>（地圖圖資待插入）</Text>
+          <View style={{ alignItems: "center" }}>
+            <Text style={{ color: textColor, fontSize: 14, fontFamily: "NotoSansTC", marginBottom: 8 }}>
+              位置圖
+            </Text>
+            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "NotoSansTC" }}>
+              待取得地圖資料後自動填入
+            </Text>
+          </View>
         )}
       </View>
       <Text
-        style={{ fontSize: 7, color: "#9CA3AF", marginTop: 4, textAlign: "right" }}
+        style={{ fontSize: 7, color: "#9CA3AF", marginTop: 4, textAlign: "right", fontFamily: "NotoSansTC" }}
       >
-        © OpenStreetMap contributors
+        OpenStreetMap contributors
       </Text>
       <PageFooter />
     </Page>

@@ -24,10 +24,10 @@ export function LifeAmenitiesPage({ logo, nearbyAmenities = [] }: LifeAmenitiesP
 
   if (!nearbyAmenities || nearbyAmenities.length === 0) {
     return (
-      <Page size="A4" style={{ padding: 24, paddingTop: 120 }}>
+      <Page size="A4" style={{ padding: 24, paddingTop: 120, fontFamily: "NotoSansTC" }}>
         <PdfHeaderWithLogo logoDataUrl={logo} />
-        <Text style={{ fontSize: 20, marginBottom: 16, color: headingColor }}>生活機能</Text>
-        <Text style={{ color: textColor }}>尚未查詢周邊設施</Text>
+        <Text style={{ fontSize: 20, marginBottom: 16, color: headingColor, fontFamily: "NotoSansTC" }}>生活機能</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 12, fontFamily: "NotoSansTC" }}>尚未查詢周邊設施</Text>
         <PageFooter />
       </Page>
     );
@@ -42,15 +42,15 @@ export function LifeAmenitiesPage({ logo, nearbyAmenities = [] }: LifeAmenitiesP
   }
 
   return (
-    <Page size="A4" style={{ padding: 24, paddingTop: 120 }}>
+    <Page size="A4" style={{ padding: 24, paddingTop: 120, fontFamily: "NotoSansTC" }}>
       <PdfHeaderWithLogo logoDataUrl={logo} />
-      <Text style={{ fontSize: 20, marginBottom: 16, color: headingColor }}>生活機能</Text>
+      <Text style={{ fontSize: 20, marginBottom: 16, color: headingColor, fontFamily: "NotoSansTC" }}>生活機能</Text>
       {Array.from(grouped.entries()).map(([category, items]) => (
         <View key={category} style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: "bold", color: headingColor, marginBottom: 4 }}>
+          <Text style={{ fontSize: 12, fontWeight: "bold", color: headingColor, marginBottom: 4, fontFamily: "NotoSansTC" }}>
             {category}
           </Text>
-          <View style={{ borderWidth: 1, borderStyle: "solid", borderColor }}>
+          <View style={{ borderWidth: 1, borderStyle: "solid", borderColor, fontFamily: "NotoSansTC" }}>
             {items.map((item, index) => (
               <View
                 key={index}
@@ -61,11 +61,11 @@ export function LifeAmenitiesPage({ logo, nearbyAmenities = [] }: LifeAmenitiesP
                   borderBottomColor: borderColor,
                 }}
               >
-                <Text style={{ flex: 2, padding: 6, color: textColor, fontSize: 9 }}>{item.name}</Text>
-                <Text style={{ width: 60, padding: 6, color: textColor, fontSize: 9, textAlign: "right" }}>
+                <Text style={{ flex: 2, padding: 6, color: textColor, fontSize: 9, fontFamily: "NotoSansTC" }}>{item.name}</Text>
+                <Text style={{ width: 60, padding: 6, color: textColor, fontSize: 9, textAlign: "right", fontFamily: "NotoSansTC" }}>
                   {Math.round(item.distanceM)} m
                 </Text>
-                <Text style={{ flex: 3, padding: 6, color: textColor, fontSize: 9 }}>{item.address || "—"}</Text>
+                <Text style={{ flex: 3, padding: 6, color: textColor, fontSize: 9, fontFamily: "NotoSansTC" }}>{item.address || "-"}</Text>
               </View>
             ))}
           </View>
