@@ -47,7 +47,7 @@ export function TransactionHistoryPage({ data }: TransactionHistoryPageProps): R
   if (!data || data.length === 0) {
     return (
       <Page size="A4" style={PAGE_STYLE}>
-        <Text style={{ fontSize: 14, marginBottom: 16 }}>透明房價一覽表</Text>
+        <Text style={{ fontSize: 14, marginBottom: 16 }}>附近地段實價登錄成交行情</Text>
         <Text style={{ color: "#6B7280" }}>查無成交紀錄</Text>
       </Page>
     );
@@ -62,7 +62,7 @@ export function TransactionHistoryPage({ data }: TransactionHistoryPageProps): R
     <>
       {pages.map((pageRows, pageIndex) => (
         <Page key={pageIndex} size="A4" style={PAGE_STYLE}>
-          <Text style={{ fontSize: 14, marginBottom: 12 }}>透明房價一覽表</Text>
+          <Text style={{ fontSize: 14, marginBottom: 12 }}>附近地段實價登錄成交行情</Text>
           <View style={{ borderWidth: 1, borderColor: "#D1D5DB", borderStyle: "solid" }}>
             <TableHeader />
             {pageRows.map((row, rowIndex) => (

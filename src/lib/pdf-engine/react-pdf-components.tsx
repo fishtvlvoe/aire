@@ -334,7 +334,7 @@ interface PdfFieldTableProps {
 }
 
 const LABEL_WIDTH = 120;
-const PENDING = "待補";
+const PENDING = "";
 
 export function PdfFieldTable({
   tokens,
