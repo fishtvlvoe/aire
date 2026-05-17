@@ -8,22 +8,17 @@ TBD - created by archiving change 'disclosure-smart-draft'. Update Purpose after
 
 ### Requirement: Render exterior photo in PDF
 
-The system SHALL render an exterior photo page in the PDF. In draft mode, the page SHALL display a placeholder prompt "請於現場拍攝建物外觀". In complete mode, the page SHALL render the uploaded photo.
+The system SHALL render an exterior photo page in the PDF unconditionally (regardless of whether a photo exists). When exteriorPhoto is null or empty, the page SHALL display a gray placeholder box with text instructing the agent to take a photo. When exteriorPhoto contains image bytes, the page SHALL render the photo scaled to fit the page width with aspect ratio preserved. The html-renderer SHALL NOT skip the exterior photo page when exteriorPhoto is null.
 
-#### Scenario: Draft mode — no photo uploaded
+#### Scenario: Draft mode with no photo shows placeholder page
 
-- **WHEN** exteriorPhoto is null (draft state, before site visit)
-- **THEN** the PDF SHALL render a page with gray placeholder box and text "請於現場拍攝建物外觀"
+- **WHEN** exteriorPhoto is null and the PDF is generated
+- **THEN** the PDF SHALL include the exterior photo page with placeholder text visible in the rendered HTML
 
-#### Scenario: Complete mode — photo uploaded
+#### Scenario: Complete mode with photo shows image
 
-- **WHEN** exteriorPhoto contains image bytes (after user uploads)
-- **THEN** the PDF SHALL render the photo scaled to fit the page width with aspect ratio preserved
-
-#### Scenario: Conditional page inclusion
-
-- **WHEN** generating PDF and exteriorPhoto is null AND the case is in draft mode
-- **THEN** the placeholder page SHALL still be included (to remind the agent to take a photo)
+- **WHEN** exteriorPhoto contains valid image bytes
+- **THEN** the PDF SHALL render the photo scaled to fit within the page
 
 ---
 ### Requirement: Exterior photo upload and persistence

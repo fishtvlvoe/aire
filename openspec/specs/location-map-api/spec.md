@@ -8,27 +8,27 @@ TBD - created by archiving change 'disclosure-smart-draft'. Update Purpose after
 
 ### Requirement: Fetch static location map via Tauri IPC
 
-The system SHALL provide a Tauri IPC command `fetch_location_map` that generates a PNG image by downloading and compositing OpenStreetMap tiles, then adding a red marker at the property coordinate. No API key required.
+The system SHALL provide a TypeScript function fetchStaticMap that generates a PNG image by downloading OpenStreetMap tiles from tile.openstreetmap.org at zoom level 16, compositing them into a single image, and adding a red circle marker at the property coordinate. No API key required. The function SHALL accept lat, lng, zoom (default 16), and size (width x height in pixels, default 600x400). The function SHALL return a Promise resolving to Uint8Array of PNG bytes. When the HTTP request to tile.openstreetmap.org fails or times out (30 second timeout), the function SHALL return an empty Uint8Array and log the error via console.warn. When lat or lng is outside valid range (-90 to 90 for lat, -180 to 180 for lng), the function SHALL return an empty Uint8Array and log a validation error.
 
 #### Scenario: Successful map generation
 
-- **WHEN** `fetch_location_map` is called with `{ lat: 25.033, lng: 121.565, zoom: 16, size: "600x400" }`
-- **THEN** the system SHALL return PNG bytes (Vec<u8>) of the composited map with a red circle marker at the center
+- **WHEN** fetchStaticMap is called with lat 25.033 and lng 121.565 and zoom 16 and width 600 and height 400
+- **THEN** the function SHALL return a Uint8Array of PNG bytes with length greater than 1000
 
-#### Scenario: Network error fetching tiles
+#### Scenario: Network error returns empty array
 
-- **WHEN** the HTTP request to tile.openstreetmap.org fails or times out (30 second timeout)
-- **THEN** the system SHALL return empty Vec<u8> and log the error
+- **WHEN** the HTTP request to tile.openstreetmap.org fails or times out after 30 seconds
+- **THEN** the function SHALL return an empty Uint8Array and log the error via console.warn
 
 #### Scenario: Invalid coordinates
 
-- **WHEN** lat or lng is outside valid range (-90 to 90 / -180 to 180)
-- **THEN** the system SHALL return empty Vec<u8> and log a validation error
+- **WHEN** lat is 999 or lng is 999
+- **THEN** the function SHALL return an empty Uint8Array and log a validation error via console.warn
 
 ---
 ### Requirement: OSM attribution
 
-The system SHALL include "© OpenStreetMap contributors" attribution text rendered at the bottom of the generated map image.
+The generated map image SHALL include the text OpenStreetMap contributors rendered at the bottom-right corner of the image.
 
 #### Scenario: Attribution present in output
 
