@@ -3,6 +3,7 @@ import type { CaseRow } from "@/lib/cases-api";
 import type { CaseDossierData } from "./document";
 import { calculateTaxFees } from "@/lib/tax-calculator";
 import { queryNearbyAmenities } from "@/lib/overpass-client";
+import { fetchStaticMap } from "@/lib/osm-static-map";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 使用分區 → 法規限制 lookup table
@@ -204,11 +205,18 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     apiData["land_registry"]?.data ?? apiData["building_registry"]?.data,
     "lng", isNumber,
   );
+  let locationMapImage: Uint8Array | null = null;
   if (geoLat && geoLng) {
     try {
       nearbyAmenities = await queryNearbyAmenities({ lat: geoLat, lng: geoLng, radiusM: 1000 });
     } catch {
       // 失敗維持空陣列
+    }
+    try {
+      const mapBuf = await fetchStaticMap({ lat: geoLat, lng: geoLng });
+      if (mapBuf.length > 0) locationMapImage = mapBuf;
+    } catch {
+      // 失敗維持 null，元件會顯示佔位
     }
   }
 
@@ -231,8 +239,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         }))
       : undefined;
 
-    // Wave 6：位置圖（預留，等 geocode 功能完成後啟用）
-    base.locationMapImage = null;
+    base.locationMapImage = locationMapImage;
     // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
     base.exteriorPhoto = null;
 
@@ -335,8 +342,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         }))
       : undefined;
 
-    // Wave 6：位置圖（預留，等 geocode 功能完成後啟用）
-    base.locationMapImage = null;
+    base.locationMapImage = locationMapImage;
     // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
     base.exteriorPhoto = null;
 

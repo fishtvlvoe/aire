@@ -62,8 +62,8 @@ const landData = {
     totalBuyerCost: 32000,
     warnings: [],
   },
-  locationMapImage: new Uint8Array([137, 80, 78, 71]),
-  exteriorPhoto: new Uint8Array([137, 80, 78, 71]),
+  locationMapImage: null,
+  exteriorPhoto: null,
   surveyData: {},
 } as any;
 

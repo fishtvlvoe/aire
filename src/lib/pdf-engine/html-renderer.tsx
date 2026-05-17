@@ -158,8 +158,8 @@ export function renderDisclosureHtml(
     );
   }
 
-  // Page 7: 位置圖
-  if (data.locationMapImage) {
+  // Page 7: 位置圖（無條件渲染，元件內部有佔位邏輯）
+  {
     const pn = ++pageNum;
     pages.push(
       <div className="page" key="location-map">
@@ -173,8 +173,8 @@ export function renderDisclosureHtml(
     );
   }
 
-  // Page 8: 建物外觀
-  if (data.exteriorPhoto) {
+  // Page 8: 建物外觀（無條件渲染，元件內部有佔位邏輯）
+  {
     const pn = ++pageNum;
     pages.push(
       <div className="page" key="exterior-photo">
