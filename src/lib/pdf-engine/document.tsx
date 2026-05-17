@@ -16,6 +16,7 @@ import { TransactionHistoryPage } from "@/lib/pdf-blocks/transaction-history-pag
 import { LifeAmenitiesPage } from "@/lib/pdf-blocks/life-amenities";
 import { TaxFeeOverviewPage, LandValueTaxPage } from "@/lib/pdf-blocks/tax-fee-page";
 import { SignatureBlock } from "@/lib/pdf-blocks/signature-block";
+import { LandConditionSurveyPages } from "@/lib/pdf-blocks/land-condition-survey";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -443,6 +444,8 @@ function LandPages({
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
       {/* 生活機能 */}
       <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
+      {/* 土地版現況調查表（肆、35 題） */}
+      <LandConditionSurveyPages surveyData={data.surveyData ?? null} />
       {/* 簽章欄 */}
       <SignatureBlock />
     </>
