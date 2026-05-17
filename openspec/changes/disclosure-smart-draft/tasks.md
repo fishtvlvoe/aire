@@ -52,13 +52,13 @@ verification.
 
 ## 4. Wave 4 — 土地版現況調查表
 
-- [ ] 4.1 定義 `LandSurveyData` 型別：依 D3：現況調查表資料結構，用 JSON 欄位 + TS interface。35 個 `boolean | null` 欄位對應 35 題（Land survey data persistence）。驗證：`npm run build` 通過。[Tool: copilot]
+- [x] 4.1 定義 `LandSurveyData` 型別：依 D3：現況調查表資料結構，用 JSON 欄位 + TS interface。35 個 `boolean | null` 欄位對應 35 題（Land survey data persistence）。驗證：`npm run build` 通過。[Tool: copilot]
 
-- [ ] 4.2 新增 LandConditionSurveyPages.tsx：渲染 35 題（Render land condition survey pages），草稿模式全 ☐（Draft mode — all checkboxes blank），完整模式依填答 ☑/☐（Completed mode），題 14 多欄 grid（Question 14 special layout）。驗證：產 PDF 35 題全空白 + 填答後顯示正確勾選。[Tool: copilot]
+- [x] 4.2 新增 LandConditionSurveyPages.tsx：渲染 35 題（Render land condition survey pages），草稿模式全 ☐（Draft mode — all checkboxes blank），完整模式依填答 ☑/☐（Completed mode），題 14 多欄 grid（Question 14 special layout）。驗證：產 PDF 35 題全空白 + 填答後顯示正確勾選。[Tool: copilot]
 
-- [ ] 4.3 整合 survey 存取：disclosure_drafts.survey_data JSON 欄位讀寫（Save partial survey progress + Load existing survey data）。驗證：存後讀回值一致。[Tool: copilot]
+- [x] 4.3 整合 survey 存取：disclosure_drafts.survey_data JSON 欄位讀寫（Save partial survey progress + Load existing survey data）。驗證：存後讀回值一致。[Tool: copilot]
 
-- [ ] 4.4 Wave 4 Review：Kimi MCP CR + PDF 逐題驗證。[Tool: kimi]
+- [x] 4.4 Wave 4 Review：Kimi MCP CR + PDF 逐題驗證。[Tool: kimi]
 
 ## 5. Wave 5 — 成屋版現況調查表
 
