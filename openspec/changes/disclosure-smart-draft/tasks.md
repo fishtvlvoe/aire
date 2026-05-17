@@ -28,15 +28,15 @@ verification.
 
 ## 2. Wave 2 — 成交行情 + 周邊設施
 
-- [ ] 2.1 新增 Rust 模組 `src-tauri/src/geo_services/`：依 D1：地圖與周邊設施整合架構，用 Overpass API（免費無 key）。實作 `query_nearby_amenities` IPC command（Query nearby amenities via Tauri IPC + Amenity categories mapping to OSM tags），符合 IPC 合約。呼叫後回傳 `Vec<Amenity>` JSON。驗證：cargo build 通過 + 手動 invoke IPC 回傳正確 JSON（或網路失敗回傳空陣列不 crash）。[Tool: copilot]
+- [x] 2.1 新增 Rust 模組 `src-tauri/src/geo_services/`：依 D1：地圖與周邊設施整合架構，用 Overpass API（免費無 key）。實作 `query_nearby_amenities` IPC command（Query nearby amenities via Tauri IPC + Amenity categories mapping to OSM tags），符合 IPC 合約。呼叫後回傳 `Vec<Amenity>` JSON。驗證：cargo build 通過 + 手動 invoke IPC 回傳正確 JSON（或網路失敗回傳空陣列不 crash）。[Tool: copilot]
 
-- [ ] 2.2 修改 assemble-dossier-data.ts：地址 → geocode → 呼叫 `query_nearby_amenities` → 填入 nearbyAmenities（Assemble dossier data — Graceful degradation scenario）。驗證：unit test 模擬 IPC 回傳確認資料映射。[Tool: copilot]
+- [x] 2.2 修改 assemble-dossier-data.ts：地址 → geocode → 呼叫 `query_nearby_amenities` → 填入 nearbyAmenities（Assemble dossier data — Graceful degradation scenario）。驗證：unit test 模擬 IPC 回傳確認資料映射。[Tool: copilot]
 
-- [ ] 2.3 [P] 新增 TransactionHistoryPage.tsx：照「透明房價一覽表」格式渲染（Render transaction history table + pagination scenario）。驗證：5+ 筆時表格正確，0 筆顯示「查無成交紀錄」，15+ 筆自動分頁。[Tool: copilot]
+- [x] 2.3 [P] 新增 TransactionHistoryPage.tsx：照「透明房價一覽表」格式渲染（Render transaction history table + pagination scenario）。驗證：5+ 筆時表格正確，0 筆顯示「查無成交紀錄」，15+ 筆自動分頁。[Tool: copilot]
 
-- [ ] 2.4 [P] 修改 LifeAmenities.tsx：從 placeholder 改為渲染實際資料（Render life amenities page），按類別分組（學校/醫院/公園/捷運/市場）顯示名稱+距離+地址。驗證：產 PDF 生活機能表有自動設施資料。[Tool: copilot]
+- [x] 2.4 [P] 修改 LifeAmenities.tsx：從 placeholder 改為渲染實際資料（Render life amenities page），按類別分組（學校/醫院/公園/捷運/市場）顯示名稱+距離+地址。驗證：產 PDF 生活機能表有自動設施資料。[Tool: copilot]
 
-- [ ] 2.5 Wave 2 Review：Kimi MCP CR + build + 產 PDF 驗證成交表 + 機能表有資料。[Tool: kimi]
+- [x] 2.5 Wave 2 Review：Kimi MCP CR + build + 產 PDF 驗證成交表 + 機能表有資料。[Tool: kimi]
 
 ## 3. Wave 3 — 稅費試算 + 簽章欄
 
