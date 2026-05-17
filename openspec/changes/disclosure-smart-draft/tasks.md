@@ -62,11 +62,11 @@ verification.
 
 ## 5. Wave 5 — 成屋版現況調查表
 
-- [ ] 5.1 定義 `BuildingSurveyData` 型別：~58 個欄位（Building survey data persistence + Distinguish from land survey by property type）。驗證：`npm run build` 通過。[Tool: copilot]
+- [x] 5.1 定義 `BuildingSurveyData` 型別：~58 個欄位（Building survey data persistence + Distinguish from land survey by property type）。驗證：`npm run build` 通過。[Tool: copilot]
 
-- [ ] 5.2 新增 BuildingConditionSurveyPages.tsx：渲染 ~58 題（Render building condition survey pages），含建物瑕疵 7 題（Building defect section）、設備 6 題（Equipment section）、管理、停車位。僅房屋類（公寓/大樓/套房）渲染（Scope limited to residential buildings）。驗證：成屋 PDF 有完整題目，格式與 Wave 4 一致。[Tool: copilot]
+- [x] 5.2 新增 BuildingConditionSurveyPages.tsx：渲染 ~58 題（Render building condition survey pages），含建物瑕疵 7 題（Building defect section）、設備 6 題（Equipment section）、管理、停車位。僅房屋類（公寓/大樓/套房）渲染（Scope limited to residential buildings）。驗證：成屋 PDF 有完整題目，格式與 Wave 4 一致。[Tool: copilot]
 
-- [ ] 5.3 Wave 5 Review：Kimi MCP CR + PDF 與官方格式比對。[Tool: kimi]
+- [x] 5.3 Wave 5 Review：Kimi MCP CR + PDF 與官方格式比對。[Tool: kimi]
 
 ## 6. Wave 6 — 外觀圖 + 位置圖
 
