@@ -134,7 +134,7 @@ export function HtmlCover({
     <div style={containerStyle}>
       <div style={topBarStyle} />
       <div style={titleStyle}>不動產說明書</div>
-      <div style={subtitleStyle}>{propertyType ? `${propertyType}版` : ""}</div>
+      <div style={subtitleStyle}>{propertyType === "land" ? "土地版" : propertyType === "building" ? "建物版" : ""}</div>
       <div style={dividerStyle} />
       <HtmlFieldTable tokens={tokens} rows={rows} />
       <div style={footerStyle}>製作日期：{generatedAt}</div>
