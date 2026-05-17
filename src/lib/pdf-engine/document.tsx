@@ -433,30 +433,21 @@ function LandPages({
         {footer}
       </Page>
 
-      {/* 頁 10 — 簽章欄 */}
-      <Page size="A4" style={PAGE_STYLE}>
-        {header(10)}
-        <PdfSection tokens={tokens} title="簽章欄">
-          <PdfSignatureBlock tokens={tokens} />
-        </PdfSection>
-        {footer}
-      </Page>
-
-      {/* 位置圖 */}
-      <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
-      {/* 建物外觀 */}
-      <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
       {/* 費用一覽表 */}
       <TaxFeeOverviewPage taxCalculation={data.taxCalculation} propertyType="land" />
       {/* 土地增值稅概算表 */}
       <LandValueTaxPage taxCalculation={data.taxCalculation} propertyType="land" />
+      {/* 土地版現況調查表（肆、35 題） */}
+      <LandConditionSurveyPages surveyData={data.surveyData ?? null} />
       {/* 成交行情表 */}
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
       {/* 生活機能 */}
       <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
-      {/* 土地版現況調查表（肆、35 題） */}
-      <LandConditionSurveyPages surveyData={data.surveyData ?? null} />
-      {/* 簽章欄 */}
+      {/* 位置圖 */}
+      <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
+      {/* 建物外觀 */}
+      <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
+      {/* 簽章欄（只出現一次，在最後） */}
       <SignatureBlock />
     </>
   );
@@ -583,24 +574,21 @@ function BuildingPages({
         {footer}
       </Page>
 
-      {/* 頁 7 — 成交行情 */}
-      <SalePage tokens={tokens} header={header(7)} footer={footer} data={data} />
-
-      {/* 位置圖 */}
-      <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
-      {/* 建物外觀 */}
-      <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
       {/* 費用一覽表 */}
       <TaxFeeOverviewPage taxCalculation={data.taxCalculation} propertyType="building" />
       {/* 土地增值稅概算表 */}
       <LandValueTaxPage taxCalculation={data.taxCalculation} propertyType="building" />
+      {/* 成屋版現況調查表（58 題） */}
+      <BuildingConditionSurveyPages surveyData={data.surveyData ?? null} />
       {/* 成交行情表 */}
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
       {/* 生活機能 */}
       <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
-      {/* 成屋版現況調查表（58 題） */}
-      <BuildingConditionSurveyPages surveyData={data.surveyData ?? null} />
-      {/* 簽章欄 */}
+      {/* 位置圖 */}
+      <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
+      {/* 建物外觀 */}
+      <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
+      {/* 簽章欄（只出現一次，在最後） */}
       <SignatureBlock />
     </>
   );
