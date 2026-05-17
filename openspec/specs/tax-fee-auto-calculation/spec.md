@@ -8,79 +8,27 @@ TBD - created by archiving change 'disclosure-complete-and-fillable'. Update Pur
 
 ### Requirement: tax-calculation-from-inputs
 
-When sale_price and house_assessed_value are present in supplementary_data, the system SHALL automatically calculate: 契稅, 印花稅 (buyer + seller), 登記規費, and 履保費.
+When sale_price and house_assessed_value are present in supplementary_data, the assembleDossierData function SHALL call calculateTaxFees and store the result in CaseDossierData.taxCalculation using the individual-field format defined by the CaseDossierData interface. The taxCalculation object SHALL contain landValueIncrementTax, landValueIncrementTaxPreferential, deedTax, stampTax, registrationFee, scrivenerFee, totalSellerCost, totalBuyerCost, and warnings fields directly — NOT as sellerFees/buyerFees arrays.
 
-#### Scenario: calculate all computable taxes
+#### Scenario: assembleDossierData populates taxCalculation from supplementary inputs
 
-- **WHEN** sale_price = 8000000 and house_assessed_value = 1200000
-- **THEN** the system computes:
+- **WHEN** assembleDossierData is called with supplementary_data containing sale_price 10000000 and house_assessed_value 1200000
+- **THEN** CaseDossierData.taxCalculation SHALL contain deedTax 72000, stampTax 10000, registrationFee 10000, scrivenerFee 12000
 
-##### Example: tax calculation results
+#### Scenario: assembleDossierData omits taxCalculation when inputs missing
 
-| 稅費項目 | 公式 | 計算結果 |
-|----------|------|----------|
-| 契稅 | house_assessed_value × 6% | 72,000 |
-| 印花稅（買方） | sale_price × 0.05‰ | 400 |
-| 印花稅（賣方） | sale_price × 0.05‰ | 400 |
-| 登記規費 | sale_price × 0.1% | 8,000 |
-| 履保費（各半） | sale_price × 0.06% ÷ 2 | 2,400 |
-
-
-<!-- @trace
-source: disclosure-complete-and-fillable
-updated: 2026-05-03
-code:
-  - AIRE.db
-  - src/lib/pdf-generator/dossier.ts
-  - kimi-usage-ux-issue-body.md
-  - src/lib/document-generator/build-input.ts
-  - src/lib/pdf-generator/templates/dossier.html
-  - src/lib/schemas/supplementary-schema.ts
-  - src/app/api/listings/[id]/pdf/route.ts
-  - src/lib/document-generator/tax-calculator.ts
-  - src/app/listings/[id]/supplementary/page.tsx
-  - package.json
-  - src/lib/document-generator/pdf/dossier-building.ts
-  - src/lib/document-generator/pdf/acroform-overlay.ts
-tests:
-  - src/lib/document-generator/__tests__/tax-calculator.test.ts
-  - src/lib/codex-client/__tests__/adapters/gemini.test.ts
-  - src/lib/pdf-generator/__tests__/dossier.test.ts
-  - src/lib/document-generator/__tests__/acroform-overlay.test.ts
--->
+- **WHEN** assembleDossierData is called with supplementary_data missing both sale_price and house_assessed_value
+- **THEN** CaseDossierData.taxCalculation SHALL be null
 
 ---
 ### Requirement: null-output-for-missing-inputs
 
-When sale_price or house_assessed_value is absent, the system SHALL output null for the corresponding computed fields; those fields SHALL appear as empty cells in the PDF (no placeholder text, no "待補" label).
+When sale_price is absent but house_assessed_value is present, calculateTaxFees SHALL compute deedTax from house_assessed_value and set all price-dependent fields (stampTax, registrationFee) to 0.
 
-#### Scenario: missing sale_price
+#### Scenario: partial inputs with house_assessed_value only
 
-- **WHEN** sale_price is empty and house_assessed_value = 1200000
-- **THEN** 契稅 = 72000 (computed from house_assessed_value only), but 登記規費, 印花稅, 履保費 fields in the PDF are completely empty (no text)
-
-#### Scenario: all tax inputs missing
-
-- **WHEN** both sale_price and house_assessed_value are absent
-- **THEN** all Chapter 10 tax fields in the PDF are empty — no placeholder text, no explanatory phrases appear
-
-
-<!-- @trace
-source: pdf-tax-and-field-fixes
-updated: 2026-05-03
-code:
-  - src/lib/document-generator/tax-calculator.ts
-  - src/lib/document-generator/build-input.ts
-  - src/lib/pdf-generator/dossier.ts
-  - src/lib/document-generator/pdf/dossier-building.ts
-  - src/lib/parsers/transcript-parser.ts
-  - scripts/e2e-verify-pdf.mjs
-  - src/lib/pdf-generator/templates/dossier.html
-tests:
-  - src/lib/parsers/__tests__/transcript-parser.test.ts
-  - src/lib/document-generator/pdf/__tests__/dossier-building.test.ts
-  - src/lib/document-generator/__tests__/tax-calculator.test.ts
--->
+- **WHEN** calculateTaxFees is called with totalPrice 0 and assessedHouseValue 1200000
+- **THEN** deedTax SHALL equal 72000 and stampTax SHALL equal 0 and registrationFee SHALL equal 0
 
 ---
 ### Requirement: manual-tax-fields
