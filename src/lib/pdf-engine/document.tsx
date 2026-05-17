@@ -12,6 +12,8 @@ import {
 } from "./react-pdf-components";
 
 import { PropertyDataSheetPage } from "../pdf-blocks/property-data-sheet";
+import { TransactionHistoryPage } from "@/lib/pdf-blocks/transaction-history-page";
+import { LifeAmenitiesPage } from "@/lib/pdf-blocks/life-amenities";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -430,6 +432,11 @@ function LandPages({
         </PdfSection>
         {footer}
       </Page>
+
+      {/* 成交行情表 */}
+      <TransactionHistoryPage data={data.transactionHistory ?? []} />
+      {/* 生活機能 */}
+      <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
     </>
   );
 }
@@ -557,6 +564,11 @@ function BuildingPages({
 
       {/* 頁 7 — 成交行情 */}
       <SalePage tokens={tokens} header={header(7)} footer={footer} data={data} />
+
+      {/* 成交行情表 */}
+      <TransactionHistoryPage data={data.transactionHistory ?? []} />
+      {/* 生活機能 */}
+      <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
     </>
   );
 }

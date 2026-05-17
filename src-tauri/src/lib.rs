@@ -26,6 +26,7 @@ pub mod startup;
 pub mod mcp_client;
 
 // Phase 3：land_registry
+pub mod geo_services;
 pub mod land_registry;
 
 // Phase 2 紅燈測試模組（sqlite_encryption）仍保留在 feature gate 之後。
@@ -266,6 +267,7 @@ pub fn run() {
             land_registry::api_key_storage::land_registry_test_connection,
             land_registry::balance::land_registry_get_balance,
             land_registry::consent::land_registry_record_consent,
+            geo_services::overpass::query_nearby_amenities,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");

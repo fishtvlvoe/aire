@@ -104,6 +104,7 @@ const isString = (v: unknown): v is string => typeof v === "string";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossierData> {
+  let transactionHistory: CaseDossierData["transactionHistory"] = [];
   const isLand = caseRow.property_type === "land";
   const base: CaseDossierData = {
     caseNo: caseRow.case_no ?? caseRow.id.slice(0, 8),
@@ -174,6 +175,16 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       limit: 5,
     });
     const stats = computeRecentSaleStats(Array.isArray(records) ? records : []);
+    transactionHistory = Array.isArray(records) ? records.map((r) => {
+      const rec = r as Record<string, unknown>;
+      return {
+        address: typeof rec.address === "string" ? rec.address : "",
+        areaPing: typeof rec.area === "number" ? rec.area : 0,
+        totalPrice: typeof rec.total_price === "number" ? rec.total_price : 0,
+        unitPrice: typeof rec.unit_price === "number" ? rec.unit_price : 0,
+        transactionDate: typeof rec.transaction_date === "string" ? rec.transaction_date : "",
+      };
+    }) : [];
     recentSalePricePerSqm = stats.avg;
     recentSaleCount = stats.count;
   } catch {
@@ -212,6 +223,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       mortgages,
       recentSalePricePerSqm,
       recentSaleCount,
+      transactionHistory,
+      nearbyAmenities: [],
       legalClauses,
       cover: {
         propertyName: caseRow.address ?? "",
@@ -288,6 +301,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       mortgages,
       recentSalePricePerSqm,
       recentSaleCount,
+      transactionHistory,
+      nearbyAmenities: [],
       legalClauses,
       cover: {
         propertyName: caseRow.address ?? "",

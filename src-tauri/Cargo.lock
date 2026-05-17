@@ -76,6 +76,7 @@ dependencies = [
  "fs2",
  "image",
  "keyring",
+ "log",
  "rand 0.8.6",
  "reqwest 0.12.28",
  "rusqlite",
