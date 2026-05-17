@@ -53,6 +53,18 @@ export function getThemePdfTokens(themeId: string): PdfTokens {
 // PdfCover — 封面頁
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface CoverDetail {
+  propertyName: string;
+  caseNumber: string;
+  handlingAgent: string;
+  licensedAgentName: string;
+  licensedAgentCertNo: string;
+  brokerageCompanyName: string;
+  brokerageLicenseNo: string;
+  companyAddress: string;
+  companyPhone: string;
+}
+
 interface PdfCoverProps {
   tokens: PdfTokens;
   caseNo: string;
@@ -62,6 +74,7 @@ interface PdfCoverProps {
   companyName?: string;
   generatedAt: string;
   logoBytes?: number[];
+  cover?: CoverDetail;
 }
 
 export function PdfCover({
@@ -73,6 +86,7 @@ export function PdfCover({
   companyName,
   generatedAt,
   logoBytes,
+  cover,
 }: PdfCoverProps): React.ReactElement {
   const logoSrc = logoBytes
     ? `data:image/png;base64,${Buffer.from(logoBytes).toString("base64")}`
@@ -143,17 +157,18 @@ export function PdfCover({
           />
 
           {/* 案件資訊 */}
-          <View style={{ gap: 12 }}>
-            <InfoRow label="案件編號" value={caseNo} tokens={tokens} />
-            {address && (
-              <InfoRow label="標的地址" value={address} tokens={tokens} />
-            )}
-            {clientName && (
-              <InfoRow label="委託人" value={clientName} tokens={tokens} />
-            )}
-            {companyName && (
-              <InfoRow label="不動產經紀業" value={companyName} tokens={tokens} />
-            )}
+          <View style={{ gap: 10 }}>
+            <InfoRow label="物件名稱" value={cover?.propertyName ?? address ?? ""} tokens={tokens} />
+            <InfoRow label="案件編號" value={cover?.caseNumber ?? caseNo} tokens={tokens} />
+            <View style={{ height: 16 }} />
+            <InfoRow label="承辦人" value={cover?.handlingAgent ?? ""} tokens={tokens} />
+            <InfoRow label="經紀人" value={cover?.licensedAgentName ?? ""} tokens={tokens} />
+            <InfoRow label="經紀人證號" value={cover?.licensedAgentCertNo ?? ""} tokens={tokens} />
+            <View style={{ height: 16 }} />
+            <InfoRow label="不動產經紀業" value={cover?.brokerageCompanyName ?? companyName ?? ""} tokens={tokens} />
+            <InfoRow label="經紀業證號" value={cover?.brokerageLicenseNo ?? ""} tokens={tokens} />
+            <InfoRow label="公司地址" value={cover?.companyAddress ?? ""} tokens={tokens} />
+            <InfoRow label="公司電話" value={cover?.companyPhone ?? ""} tokens={tokens} />
           </View>
         </View>
 
