@@ -28,4 +28,4 @@
 
 ## 5. 端到端驗證
 
-- [ ] 5.1 [Tool: 主對話] 修改 `scripts/test-html-pdf.ts` 加入完整測試資料（含 fees、taxCalculation、surveyData、amenities 等），重新產出 PDF 驗證頁數 ≥ 10 且 pymupdf 提取文字包含各區塊關鍵字。確認 `npm run build` 通過。
+- [x] 5.1 [Tool: 主對話] 修改 `scripts/test-html-pdf.ts` 加入完整測試資料（含 fees、taxCalculation、surveyData、amenities 等），重新產出 PDF 驗證頁數 ≥ 10 且 pymupdf 提取文字包含各區塊關鍵字。確認 `npm run build` 通過。

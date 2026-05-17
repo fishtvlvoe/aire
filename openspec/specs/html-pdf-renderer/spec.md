@@ -21,19 +21,6 @@ TBD - created by archiving change 'html-pdf-engine'. Update Purpose after archiv
 - **WHEN** 傳入建物版 CaseDossierData
 - **THEN** 回傳 HTML 包含 15 個以上 `class="page"` div
 
-
-<!-- @trace
-source: html-pdf-engine
-updated: 2026-05-17
-code:
-  - src/lib/pdf-engine/html-components.tsx
-  - src/lib/pdf-engine/html-themes.ts
-  - scripts/test-html-pdf.ts
-  - src/lib/pdf-engine/html-export.ts
-  - src/lib/pdf-engine/html-renderer.tsx
-  - src/app/(dashboard)/cases/[id]/preview/page.tsx
--->
-
 ---
 ### Requirement: CSS @page 規則確保 A4 尺寸
 
