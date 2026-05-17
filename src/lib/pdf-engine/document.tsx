@@ -17,6 +17,7 @@ import { LifeAmenitiesPage } from "@/lib/pdf-blocks/life-amenities";
 import { TaxFeeOverviewPage, LandValueTaxPage } from "@/lib/pdf-blocks/tax-fee-page";
 import { SignatureBlock } from "@/lib/pdf-blocks/signature-block";
 import { LandConditionSurveyPages } from "@/lib/pdf-blocks/land-condition-survey";
+import { BuildingConditionSurveyPages } from "@/lib/pdf-blocks/building-condition-survey";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -584,6 +585,8 @@ function BuildingPages({
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
       {/* 生活機能 */}
       <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
+      {/* 成屋版現況調查表（58 題） */}
+      <BuildingConditionSurveyPages surveyData={data.surveyData ?? null} />
       {/* 簽章欄 */}
       <SignatureBlock />
     </>
