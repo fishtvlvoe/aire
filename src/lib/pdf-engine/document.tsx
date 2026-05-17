@@ -1,5 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { ThemeProvider } from "@/lib/pdf-themes/theme-provider";
+import { getTheme } from "@/lib/pdf-themes/registry";
 
 import {
   getThemePdfTokens,
@@ -616,14 +618,17 @@ export function PdfDocument({
   themeId: string;
 }): React.ReactElement {
   const tokens = getThemePdfTokens(themeId);
+  const theme = getTheme(themeId) ?? getTheme("theme-a-minimal")!;
 
   return (
-    <Document>
-      {data.propertyType === "building" ? (
-        <BuildingPages data={data} tokens={tokens} />
-      ) : (
-        <LandPages data={data} tokens={tokens} />
-      )}
-    </Document>
+    <ThemeProvider theme={theme}>
+      <Document>
+        {data.propertyType === "building" ? (
+          <BuildingPages data={data} tokens={tokens} />
+        ) : (
+          <LandPages data={data} tokens={tokens} />
+        )}
+      </Document>
+    </ThemeProvider>
   );
 }
