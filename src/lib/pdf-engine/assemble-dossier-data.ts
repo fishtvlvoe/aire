@@ -1,6 +1,7 @@
 import { safeInvoke as invoke } from "@/lib/tauri-bridge";
 import type { CaseRow } from "@/lib/cases-api";
 import type { CaseDossierData } from "./document";
+import { calculateTaxFees } from "@/lib/tax-calculator";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 使用分區 → 法規限制 lookup table
@@ -210,6 +211,24 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         }))
       : undefined;
 
+    // ── 稅費試算（土地）──────────────────────────────────────────────────────
+    const landAskingPrice = 0; // 使用者尚未輸入時預設 0
+    const landAnnouncedValue = safeGet(landValue, "announced_value", isNumber) ?? 0;
+    const landAreaVal = safeGet(landReg, "area", isNumber) ?? 0;
+    if (landAnnouncedValue > 0 && landAreaVal > 0) {
+      base.taxCalculation = calculateTaxFees({
+        totalPrice: landAskingPrice,
+        announcedLandValue: landAnnouncedValue,
+        landArea: landAreaVal,
+        shareRatio: 1,
+        holdingYears: 1,
+        isFirstSale: false,
+        propertyType: "land",
+      });
+    } else {
+      base.taxCalculation = null;
+    }
+
     return {
       ...base,
       landArea: safeGet(landReg, "area", isNumber),
@@ -290,6 +309,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
           amount: safeGet(m, "amount", isNumber) ?? 0,
         }))
       : undefined;
+
+    // ── 稅費試算（建物）──────────────────────────────────────────────────────
+    base.taxCalculation = null; // 建物版：askingPrice 未填前為 null
 
     return {
       ...base,

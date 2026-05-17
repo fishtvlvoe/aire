@@ -14,6 +14,8 @@ import {
 import { PropertyDataSheetPage } from "../pdf-blocks/property-data-sheet";
 import { TransactionHistoryPage } from "@/lib/pdf-blocks/transaction-history-page";
 import { LifeAmenitiesPage } from "@/lib/pdf-blocks/life-amenities";
+import { TaxFeeOverviewPage, LandValueTaxPage } from "@/lib/pdf-blocks/tax-fee-page";
+import { SignatureBlock } from "@/lib/pdf-blocks/signature-block";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -433,10 +435,16 @@ function LandPages({
         {footer}
       </Page>
 
+      {/* 費用一覽表 */}
+      <TaxFeeOverviewPage taxCalculation={data.taxCalculation} propertyType="land" />
+      {/* 土地增值稅概算表 */}
+      <LandValueTaxPage taxCalculation={data.taxCalculation} propertyType="land" />
       {/* 成交行情表 */}
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
       {/* 生活機能 */}
       <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
+      {/* 簽章欄 */}
+      <SignatureBlock />
     </>
   );
 }
@@ -565,10 +573,16 @@ function BuildingPages({
       {/* 頁 7 — 成交行情 */}
       <SalePage tokens={tokens} header={header(7)} footer={footer} data={data} />
 
+      {/* 費用一覽表 */}
+      <TaxFeeOverviewPage taxCalculation={data.taxCalculation} propertyType="building" />
+      {/* 土地增值稅概算表 */}
+      <LandValueTaxPage taxCalculation={data.taxCalculation} propertyType="building" />
       {/* 成交行情表 */}
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
       {/* 生活機能 */}
       <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
+      {/* 簽章欄 */}
+      <SignatureBlock />
     </>
   );
 }
