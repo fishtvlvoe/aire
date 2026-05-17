@@ -40,15 +40,15 @@ verification.
 
 ## 3. Wave 3 — 稅費試算 + 簽章欄
 
-- [ ] 3.1 新增 `src/lib/tax-calculator.ts`：依 D2：稅費計算引擎位置（純前端 TS），實作 calculateTaxFees 函式，符合稅費計算合約（Calculate land value increment tax + Calculate deed tax + Calculate stamp tax + Calculate registration fee + Calculate scrivener fee + Aggregate seller and buyer costs + Handle invalid inputs）。驗證：unit test 覆蓋一般稅率、優惠稅率、零增值、無效輸入四種場���。[Tool: copilot]
+- [x] 3.1 新增 `src/lib/tax-calculator.ts`：依 D2：稅費計算引擎位置（純前端 TS），實作 calculateTaxFees 函式，符合稅費計算合約（Calculate land value increment tax + Calculate deed tax + Calculate stamp tax + Calculate registration fee + Calculate scrivener fee + Aggregate seller and buyer costs + Handle invalid inputs）。驗證：unit test 覆蓋一般稅率、優惠稅率、零增值、無效輸入四種場���。[Tool: copilot]
 
-- [ ] 3.2 修改 assemble-dossier-data.ts：有 totalPrice 時呼叫 calculateTaxFees 填入 taxCalculation（Assemble dossier data — Draft mode without total price scenario）。驗證：unit test 確認有/無 totalPrice 兩種情境。[Tool: copilot]
+- [x] 3.2 修改 assemble-dossier-data.ts：有 totalPrice 時呼叫 calculateTaxFees 填入 taxCalculation（Assemble dossier data — Draft mode without total price scenario）。驗證：unit test 確認有/無 totalPrice 兩種情境。[Tool: copilot]
 
-- [ ] 3.3 [P] 新增 TaxFeePage.tsx：增值稅概算表頁（Render land value increment tax estimate page）+ 費用一覽表頁（Render fee summary page）。草稿模式空白、完整模式有值。驗證：產 PDF 含兩個稅費頁面，數字合理。[Tool: copilot]
+- [x] 3.3 [P] 新增 TaxFeePage.tsx：增值稅概算表頁（Render land value increment tax estimate page）+ 費用一覽表頁（Render fee summary page）。草稿模式空白、完整模式有值。驗證：產 PDF 含兩個稅費頁面，數字合理。[Tool: copilot]
 
-- [ ] 3.4 [P] 新增 SignatureBlock.tsx：四方簽章欄（Render signature block — layout scenario）。驗證：PDF 最後頁含賣方/買方/經紀人/公司四區塊 + 日期欄。[Tool: copilot]
+- [x] 3.4 [P] 新增 SignatureBlock.tsx：四方簽章欄（Render signature block — layout scenario）。驗證：PDF 最後頁含賣方/買方/經紀人/公司四區塊 + 日期欄。[Tool: copilot]
 
-- [ ] 3.5 Wave 3 Review：Kimi MCP CR + 輸入總價 1000 萬驗證稅費數字合理。[Tool: kimi]
+- [x] 3.5 Wave 3 Review：Kimi MCP CR + 輸入總價 1000 萬驗證稅費數字合理。[Tool: kimi]
 
 ## 4. Wave 4 — 土地版現況調查表
 
