@@ -7,8 +7,15 @@ import {
   HtmlPageFooter,
   HtmlSection,
   HtmlFieldTable,
-  HtmlSignatureBlock,
 } from "./html-components";
+import { HtmlPropertyDataSheet } from "./html-blocks/property-data-sheet";
+import { HtmlTransactionHistory } from "./html-blocks/transaction-history";
+import { HtmlLifeAmenities } from "./html-blocks/life-amenities";
+import { HtmlLocationMap, HtmlExteriorPhoto } from "./html-blocks/location-and-exterior";
+import { HtmlTaxFee } from "./html-blocks/tax-fee";
+import { HtmlSignatureBlockFull } from "./html-blocks/signature-block";
+import { HtmlLandConditionSurvey } from "./html-blocks/land-condition-survey";
+import { HtmlBuildingConditionSurvey } from "./html-blocks/building-condition-survey";
 import type { CaseDossierData } from "./document";
 
 const REGULATIONS = [
@@ -67,13 +74,151 @@ export function renderDisclosureHtml(
     ["環境影響事項", val(d.environmentalImpact)],
   ];
 
-  const transactionRows: Array<[string, string]> = [
-    ["總成交金額", val(data.transactionTotalPrice)],
-    ["付款方式", val(data.paymentMethod)],
-    ["稅費負擔約定", val(data.taxBurdenAgreement)],
-    ["違約金約定", val(data.penaltyClause)],
-    ["周邊成交行情", val(data.surroundingTransactionPrice)],
-  ];
+  let pageNum = 3;
+  const pages: React.ReactElement[] = [];
+
+  // Page 3: 物件資料表（優先使用 HtmlPropertyDataSheet，否則 fallback）
+  if (data.propertySheet) {
+    const pn = pageNum;
+    pages.push(
+      <div className="page" key="property-data-sheet">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlPropertyDataSheet
+          propertyType={data.propertyType}
+          data={data}
+          tokens={tokens}
+        />
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  } else {
+    const pn = pageNum;
+    pages.push(
+      <div className="page" key="fallback-land-rows">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlSection tokens={tokens} title="土地標示">
+          <HtmlFieldTable tokens={tokens} rows={landRows} />
+        </HtmlSection>
+        <HtmlSection tokens={tokens} title="所有權及他項權利概況">
+          <HtmlFieldTable tokens={tokens} rows={rightsRows} />
+        </HtmlSection>
+        <HtmlSection tokens={tokens} title="使用管制及現況">
+          <HtmlFieldTable tokens={tokens} rows={usageRows} />
+        </HtmlSection>
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // Page 4: 成交行情表
+  if (data.transactionHistory && data.transactionHistory.length > 0) {
+    const pn = ++pageNum;
+    pages.push(
+      <div className="page" key="transaction-history">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlTransactionHistory
+          data={data.transactionHistory as any}
+          tokens={tokens}
+        />
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // Page 5: 稅費概算
+  if (data.taxCalculation) {
+    const pn = ++pageNum;
+    pages.push(
+      <div className="page" key="tax-fee">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlTaxFee
+          tokens={tokens}
+          taxCalculation={data.taxCalculation}
+          propertyType={data.propertyType}
+        />
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // Page 6: 生活機能
+  if (data.nearbyAmenities && data.nearbyAmenities.length > 0) {
+    const pn = ++pageNum;
+    pages.push(
+      <div className="page" key="life-amenities">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlLifeAmenities
+          tokens={tokens}
+          caseNo={data.caseNo}
+          generatedAt={options.generatedAt}
+          nearbyAmenities={data.nearbyAmenities as any}
+        />
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // Page 7: 位置圖
+  if (data.locationMapImage) {
+    const pn = ++pageNum;
+    pages.push(
+      <div className="page" key="location-map">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlLocationMap
+          locationMapImage={data.locationMapImage}
+          tokens={tokens}
+        />
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // Page 8: 建物外觀
+  if (data.exteriorPhoto) {
+    const pn = ++pageNum;
+    pages.push(
+      <div className="page" key="exterior-photo">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlExteriorPhoto
+          exteriorPhoto={data.exteriorPhoto}
+          tokens={tokens}
+        />
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // Page 9: 現況調查表
+  if (data.surveyData) {
+    const pn = ++pageNum;
+    pages.push(
+      <div className="page" key="condition-survey">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        {data.propertyType === "land" ? (
+          <HtmlLandConditionSurvey
+            surveyData={data.surveyData}
+            tokens={tokens}
+          />
+        ) : (
+          <HtmlBuildingConditionSurvey
+            surveyData={data.surveyData}
+            tokens={tokens}
+          />
+        )}
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // 最後一頁: 簽名欄
+  const pn = ++pageNum;
+  pages.push(
+    <div className="page" key="signature">
+      <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+      <HtmlSignatureBlockFull tokens={tokens} />
+      <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+    </div>
+  );
 
   const body = renderToStaticMarkup(
     <React.Fragment>
@@ -104,30 +249,7 @@ export function renderDisclosureHtml(
         <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
       </div>
 
-      {/* Page 3: 土地標示 + 權利範圍 + 使用管制 */}
-      <div className="page">
-        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={3} />
-        <HtmlSection tokens={tokens} title="土地標示">
-          <HtmlFieldTable tokens={tokens} rows={landRows} />
-        </HtmlSection>
-        <HtmlSection tokens={tokens} title="所有權及他項權利概況">
-          <HtmlFieldTable tokens={tokens} rows={rightsRows} />
-        </HtmlSection>
-        <HtmlSection tokens={tokens} title="使用管制及現況">
-          <HtmlFieldTable tokens={tokens} rows={usageRows} />
-        </HtmlSection>
-        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
-      </div>
-
-      {/* Page 4: 成交行情 + 簽名 */}
-      <div className="page">
-        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={4} />
-        <HtmlSection tokens={tokens} title="成交行情表">
-          <HtmlFieldTable tokens={tokens} rows={transactionRows} />
-        </HtmlSection>
-        <HtmlSignatureBlock tokens={tokens} />
-        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
-      </div>
+      {pages}
     </React.Fragment>
   );
 
