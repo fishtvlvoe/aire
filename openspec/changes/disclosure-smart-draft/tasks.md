@@ -70,18 +70,18 @@ verification.
 
 ## 6. Wave 6 — 外觀圖 + 位置圖
 
-- [ ] 6.1 新增 Rust `fetch_location_map` IPC（Fetch static location map via Tauri IPC + OSM attribution）：下載 OSM tiles → 拼接 PNG → 加紅色標記 + attribution。驗證：cargo build + 手動測試台北座標產出有標記的 PNG。[Tool: copilot]
+- [x] 6.1 新增 Rust `fetch_location_map` IPC（Fetch static location map via Tauri IPC + OSM attribution）：下載 OSM tiles → 拼接 PNG → 加紅色標記 + attribution。驗證：cargo build + 手動測試台北座標產出有標記的 PNG。[Tool: copilot]
 
-- [ ] 6.2 [P] 新增 ExteriorPhotoPage.tsx：外觀圖頁面（Render exterior photo in PDF）。草稿模式顯示灰色佔位「請於現場拍攝建物外觀」，完整模式渲染上傳照片。驗證：草稿 PDF 有佔位提示、上傳照片後 PDF 有圖。[Tool: copilot]
+- [x] 6.2 [P] 新增 ExteriorPhotoPage.tsx：外觀圖頁面（Render exterior photo in PDF）。草稿模式顯示灰色佔位「請於現場拍攝建物外觀」，完整模式渲染上傳照片。驗證：草稿 PDF 有佔位提示、上傳照片後 PDF 有圖。[Tool: copilot]
 
-- [ ] 6.3 實作外觀照片上傳（Exterior photo upload and persistence）：使用者選 JPEG/PNG（max 5MB）→ 存入 disclosure_drafts。驗證：上傳 → 讀回 → bytes 一致。[Tool: copilot]
+- [x] 6.3 實作外觀照片上傳（Exterior photo upload and persistence）：使用者選 JPEG/PNG（max 5MB）→ 存入 disclosure_drafts。驗證：上傳 → 讀回 → bytes 一致。[Tool: copilot]
 
-- [ ] 6.4 修改 assemble-dossier-data.ts：geocode → 呼叫 fetch_location_map → 填入 locationMapImage bytes（Assemble dossier data — Graceful degradation）。驗證：unit test 模擬有圖/無圖兩情境。[Tool: copilot]
+- [x] 6.4 修改 assemble-dossier-data.ts：geocode → 呼叫 fetch_location_map → 填入 locationMapImage bytes（Assemble dossier data — Graceful degradation）。驗證：unit test 模擬有圖/無圖兩情境。[Tool: copilot]
 
-- [ ] 6.5 修改 LocationMapPage.tsx：從 placeholder 文字改為渲染實際 OSM 地圖。條件渲染：locationMapImage 為 null 時不顯示（PDF page ordering — Conditional page rendering scenario）。驗證：有座標案件 PDF 含地圖、無座標案件不含該頁。[Tool: copilot]
+- [x] 6.5 修改 LocationMapPage.tsx：從 placeholder 文字改為渲染實際 OSM 地圖。條件渲染：locationMapImage 為 null 時不顯示（PDF page ordering — Conditional page rendering scenario）。驗證：有座標案件 PDF 含地圖、無座標案件不含該頁。[Tool: copilot]
 
-- [ ] 6.6 Wave 6 Review：Kimi MCP CR + 最終完整 PDF 所有頁面驗收。[Tool: kimi]
+- [x] 6.6 Wave 6 Review：Kimi MCP CR + 最終完整 PDF 所有頁面驗收。[Tool: kimi]
 
 ## 7. 最終驗收
 
-- [ ] 7.1 E2E 驗收：建立測試案件（輸入地址 + 總價 1000 萬），產出完整 PDF，逐頁確認所有頁面存在且格式正確。對照驗收標準與範圍邊界：封面/物件表/土地標示/建物標示/費用/稅費/調查表/成交行情/機能/地圖/外觀佔位/簽章。行為描述中所述流程全部可走通。[Tool: sonnet]
+- [x] 7.1 E2E 驗收：建立測試案件（輸入地址 + 總價 1000 萬），產出完整 PDF，逐頁確認所有頁面存在且格式正確。對照驗收標準與範圍邊界：封面/物件表/土地標示/建物標示/費用/稅費/調查表/成交行情/機能/地圖/外觀佔位/簽章。行為描述中所述流程全部可走通。[Tool: sonnet]
