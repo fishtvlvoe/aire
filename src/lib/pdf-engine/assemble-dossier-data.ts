@@ -211,6 +211,11 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         }))
       : undefined;
 
+    // Wave 6：位置圖（預留，等 geocode 功能完成後啟用）
+    base.locationMapImage = null;
+    // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
+    base.exteriorPhoto = null;
+
     // ── 稅費試算（土地）──────────────────────────────────────────────────────
     const landAskingPrice = 0; // 使用者尚未輸入時預設 0
     const landAnnouncedValue = safeGet(landValue, "announced_value", isNumber) ?? 0;
@@ -309,6 +314,11 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
           amount: safeGet(m, "amount", isNumber) ?? 0,
         }))
       : undefined;
+
+    // Wave 6：位置圖（預留，等 geocode 功能完成後啟用）
+    base.locationMapImage = null;
+    // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
+    base.exteriorPhoto = null;
 
     // ── 稅費試算（建物）──────────────────────────────────────────────────────
     base.taxCalculation = null; // 建物版：askingPrice 未填前為 null

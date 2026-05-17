@@ -18,6 +18,8 @@ import { TaxFeeOverviewPage, LandValueTaxPage } from "@/lib/pdf-blocks/tax-fee-p
 import { SignatureBlock } from "@/lib/pdf-blocks/signature-block";
 import { LandConditionSurveyPages } from "@/lib/pdf-blocks/land-condition-survey";
 import { BuildingConditionSurveyPages } from "@/lib/pdf-blocks/building-condition-survey";
+import { LocationMapPage } from "@/lib/pdf-blocks/location-map";
+import { ExteriorPhotoPage } from "@/lib/pdf-blocks/exterior-photo-page";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -33,6 +35,7 @@ export interface CaseDossierData {
   companyName: string;
   generatedAt: string;
   logoBytes?: number[];
+  logo?: string;
 
   // 地政 API 資料（皆為 optional）
   landArea?: number;
@@ -437,6 +440,10 @@ function LandPages({
         {footer}
       </Page>
 
+      {/* 位置圖 */}
+      <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
+      {/* 建物外觀 */}
+      <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
       {/* 費用一覽表 */}
       <TaxFeeOverviewPage taxCalculation={data.taxCalculation} propertyType="land" />
       {/* 土地增值稅概算表 */}
@@ -577,6 +584,10 @@ function BuildingPages({
       {/* 頁 7 — 成交行情 */}
       <SalePage tokens={tokens} header={header(7)} footer={footer} data={data} />
 
+      {/* 位置圖 */}
+      <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
+      {/* 建物外觀 */}
+      <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
       {/* 費用一覽表 */}
       <TaxFeeOverviewPage taxCalculation={data.taxCalculation} propertyType="building" />
       {/* 土地增值稅概算表 */}
