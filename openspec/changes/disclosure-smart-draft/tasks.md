@@ -12,19 +12,19 @@ verification.
 
 ## 1. Wave 1 — 封面 + 物件資料表 + 建物標示
 
-- [ ] 1.1 擴充 CaseDossierData 介面：新增 `cover: CoverData`、`propertySheet: PropertySheetData`、`buildingAreaBreakdown` nested objects（Assemble dossier data from all sources）。依 D5：CaseDossierData 擴充策略，用 optional nested objects 確保向後相容。完成後 `npm run build` 型別檢查通過，無 TS error。[Tool: copilot]
+- [x] 1.1 擴充 CaseDossierData 介面：新增 `cover: CoverData`、`propertySheet: PropertySheetData`、`buildingAreaBreakdown` nested objects（Assemble dossier data from all sources）。依 D5：CaseDossierData 擴充策略，用 optional nested objects 確保向後相容。完成後 `npm run build` 型別檢查通過，無 TS error。[Tool: copilot]
 
-- [ ] 1.2 [P] 修改 assemble-dossier-data.ts：從已有謄本 API 映射封面欄位（Cover page displays all official format fields）、物件資料表欄位、建物面積分欄。呼叫 `assembleDossierData()` 回傳的物件包含 cover/propertySheet/buildingAreaBreakdown。驗證：寫 unit test `assemble-dossier-data.test.ts` 確認映射正確。[Tool: copilot]
+- [x] 1.2 [P] 修改 assemble-dossier-data.ts：從已有謄本 API 映射封面欄位（Cover page displays all official format fields）、物件資料表欄位、建物面積分欄。呼叫 `assembleDossierData()` 回傳的物件包含 cover/propertySheet/buildingAreaBreakdown。驗證：寫 unit test `assemble-dossier-data.test.ts` 確認映射正確。[Tool: copilot]
 
-- [ ] 1.3 [P] 修改 Cover.tsx：渲染完整封面（Disclosure cover page — Cover page with full company info scenario）。PDF 封面顯示物件名稱/編號/承辦人/經紀人/公司全欄位。驗證：`npm run build` 通過 + 產 PDF 目視封面完整。[Tool: copilot]
+- [x] 1.3 [P] 修改 Cover.tsx：渲染完整封面（Disclosure cover page — Cover page with full company info scenario）。PDF 封面顯示物件名稱/編號/承辦人/經紀人/公司全欄位。驗證：`npm run build` 通過 + 產 PDF 目視封面完整。[Tool: copilot]
 
-- [ ] 1.4 新增 PropertyDataSheetPage.tsx：土地版照母版格式渲染（Render property data sheet for land type）。驗證：產 PDF 含物件資料表頁，欄位有資料。[Tool: copilot]
+- [x] 1.4 新增 PropertyDataSheetPage.tsx：土地版照母版格式渲染（Render property data sheet for land type）。驗證：產 PDF 含物件資料表頁，欄位有資料。[Tool: copilot]
 
-- [ ] 1.5 [P] 新增 PropertyDataSheetPage.tsx 成屋版分支：照建物物調表母版渲染（Render property data sheet for building type），面積顯示主建/附屬/公設/車位分欄（Building property data sheet distinguishes area types）。驗證：成屋案件產 PDF 含正確分欄。[Tool: copilot]
+- [x] 1.5 [P] 新增 PropertyDataSheetPage.tsx 成屋版分支：照建物物調表母版渲染（Render property data sheet for building type），面積顯示主建/附屬/公設/車位分欄（Building property data sheet distinguishes area types）。驗證：成屋案件產 PDF 含正確分欄。[Tool: copilot]
 
-- [ ] 1.6 修改 document.tsx：整合新頁面至 LandPages/BuildingPages（PDF page ordering for land type + PDF page ordering for building type），依 D4：PDF 頁面組織方式，每章節獨立 pdf-block。驗證：`npm run build` 通過，PDF 頁面順序正確。[Tool: copilot]
+- [x] 1.6 修改 document.tsx：整合新頁面至 LandPages/BuildingPages（PDF page ordering for land type + PDF page ordering for building type），依 D4：PDF 頁面組織方式，每章節獨立 pdf-block。驗證：`npm run build` 通過，PDF 頁面順序正確。[Tool: copilot]
 
-- [ ] 1.7 Wave 1 Review：diff > 10 行用 Kimi MCP 做 CR + build 驗證。[Tool: kimi]
+- [x] 1.7 Wave 1 Review：diff > 10 行用 Kimi MCP 做 CR + build 驗證。[Tool: kimi]
 
 ## 2. Wave 2 — 成交行情 + 周邊設施
 
