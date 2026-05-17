@@ -129,13 +129,13 @@ export function HtmlTransactionHistory({ data, tokens }: HtmlTransactionHistoryP
                   <tr key={rowIndex}>
                     <td style={{ ...tdStyle, width: COL_WIDTHS.address }}>{row.address}</td>
                     <td style={{ ...tdStyle, width: COL_WIDTHS.areaPing, textAlign: "right" }}>
-                      {row.areaPing > 0 ? row.areaPing.toFixed(2) : "—"}
+                      {Number(row.areaPing) > 0 ? Number(row.areaPing).toFixed(2) : "—"}
                     </td>
                     <td style={{ ...tdStyle, width: COL_WIDTHS.totalPrice, textAlign: "right" }}>
-                      {row.totalPrice > 0 ? row.totalPrice.toLocaleString("zh-TW") : "—"}
+                      {row.totalPrice ? String(row.totalPrice) : "—"}
                     </td>
                     <td style={{ ...tdStyle, width: COL_WIDTHS.unitPrice, textAlign: "right" }}>
-                      {row.unitPrice > 0 ? row.unitPrice.toLocaleString("zh-TW") : "—"}
+                      {row.unitPrice ? String(row.unitPrice) : "—"}
                     </td>
                     <td style={{ ...tdStyle, width: COL_WIDTHS.transactionDate, textAlign: "center" }}>
                       {row.transactionDate || "—"}

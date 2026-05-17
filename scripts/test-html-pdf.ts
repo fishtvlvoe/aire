@@ -4,6 +4,15 @@ import { exportPdfFromHtml } from "../src/lib/pdf-engine/html-export";
 
 const landData = {
   propertyType: "land",
+  caseNo: "TEST-LAND-001",
+  address: "台北市信義區松仁路100號",
+  ownerName: "王大明",
+  companyName: "建安不動產經紀有限公司",
+  transactionTotalPrice: "1,000萬",
+  paymentMethod: "銀行貸款",
+  taxBurdenAgreement: "依慣例各自負擔",
+  penaltyClause: "違約金為總價之15%",
+  surroundingTransactionPrice: "70-75萬/坪",
   cover: {
     propertyName: "台北市信義區松仁路100號",
     caseNumber: "TEST-LAND-001",
@@ -16,24 +25,62 @@ const landData = {
     companyPhone: "02-2345-6789",
   },
   landMark: {
-    section: "台北市信義區松仁段三小段 0100-0000 地號",
+    section: "台北市信義區松仁段三小段",
+    lotNo: "0100-0000",
+    landCategory: "—",
     area: "150.00",
     zoning: "第三種住宅區",
-    landCategory: "—",
-    announcedValue: "280,000",
-    announcedPrice: "56,000",
   },
-  rights: {
-    owner: "王大明",
-    scope: "全部 1/1",
-    encumbrance: "無",
-    restriction: "無",
-    otherRights: "無",
+  landArea: "150.00",
+  urbanPlanZone: "第三種住宅區",
+  floorAreaRatio: "225%",
+  buildingCoverageRatio: "45%",
+  ownershipShare: "全部 1/1",
+  transactionHistory: [
+    { address: "信義區松仁路98號", areaPing: "45.20", totalPrice: "3,200", unitPrice: "70.80", transactionDate: "114/03" },
+    { address: "信義區松仁路120號", areaPing: "38.50", totalPrice: "2,850", unitPrice: "74.03", transactionDate: "114/01" },
+    { address: "信義區松德路56號", areaPing: "52.00", totalPrice: "3,900", unitPrice: "75.00", transactionDate: "113/11" },
+    { address: "信義區松仁路85號", areaPing: "41.30", totalPrice: "3,050", unitPrice: "73.85", transactionDate: "113/09" },
+    { address: "信義區松德路30號", areaPing: "55.80", totalPrice: "4,100", unitPrice: "73.48", transactionDate: "113/07" },
+  ],
+  nearbyAmenities: [
+    { category: "學校", name: "信義國小", distance: "200m", address: "松仁路150號" },
+    { category: "學校", name: "興雅國中", distance: "450m", address: "松德路168號" },
+    { category: "醫院", name: "台北醫學大學附設醫院", distance: "1.2km", address: "吳興街252號" },
+    { category: "公園", name: "松德公園", distance: "150m", address: "松德路100號" },
+    { category: "捷運", name: "象山站", distance: "600m", address: "信義路五段" },
+    { category: "市場", name: "松山市場", distance: "800m", address: "松山路300號" },
+  ],
+  taxCalculation: {
+    totalPrice: 10000000,
+    announcedCurrentValue: 2800000,
+    announcedPreviousValue: 2000000,
+    holdingYears: 5,
+    sellerFees: [
+      { item: "土地增值稅", amount: 120000 },
+      { item: "代書費", amount: 15000 },
+      { item: "印花稅", amount: 1000 },
+    ],
+    buyerFees: [
+      { item: "契稅", amount: 60000 },
+      { item: "登記規費", amount: 3000 },
+      { item: "代書費", amount: 15000 },
+      { item: "印花稅", amount: 1000 },
+    ],
   },
+  locationMapImage: new Uint8Array([137, 80, 78, 71]),
+  exteriorPhoto: new Uint8Array([137, 80, 78, 71]),
+  surveyData: {},
 } as any;
 
 const buildingData = {
   propertyType: "building",
+  caseNo: "TEST-BLDG-001",
+  address: "新北市板橋區文化路一段200號3樓",
+  ownerName: "陳小明",
+  companyName: "建安不動產經紀有限公司",
+  transactionTotalPrice: "1,500萬",
+  paymentMethod: "銀行貸款80%",
   cover: {
     propertyName: "新北市板橋區文化路一段200號3樓",
     caseNumber: "TEST-BLDG-001",
@@ -45,6 +92,15 @@ const buildingData = {
     companyAddress: "台北市信義區信義路五段7號",
     companyPhone: "02-2345-6789",
   },
+  transactionHistory: [
+    { address: "板橋區文化路一段180號", areaPing: "32.50", totalPrice: "1,450", unitPrice: "44.62", transactionDate: "114/02" },
+    { address: "板橋區文化路一段220號", areaPing: "28.70", totalPrice: "1,320", unitPrice: "46.00", transactionDate: "113/12" },
+  ],
+  nearbyAmenities: [
+    { category: "學校", name: "板橋國小", distance: "300m", address: "文化路200號" },
+    { category: "捷運", name: "板橋站", distance: "500m", address: "站前路5號" },
+  ],
+  surveyData: {},
 } as any;
 
 async function run() {
@@ -59,10 +115,20 @@ async function run() {
       generatedAt: "2026-05-17",
     });
 
+    const pageCount = (html.match(/class="page"/g) || []).length;
+    console.log(`[${label}] ${pageCount} pages generated`);
+
+    const keywords = ["不動產說明書", "法規告知", "簽章", "現況"];
+    for (const kw of keywords) {
+      if (!html.includes(kw)) {
+        console.error(`[${label}] ⚠ 缺少關鍵字: ${kw}`);
+      }
+    }
+
     await exportPdfFromHtml(html, outputPath);
 
     const { size } = fs.statSync(outputPath);
-    console.log(`[${label}] ${outputPath} — ${size} bytes`);
+    console.log(`[${label}] ${outputPath} — ${(size / 1024).toFixed(0)} KB`);
   }
 
   console.log("All done! ✓");

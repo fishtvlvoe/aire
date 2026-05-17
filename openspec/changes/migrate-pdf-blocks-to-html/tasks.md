@@ -24,7 +24,7 @@
 
 ## 4. 整合 renderer
 
-- [ ] 4.1 [Tool: Codex] 建立 `src/lib/pdf-engine/html-blocks/index.ts` barrel export，並修改 `src/lib/pdf-engine/html-renderer.tsx`：import 所有 html-blocks 元件，組裝完整頁面排列。土地版：封面→法規→物件資料表→土地標示→費用一覽→增值稅概算→現況調查(多頁)→成交行情→生活機能→位置圖→外觀圖→簽章欄。建物版類似但用建物調查表。驗證：`renderDisclosureHtml(landData)` 回傳 HTML 含 page div ≥ 10 個。
+- [x] 4.1 [Tool: Codex] 建立 `src/lib/pdf-engine/html-blocks/index.ts` barrel export，並修改 `src/lib/pdf-engine/html-renderer.tsx`：import 所有 html-blocks 元件，組裝完整頁面排列。土地版：封面→法規→物件資料表→土地標示→費用一覽→增值稅概算→現況調查(多頁)→成交行情→生活機能→位置圖→外觀圖→簽章欄。建物版類似但用建物調查表。驗證：`renderDisclosureHtml(landData)` 回傳 HTML 含 page div ≥ 10 個。
 
 ## 5. 端到端驗證
 

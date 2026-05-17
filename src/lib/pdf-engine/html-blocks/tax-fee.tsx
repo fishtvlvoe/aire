@@ -210,7 +210,7 @@ export function HtmlTaxFee({ tokens, taxCalculation, propertyType }: HtmlTaxFeeP
           {"※ 自用住宅優惠稅率 10%，需符合土地稅法第 34 條規定。"}
         </p>
 
-        {tc && tc.warnings.length > 0 && (
+        {tc?.warnings && tc.warnings.length > 0 && (
           <div style={s.warningBox}>
             {tc.warnings.map((w, i) => (
               <p key={i} style={s.warningText}>⚠ {w}</p>
@@ -301,7 +301,7 @@ export function HtmlTaxFee({ tokens, taxCalculation, propertyType }: HtmlTaxFeeP
           {"※ 代書費為估算，實際依委託事務範圍而定。"}
         </p>
 
-        {tc && tc.warnings.length > 0 && (
+        {tc?.warnings && tc.warnings.length > 0 && (
           <div style={s.warningBox}>
             {tc.warnings.map((w, i) => (
               <p key={i} style={s.warningText}>⚠ {w}</p>
