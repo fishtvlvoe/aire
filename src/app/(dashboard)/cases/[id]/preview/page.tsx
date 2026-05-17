@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PdfPreviewer } from "@/components/PdfPreviewer";
+import { renderDisclosureHtml } from "@/lib/pdf-engine/html-renderer";
 import {
   casesApi,
   propertyTypeLabel,
@@ -38,16 +38,27 @@ export default function CasePreviewPage() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoBytes, setLogoBytes] = useState<number[] | undefined>(undefined);
   const [caseDossierData, setCaseDossierData] = useState<CaseDossierData | undefined>(undefined);
+  const [htmlContent, setHtmlContent] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
   async function handleExport() {
     setExporting(true);
     try {
-      const result = await safeInvoke<{ filePath: string }>("export_pdf", { caseId: id });
-      toast.success("PDF 已匯出", { description: result.filePath });
-      if (process.env.NODE_ENV === "development") {
-        toast.message("瀏覽器預覽模式，PDF 未實際產出");
+      if ((window as any).__TAURI__) {
+        const result = await safeInvoke<{ filePath: string }>("export_pdf", {
+          caseId: id,
+          html: htmlContent,
+        });
+        toast.success("PDF 已匯出", { description: result.filePath });
+      } else {
+        const printWindow = window.open("", "_blank");
+        if (printWindow) {
+          printWindow.document.write(htmlContent);
+          printWindow.document.close();
+          printWindow.print();
+        }
+        toast.success("已開啟列印視窗");
       }
     } catch (e) {
       toast.error("匯出失敗", { description: String(e) });
@@ -95,7 +106,13 @@ export default function CasePreviewPage() {
         // 組裝完整 dossier data（含 IPC 呼叫）
         const assembled = await assembleDossierData(row);
         if (!cancelled) {
-          setCaseDossierData({ ...assembled, logoBytes: resolvedLogoBytes });
+          const dossier = { ...assembled, logoBytes: resolvedLogoBytes };
+          setCaseDossierData(dossier);
+          const html = renderDisclosureHtml(dossier, {
+            themeId: resolved.theme.id,
+            generatedAt: new Date().toISOString().slice(0, 10),
+          });
+          setHtmlContent(html);
         }
       } catch (err) {
         if (!cancelled) {
@@ -184,7 +201,7 @@ export default function CasePreviewPage() {
         ) : null}
       </header>
 
-      <PdfPreviewer caseId={c.id} caseData={caseDossierData} />
+      <div dangerouslySetInnerHTML={{ __html: htmlContent }} style={{ background: '#f5f5f5', padding: 24, borderRadius: 8 }} />
     </main>
   );
 }
