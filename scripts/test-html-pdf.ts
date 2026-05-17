@@ -44,12 +44,12 @@ const landData = {
     { address: "信義區松德路30號", areaPing: "55.80", totalPrice: "4,100", unitPrice: "73.48", transactionDate: "113/07" },
   ],
   nearbyAmenities: [
-    { category: "學校", name: "信義國小", distance: "200m", address: "松仁路150號" },
-    { category: "學校", name: "興雅國中", distance: "450m", address: "松德路168號" },
-    { category: "醫院", name: "台北醫學大學附設醫院", distance: "1.2km", address: "吳興街252號" },
-    { category: "公園", name: "松德公園", distance: "150m", address: "松德路100號" },
-    { category: "捷運", name: "象山站", distance: "600m", address: "信義路五段" },
-    { category: "市場", name: "松山市場", distance: "800m", address: "松山路300號" },
+    { category: "公園", name: "松德公園", distanceM: 150, address: "松德路100號" },
+    { category: "學校", name: "信義國小", distanceM: 200, address: "松仁路150號" },
+    { category: "學校", name: "興雅國中", distanceM: 450, address: "松德路168號" },
+    { category: "捷運", name: "象山站", distanceM: 600, address: "信義路五段" },
+    { category: "市場", name: "松山市場", distanceM: 800, address: "松山路300號" },
+    { category: "醫院", name: "台北醫學大學附設醫院", distanceM: 1200, address: "吳興街252號" },
   ],
   taxCalculation: {
     landValueIncrementTax: 160000,
@@ -91,8 +91,8 @@ const buildingData = {
     { address: "板橋區文化路一段220號", areaPing: "28.70", totalPrice: "1,320", unitPrice: "46.00", transactionDate: "113/12" },
   ],
   nearbyAmenities: [
-    { category: "學校", name: "板橋國小", distance: "300m", address: "文化路200號" },
-    { category: "捷運", name: "板橋站", distance: "500m", address: "站前路5號" },
+    { category: "學校", name: "板橋國小", distanceM: 300, address: "文化路200號" },
+    { category: "捷運", name: "板橋站", distanceM: 500, address: "站前路5號" },
   ],
   taxCalculation: {
     landValueIncrementTax: 200000,

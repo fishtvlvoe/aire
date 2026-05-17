@@ -2,6 +2,7 @@ import { safeInvoke as invoke } from "@/lib/tauri-bridge";
 import type { CaseRow } from "@/lib/cases-api";
 import type { CaseDossierData } from "./document";
 import { calculateTaxFees } from "@/lib/tax-calculator";
+import { queryNearbyAmenities } from "@/lib/overpass-client";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 使用分區 → 法規限制 lookup table
@@ -192,6 +193,25 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     // 失敗時欄位為 undefined
   }
 
+  // ── 周邊設施（Overpass API）─────────────────────────────────────────────────
+
+  let nearbyAmenities: CaseDossierData["nearbyAmenities"] = [];
+  const geoLat = safeGet(
+    apiData["land_registry"]?.data ?? apiData["building_registry"]?.data,
+    "lat", isNumber,
+  );
+  const geoLng = safeGet(
+    apiData["land_registry"]?.data ?? apiData["building_registry"]?.data,
+    "lng", isNumber,
+  );
+  if (geoLat && geoLng) {
+    try {
+      nearbyAmenities = await queryNearbyAmenities({ lat: geoLat, lng: geoLng, radiusM: 1000 });
+    } catch {
+      // 失敗維持空陣列
+    }
+  }
+
   // ── 映射 ──────────────────────────────────────────────────────────────────
 
   if (isLand) {
@@ -248,7 +268,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       recentSalePricePerSqm,
       recentSaleCount,
       transactionHistory,
-      nearbyAmenities: [],
+      nearbyAmenities,
       legalClauses,
       cover: {
         propertyName: caseRow.address ?? "",
@@ -334,7 +354,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       recentSalePricePerSqm,
       recentSaleCount,
       transactionHistory,
-      nearbyAmenities: [],
+      nearbyAmenities,
       legalClauses,
       cover: {
         propertyName: caseRow.address ?? "",
