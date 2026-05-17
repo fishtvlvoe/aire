@@ -1,10 +1,15 @@
 import React from "react";
-import { Page, Text, View } from "@react-pdf/renderer";
+import { Image, Page, Text, View } from "@react-pdf/renderer";
 import { useTheme } from "../pdf-themes/theme-provider";
+import { PDF_LOGO_BOX_HEIGHT_MM, PDF_LOGO_BOX_WIDTH_MM } from "./logo-anchors";
 
 export interface CoverProps {
   caseData: Record<string, unknown>;
   logo?: string;
+}
+
+function mmToPt(mm: number): number {
+  return (mm / 25.4) * 72;
 }
 
 function toStringValue(value: unknown, fallback: string): string {
@@ -13,220 +18,146 @@ function toStringValue(value: unknown, fallback: string): string {
   return fallback;
 }
 
-// 表格列：左欄標籤、右欄資料
-function InfoRow({
-  label,
-  value,
-  border,
-  labelColor,
-  textColor,
-  isLast,
-}: {
-  label: string;
-  value: string;
-  border: string;
-  labelColor: string;
-  textColor: string;
-  isLast?: boolean;
-}): React.ReactElement {
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        borderBottomWidth: isLast ? 0 : 1,
-        borderBottomStyle: "solid",
-        borderBottomColor: border,
-      }}
-    >
-      <View
-        style={{
-          width: "35%",
-          padding: 6,
-          backgroundColor: "#F3F4F6",
-          borderRightWidth: 1,
-          borderRightStyle: "solid",
-          borderRightColor: border,
-        }}
-      >
-        <Text style={{ fontSize: 10, color: labelColor, fontFamily: "NotoSansTC" }}>{label}</Text>
-      </View>
-      <View style={{ width: "65%", padding: 6 }}>
-        <Text style={{ fontSize: 10, color: textColor, fontFamily: "NotoSansTC" }}>{value}</Text>
-      </View>
-    </View>
-  );
-}
-
-export function Cover({ caseData }: CoverProps): React.ReactElement {
+export function Cover({ caseData, logo }: CoverProps): React.ReactElement {
   const theme = useTheme();
+  const ThemedCover = theme.components.Cover;
   const colors = theme.tokens.colors;
   const textColor = colors?.text ?? theme.tokens.textColor ?? "#111827";
-  const primary = colors?.primary ?? theme.tokens.primaryColor ?? "#1D4ED8";
+  const primary = colors?.primary ?? theme.tokens.primaryColor;
   const border = colors?.border ?? theme.tokens.borderColor ?? "#E5E7EB";
   const secondary = colors?.secondary ?? theme.tokens.secondaryColor ?? "#6B7280";
 
-  // 從 caseData 取頂層欄位
-  const caseNumber = toStringValue(caseData.caseNumber, "未提供");
-  const propertyAddress = toStringValue(
-    caseData.propertyAddress ?? caseData.address,
-    "未提供"
-  );
-  const propertyType = toStringValue(caseData.propertyType, "");
-  const subtitle = propertyType === "land" ? "土地版" : propertyType === "building" ? "建物版" : "建物版";
+  const caseId = toStringValue(caseData.caseId, "未提供");
+  const propertyName = toStringValue(caseData.propertyName, "未命名物件");
+  const summaryRaw = Array.isArray(caseData.summary)
+    ? caseData.summary
+    : Array.isArray(caseData.highlights)
+      ? caseData.highlights
+      : [];
+  const summary = summaryRaw
+    .map((item) => toStringValue(item, ""))
+    .filter((item) => item.length > 0)
+    .slice(0, 10);
+  while (summary.length < 10) {
+    summary.push(`重點 ${summary.length + 1}`);
+  }
 
-  // 從 caseData.cover 取承辦/經紀人/公司欄位
-  const cover = (caseData.cover ?? {}) as Record<string, unknown>;
-  const brokerageCompanyName = toStringValue(cover.brokerageCompanyName, "未填寫");
-  const handlingAgent = toStringValue(cover.handlingAgent, "未填寫");
-  const licensedAgentName = toStringValue(cover.licensedAgentName, "未填寫");
-  const licensedAgentCertNo = toStringValue(cover.licensedAgentCertNo, "未填寫");
-  const brokerageLicenseNo = toStringValue(cover.brokerageLicenseNo, "未填寫");
-  const companyAddress = toStringValue(cover.companyAddress, "未填寫");
-  const companyPhone = toStringValue(cover.companyPhone, "未填寫");
+  const agents = [
+    toStringValue(caseData.agentName, "未填寫"),
+    toStringValue(caseData.agentLicense, "未填寫"),
+    toStringValue(caseData.agentPhone, "未填寫"),
+    toStringValue(caseData.agentEmail, "未填寫"),
+  ];
 
-  // 製作日期
-  const generatedAt = toStringValue(caseData.generatedAt, "");
-  const dateLabel = generatedAt
-    ? generatedAt.slice(0, 10).replace(/-/g, "/")
-    : new Date().toISOString().slice(0, 10).replace(/-/g, "/");
+  const companyName = toStringValue(caseData.companyName, "未填寫公司資訊");
+  const companyAddress = toStringValue(caseData.companyAddress, "未填寫地址");
+  const companyPhone = toStringValue(caseData.companyPhone, "未填寫電話");
+
+  const logoWidth = mmToPt(PDF_LOGO_BOX_WIDTH_MM);
+  const logoHeight = mmToPt(PDF_LOGO_BOX_HEIGHT_MM);
 
   return (
-    <Page size="A4" style={{ padding: 56, fontFamily: "NotoSansTC" }}>
-      {/* 大標題 */}
-      <View style={{ alignItems: "center", marginTop: 48, marginBottom: 8 }}>
-        <Text
-          style={{
-            fontSize: 36,
-            color: primary,
-            fontWeight: 700,
-            fontFamily: "NotoSansTC",
-          }}
-        >
-          不動產說明書
-        </Text>
-      </View>
-
-      {/* 副標題 */}
-      <View style={{ alignItems: "center", marginBottom: 32 }}>
-        <Text
-          style={{
-            fontSize: 18,
-            color: secondary,
-            fontFamily: "NotoSansTC",
-          }}
-        >
-          {subtitle}
-        </Text>
-      </View>
-
-      {/* 分隔線 */}
+    <Page size="A4" style={{ padding: 28 }}>
       <View
         style={{
-          borderBottomWidth: 2,
-          borderBottomStyle: "solid",
-          borderBottomColor: primary,
-          marginBottom: 28,
+          position: "absolute",
+          top: 18,
+          right: 18,
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          backgroundColor: primary,
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        <Text style={{ color: "#FFFFFF", fontSize: 9, fontWeight: 700 }}>AI</Text>
+      </View>
 
-      {/* 基本資訊：案件編號、標的地址、不動產經紀業 */}
-      <View style={{ marginBottom: 8 }}>
-        <View style={{ flexDirection: "row", marginBottom: 10 }}>
-          <Text style={{ width: 100, fontSize: 11, color: secondary, fontFamily: "NotoSansTC" }}>
-            案件編號
+      <Text style={{ fontSize: 32, color: primary, fontWeight: 700, marginTop: 16 }}>不動產說明書</Text>
+      <Text style={{ fontSize: 13, color: secondary, marginTop: 6, marginBottom: 16 }}>
+        REAL ESTATE INFORMATION
+      </Text>
+
+      <View style={{ marginBottom: 10 }}>
+        <Text style={{ color: secondary, fontSize: 10 }}>物件編號</Text>
+        <Text style={{ color: textColor, fontSize: 12 }}>{caseId}</Text>
+      </View>
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{ color: secondary, fontSize: 10 }}>物件名稱</Text>
+        <Text style={{ color: textColor, fontSize: 14 }}>{propertyName}</Text>
+      </View>
+
+      <View style={{ marginBottom: 16 }}>
+        {summary.map((item, index) => (
+          <Text key={`${item}-${index}`} style={{ color: textColor, fontSize: 10, marginBottom: 4 }}>
+            {index + 1}. {item}
           </Text>
-          <Text style={{ fontSize: 11, color: textColor, fontFamily: "NotoSansTC" }}>
-            {caseNumber}
-          </Text>
+        ))}
+      </View>
+
+      <View style={{ borderWidth: 1, borderStyle: "solid", borderColor: border, marginBottom: 12 }}>
+        <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomStyle: "solid", borderBottomColor: border }}>
+          <Text style={{ width: "25%", padding: 6, fontSize: 10, color: secondary }}>經紀人姓名</Text>
+          <Text style={{ width: "25%", padding: 6, fontSize: 10, color: secondary }}>證號</Text>
+          <Text style={{ width: "25%", padding: 6, fontSize: 10, color: secondary }}>電話</Text>
+          <Text style={{ width: "25%", padding: 6, fontSize: 10, color: secondary }}>Email</Text>
         </View>
-        <View style={{ flexDirection: "row", marginBottom: 10 }}>
-          <Text style={{ width: 100, fontSize: 11, color: secondary, fontFamily: "NotoSansTC" }}>
-            標的地址
-          </Text>
-          <Text style={{ fontSize: 11, color: textColor, fontFamily: "NotoSansTC", flex: 1 }}>
-            {propertyAddress}
-          </Text>
-        </View>
-        <View style={{ flexDirection: "row", marginBottom: 10 }}>
-          <Text style={{ width: 100, fontSize: 11, color: secondary, fontFamily: "NotoSansTC" }}>
-            不動產經紀業
-          </Text>
-          <Text style={{ fontSize: 11, color: textColor, fontFamily: "NotoSansTC" }}>
-            {brokerageCompanyName}
-          </Text>
+        <View style={{ flexDirection: "row" }}>
+          {agents.map((item, index) => (
+            <Text key={`agent-cell-${index}`} style={{ width: "25%", padding: 6, fontSize: 10, color: textColor }}>
+              {item}
+            </Text>
+          ))}
         </View>
       </View>
 
-      {/* 留白區（實體蓋章用） */}
-      <View style={{ flex: 1 }} />
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{ fontSize: 10, color: secondary }}>{companyName}</Text>
+        <Text style={{ fontSize: 10, color: textColor }}>{companyAddress}</Text>
+        <Text style={{ fontSize: 10, color: textColor }}>{companyPhone}</Text>
+        {(caseData.cover as Record<string, string> | undefined)?.licensedAgentCertNo && (
+          <Text style={{ fontSize: 10, color: textColor }}>
+            不動產經紀人證號：{(caseData.cover as Record<string, string>).licensedAgentCertNo}
+          </Text>
+        )}
+        {(caseData.cover as Record<string, string> | undefined)?.brokerageLicenseNo && (
+          <Text style={{ fontSize: 10, color: textColor }}>
+            公司執照號：{(caseData.cover as Record<string, string>).brokerageLicenseNo}
+          </Text>
+        )}
+      </View>
 
-      {/* 承辦人/經紀人資訊表格 */}
       <View
         style={{
+          width: logoWidth,
+          height: logoHeight,
           borderWidth: 1,
           borderStyle: "solid",
           borderColor: border,
-          marginBottom: 20,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#F9FAFB",
+          overflow: "hidden",
         }}
       >
-        <InfoRow
-          label="承辦業務員"
-          value={handlingAgent}
-          border={border}
-          labelColor={secondary}
-          textColor={textColor}
-        />
-        <InfoRow
-          label="經紀人姓名"
-          value={licensedAgentName}
-          border={border}
-          labelColor={secondary}
-          textColor={textColor}
-        />
-        <InfoRow
-          label="經紀人證書字號"
-          value={licensedAgentCertNo}
-          border={border}
-          labelColor={secondary}
-          textColor={textColor}
-        />
-        <InfoRow
-          label="經紀業公司名稱"
-          value={brokerageCompanyName}
-          border={border}
-          labelColor={secondary}
-          textColor={textColor}
-        />
-        <InfoRow
-          label="經紀業證照號碼"
-          value={brokerageLicenseNo}
-          border={border}
-          labelColor={secondary}
-          textColor={textColor}
-        />
-        <InfoRow
-          label="公司地址"
-          value={companyAddress}
-          border={border}
-          labelColor={secondary}
-          textColor={textColor}
-        />
-        <InfoRow
-          label="公司電話"
-          value={companyPhone}
-          border={border}
-          labelColor={secondary}
-          textColor={textColor}
-          isLast
-        />
+        {logo ? (
+          <Image
+            src={logo}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+            }}
+          />
+        ) : (
+          <Text style={{ fontSize: 10, color: "#9CA3AF" }}>（未設定 LOGO）</Text>
+        )}
       </View>
 
-      {/* 底部：製作日期（右下角） */}
-      <View style={{ alignItems: "flex-end" }}>
-        <Text style={{ fontSize: 9, color: secondary, fontFamily: "NotoSansTC" }}>
-          製作日期：{dateLabel}
-        </Text>
-      </View>
+      <Text style={{ fontSize: 8, color: secondary, marginTop: 8 }}>
+        Theme Cover: {ThemedCover.displayName ?? "Cover"}
+      </Text>
     </Page>
   );
 }

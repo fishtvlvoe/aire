@@ -348,7 +348,11 @@ interface PdfFieldTableProps {
   rows: Array<[string, string]>;
 }
 
-const LABEL_WIDTH = 120;
+function insertCjkBreaks(text: string): string {
+  return text.replace(/([一-鿿㐀-䶿])/g, "​$1");
+}
+
+const LABEL_WIDTH = 150;
 const PENDING = "";
 
 export function PdfFieldTable({
@@ -391,7 +395,7 @@ export function PdfFieldTable({
               }}
             >
               <Text style={{ fontSize: 10, color: tokens.textMuted }}>
-                {label}
+                {insertCjkBreaks(label)}
               </Text>
             </View>
 
@@ -411,7 +415,7 @@ export function PdfFieldTable({
                     displayValue === PENDING ? tokens.textMuted : tokens.text,
                 }}
               >
-                {displayValue}
+                {insertCjkBreaks(displayValue)}
               </Text>
             </View>
           </View>

@@ -30,16 +30,8 @@ export interface LegalNoticeThemeStyles {
 
 const CONTENT_CHUNK_SIZE = 920;
 const EXPECTED_LAW_COUNT = 3;
-const MIN_CLAUSE_COUNT = 4;
 const LEGAL_NOTICE_TEXT_KEY = "__AIRE_LEGAL_NOTICE_TEXT__";
 const LEGAL_NOTICE_PATCHED_KEY = "__AIRE_LEGAL_NOTICE_PATCHED__";
-
-const DEFAULT_LEGAL_PARAGRAPHS = [
-  "一、依不動產經紀業管理條例第二十三條規定，經紀人員在執行業務過程中，應以不動產說明書向買賣雙方當事人說明下列事項：\n（一）不動產標示及權利範圍。\n（二）交易條件及總價款。\n（三）依法令應告知事項。\n（四）其他經中央主管機關規定應告知事項。",
-  "二、依不動產經紀業管理條例第二十四條規定，本說明書於提供買受人審閱前，應經經紀人簽章。",
-  "三、依不動產經紀業管理條例第二十四條之一規定，買受人於簽訂買賣契約前，有審閱不動產說明書至少三日之期間。",
-  "四、本說明書內容如有不實，經紀業應負損害賠償責任。經紀人員如有隱匿或虛偽不實之情事，依同條例第二十九條規定，處新臺幣三萬元以上十五萬元以下罰鍰。",
-];
 
 export const EMPTY_CACHE_PLACEHOLDER = "（法規資料同步中，下次重新產出說明書時將自動補入）";
 export const CONTINUATION_MARKER = "（續下頁）";
@@ -124,41 +116,18 @@ function LegalNoticePages({
   const shouldRenderPartialPlaceholder = resolved.length > 0 && resolved.length < EXPECTED_LAW_COUNT;
   const readableParts: string[] = [`THEME:${theme.id}`];
 
-  const useDefault = resolved.length < MIN_CLAUSE_COUNT;
-
-  if (useDefault) {
+  if (resolved.length === 0) {
     (globalThis as Record<string, unknown>)[LEGAL_NOTICE_TEXT_KEY] = [
       `THEME:${theme.id}`,
       "法規告知",
-      ...DEFAULT_LEGAL_PARAGRAPHS,
+      EMPTY_CACHE_PLACEHOLDER,
     ].join("\n");
     return (
       <Page size="A4" break style={{ padding: 28 }}>
-        <Text
-          style={{
-            fontSize: styles.headingFontSize,
-            color: styles.headingColor,
-            marginBottom: 12,
-            fontFamily: "NotoSansTC",
-          }}
-        >
+        <Text style={{ fontSize: styles.headingFontSize, color: styles.headingColor, marginBottom: 8 }}>
           法規告知
         </Text>
-        {DEFAULT_LEGAL_PARAGRAPHS.map((para, idx) => (
-          <Text
-            key={idx}
-            wrap
-            style={{
-              fontSize: styles.bodyFontSize,
-              color: styles.bodyColor,
-              lineHeight: 1.8,
-              marginBottom: 10,
-              fontFamily: "NotoSansTC",
-            }}
-          >
-            {para}
-          </Text>
-        ))}
+        <Text style={{ fontSize: styles.bodyFontSize, color: styles.bodyColor }}>{EMPTY_CACHE_PLACEHOLDER}</Text>
       </Page>
     );
   }
