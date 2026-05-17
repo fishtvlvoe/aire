@@ -116,6 +116,16 @@ export function Cover({ caseData, logo }: CoverProps): React.ReactElement {
         <Text style={{ fontSize: 10, color: secondary }}>{companyName}</Text>
         <Text style={{ fontSize: 10, color: textColor }}>{companyAddress}</Text>
         <Text style={{ fontSize: 10, color: textColor }}>{companyPhone}</Text>
+        {(caseData.cover as Record<string, string> | undefined)?.licensedAgentCertNo && (
+          <Text style={{ fontSize: 10, color: textColor }}>
+            不動產經紀人證號：{(caseData.cover as Record<string, string>).licensedAgentCertNo}
+          </Text>
+        )}
+        {(caseData.cover as Record<string, string> | undefined)?.brokerageLicenseNo && (
+          <Text style={{ fontSize: 10, color: textColor }}>
+            公司執照號：{(caseData.cover as Record<string, string>).brokerageLicenseNo}
+          </Text>
+        )}
       </View>
 
       <View

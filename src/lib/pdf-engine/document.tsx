@@ -11,6 +11,8 @@ import {
   PdfSignatureBlock,
 } from "./react-pdf-components";
 
+import { PropertyDataSheetPage } from "../pdf-blocks/property-data-sheet";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,6 +72,83 @@ export interface CaseDossierData {
   recentSalePricePerSqm?: number;
   recentSaleCount?: number;
   legalClauses?: string[];
+
+  // ─── 封面完整欄位 ───
+  cover?: {
+    propertyName: string;
+    caseNumber: string;
+    handlingAgent: string;
+    licensedAgentName: string;
+    licensedAgentCertNo: string;
+    brokerageCompanyName: string;
+    brokerageLicenseNo: string;
+    companyAddress: string;
+    companyPhone: string;
+  };
+
+  // ─── 物件資料表 ───
+  propertySheet?: {
+    askingPrice: number;
+    landSection: string;
+    landNumber: string;
+    zoning: string;
+    landArea: number;
+    ownershipRatio: string;
+    shareArea: number;
+    buildingCoverage: string;
+    floorAreaRatio: string;
+    owner: string;
+    acquisitionDate: string;
+    registeredArea?: number;
+    mainBuildingArea?: number;
+    auxiliaryArea?: number;
+    commonArea?: number;
+    parkingArea?: number;
+    floor?: string;
+    rooms?: string;
+    direction?: string;
+    managementFee?: number;
+    hasElevator?: boolean;
+    constructionCompany?: string;
+    communityName?: string;
+  };
+
+  // ─── 建物面積分欄 ───
+  buildingAreaBreakdown?: {
+    main: number;
+    auxiliary: number;
+    common: number;
+    parking: number;
+  };
+
+  // ─── 後續 Wave 用，先定義型別 ───
+  transactionHistory?: Array<{
+    address: string;
+    areaPing: number;
+    totalPrice: number;
+    unitPrice: number;
+    transactionDate: string;
+  }>;
+  nearbyAmenities?: Array<{
+    name: string;
+    category: string;
+    distanceM: number;
+    address: string;
+  }>;
+  taxCalculation?: {
+    landValueIncrementTax: number;
+    landValueIncrementTaxPreferential: number;
+    deedTax: number;
+    stampTax: number;
+    registrationFee: number;
+    scrivenerFee: number;
+    totalSellerCost: number;
+    totalBuyerCost: number;
+    warnings: string[];
+  } | null;
+  surveyData?: Record<string, boolean | null> | null;
+  exteriorPhoto?: Uint8Array | null;
+  locationMapImage?: Uint8Array | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -210,6 +289,9 @@ function LandPages({
         footer={footer}
         legalClauses={data.legalClauses ?? []}
       />
+
+      {/* 物件資料表 */}
+      <PropertyDataSheetPage propertyType="land" data={data} />
 
       {/* 頁 3 — 一、標示及權利範圍 */}
       <Page size="A4" style={PAGE_STYLE}>
@@ -397,6 +479,9 @@ function BuildingPages({
         footer={footer}
         legalClauses={data.legalClauses ?? []}
       />
+
+      {/* 物件資料表 */}
+      <PropertyDataSheetPage propertyType="building" data={data} />
 
       {/* 頁 3 — 建物標示 */}
       <Page size="A4" style={PAGE_STYLE}>
