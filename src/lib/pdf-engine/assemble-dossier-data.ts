@@ -211,8 +211,19 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     } catch {
       // 失敗維持空陣列
     }
-    // Wave 6：OSM 靜態地圖需要 sharp（Node.js native），Tauri static export 的
-    // renderer 無法執行。待後續移至 Tauri IPC Rust command 實作。目前顯示佔位。
+    try {
+      const pngBytes = await safeInvoke<number[]>("fetch_location_map", {
+        lat: geoLat,
+        lng: geoLng,
+        zoom: 16,
+        size: "500x400",
+      });
+      if (pngBytes && pngBytes.length > 0) {
+        locationMapImage = new Uint8Array(pngBytes);
+      }
+    } catch {
+      // Tauri IPC 失敗（瀏覽器 dev 模式）→ 維持 null，元件顯示佔位
+    }
   }
 
   // ── 映射 ──────────────────────────────────────────────────────────────────
