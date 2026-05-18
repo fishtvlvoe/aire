@@ -102,7 +102,7 @@ impl<P: ApiKeyProvider> CoOwnersApi<P> {
                 message: format!("invalid parcel_id format: {parcel_id}"),
             });
         };
-        let payload = serde_json::json!([{ "UNIT": unit, "SEC": sec, "NO": no }]);
+        let payload = serde_json::json!([{ "unit": unit, "sec": sec, "no": no }]);
         let response = post_json_with_key(
             &self.http_client,
             &self.base_url,
