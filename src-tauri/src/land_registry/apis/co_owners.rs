@@ -25,7 +25,7 @@ pub struct CoOwnersEndpoint;
 
 impl LandRegistryEndpoint<CoOwnersData> for CoOwnersEndpoint {
     fn endpoint_path() -> &'static str {
-        "/LandOwnership/1.0/QueryByLandNo"
+        "/LandOwnership/1.0/QueryByLimit"
     }
 
     fn parse_response(json: Value) -> Result<CoOwnersData, LandRegistryError> {
@@ -40,24 +40,29 @@ impl LandRegistryEndpoint<CoOwnersData> for CoOwnersEndpoint {
             .get("RESPONSE")
             .and_then(|r| r.as_array())
             .and_then(|arr| arr.first())
-            .and_then(|entry| entry.get("LANDOWNER"))
+            .and_then(|entry| entry.get("LANDOWNERSHIP"))
             .and_then(Value::as_array)
             .cloned()
             .unwrap_or_default();
 
         let owners = rows
             .iter()
-            .map(|row| CoOwner {
-                name: row
-                    .get("OWNERNAME")
+            .map(|row| {
+                let name = row
+                    .get("OWNER")
+                    .and_then(|o| o.get("LNAME"))
                     .and_then(Value::as_str)
                     .unwrap_or_default()
-                    .to_string(),
-                share: row
-                    .get("OWNERPERCENT")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
+                    .to_string();
+                let numerator = row.get("NUMERATOR").and_then(Value::as_str);
+                let denominator = row.get("DENOMINATOR").and_then(Value::as_str);
+                let share = match (numerator, denominator) {
+                    (Some(n), Some(d)) if !n.is_empty() && !d.is_empty() => {
+                        format!("{n}/{d}")
+                    }
+                    _ => String::new(),
+                };
+                CoOwner { name, share }
             })
             .collect();
 
@@ -102,7 +107,7 @@ impl<P: ApiKeyProvider> CoOwnersApi<P> {
                 message: format!("invalid parcel_id format: {parcel_id}"),
             });
         };
-        let payload = serde_json::json!([{ "unit": unit, "sec": sec, "no": no }]);
+        let payload = serde_json::json!([{ "unit": unit, "sec": sec, "no": no, "offset": 1, "limit": 100 }]);
         let response = post_json_with_key(
             &self.http_client,
             &self.base_url,
@@ -162,12 +167,12 @@ mod tests {
     async fn parses_multiple_co_owners() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/LandOwnership/1.0/QueryByLandNo"))
+            .and(path("/LandOwnership/1.0/QueryByLimit"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "STATUS": 1,
-                "RESPONSE": [{"LANDOWNER": [
-                    {"OWNERNAME": "王小明", "OWNERPERCENT": "1/2"},
-                    {"OWNERNAME": "王小美", "OWNERPERCENT": "1/2"}
+                "RESPONSE": [{"LANDOWNERSHIP": [
+                    {"NUMERATOR": "1", "DENOMINATOR": "2", "OWNER": {"LNAME": "王小明"}},
+                    {"NUMERATOR": "1", "DENOMINATOR": "2", "OWNER": {"LNAME": "王小美"}}
                 ]}]
             })))
             .mount(&server)

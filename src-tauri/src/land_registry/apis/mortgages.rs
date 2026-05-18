@@ -25,7 +25,7 @@ pub struct MortgagesEndpoint;
 
 impl LandRegistryEndpoint<MortgagesData> for MortgagesEndpoint {
     fn endpoint_path() -> &'static str {
-        "/LandOtherRight/1.0/QueryByLandNo"
+        "/LandOtherRight/1.0/QueryByLimit"
     }
 
     fn parse_response(json: Value) -> Result<MortgagesData, LandRegistryError> {
@@ -103,7 +103,7 @@ impl<P: ApiKeyProvider> MortgagesApi<P> {
                 message: format!("invalid parcel_id format: {parcel_id}"),
             });
         };
-        let payload = serde_json::json!([{ "unit": unit, "sec": sec, "no": no }]);
+        let payload = serde_json::json!([{ "unit": unit, "sec": sec, "no": no, "offset": 1, "limit": 100 }]);
         let response = post_json_with_key(
             &self.http_client,
             &self.base_url,
@@ -163,7 +163,7 @@ mod tests {
     async fn parses_mortgages_and_records_cost() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/LandOtherRight/1.0/QueryByLandNo"))
+            .and(path("/LandOtherRight/1.0/QueryByLimit"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "STATUS": 1,
                 "RESPONSE": [{"LANDOTHER": [{"RIGHTPERSON": "台灣銀行", "SETTING": "1000000"}]}]

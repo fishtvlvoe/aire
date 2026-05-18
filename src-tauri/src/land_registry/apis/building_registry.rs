@@ -21,7 +21,7 @@ pub struct BuildingRegistryEndpoint;
 
 impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
     fn endpoint_path() -> &'static str {
-        "/BuildingDescription/1.0/QueryByBuildingNo"
+        "/BuildingDescription/1.0/QueryByBuildNo"
     }
 
     fn parse_response(json: Value) -> Result<BuildingRegistryData, LandRegistryError> {
@@ -32,30 +32,39 @@ impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
             });
         }
 
-        let buildreg = json
+        // BLDGREG may be null when no building is found — return empty data instead of error
+        let bldgreg = json
             .get("RESPONSE")
             .and_then(|r| r.as_array())
             .and_then(|arr| arr.first())
-            .and_then(|entry| entry.get("BUILDREG"))
-            .ok_or_else(|| LandRegistryError::Internal {
-                message: "COP API missing BUILDREG".to_string(),
-            })?;
+            .and_then(|entry| entry.get("BLDGREG"));
 
-        let building_area = buildreg
-            .get("BLDGAREA")
+        let bldgreg = match bldgreg {
+            Some(v) if !v.is_null() => v,
+            _ => {
+                return Ok(BuildingRegistryData {
+                    building_area: 0.0,
+                    building_purpose: String::new(),
+                    construction_date: String::new(),
+                });
+            }
+        };
+
+        let building_area = bldgreg
+            .get("AREA")
             .and_then(Value::as_str)
             .unwrap_or("0")
             .parse::<f64>()
             .unwrap_or(0.0);
 
-        let building_purpose = buildreg
-            .get("MAINUSE")
+        let building_purpose = bldgreg
+            .get("PURPOSE")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string();
 
-        let construction_date = buildreg
-            .get("COMPLETE")
+        let construction_date = bldgreg
+            .get("COMPLETEDATE")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string();
@@ -177,10 +186,10 @@ mod tests {
     async fn parses_building_registry_and_records_cost() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/BuildingDescription/1.0/QueryByBuildingNo"))
+            .and(path("/BuildingDescription/1.0/QueryByBuildNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "STATUS": 1,
-                "RESPONSE": [{"BUILDREG": {"BLDGAREA": "52.5", "MAINUSE": "住家用", "COMPLETE": "090/09/01"}}]
+                "RESPONSE": [{"BLDGREG": {"AREA": "52.5", "PURPOSE": "住家用", "COMPLETEDATE": "090/09/01"}}]
             })))
             .mount(&server)
             .await;
