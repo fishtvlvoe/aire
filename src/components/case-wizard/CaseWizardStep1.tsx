@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CaseRow, UpdateCaseInput } from "@/lib/cases-api";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface CaseWizardStep1Props {
   draft: UpdateCaseInput;
@@ -20,6 +20,11 @@ export function CaseWizardStep1({
 }: CaseWizardStep1Props) {
   const isResidential = (draft.property_type ?? caseData.property_type) === "residential";
   const addressValue = (draft.address ?? caseData.address ?? "").trim();
+
+  const initialAskingPrice = draft.asking_price ?? caseData.asking_price;
+  const [askingPriceWan, setAskingPriceWan] = useState<string>(
+    initialAskingPrice != null ? String(initialAskingPrice / 10000) : "",
+  );
 
   // W4: useRef 儲存 callback，useEffect 只依賴 addressValue，不依賴 onValidChange
   const onValidChangeRef = useRef(onValidChange);
@@ -58,6 +63,20 @@ export function CaseWizardStep1({
           id="wizard-case-name"
           value={draft.case_name ?? caseData.case_name ?? ""}
           onChange={(event) => onChange({ ...draft, case_name: event.target.value })}
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="wizard-asking-price">售價（萬元）</Label>
+        <Input
+          id="wizard-asking-price"
+          type="number"
+          value={askingPriceWan}
+          onChange={(event) => {
+            const raw = event.target.value;
+            setAskingPriceWan(raw);
+            const val = parseFloat(raw);
+            onChange({ ...draft, asking_price: isNaN(val) ? null : Math.round(val * 10000) });
+          }}
         />
       </div>
       <div className="space-y-1.5">

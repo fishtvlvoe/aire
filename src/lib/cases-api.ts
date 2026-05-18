@@ -17,6 +17,7 @@ export interface CaseRow {
   status: "draft" | "completed" | "exported";
   created_at: number;
   updated_at: number;
+  asking_price?: number | null;
 }
 
 export interface CreateCaseInput {
@@ -29,6 +30,7 @@ export interface CreateCaseInput {
   land_registry_data?: Record<string, unknown> | null;
   current_step?: number;
   building_lot_no?: string | null;
+  asking_price?: number | null;
 }
 
 export interface UpdateCaseInput {
@@ -42,6 +44,7 @@ export interface UpdateCaseInput {
   land_registry_data?: Record<string, unknown> | null;
   current_step?: number;
   status?: "draft" | "completed" | "exported";
+  asking_price?: number | null;
 }
 
 async function invokeIpc<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {

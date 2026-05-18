@@ -108,13 +108,19 @@ const isString = (v: unknown): v is string => typeof v === "string";
 export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossierData> {
   let transactionHistory: CaseDossierData["transactionHistory"] = [];
   const isLand = caseRow.property_type === "land";
+
+  let brandText: Record<string, string> = {};
+  try {
+    brandText = (await safeInvoke<Record<string, string>>("get_brand_text_settings")) ?? {};
+  } catch { /* dev fallback */ }
+
   const base: CaseDossierData = {
     caseNo: caseRow.case_no ?? caseRow.id.slice(0, 8),
     address: caseRow.address ?? "",
     propertyType: isLand ? "land" : "building",
     landLotNo: caseRow.land_lot_no ?? "",
     ownerName: caseRow.owner_name ?? "",
-    companyName: "",
+    companyName: brandText.company_name ?? "",
     generatedAt: new Date().toLocaleDateString("zh-TW"),
   };
 
@@ -314,13 +320,13 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       cover: {
         propertyName: caseRow.address ?? "",
         caseNumber: caseRow.case_no ?? caseRow.id.slice(0, 8),
-        handlingAgent: caseRow.owner_name ?? "",
-        licensedAgentName: "",
-        licensedAgentCertNo: "",
-        brokerageCompanyName: "",
-        brokerageLicenseNo: "",
-        companyAddress: "",
-        companyPhone: "",
+        handlingAgent: brandText.agent_name ?? "",
+        licensedAgentName: brandText.realtor_name ?? "",
+        licensedAgentCertNo: brandText.agent_cert_no ?? "",
+        brokerageCompanyName: brandText.company_name ?? "",
+        brokerageLicenseNo: brandText.company_license_no ?? "",
+        companyAddress: brandText.company_address ?? "",
+        companyPhone: brandText.company_phone ?? "",
       },
       propertySheet: {
         askingPrice: 0,
@@ -400,13 +406,13 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       cover: {
         propertyName: caseRow.address ?? "",
         caseNumber: caseRow.case_no ?? caseRow.id.slice(0, 8),
-        handlingAgent: caseRow.owner_name ?? "",
-        licensedAgentName: "",
-        licensedAgentCertNo: "",
-        brokerageCompanyName: "",
-        brokerageLicenseNo: "",
-        companyAddress: "",
-        companyPhone: "",
+        handlingAgent: brandText.agent_name ?? "",
+        licensedAgentName: brandText.realtor_name ?? "",
+        licensedAgentCertNo: brandText.agent_cert_no ?? "",
+        brokerageCompanyName: brandText.company_name ?? "",
+        brokerageLicenseNo: brandText.company_license_no ?? "",
+        companyAddress: brandText.company_address ?? "",
+        companyPhone: brandText.company_phone ?? "",
       },
       propertySheet: {
         askingPrice: 0,

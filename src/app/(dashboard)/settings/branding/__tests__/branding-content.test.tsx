@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 
 vi.mock("@/lib/tauri-bridge", () => ({
   isTauriEnv: vi.fn(),
+  safeInvoke: vi.fn().mockResolvedValue({}),
 }));
 
 import BrandingContent from "../branding-content";

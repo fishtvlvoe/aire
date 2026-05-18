@@ -157,6 +157,7 @@ const SEED_CASES: CaseRow[] = [
     land_registry_data: null,
     current_step: 1,
     status: "draft",
+    asking_price: null,
     created_at: 1763200000,
     updated_at: 1763200000,
   },
@@ -203,6 +204,7 @@ const SEED_CASES: CaseRow[] = [
     },
     current_step: 1,
     status: "completed",
+    asking_price: null,
     created_at: 1763203600,
     updated_at: 1763207200,
   },
@@ -349,6 +351,7 @@ export class MockStore {
   private logs: LogEntry[] = [];
   private operationLogs: OperationLogEntry[] = [];
   private brandSettings: BrandSettings = { ...SEED_BRAND_SETTINGS };
+  private brandTextSettings: Record<string, unknown> = {};
   private logo: LogoAsset | null = null;
   private themeId = "theme-a-minimal";
   private clauses = new Map<string, ClauseData>();
@@ -386,6 +389,7 @@ export class MockStore {
     this.logs = SEED_LOGS.map((entry) => ({ ...entry }));
     this.operationLogs = [];
     this.brandSettings = { ...SEED_BRAND_SETTINGS };
+    this.brandTextSettings = {};
     this.logo = null;
     this.themeId = "theme-a-minimal";
     this.clauses = new Map(SEED_CLAUSES.map((clause) => [clause.law_id, { ...clause }]));
@@ -474,6 +478,11 @@ export class MockStore {
           return this.getBrandSettings() as T;
         case "save_brand_settings":
           return this.saveBrandSettings(args) as T;
+
+        case "get_brand_text_settings":
+          return this.getBrandTextSettings() as T;
+        case "save_brand_text_settings":
+          return this.saveBrandTextSettings(args) as T;
 
         case "upload_logo":
         case "save_logo":
@@ -793,6 +802,10 @@ export class MockStore {
         typeof input.current_step === "number" && Number.isFinite(input.current_step)
           ? Math.max(1, Math.floor(input.current_step))
           : 1,
+      asking_price:
+        typeof input.asking_price === "number" && Number.isFinite(input.asking_price)
+          ? input.asking_price
+          : null,
       status: "draft",
       created_at: now,
       updated_at: now,
@@ -837,6 +850,12 @@ export class MockStore {
           : existing.current_step ?? 1,
       status:
         (pickString(input, ["status"]) as UpdateCaseInput["status"]) ?? existing.status,
+      asking_price:
+        typeof input.asking_price === "number" && Number.isFinite(input.asking_price)
+          ? input.asking_price
+          : input.asking_price === null
+            ? null
+            : existing.asking_price ?? null,
       updated_at: unixNow(),
     };
 
@@ -977,6 +996,16 @@ export class MockStore {
     } as BrandSettings;
 
     return { success: true };
+  }
+
+  private getBrandTextSettings(): Record<string, unknown> {
+    return { ...this.brandTextSettings };
+  }
+
+  private saveBrandTextSettings(args?: CommandArgs): void {
+    const payload = toRecord(args);
+    const settings = toRecord(payload.settings ?? payload.input ?? payload);
+    this.brandTextSettings = { ...this.brandTextSettings, ...settings };
   }
 
   private uploadLogo(args?: CommandArgs): { success: true } {

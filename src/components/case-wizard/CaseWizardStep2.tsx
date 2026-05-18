@@ -71,7 +71,16 @@ export function CaseWizardStep2({ caseData }: CaseWizardStep2Props) {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="wizard-step2-building-lot-no">建號</Label>
-        <Input id="wizard-step2-building-lot-no" value={buildingLotNo} readOnly />
+        <Input
+          id="wizard-step2-building-lot-no"
+          value={buildingLotNo}
+          onChange={(e) => setBuildingLotNo(e.target.value)}
+          onBlur={() => {
+            casesApi
+              .update(caseData.id, { building_lot_no: buildingLotNo || null })
+              .catch(() => null);
+          }}
+        />
       </div>
     </div>
   );

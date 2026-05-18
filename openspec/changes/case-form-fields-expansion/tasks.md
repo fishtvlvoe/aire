@@ -25,35 +25,35 @@
 
 ## Wave 2 — TypeScript API & Frontend
 
-- [ ] [P] **Task 2.1** — Update `src/lib/cases-api.ts`
+- [x] [P] **Task 2.1** — Update `src/lib/cases-api.ts`
   Add `asking_price?: number | null` to `CaseRow`, `CreateCaseInput`, and `UpdateCaseInput` interfaces. (Note: `case_name` and `building_lot_no` already exist in the TS types; no change needed for those.)
   **Verify:** `npx tsc --noEmit` reports no new errors in files importing `cases-api.ts`.
 
-- [ ] [P] **Task 2.2** — Create `src/lib/branding-api.ts`
+- [x] [P] **Task 2.2** — Create `src/lib/branding-api.ts`
   Export interface `BrandTextSettings { agent_name?: string; agent_cert_no?: string; company_name?: string; company_license_no?: string; company_address?: string; company_phone?: string; realtor_name?: string; }`. Export `brandingApi` object with: `getBrandText(): Promise<BrandTextSettings>` calling `safeInvoke('get_brand_text_settings')`; `saveBrandText(s: BrandTextSettings): Promise<void>` calling `safeInvoke('save_brand_text_settings', { settings: s })`. In dev/browser mode, `safeInvoke` fallback returns `{}` (empty settings).
   **Verify:** File compiles (`tsc --noEmit`). Importing `brandingApi.getBrandText()` resolves to `Promise<BrandTextSettings>`.
 
-- [ ] [P] **Task 2.3** — Add 售價 field to `src/components/case-wizard/CaseWizardStep1.tsx`
+- [x] [P] **Task 2.3** — Add 售價 field to `src/components/case-wizard/CaseWizardStep1.tsx`
   Covers requirement: Step 1 includes asking price field. Implements Decision 3: asking_price unit in ui.
   Add a numeric `<Input>` labelled "售價（萬元）" below the existing 案件名稱 field. Use `react-hook-form` `register('asking_price_wan')` with `valueAsNumber`. On Step 1 save (before advancing), compute `asking_price = isNaN(value) ? null : value * 10000` and include in `UpdateCaseInput`. On Step 1 load, populate the field with `caseRow.asking_price != null ? caseRow.asking_price / 10000 : ''`.
   **Verify:** In browser dev mode, entering "3000" in the field, advancing to Step 2, then navigating back to Step 1 shows "3000" still in the field (data round-trips through mock).
 
-- [ ] [P] **Task 2.4** — Add 建號 field to `src/components/case-wizard/CaseWizardStep2.tsx`
+- [x] [P] **Task 2.4** — Add 建號 field to `src/components/case-wizard/CaseWizardStep2.tsx`
   Covers requirements: Step 2 includes building lot number field; building_lot_no exposed in wizard Step 2.
   Add a text `<Input>` labelled "建號" at the top of the Step 2 form (above or beside the existing 地號 field). Bind to `building_lot_no` via `register('building_lot_no')`. On Step 2 save, include `building_lot_no` in `UpdateCaseInput`. On Step 2 load, pre-populate from `caseRow.building_lot_no`.
   **Verify:** Entering "556-1" in 建號 and saving persists the value (visible on re-open in dev mode).
 
-- [ ] [P] **Task 2.5** — Implement brand text form in `src/app/(dashboard)/settings/branding/branding-content.tsx`
+- [x] [P] **Task 2.5** — Implement brand text form in `src/app/(dashboard)/settings/branding/branding-content.tsx`
   Covers requirement: 品牌設定 page renders brand text form.
   Add a form section below the existing logo/theme content with 7 labelled `<Input>` fields for agent_name, agent_cert_no, company_name, company_license_no, company_address, company_phone, realtor_name. Use `react-hook-form`. On mount, call `brandingApi.getBrandText()` and populate form with returned values. Add a 儲存品牌資訊 `<Button>` that calls `brandingApi.saveBrandText(formValues)` and shows a success `toast`.
   **Verify:** In browser dev mode, page renders 7 inputs without console errors. Submitting form calls `safeInvoke('save_brand_text_settings')` (visible in network or mock log).
 
-- [ ] [P] **Task 2.6** — Update `src/lib/pdf-engine/assemble-dossier-data.ts` to populate cover
+- [x] [P] **Task 2.6** — Update `src/lib/pdf-engine/assemble-dossier-data.ts` to populate cover
   Covers requirement: assembleDossierData populates cover from brand settings. Implements Decision 5: assembledossierdata cover fill.
   At the top of `assembleDossierData()`, add: `let brandText: BrandTextSettings = {}; try { brandText = await safeInvoke('get_brand_text_settings'); } catch { /* dev fallback */ }`. Then construct `cover` object: `{ propertyName: caseRow.address, caseNumber: caseRow.case_no ?? caseRow.id.slice(0, 8), handlingAgent: brandText.agent_name ?? '', licensedAgentName: brandText.realtor_name ?? '', licensedAgentCertNo: brandText.agent_cert_no ?? '', brokerageCompanyName: brandText.company_name ?? '', brokerageLicenseNo: brandText.company_license_no ?? '', companyAddress: brandText.company_address ?? '', companyPhone: brandText.company_phone ?? '' }`. Remove any previous hardcoded empty-string `cover` construction.
   **Verify:** In browser dev mode, opening Step 4 PDF preview for a case whose mock brand returns `{ company_name: "大安不動產" }` shows "大安不動產" in the cover page brokerage name field.
 
-- [ ] **Task 2.7** — Update `src/lib/mock-backend.ts` with new fields
+- [x] **Task 2.7** — Update `src/lib/mock-backend.ts` with new fields
   Implements Decision 6: mock backend additions.
   (a) Add `asking_price: null` to each mock case row. (b) In `create_case` mock handler, read `asking_price` from input with `pickNumber`. (c) In `update_case` mock handler, handle `asking_price` update. (d) Add `get_brand_text_settings` mock command returning `{}`. (e) Add `save_brand_text_settings` mock command that stores settings in a module-level variable and `get_brand_text_settings` returns it.
   **Verify:** Dev mode: calling `mockInvoke('get_brand_text_settings')` returns `{}`. After `mockInvoke('save_brand_text_settings', { settings: { company_name: 'Test' } })`, calling `get_brand_text_settings` returns `{ company_name: 'Test' }`.
