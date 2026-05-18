@@ -30,6 +30,9 @@ fn sample_case() -> Case {
         status: "draft".into(),
         created_at: 1_700_000_000,
         updated_at: 1_700_000_000,
+        case_name: None,
+        building_lot_no: None,
+        asking_price: None,
     }
 }
 

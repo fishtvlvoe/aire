@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: disclosure cover page renders brand text fields
 The disclosure cover page (`CoverPage` component) SHALL render the following fields using values from `CaseDossierData.cover`: `brokerageCompanyName` (公司名稱), `brokerageLicenseNo` (牌照號), `companyAddress` (公司地址), `companyPhone` (公司電話), `handlingAgent` (業務員姓名), `licensedAgentName` (不動產經紀人), `licensedAgentCertNo` (業務員證號). When a field value is empty string, the field SHALL render as a blank printable line.

@@ -1,25 +1,25 @@
 ## Wave 1 — Database & Rust Backend
 
-- [ ] **Task 1.1** — Create `src-tauri/migrations/006_case_fields.sql`
+- [x] **Task 1.1** — Create `src-tauri/migrations/006_case_fields.sql`
   Implements Decision 1: migration strategy for cases fields and Decision 2: branding table extension.
   Add `ALTER TABLE cases ADD COLUMN case_name TEXT;`, `ALTER TABLE cases ADD COLUMN building_lot_no TEXT;`, `ALTER TABLE cases ADD COLUMN asking_price INTEGER;`. Add `ALTER TABLE branding ADD COLUMN agent_name TEXT;`, `ALTER TABLE branding ADD COLUMN agent_cert_no TEXT;`, `ALTER TABLE branding ADD COLUMN company_name TEXT;`, `ALTER TABLE branding ADD COLUMN company_license_no TEXT;`, `ALTER TABLE branding ADD COLUMN company_address TEXT;`, `ALTER TABLE branding ADD COLUMN company_phone TEXT;`, `ALTER TABLE branding ADD COLUMN realtor_name TEXT;`. Wrap all ALTER statements in `ALTER TABLE … ADD COLUMN IF NOT EXISTS` or use `BEGIN … END` guard to be idempotent.
   **Verify:** File exists. Running SQLite `.schema cases` and `.schema branding` after applying shows the new columns.
 
-- [ ] **Task 1.2** — Update `src-tauri/src/db/cases.rs`
+- [x] **Task 1.2** — Update `src-tauri/src/db/cases.rs`
   Covers requirement: asking_price persisted in cases table.
   (a) Add 3 fields to `Case` struct: `pub case_name: Option<String>`, `pub building_lot_no: Option<String>`, `pub asking_price: Option<i64>`. (b) Update `insert_case` SQL to include the 3 new columns with `?` params. (c) Update `get_case` and `list_cases` `SELECT` to include new columns and map them in the row closure. (d) Update `update_case` SQL `SET` clause to include new columns.
   **Verify:** `cargo check` compiles with no errors on `db/cases.rs`.
 
-- [ ] **Task 1.3** — Update `src-tauri/src/commands/cases.rs`
+- [x] **Task 1.3** — Update `src-tauri/src/commands/cases.rs`
   (a) Add `asking_price: Option<i64>`, `case_name: Option<String>`, `building_lot_no: Option<String>` to the `CreateCaseInput` serde struct. (b) Add the same 3 fields to `UpdateCaseInput`. (c) In `create_case` handler, map `input.asking_price`, `input.case_name`, `input.building_lot_no` into the `Case` struct before `db::cases::insert_case`. (d) In `update_case` handler, update the fields from `UpdateCaseInput` into the existing `Case` before `db::cases::update_case`.
   **Verify:** `cargo check` compiles. Mock `create_case` call with `{ asking_price: 25000000, case_name: "test", building_lot_no: "123-4" }` returns a `Case` with those values set.
 
-- [ ] **Task 1.4** — Extend `src-tauri/src/branding/mod.rs` with brand text settings
+- [x] **Task 1.4** — Extend `src-tauri/src/branding/mod.rs` with brand text settings
   Covers requirement: Brand text fields stored and retrievable. Implements Decision 4: brand settings ipc.
   (a) Define struct `BrandTextSettings` with 7 `Option<String>` fields: `agent_name`, `agent_cert_no`, `company_name`, `company_license_no`, `company_address`, `company_phone`, `realtor_name`. Derive `serde::Serialize`, `serde::Deserialize`, `Default`. (b) Implement `pub fn get_brand_text_settings(conn: &Connection) -> Result<BrandTextSettings, DbError>` — SELECT the 7 columns from `branding WHERE id=1`; if no row, return `BrandTextSettings::default()`. (c) Implement `pub fn save_brand_text_settings(conn: &Connection, s: &BrandTextSettings) -> Result<(), DbError>` — UPDATE branding SET the 7 columns WHERE id=1. (d) Add `ensure_brand_row(conn)` call at module init or in `get_brand_text_settings` to guarantee the singleton row exists. (e) Expose two `#[tauri::command]` functions `get_brand_text_settings` and `save_brand_text_settings` in the module.
   **Verify:** `cargo check` compiles. Unit test: save `{ company_name: "大安" }`, get returns `{ company_name: Some("大安") }`.
 
-- [ ] **Task 1.5** — Register new IPC commands in `src-tauri/src/lib.rs`
+- [x] **Task 1.5** — Register new IPC commands in `src-tauri/src/lib.rs`
   Add `commands::branding::get_brand_text_settings` and `commands::branding::save_brand_text_settings` (or the equivalent module path) to the `tauri::generate_handler![]` macro invocation.
   **Verify:** `cargo build` succeeds with no `unresolved` errors.
 

@@ -74,6 +74,9 @@ mod tests {
             status: "draft".into(),
             created_at: 1,
             updated_at: 1,
+            case_name: None,
+            building_lot_no: None,
+            asking_price: None,
         };
         insert_case(conn, &c).unwrap();
     }

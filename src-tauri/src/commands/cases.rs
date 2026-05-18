@@ -32,6 +32,9 @@ pub struct CreateCaseInput {
     pub address: String,
     pub owner_name: Option<String>,
     pub case_no: Option<String>,
+    pub case_name: Option<String>,
+    pub building_lot_no: Option<String>,
+    pub asking_price: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -42,6 +45,9 @@ pub struct UpdateCaseInput {
     pub address: String,
     pub owner_name: Option<String>,
     pub status: Option<String>,
+    pub case_name: Option<String>,
+    pub building_lot_no: Option<String>,
+    pub asking_price: Option<i64>,
 }
 
 fn now_secs() -> i64 {
@@ -94,6 +100,9 @@ pub async fn create_case(
         status: "draft".into(),
         created_at: now,
         updated_at: now,
+        case_name: input.case_name,
+        building_lot_no: input.building_lot_no,
+        asking_price: input.asking_price,
     };
 
     let conn = lock(&db)?;
@@ -137,6 +146,9 @@ pub async fn update_case(
     existing.land_lot_no = input.land_lot_no;
     existing.address = input.address;
     existing.owner_name = input.owner_name;
+    existing.case_name = input.case_name;
+    existing.building_lot_no = input.building_lot_no;
+    existing.asking_price = input.asking_price;
     existing.updated_at = now_secs();
 
     cases::update_case(&conn, &existing).map_err(|e| IpcError::new(&e.code, e.message))?;
@@ -194,6 +206,9 @@ mod tests {
             status: "draft".into(),
             created_at: 1,
             updated_at: 1,
+            case_name: None,
+            building_lot_no: None,
+            asking_price: None,
         }
     }
 

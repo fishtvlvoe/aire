@@ -20,6 +20,9 @@ pub struct Case {
     pub status: String, // 'draft' | 'completed' | 'exported'
     pub created_at: i64,
     pub updated_at: i64,
+    pub case_name: Option<String>,
+    pub building_lot_no: Option<String>,
+    pub asking_price: Option<i64>,
 }
 
 fn map_row(row: &Row<'_>) -> rusqlite::Result<Case> {
@@ -33,16 +36,20 @@ fn map_row(row: &Row<'_>) -> rusqlite::Result<Case> {
         status: row.get(6)?,
         created_at: row.get(7)?,
         updated_at: row.get(8)?,
+        case_name: row.get(9)?,
+        building_lot_no: row.get(10)?,
+        asking_price: row.get(11)?,
     })
 }
 
 const COLS: &str =
-    "id, case_no, property_type, land_lot_no, address, owner_name, status, created_at, updated_at";
+    "id, case_no, property_type, land_lot_no, address, owner_name, status, created_at, updated_at, \
+     case_name, building_lot_no, asking_price";
 
 /// 插入新案件。
 pub fn insert_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
     conn.execute(
-        &format!("INSERT INTO cases ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"),
+        &format!("INSERT INTO cases ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)"),
         params![
             c.id,
             c.case_no,
@@ -53,6 +60,9 @@ pub fn insert_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
             c.status,
             c.created_at,
             c.updated_at,
+            c.case_name,
+            c.building_lot_no,
+            c.asking_price,
         ],
     )?;
     Ok(())
@@ -88,7 +98,8 @@ pub fn list_cases(conn: &Connection) -> Result<Vec<Case>, DbError> {
 pub fn update_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
     let n = conn.execute(
         "UPDATE cases SET case_no=?1, property_type=?2, land_lot_no=?3, address=?4, \
-         owner_name=?5, status=?6, updated_at=?7 WHERE id=?8",
+         owner_name=?5, status=?6, updated_at=?7, case_name=?8, building_lot_no=?9, \
+         asking_price=?10 WHERE id=?11",
         params![
             c.case_no,
             c.property_type,
@@ -97,6 +108,9 @@ pub fn update_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
             c.owner_name,
             c.status,
             c.updated_at,
+            c.case_name,
+            c.building_lot_no,
+            c.asking_price,
             c.id,
         ],
     )?;
@@ -131,6 +145,9 @@ mod tests {
             status: "draft".into(),
             created_at: ts,
             updated_at: ts,
+            case_name: None,
+            building_lot_no: None,
+            asking_price: None,
         }
     }
 
@@ -175,5 +192,29 @@ mod tests {
         let conn = open_in_memory();
         let err = get_case(&conn, "no-such-id").unwrap_err();
         assert_eq!(err.code, "not_found");
+    }
+
+    #[test]
+    fn new_fields_round_trip() {
+        let conn = open_in_memory();
+        let mut c = sample("33333333-3333-3333-3333-333333333333", 1700_000_000);
+        c.case_name = Some("台北信義案".into());
+        c.building_lot_no = Some("556-1".into());
+        c.asking_price = Some(25_000_000);
+        insert_case(&conn, &c).unwrap();
+
+        let got = get_case(&conn, &c.id).unwrap();
+        assert_eq!(got.case_name.as_deref(), Some("台北信義案"));
+        assert_eq!(got.building_lot_no.as_deref(), Some("556-1"));
+        assert_eq!(got.asking_price, Some(25_000_000));
+
+        // 更新後仍可取回
+        let mut updated = got.clone();
+        updated.asking_price = Some(30_000_000);
+        updated.updated_at = 1700_000_100;
+        update_case(&conn, &updated).unwrap();
+        let got2 = get_case(&conn, &c.id).unwrap();
+        assert_eq!(got2.asking_price, Some(30_000_000));
+        assert_eq!(got2.case_name.as_deref(), Some("台北信義案"));
     }
 }

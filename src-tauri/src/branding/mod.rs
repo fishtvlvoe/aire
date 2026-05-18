@@ -163,8 +163,160 @@ pub async fn get_theme(db: State<'_, DbState>) -> Result<String, BrandingError> 
     }
 }
 
+/// 品牌文字設定（業務員與公司資訊）
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct BrandTextSettings {
+    pub agent_name: Option<String>,
+    pub agent_cert_no: Option<String>,
+    pub company_name: Option<String>,
+    pub company_license_no: Option<String>,
+    pub company_address: Option<String>,
+    pub company_phone: Option<String>,
+    pub realtor_name: Option<String>,
+}
+
+fn ensure_brand_text_columns(conn: &Connection) -> Result<(), BrandingError> {
+    // ADD COLUMN 失敗即欄位已存在，忽略即可
+    let cols = [
+        "agent_name", "agent_cert_no", "company_name", "company_license_no",
+        "company_address", "company_phone", "realtor_name",
+    ];
+    for col in cols {
+        let _ = conn.execute(&format!("ALTER TABLE branding ADD COLUMN {col} TEXT"), []);
+    }
+    Ok(())
+}
+
+fn ensure_brand_row(conn: &Connection) -> Result<(), BrandingError> {
+    ensure_schema(conn)?;
+    ensure_brand_text_columns(conn)
+}
+
+#[tauri::command]
+pub async fn get_brand_text_settings(
+    db: State<'_, DbState>,
+) -> Result<BrandTextSettings, BrandingError> {
+    let conn = lock(&db)?;
+    ensure_brand_row(&conn)?;
+
+    let r = conn.query_row(
+        "SELECT agent_name, agent_cert_no, company_name, company_license_no, \
+         company_address, company_phone, realtor_name FROM branding WHERE id=1",
+        [],
+        |row| {
+            Ok(BrandTextSettings {
+                agent_name: row.get(0)?,
+                agent_cert_no: row.get(1)?,
+                company_name: row.get(2)?,
+                company_license_no: row.get(3)?,
+                company_address: row.get(4)?,
+                company_phone: row.get(5)?,
+                realtor_name: row.get(6)?,
+            })
+        },
+    );
+
+    match r {
+        Ok(s) => Ok(s),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(BrandTextSettings::default()),
+        Err(e) => Err(BrandingError::db(e.to_string())),
+    }
+}
+
+#[tauri::command]
+pub async fn save_brand_text_settings(
+    settings: BrandTextSettings,
+    db: State<'_, DbState>,
+) -> Result<(), BrandingError> {
+    let conn = lock(&db)?;
+    ensure_brand_row(&conn)?;
+
+    conn.execute(
+        "UPDATE branding SET agent_name=?1, agent_cert_no=?2, company_name=?3, \
+         company_license_no=?4, company_address=?5, company_phone=?6, realtor_name=?7 \
+         WHERE id=1",
+        params![
+            settings.agent_name,
+            settings.agent_cert_no,
+            settings.company_name,
+            settings.company_license_no,
+            settings.company_address,
+            settings.company_phone,
+            settings.realtor_name,
+        ],
+    )
+    .map_err(|e| BrandingError::db(e.to_string()))?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 pub mod tests {
+    use rusqlite::Connection;
+    use crate::db::tests::open_in_memory;
+    use super::{BrandTextSettings, ensure_brand_row};
+
+    fn conn() -> Connection {
+        let c = open_in_memory();
+        ensure_brand_row(&c).unwrap();
+        c
+    }
+
+    #[test]
+    fn brand_text_default_returns_all_none() {
+        let c = conn();
+        let r = c.query_row(
+            "SELECT agent_name, company_name FROM branding WHERE id=1",
+            [],
+            |row| Ok((row.get::<_, Option<String>>(0)?, row.get::<_, Option<String>>(1)?)),
+        ).unwrap();
+        assert!(r.0.is_none());
+        assert!(r.1.is_none());
+    }
+
+    #[test]
+    fn save_and_retrieve_brand_text() {
+        let c = conn();
+        let settings = BrandTextSettings {
+            company_name: Some("大安不動產".into()),
+            agent_name: Some("王小明".into()),
+            ..Default::default()
+        };
+        c.execute(
+            "UPDATE branding SET agent_name=?1, agent_cert_no=?2, company_name=?3, \
+             company_license_no=?4, company_address=?5, company_phone=?6, realtor_name=?7 \
+             WHERE id=1",
+            rusqlite::params![
+                settings.agent_name,
+                settings.agent_cert_no,
+                settings.company_name,
+                settings.company_license_no,
+                settings.company_address,
+                settings.company_phone,
+                settings.realtor_name,
+            ],
+        ).unwrap();
+
+        let got: BrandTextSettings = c.query_row(
+            "SELECT agent_name, agent_cert_no, company_name, company_license_no, \
+             company_address, company_phone, realtor_name FROM branding WHERE id=1",
+            [],
+            |row| Ok(BrandTextSettings {
+                agent_name: row.get(0)?,
+                agent_cert_no: row.get(1)?,
+                company_name: row.get(2)?,
+                company_license_no: row.get(3)?,
+                company_address: row.get(4)?,
+                company_phone: row.get(5)?,
+                realtor_name: row.get(6)?,
+            }),
+        ).unwrap();
+
+        assert_eq!(got.company_name.as_deref(), Some("大安不動產"));
+        assert_eq!(got.agent_name.as_deref(), Some("王小明"));
+        assert!(got.agent_cert_no.is_none());
+    }
+
     // 讓 include! 進來的測試可以透過 `super::logo` / `super::theme` 解析到實作。
     pub mod logo {
         pub use super::super::logo::*;

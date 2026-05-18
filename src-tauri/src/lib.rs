@@ -254,6 +254,8 @@ pub fn run() {
             branding::delete_logo,
             branding::set_theme,
             branding::get_theme,
+            branding::get_brand_text_settings,
+            branding::save_brand_text_settings,
             // Stage 1-4 IPC commands（#1d legal-clauses-autofill）
             get_legal_clause,
             list_legal_clauses,
