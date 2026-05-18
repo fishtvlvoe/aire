@@ -16,7 +16,7 @@
 
 ## Wave 4：修正 land_registry client
 
-- [ ] 4.1 在 `src-tauri/src/land_registry/client/mod.rs`：(a) 新增 `pub fn city_code_from_address(address: &str) -> &'static str`，以前綴 match 回傳縣市代碼（台北市→"A"、台中市→"B"、台南市→"D"、高雄市→"E"、新北市→"F"、桃園市→"H"），未匹配時 `log::warn!` 並回傳 `"A"`；(b) 在 `get_token()` 上方加 `// DEPRECATED: COP API uses Basic Auth only. This function is unused.` 並將函式體改為 `Ok(String::new())`。執行 `cargo test land_registry::client` 確認 Wave 2 的 3 個測試轉綠燈。[Tool: Copilot CLI]
+- [x] 4.1 在 `src-tauri/src/land_registry/client/mod.rs`：(a) 新增 `pub fn city_code_from_address(address: &str) -> &'static str`，以前綴 match 回傳縣市代碼（台北市→"A"、台中市→"B"、台南市→"D"、高雄市→"E"、新北市→"F"、桃園市→"H"），未匹配時 `log::warn!` 並回傳 `"A"`；(b) 在 `get_token()` 上方加 `// DEPRECATED: COP API uses Basic Auth only. This function is unused.` 並將函式體改為 `Ok(String::new())`。執行 `cargo test land_registry::client` 確認 Wave 2 的 3 個測試轉綠燈。[Tool: Copilot CLI]
 
 ## Wave 5：修正 COP API endpoint 路徑與 request body
 
