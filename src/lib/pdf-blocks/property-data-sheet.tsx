@@ -10,7 +10,7 @@ const PAGE_STYLE = {
   fontSize: 10,
 } as const;
 
-const BLANK = "________________";
+const BLANK = "";
 
 function val(v: string | number | boolean | undefined | null, formatter?: (v: string | number | boolean) => string): string {
   if (v === undefined || v === null || v === "") return BLANK;

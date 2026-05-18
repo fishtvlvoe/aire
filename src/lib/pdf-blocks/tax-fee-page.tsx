@@ -96,12 +96,12 @@ const styles = StyleSheet.create({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function fmtNTD(val: number | null | undefined): string {
-  if (val == null || val === 0) return "________________";
+  if (val == null || val === 0) return "";
   return `NT$ ${val.toLocaleString("zh-TW")}`;
 }
 
 function fmtOrBlank(val: number | null | undefined): string {
-  if (val == null) return "________________";
+  if (val == null) return "";
   return val.toLocaleString("zh-TW");
 }
 
@@ -134,13 +134,13 @@ export function LandValueTaxPage({ taxCalculation, propertyType }: TaxFeePagePro
         <View style={styles.row}>
           <Text style={styles.cellLabel}>一般稅率（累進 20%／30%／40%）</Text>
           <Text style={styles.cellValue}>
-            {tc ? fmtNTD(tc.landValueIncrementTax) : "________________"}
+            {tc ? fmtNTD(tc.landValueIncrementTax) : ""}
           </Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.cellLabel}>優惠稅率（自用住宅 10%）</Text>
           <Text style={styles.cellValue}>
-            {tc ? fmtNTD(tc.landValueIncrementTaxPreferential) : "________________"}
+            {tc ? fmtNTD(tc.landValueIncrementTaxPreferential) : ""}
           </Text>
         </View>
       </View>
@@ -158,7 +158,7 @@ export function LandValueTaxPage({ taxCalculation, propertyType }: TaxFeePagePro
         </View>
         <View style={styles.row}>
           <Text style={styles.cellLabel}>適用級距</Text>
-          <Text style={styles.cellValue}>{tc ? "依漲幅比例計算" : "________________"}</Text>
+          <Text style={styles.cellValue}>{tc ? "依漲幅比例計算" : ""}</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.cellLabel}>土地交易類型</Text>
@@ -208,19 +208,19 @@ export function TaxFeeOverviewPage({ taxCalculation, propertyType }: TaxFeePageP
         <View style={styles.row}>
           <Text style={styles.cellLabel}>土地增值稅（一般稅率）</Text>
           <Text style={styles.cellValue}>
-            {tc ? fmtNTD(tc.landValueIncrementTax) : "________________"}
+            {tc ? fmtNTD(tc.landValueIncrementTax) : ""}
           </Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.cellLabel}>印花稅（成交價 × 0.1%）</Text>
           <Text style={styles.cellValue}>
-            {tc ? fmtNTD(tc.stampTax) : "________________"}
+            {tc ? fmtNTD(tc.stampTax) : ""}
           </Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.cellBold}>賣方小計</Text>
           <Text style={styles.cellValueBold}>
-            {tc ? fmtNTD(tc.totalSellerCost) : "________________"}
+            {tc ? fmtNTD(tc.totalSellerCost) : ""}
           </Text>
         </View>
       </View>
@@ -236,32 +236,32 @@ export function TaxFeeOverviewPage({ taxCalculation, propertyType }: TaxFeePageP
           <View style={styles.row}>
             <Text style={styles.cellLabel}>契稅（成交價 × 6%）</Text>
             <Text style={styles.cellValue}>
-              {tc ? fmtNTD(tc.deedTax) : "________________"}
+              {tc ? fmtNTD(tc.deedTax) : ""}
             </Text>
           </View>
         )}
         <View style={styles.row}>
           <Text style={styles.cellLabel}>印花稅（成交價 × 0.1%）</Text>
           <Text style={styles.cellValue}>
-            {tc ? fmtNTD(tc.stampTax) : "________________"}
+            {tc ? fmtNTD(tc.stampTax) : ""}
           </Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.cellLabel}>登記規費（成交價 × 0.1%）</Text>
           <Text style={styles.cellValue}>
-            {tc ? fmtNTD(tc.registrationFee) : "________________"}
+            {tc ? fmtNTD(tc.registrationFee) : ""}
           </Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.cellLabel}>代書費（固定）</Text>
           <Text style={styles.cellValue}>
-            {tc ? fmtNTD(tc.scrivenerFee) : "________________"}
+            {tc ? fmtNTD(tc.scrivenerFee) : ""}
           </Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.cellBold}>買方小計</Text>
           <Text style={styles.cellValueBold}>
-            {tc ? fmtNTD(tc.totalBuyerCost) : "________________"}
+            {tc ? fmtNTD(tc.totalBuyerCost) : ""}
           </Text>
         </View>
       </View>

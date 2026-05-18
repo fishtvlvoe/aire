@@ -4,7 +4,7 @@ import type { HtmlThemeTokens } from "../html-themes";
 import { HtmlFieldTable, HtmlSection } from "../html-components";
 
 // 空白佔位符，與 PDF 版本一致
-const BLANK = "________________";
+const BLANK = "";
 
 /** 將值格式化為字串，無值時回傳佔位符 */
 function val(

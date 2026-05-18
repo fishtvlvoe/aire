@@ -7,12 +7,12 @@ import type { CaseDossierData } from "@/lib/pdf-engine/document";
 // ─────────────────────────────────────────────────────────────────────────────
 
 function fmtNTD(val: number | null | undefined): string {
-  if (val == null || val === 0) return "________________";
+  if (val == null || val === 0) return "";
   return `NT$ ${val.toLocaleString("zh-TW")}`;
 }
 
 function fmtOrBlank(val: number | null | undefined): string {
-  if (val == null) return "________________";
+  if (val == null) return "";
   return val.toLocaleString("zh-TW");
 }
 
@@ -165,13 +165,13 @@ export function HtmlTaxFee({ tokens, taxCalculation, propertyType }: HtmlTaxFeeP
             <tr>
               <td style={s.cellLabel}>一般稅率（累進 20%／30%／40%）</td>
               <td style={s.cellValue}>
-                {tc ? fmtNTD(tc.landValueIncrementTax) : "________________"}
+                {tc ? fmtNTD(tc.landValueIncrementTax) : ""}
               </td>
             </tr>
             <tr>
               <td style={s.cellLabel}>優惠稅率（自用住宅 10%）</td>
               <td style={s.cellValue}>
-                {tc ? fmtNTD(tc.landValueIncrementTaxPreferential) : "________________"}
+                {tc ? fmtNTD(tc.landValueIncrementTaxPreferential) : ""}
               </td>
             </tr>
           </tbody>
@@ -192,7 +192,7 @@ export function HtmlTaxFee({ tokens, taxCalculation, propertyType }: HtmlTaxFeeP
             <tr>
               <td style={s.cellLabel}>適用級距</td>
               <td style={s.cellValue}>
-                {tc ? "依漲幅比例計算" : "________________"}
+                {tc ? "依漲幅比例計算" : ""}
               </td>
             </tr>
             <tr>
@@ -234,19 +234,19 @@ export function HtmlTaxFee({ tokens, taxCalculation, propertyType }: HtmlTaxFeeP
             <tr>
               <td style={s.cellLabel}>土地增值稅（一般稅率）</td>
               <td style={s.cellValue}>
-                {tc ? fmtNTD(tc.landValueIncrementTax) : "________________"}
+                {tc ? fmtNTD(tc.landValueIncrementTax) : ""}
               </td>
             </tr>
             <tr>
               <td style={s.cellLabel}>印花稅（成交價 × 0.1%）</td>
               <td style={s.cellValue}>
-                {tc ? fmtNTD(tc.stampTax) : "________________"}
+                {tc ? fmtNTD(tc.stampTax) : ""}
               </td>
             </tr>
             <tr>
               <td style={s.cellBold}>賣方小計</td>
               <td style={s.cellValueBold}>
-                {tc ? fmtNTD(tc.totalSellerCost) : "________________"}
+                {tc ? fmtNTD(tc.totalSellerCost) : ""}
               </td>
             </tr>
           </tbody>
@@ -264,32 +264,32 @@ export function HtmlTaxFee({ tokens, taxCalculation, propertyType }: HtmlTaxFeeP
               <tr>
                 <td style={s.cellLabel}>契稅（成交價 × 6%）</td>
                 <td style={s.cellValue}>
-                  {tc ? fmtNTD(tc.deedTax) : "________________"}
+                  {tc ? fmtNTD(tc.deedTax) : ""}
                 </td>
               </tr>
             )}
             <tr>
               <td style={s.cellLabel}>印花稅（成交價 × 0.1%）</td>
               <td style={s.cellValue}>
-                {tc ? fmtNTD(tc.stampTax) : "________________"}
+                {tc ? fmtNTD(tc.stampTax) : ""}
               </td>
             </tr>
             <tr>
               <td style={s.cellLabel}>登記規費（成交價 × 0.1%）</td>
               <td style={s.cellValue}>
-                {tc ? fmtNTD(tc.registrationFee) : "________________"}
+                {tc ? fmtNTD(tc.registrationFee) : ""}
               </td>
             </tr>
             <tr>
               <td style={s.cellLabel}>代書費（固定）</td>
               <td style={s.cellValue}>
-                {tc ? fmtNTD(tc.scrivenerFee) : "________________"}
+                {tc ? fmtNTD(tc.scrivenerFee) : ""}
               </td>
             </tr>
             <tr>
               <td style={s.cellBold}>買方小計</td>
               <td style={s.cellValueBold}>
-                {tc ? fmtNTD(tc.totalBuyerCost) : "________________"}
+                {tc ? fmtNTD(tc.totalBuyerCost) : ""}
               </td>
             </tr>
           </tbody>
