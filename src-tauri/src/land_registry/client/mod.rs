@@ -304,4 +304,8 @@ fn make_test_jwt_no_padding_impl(exp: i64) -> Result<String, LandRegistryError> 
     Ok(format!("{}.{}.sig", h, p))
 }
 
+pub fn city_code_from_address(_address: &str) -> &'static str {
+    todo!("implement city code routing")
+}
+
 pub mod tests;

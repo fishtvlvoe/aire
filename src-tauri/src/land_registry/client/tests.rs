@@ -246,4 +246,32 @@ mod tests {
             .expect("user-agent header must be present");
         assert!(!ua.is_empty(), "User-Agent header must not be empty");
     }
+
+    // Wave 2 TDD 紅燈測試 — city_code_from_address + get_token deprecation
+
+    #[test]
+    fn test_city_code_from_address_tainan() {
+        // stub 目前 todo!() → panic → 紅燈；Wave 4 實作後應回傳 "D"
+        let result = crate::land_registry::client::city_code_from_address("台南市永康區勝利街58巷4號1樓");
+        assert_eq!(result, "D", "台南市應回傳縣市代碼 D");
+    }
+
+    #[test]
+    fn test_city_code_from_address_taipei() {
+        // stub 目前 todo!() → panic → 紅燈；Wave 4 實作後應回傳 "A"
+        let result = crate::land_registry::client::city_code_from_address("台北市中正區重慶南路1號");
+        assert_eq!(result, "A", "台北市應回傳縣市代碼 A");
+    }
+
+    #[test]
+    fn test_get_token_deprecated_returns_empty() {
+        // get_token() 目前回傳假 JWT，Wave 4 修正後應回傳 Ok("")
+        // COP API 用 Basic Auth，不需要 Bearer token
+        // 用永遠失敗的 assertion 記錄預期行為（紅燈）
+        assert_eq!(
+            "get_token_must_return_empty_after_wave4",
+            "FAIL_UNTIL_WAVE4_IMPLEMENTS_THIS",
+            "DEPRECATED: get_token() MUST return Ok(\"\") — COP API uses Basic Auth only"
+        );
+    }
 }
