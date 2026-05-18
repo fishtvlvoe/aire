@@ -25,7 +25,7 @@ pub struct MortgagesEndpoint;
 
 impl LandRegistryEndpoint<MortgagesData> for MortgagesEndpoint {
     fn endpoint_path() -> &'static str {
-        "/LandOtherRight/1.0/QueryByLimit"
+        "/LandOtherRights/1.0/QueryByLimit"
     }
 
     fn parse_response(json: Value) -> Result<MortgagesData, LandRegistryError> {
@@ -162,7 +162,7 @@ mod tests {
     async fn parses_mortgages_and_records_cost() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/LandOtherRight/1.0/QueryByLimit"))
+            .and(path("/LandOtherRights/1.0/QueryByLimit"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "STATUS": 1,
                 "RESPONSE": [{"LANDOTHERIGHTS": [{"RIGHTPERSON": "台灣銀行", "SETTING": "1000000"}]}]
@@ -193,7 +193,7 @@ mod tests {
         // COP returns STATUS=0 when parcel has no other rights records
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/LandOtherRight/1.0/QueryByLimit"))
+            .and(path("/LandOtherRights/1.0/QueryByLimit"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "STATUS": 0,
                 "MESSAGE": "取得服務資訊失敗"

@@ -67,7 +67,7 @@ LIMIT_PAYLOAD="[{\"unit\": \"$UNIT\", \"sec\": \"$SEC\", \"no\": \"$NO\", \"offs
 
 run_api "001 LandDescription (土地描述)" "/LandDescription/1.0/QueryByLandNo" "$LAND_PAYLOAD"
 run_api "002 LandOwnership (土地所有權)" "/LandOwnership/1.0/QueryByLimit" "$LIMIT_PAYLOAD"
-run_api "003 LandOtherRight (他項權利，空=正常)" "/LandOtherRight/1.0/QueryByLimit" "$LIMIT_PAYLOAD"
+run_api "003 LandOtherRights (他項權利，空=正常)" "/LandOtherRights/1.0/QueryByLimit" "$LIMIT_PAYLOAD"
 run_api "004 BuildingDescription (建物描述)" "/BuildingDescription/1.0/QueryByBuildNo" "$LAND_PAYLOAD"
 run_api "005 BuildingOwnership (建物所有權)" "/BuildingOwnership/1.0/QueryByLimit" "$LIMIT_PAYLOAD"
 

@@ -10,6 +10,16 @@ use std::sync::Arc;
 
 const API_ID: &str = "address_to_parcel";
 
+fn strip_city_prefix(address: &str) -> &str {
+    for prefix in &["台北市", "台中市", "台南市", "高雄市", "新北市", "桃園市",
+                    "臺北市", "臺中市", "臺南市"] {
+        if let Some(stripped) = address.strip_prefix(prefix) {
+            return stripped;
+        }
+    }
+    address
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParcelInfo {
     pub parcel_id: String,
@@ -123,7 +133,9 @@ impl<P: ApiKeyProvider> AddressToParcelApi<P> {
         }
 
         let city_code = crate::land_registry::client::city_code_from_address(&normalized);
-        let payload = serde_json::json!([{"CITY": city_code, "ADDRESS": normalized}]);
+        // COP API: ADDRESS 不含縣市名稱，只含區以下地址
+        let address_without_city = strip_city_prefix(&normalized);
+        let payload = serde_json::json!([{"CITY": city_code, "ADDRESS": address_without_city}]);
         let (_, json) = post_json_with_key(
             &self.http_client,
             &self.base_url,
