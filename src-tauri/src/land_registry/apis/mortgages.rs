@@ -30,17 +30,16 @@ impl LandRegistryEndpoint<MortgagesData> for MortgagesEndpoint {
 
     fn parse_response(json: Value) -> Result<MortgagesData, LandRegistryError> {
         let status = json.get("STATUS").and_then(|s| s.as_u64());
+        // STATUS=0 means no records for this parcel — return empty list (not an error)
         if status != Some(1) {
-            return Err(LandRegistryError::Internal {
-                message: "COP API returned non-success STATUS".to_string(),
-            });
+            return Ok(MortgagesData { mortgages: vec![] });
         }
 
         let rows = json
             .get("RESPONSE")
             .and_then(|r| r.as_array())
             .and_then(|arr| arr.first())
-            .and_then(|entry| entry.get("LANDOTHER"))
+            .and_then(|entry| entry.get("LANDOTHERIGHTS"))
             .and_then(Value::as_array)
             .cloned()
             .unwrap_or_default();
@@ -166,7 +165,7 @@ mod tests {
             .and(path("/LandOtherRight/1.0/QueryByLimit"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "STATUS": 1,
-                "RESPONSE": [{"LANDOTHER": [{"RIGHTPERSON": "台灣銀行", "SETTING": "1000000"}]}]
+                "RESPONSE": [{"LANDOTHERIGHTS": [{"RIGHTPERSON": "台灣銀行", "SETTING": "1000000"}]}]
             })))
             .mount(&server)
             .await;
@@ -187,5 +186,29 @@ mod tests {
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].api_id(), "mortgages");
         assert!((entries[0].cost() - 10.0).abs() < f64::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn status_zero_returns_empty_list_not_error() {
+        // COP returns STATUS=0 when parcel has no other rights records
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/LandOtherRight/1.0/QueryByLimit"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "STATUS": 0,
+                "MESSAGE": "取得服務資訊失敗"
+            })))
+            .mount(&server)
+            .await;
+
+        let billing_log = BillingLog::new_in_memory();
+        let api = MortgagesApi::new(
+            server.uri(),
+            billing_log,
+            Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
+        );
+
+        let result = api.fetch("D-0200-00010000").await.unwrap();
+        assert_eq!(result.mortgages.len(), 0);
     }
 }
