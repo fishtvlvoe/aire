@@ -1,4 +1,4 @@
-import { safeInvoke as invoke } from "@/lib/tauri-bridge";
+import { safeInvoke } from "@/lib/tauri-bridge";
 import type { CaseRow } from "@/lib/cases-api";
 import type { CaseDossierData } from "./document";
 import { calculateTaxFees } from "@/lib/tax-calculator";
@@ -145,7 +145,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   } else {
     let pullResult: PullResult | undefined;
     try {
-      pullResult = await invoke<PullResult>("land_registry_pull_data", {
+      pullResult = await safeInvoke<PullResult>("land_registry_pull_data", {
         parcelId: caseRow.land_lot_no,
         apiIds,
       });
@@ -159,7 +159,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   let legalClauses: string[] = [];
   try {
-    const clauses = await invoke<string[]>("get_legal_clause");
+    const clauses = await safeInvoke<string[]>("get_legal_clause");
     if (Array.isArray(clauses)) legalClauses = clauses;
   } catch {
     // 失敗時回退至空陣列
@@ -171,7 +171,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   let recentSaleCount: number | undefined;
   try {
     const keyword = isLand ? caseRow.land_lot_no : (caseRow.address ?? "");
-    const records = await invoke<unknown[]>("query_real_price", {
+    const records = await safeInvoke<unknown[]>("query_real_price", {
       district: extractDistrict(caseRow.address ?? ""),
       keyword,
       limit: 5,
@@ -226,6 +226,33 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     }
   }
 
+  let aerialPhoto: Uint8Array | null = null;
+  let exteriorPhoto: Uint8Array | null = null;
+  if (geoLat && geoLng) {
+    try {
+      const aerialBytes = await safeInvoke<number[]>("fetch_aerial_photo", {
+        lat: geoLat,
+        lng: geoLng,
+      });
+      if (aerialBytes && aerialBytes.length > 0) {
+        aerialPhoto = new Uint8Array(aerialBytes);
+      }
+    } catch {
+      // 航拍圖失敗→維持 null
+    }
+    try {
+      const streetBytes = await safeInvoke<number[]>("fetch_street_view", {
+        lat: geoLat,
+        lng: geoLng,
+      });
+      if (streetBytes && streetBytes.length > 0) {
+        exteriorPhoto = new Uint8Array(streetBytes);
+      }
+    } catch {
+      // 街景圖失敗→維持 null
+    }
+  }
+
   // ── 映射 ──────────────────────────────────────────────────────────────────
 
   if (isLand) {
@@ -247,7 +274,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     base.locationMapImage = locationMapImage;
     // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
-    base.exteriorPhoto = null;
+    base.exteriorPhoto = exteriorPhoto;
+    base.aerialPhoto = aerialPhoto;
 
     // ── 稅費試算（土地）──────────────────────────────────────────────────────
     const landAskingPrice = 0; // 使用者尚未輸入時預設 0
@@ -350,7 +378,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     base.locationMapImage = locationMapImage;
     // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
-    base.exteriorPhoto = null;
+    base.exteriorPhoto = exteriorPhoto;
+    base.aerialPhoto = aerialPhoto;
 
     // ── 稅費試算（建物）──────────────────────────────────────────────────────
     base.taxCalculation = null; // 建物版：askingPrice 未填前為 null

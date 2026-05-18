@@ -21,6 +21,7 @@ import { SignatureBlock } from "@/lib/pdf-blocks/signature-block";
 import { LandConditionSurveyPages } from "@/lib/pdf-blocks/land-condition-survey";
 import { BuildingConditionSurveyPages } from "@/lib/pdf-blocks/building-condition-survey";
 import { LocationMapPage } from "@/lib/pdf-blocks/location-map";
+import { AerialPhotoPage } from "@/lib/pdf-blocks/aerial-photo-page";
 import { ExteriorPhotoPage } from "@/lib/pdf-blocks/exterior-photo-page";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -159,6 +160,7 @@ export interface CaseDossierData {
   } | null;
   surveyData?: Record<string, boolean | null> | null;
   exteriorPhoto?: Uint8Array | null;
+  aerialPhoto?: Uint8Array | null;
   locationMapImage?: Uint8Array | null;
 }
 
@@ -482,6 +484,8 @@ function LandPages({
       <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
       {/* 位置圖 */}
       <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
+      {/* 航拍位置圖 */}
+      <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}
       <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
       {/* 簽章欄（只出現一次，在最後） */}
@@ -624,6 +628,8 @@ function BuildingPages({
       <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
       {/* 位置圖 */}
       <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
+      {/* 航拍位置圖 */}
+      <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}
       <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
       {/* 簽章欄（只出現一次，在最後） */}

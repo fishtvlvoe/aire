@@ -1,5 +1,6 @@
 //! Mapillary 街景圖抓取：查詢附近圖片，下載 thumb_2048_url 回傳 bytes
 
+use image::ImageFormat;
 use log::warn;
 use serde::Deserialize;
 
@@ -93,10 +94,29 @@ pub async fn fetch_street_view(lat: f64, lng: f64) -> Vec<u8> {
     }
 
     let image_url = &parsed.data[0].thumb_2048_url;
-    match download_image(image_url).await {
+
+    let raw = match download_image(image_url).await {
         Some(bytes) => bytes,
         None => {
             warn!("Failed to download Mapillary image from URL: {}", image_url);
+            return Vec::new();
+        }
+    };
+
+    // decode + re-encode to PNG
+    match image::load_from_memory(&raw) {
+        Ok(img) => {
+            let mut buf = Vec::new();
+            match img.write_to(&mut std::io::Cursor::new(&mut buf), ImageFormat::Png) {
+                Ok(_) => buf,
+                Err(e) => {
+                    warn!("Failed to encode Mapillary image to PNG: {}", e);
+                    Vec::new()
+                }
+            }
+        }
+        Err(e) => {
+            warn!("Failed to decode Mapillary image bytes: {}", e);
             Vec::new()
         }
     }
