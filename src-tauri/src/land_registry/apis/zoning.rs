@@ -20,22 +20,40 @@ pub struct ZoningEndpoint;
 
 impl LandRegistryEndpoint<ZoningData> for ZoningEndpoint {
     fn endpoint_path() -> &'static str {
-        "/land/parcel/zoning"
+        "/LandDescription/1.0/QueryByLandNo"
     }
 
     fn parse_response(json: Value) -> Result<ZoningData, LandRegistryError> {
-        let root = json.get("data").unwrap_or(&json);
+        let status = json.get("STATUS").and_then(|s| s.as_u64());
+        if status != Some(1) {
+            return Err(LandRegistryError::Internal {
+                message: "COP API returned non-success STATUS".to_string(),
+            });
+        }
+
+        let first_entry = json
+            .get("RESPONSE")
+            .and_then(|r| r.as_array())
+            .and_then(|arr| arr.first())
+            .ok_or_else(|| LandRegistryError::Internal {
+                message: "COP API RESPONSE array is empty".to_string(),
+            })?;
+
+        let landreg = first_entry
+            .get("LANDREG")
+            .ok_or_else(|| LandRegistryError::Internal {
+                message: "COP API missing LANDREG".to_string(),
+            })?;
+
+        let zoning = landreg
+            .get("ZONING")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+
         Ok(ZoningData {
-            zoning_type: root
-                .get("zoning_type")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
-            usage_category: root
-                .get("usage_category")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
+            zoning_type: zoning.clone(),
+            usage_category: zoning,
         })
     }
 
@@ -73,9 +91,19 @@ impl<P: ApiKeyProvider> ZoningApi<P> {
         }
     }
 
-    pub async fn fetch(&self, parcel_id: &str) -> Result<ZoningData, LandRegistryError> {
+    pub async fn fetch(&self, parcel_id: &str) -> Result<Option<ZoningData>, LandRegistryError> {
         let credentials = require_api_key(self.key_provider.as_ref())?;
-        let payload = serde_json::json!({ "parcel_id": parcel_id });
+
+        let parts: Vec<&str> = parcel_id.splitn(3, '-').collect();
+        let (unit, sec, no) = if parts.len() == 3 {
+            (parts[0], parts[1], parts[2])
+        } else {
+            return Err(LandRegistryError::Internal {
+                message: format!("invalid parcel_id format: {parcel_id}"),
+            });
+        };
+        let payload = serde_json::json!([{ "UNIT": unit, "SEC": sec, "NO": no }]);
+
         let response = post_json_with_key(
             &self.http_client,
             &self.base_url,
@@ -87,23 +115,37 @@ impl<P: ApiKeyProvider> ZoningApi<P> {
 
         match response {
             Ok((_status, json)) => {
-                let parsed = ZoningEndpoint::parse_response(json);
-                match parsed {
-                    Ok(data) => {
-                        let _ =
-                            record_success(&self.billing_log, parcel_id, API_ID, self.unit_cost);
-                        Ok(data)
-                    }
-                    Err(error) => {
-                        let _ = record_failure(
+                let landreg = json
+                    .get("RESPONSE")
+                    .and_then(|r| r.as_array())
+                    .and_then(|arr| arr.first())
+                    .and_then(|e| e.get("LANDREG"));
+
+                let zoning_str = landreg
+                    .and_then(|l| l.get("ZONING"))
+                    .and_then(Value::as_str);
+
+                match zoning_str {
+                    None => {
+                        let _ = record_success(
                             &self.billing_log,
                             parcel_id,
                             API_ID,
-                            LandRegistryError::Internal {
-                                message: format!("parse error: {error}"),
-                            },
+                            self.unit_cost,
                         );
-                        Err(error)
+                        Ok(None)
+                    }
+                    Some(z) => {
+                        let _ = record_success(
+                            &self.billing_log,
+                            parcel_id,
+                            API_ID,
+                            self.unit_cost,
+                        );
+                        Ok(Some(ZoningData {
+                            zoning_type: z.to_string(),
+                            usage_category: z.to_string(),
+                        }))
                     }
                 }
             }
@@ -135,12 +177,17 @@ mod tests {
     async fn parses_zoning_and_records_cost() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/parcel/zoning"))
+            .and(path("/LandDescription/1.0/QueryByLandNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "zoning_type": "第三種住宅區",
-                    "usage_category": "住三"
-                }
+                "STATUS": 1,
+                "RESPONSE": [{
+                    "LANDREG": {
+                        "AREA": "120",
+                        "ZONING": "第三種住宅區",
+                        "ALVALUE": "100",
+                        "ALPRICE": "50"
+                    }
+                }]
             })))
             .mount(&server)
             .await;
@@ -152,13 +199,42 @@ mod tests {
             Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
         );
 
-        let result = api.fetch("0301-0001").await.unwrap();
+        let result = api.fetch("A-0301-0001").await.unwrap().unwrap();
         assert_eq!(result.zoning_type, "第三種住宅區");
-        assert_eq!(result.usage_category, "住三");
+        assert_eq!(result.usage_category, "第三種住宅區");
 
-        let entries = billing_log.get_entries_for("0301-0001");
+        let entries = billing_log.get_entries_for("A-0301-0001");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].api_id(), "zoning");
         assert!((entries[0].cost() - 10.0).abs() < f64::EPSILON);
+    }
+
+    #[tokio::test]
+    async fn returns_none_when_zoning_is_null() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/LandDescription/1.0/QueryByLandNo"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "STATUS": 1,
+                "RESPONSE": [{
+                    "LANDREG": {
+                        "AREA": "120",
+                        "ALVALUE": "100",
+                        "ALPRICE": "50"
+                    }
+                }]
+            })))
+            .mount(&server)
+            .await;
+
+        let billing_log = BillingLog::new_in_memory();
+        let api = ZoningApi::new(
+            server.uri(),
+            billing_log.clone(),
+            Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
+        );
+
+        let result = api.fetch("A-0301-0001").await.unwrap();
+        assert!(result.is_none());
     }
 }
