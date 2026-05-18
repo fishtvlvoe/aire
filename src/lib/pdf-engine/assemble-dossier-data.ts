@@ -3,7 +3,6 @@ import type { CaseRow } from "@/lib/cases-api";
 import type { CaseDossierData } from "./document";
 import { calculateTaxFees } from "@/lib/tax-calculator";
 import { queryNearbyAmenities } from "@/lib/overpass-client";
-import { fetchStaticMap } from "@/lib/osm-static-map";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 使用分區 → 法規限制 lookup table
@@ -212,12 +211,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     } catch {
       // 失敗維持空陣列
     }
-    try {
-      const mapBuf = await fetchStaticMap({ lat: geoLat, lng: geoLng });
-      if (mapBuf.length > 0) locationMapImage = mapBuf;
-    } catch {
-      // 失敗維持 null，元件會顯示佔位
-    }
+    // Wave 6：OSM 靜態地圖需要 sharp（Node.js native），Tauri static export 的
+    // renderer 無法執行。待後續移至 Tauri IPC Rust command 實作。目前顯示佔位。
   }
 
   // ── 映射 ──────────────────────────────────────────────────────────────────
