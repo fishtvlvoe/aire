@@ -21,23 +21,41 @@ pub struct BuildingRegistryEndpoint;
 
 impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
     fn endpoint_path() -> &'static str {
-        "/land/parcel/building-registry"
+        "/BuildingDescription/1.0/QueryByBuildingNo"
     }
 
     fn parse_response(json: Value) -> Result<BuildingRegistryData, LandRegistryError> {
-        let root = json.get("data").unwrap_or(&json);
-        let building_area = root.get("building_area").and_then(Value::as_f64).ok_or(
-            LandRegistryError::Internal {
-                message: "missing building_area".to_string(),
-            },
-        )?;
-        let building_purpose = root
-            .get("building_purpose")
+        let status = json.get("STATUS").and_then(|s| s.as_u64());
+        if status != Some(1) {
+            return Err(LandRegistryError::Internal {
+                message: "COP API returned non-success STATUS".to_string(),
+            });
+        }
+
+        let buildreg = json
+            .get("RESPONSE")
+            .and_then(|r| r.as_array())
+            .and_then(|arr| arr.first())
+            .and_then(|entry| entry.get("BUILDREG"))
+            .ok_or_else(|| LandRegistryError::Internal {
+                message: "COP API missing BUILDREG".to_string(),
+            })?;
+
+        let building_area = buildreg
+            .get("BLDGAREA")
+            .and_then(Value::as_str)
+            .unwrap_or("0")
+            .parse::<f64>()
+            .unwrap_or(0.0);
+
+        let building_purpose = buildreg
+            .get("MAINUSE")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string();
-        let construction_date = root
-            .get("construction_date")
+
+        let construction_date = buildreg
+            .get("COMPLETE")
             .and_then(Value::as_str)
             .unwrap_or_default()
             .to_string();
@@ -89,7 +107,16 @@ impl<P: ApiKeyProvider> BuildingRegistryApi<P> {
 
     pub async fn fetch(&self, parcel_id: &str) -> Result<BuildingRegistryData, LandRegistryError> {
         let credentials = require_api_key(self.key_provider.as_ref())?;
-        let payload = serde_json::json!({ "parcel_id": parcel_id });
+
+        let parts: Vec<&str> = parcel_id.splitn(3, '-').collect();
+        let (unit, sec, no) = if parts.len() == 3 {
+            (parts[0], parts[1], parts[2])
+        } else {
+            return Err(LandRegistryError::Internal {
+                message: format!("invalid parcel_id format: {parcel_id}"),
+            });
+        };
+        let payload = serde_json::json!([{ "UNIT": unit, "SEC": sec, "NO": no }]);
 
         let response = post_json_with_key(
             &self.http_client,
@@ -150,13 +177,10 @@ mod tests {
     async fn parses_building_registry_and_records_cost() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/parcel/building-registry"))
+            .and(path("/BuildingDescription/1.0/QueryByBuildingNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "building_area": 52.5,
-                    "building_purpose": "住家用",
-                    "construction_date": "2001-09-01"
-                }
+                "STATUS": 1,
+                "RESPONSE": [{"BUILDREG": {"BLDGAREA": "52.5", "MAINUSE": "住家用", "COMPLETE": "090/09/01"}}]
             })))
             .mount(&server)
             .await;
@@ -168,12 +192,12 @@ mod tests {
             Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
         );
 
-        let result = api.fetch("0301-0001").await.unwrap();
+        let result = api.fetch("A-0301-0001").await.unwrap();
         assert!((result.building_area - 52.5).abs() < f64::EPSILON);
         assert_eq!(result.building_purpose, "住家用");
-        assert_eq!(result.construction_date, "2001-09-01");
+        assert_eq!(result.construction_date, "090/09/01");
 
-        let entries = billing_log.get_entries_for("0301-0001");
+        let entries = billing_log.get_entries_for("A-0301-0001");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].api_id(), "building_registry");
         assert!((entries[0].cost() - 10.0).abs() < f64::EPSILON);

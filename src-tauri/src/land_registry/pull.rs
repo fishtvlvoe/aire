@@ -277,13 +277,10 @@ mod tests {
     async fn pull_three_apis_returns_three_results_and_total_cost() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/parcel/building-registry"))
+            .and(path("/BuildingDescription/1.0/QueryByBuildingNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "building_area": 52.5,
-                    "building_purpose": "住家用",
-                    "construction_date": "2001-09-01"
-                }
+                "STATUS": 1,
+                "RESPONSE": [{"BUILDREG": {"BLDGAREA": "52.5", "MAINUSE": "住家用", "COMPLETE": "090/09/01"}}]
             })))
             .mount(&server)
             .await;
@@ -305,12 +302,13 @@ mod tests {
             .await;
 
         Mock::given(method("POST"))
-            .and(path("/land/parcel/co-owners"))
+            .and(path("/LandOwnership/1.0/QueryByLandNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": [
-                    { "name": "王小明", "share": "1/2" },
-                    { "name": "王小美", "share": "1/2" }
-                ]
+                "STATUS": 1,
+                "RESPONSE": [{"LANDOWNER": [
+                    {"OWNERNAME": "王小明", "OWNERPERCENT": "1/2"},
+                    {"OWNERNAME": "王小美", "OWNERPERCENT": "1/2"}
+                ]}]
             })))
             .mount(&server)
             .await;

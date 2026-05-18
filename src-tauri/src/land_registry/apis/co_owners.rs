@@ -25,14 +25,23 @@ pub struct CoOwnersEndpoint;
 
 impl LandRegistryEndpoint<CoOwnersData> for CoOwnersEndpoint {
     fn endpoint_path() -> &'static str {
-        "/land/parcel/co-owners"
+        "/LandOwnership/1.0/QueryByLandNo"
     }
 
     fn parse_response(json: Value) -> Result<CoOwnersData, LandRegistryError> {
+        let status = json.get("STATUS").and_then(|s| s.as_u64());
+        if status != Some(1) {
+            return Err(LandRegistryError::Internal {
+                message: "COP API returned non-success STATUS".to_string(),
+            });
+        }
+
         let rows = json
-            .get("data")
+            .get("RESPONSE")
+            .and_then(|r| r.as_array())
+            .and_then(|arr| arr.first())
+            .and_then(|entry| entry.get("LANDOWNER"))
             .and_then(Value::as_array)
-            .or_else(|| json.as_array())
             .cloned()
             .unwrap_or_default();
 
@@ -40,12 +49,12 @@ impl LandRegistryEndpoint<CoOwnersData> for CoOwnersEndpoint {
             .iter()
             .map(|row| CoOwner {
                 name: row
-                    .get("name")
+                    .get("OWNERNAME")
                     .and_then(Value::as_str)
                     .unwrap_or_default()
                     .to_string(),
                 share: row
-                    .get("share")
+                    .get("OWNERPERCENT")
                     .and_then(Value::as_str)
                     .unwrap_or_default()
                     .to_string(),
@@ -85,7 +94,15 @@ impl<P: ApiKeyProvider> CoOwnersApi<P> {
 
     pub async fn fetch(&self, parcel_id: &str) -> Result<CoOwnersData, LandRegistryError> {
         let credentials = require_api_key(self.key_provider.as_ref())?;
-        let payload = serde_json::json!({ "parcel_id": parcel_id });
+        let parts: Vec<&str> = parcel_id.splitn(3, '-').collect();
+        let (unit, sec, no) = if parts.len() == 3 {
+            (parts[0], parts[1], parts[2])
+        } else {
+            return Err(LandRegistryError::Internal {
+                message: format!("invalid parcel_id format: {parcel_id}"),
+            });
+        };
+        let payload = serde_json::json!([{ "UNIT": unit, "SEC": sec, "NO": no }]);
         let response = post_json_with_key(
             &self.http_client,
             &self.base_url,
@@ -145,12 +162,13 @@ mod tests {
     async fn parses_multiple_co_owners() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/parcel/co-owners"))
+            .and(path("/LandOwnership/1.0/QueryByLandNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": [
-                    {"name": "王小明", "share": "1/2"},
-                    {"name": "王小美", "share": "1/2"}
-                ]
+                "STATUS": 1,
+                "RESPONSE": [{"LANDOWNER": [
+                    {"OWNERNAME": "王小明", "OWNERPERCENT": "1/2"},
+                    {"OWNERNAME": "王小美", "OWNERPERCENT": "1/2"}
+                ]}]
             })))
             .mount(&server)
             .await;
@@ -162,12 +180,13 @@ mod tests {
             Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
         );
 
-        let result = api.fetch("0301-0001").await.unwrap();
+        let result = api.fetch("D-0200-00010000").await.unwrap();
         assert_eq!(result.owners.len(), 2);
         assert_eq!(result.owners[0].name, "王小明");
+        assert_eq!(result.owners[0].share, "1/2");
         assert_eq!(result.owners[1].name, "王小美");
 
-        let entries = billing_log.get_entries_for("0301-0001");
+        let entries = billing_log.get_entries_for("D-0200-00010000");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].api_id(), "co_owners");
         assert!((entries[0].cost() - 10.0).abs() < f64::EPSILON);

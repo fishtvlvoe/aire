@@ -1,5 +1,6 @@
 use crate::land_registry::billing_log::BillingLog;
 use crate::land_registry::errors::LandRegistryError;
+use base64::Engine as _;
 use serde_json::Value;
 use std::sync::Arc;
 
@@ -91,10 +92,61 @@ pub async fn post_json_with_key(
         base_url.trim_end_matches('/'),
         endpoint_path.trim_start_matches('/')
     );
-    let auth_header = crate::land_registry::client::build_auth_header(
-        &credentials.client_id,
-        &credentials.client_secret,
-    );
+    let auth_header = if !credentials.token_endpoint.is_empty() {
+        let basic = format!(
+            "Basic {}",
+            base64::engine::general_purpose::STANDARD
+                .encode(format!("{}:{}", credentials.client_id, credentials.client_secret))
+        );
+
+        let token_response = http_client
+            .get(&credentials.token_endpoint)
+            .header("Authorization", basic)
+            .send()
+            .await
+            .map_err(|error| LandRegistryError::Network {
+                message: "token endpoint request failed".to_string(),
+                source: Box::new(error),
+            })?;
+
+        let token_status = token_response.status().as_u16();
+        let token_body = token_response
+            .text()
+            .await
+            .map_err(|error| LandRegistryError::Network {
+                message: "read token endpoint response failed".to_string(),
+                source: Box::new(error),
+            })?;
+
+        if !(200..300).contains(&token_status) {
+            return Err(LandRegistryError::AuthFailed {
+                message: format!("token endpoint returned {token_status}"),
+                response_body: token_body,
+            });
+        }
+
+        let token_json: Value = serde_json::from_str(&token_body).map_err(|error| {
+            LandRegistryError::AuthFailed {
+                message: format!("invalid JSON from token endpoint: {error}"),
+                response_body: token_body.clone(),
+            }
+        })?;
+
+        let access_token = token_json
+            .get("access_token")
+            .and_then(|value| value.as_str())
+            .ok_or_else(|| LandRegistryError::AuthFailed {
+                message: "token endpoint response missing access_token".to_string(),
+                response_body: token_body.clone(),
+            })?;
+
+        format!("Bearer {access_token}")
+    } else {
+        crate::land_registry::client::build_auth_header(
+            &credentials.client_id,
+            &credentials.client_secret,
+        )
+    };
     let response = http_client
         .post(&url)
         .header("Authorization", auth_header)

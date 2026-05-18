@@ -21,27 +21,50 @@ pub struct BuildingOwnershipEndpoint;
 
 impl LandRegistryEndpoint<BuildingOwnershipData> for BuildingOwnershipEndpoint {
     fn endpoint_path() -> &'static str {
-        "/land/parcel/building-ownership"
+        "/BuildingOwnership/1.0/QueryByBuildingNo"
     }
 
     fn parse_response(json: Value) -> Result<BuildingOwnershipData, LandRegistryError> {
-        let root = json.get("data").unwrap_or(&json);
+        let status = json.get("STATUS").and_then(|s| s.as_u64());
+        if status != Some(1) {
+            return Err(LandRegistryError::Internal {
+                message: "COP API returned non-success STATUS".to_string(),
+            });
+        }
+
+        let buildowner = json
+            .get("RESPONSE")
+            .and_then(|r| r.as_array())
+            .and_then(|arr| arr.first())
+            .and_then(|entry| entry.get("BUILDOWNER"))
+            .and_then(Value::as_array)
+            .and_then(|arr| arr.first())
+            .ok_or_else(|| LandRegistryError::Internal {
+                message: "COP API missing BUILDOWNER[0]".to_string(),
+            })?;
+
+        let owner_name = buildowner
+            .get("OWNERNAME")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+
+        let certificate_no = buildowner
+            .get("REGNO")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+
+        let issue_date = buildowner
+            .get("REGDATE")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+
         Ok(BuildingOwnershipData {
-            owner_name: root
-                .get("owner_name")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
-            certificate_no: root
-                .get("certificate_no")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
-            issue_date: root
-                .get("issue_date")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
+            owner_name,
+            certificate_no,
+            issue_date,
         })
     }
 
@@ -49,15 +72,15 @@ impl LandRegistryEndpoint<BuildingOwnershipData> for BuildingOwnershipEndpoint {
         vec![
             FieldMapping {
                 target_field: "owner_name".to_string(),
-                json_path: "$.data.owner_name".to_string(),
+                json_path: "$.RESPONSE[0].BUILDOWNER[0].OWNERNAME".to_string(),
             },
             FieldMapping {
                 target_field: "certificate_no".to_string(),
-                json_path: "$.data.certificate_no".to_string(),
+                json_path: "$.RESPONSE[0].BUILDOWNER[0].REGNO".to_string(),
             },
             FieldMapping {
                 target_field: "issue_date".to_string(),
-                json_path: "$.data.issue_date".to_string(),
+                json_path: "$.RESPONSE[0].BUILDOWNER[0].REGDATE".to_string(),
             },
         ]
     }
@@ -85,7 +108,15 @@ impl<P: ApiKeyProvider> BuildingOwnershipApi<P> {
 
     pub async fn fetch(&self, parcel_id: &str) -> Result<BuildingOwnershipData, LandRegistryError> {
         let credentials = require_api_key(self.key_provider.as_ref())?;
-        let payload = serde_json::json!({ "parcel_id": parcel_id });
+        let parts: Vec<&str> = parcel_id.splitn(3, '-').collect();
+        let (unit, sec, no) = if parts.len() == 3 {
+            (parts[0], parts[1], parts[2])
+        } else {
+            return Err(LandRegistryError::Internal {
+                message: format!("invalid parcel_id format: {parcel_id}"),
+            });
+        };
+        let payload = serde_json::json!([{ "UNIT": unit, "SEC": sec, "NO": no }]);
         let response = post_json_with_key(
             &self.http_client,
             &self.base_url,
@@ -145,13 +176,10 @@ mod tests {
     async fn parses_building_ownership_and_records_cost() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/parcel/building-ownership"))
+            .and(path("/BuildingOwnership/1.0/QueryByBuildingNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "owner_name": "王小明",
-                    "certificate_no": "A123456789",
-                    "issue_date": "2010-01-01"
-                }
+                "STATUS": 1,
+                "RESPONSE": [{"BUILDOWNER": [{"OWNERNAME": "陳大明", "REGNO": "TC001", "REGDATE": "090/01/01"}]}]
             })))
             .mount(&server)
             .await;
@@ -163,11 +191,12 @@ mod tests {
             Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
         );
 
-        let result = api.fetch("0301-0001").await.unwrap();
-        assert_eq!(result.owner_name, "王小明");
-        assert_eq!(result.certificate_no, "A123456789");
+        let result = api.fetch("A-0301-0001").await.unwrap();
+        assert_eq!(result.owner_name, "陳大明");
+        assert_eq!(result.certificate_no, "TC001");
+        assert_eq!(result.issue_date, "090/01/01");
 
-        let entries = billing_log.get_entries_for("0301-0001");
+        let entries = billing_log.get_entries_for("A-0301-0001");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].api_id(), "building_ownership");
         assert!((entries[0].cost() - 10.0).abs() < f64::EPSILON);
