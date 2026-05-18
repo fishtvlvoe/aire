@@ -180,7 +180,7 @@ describe("CLU-007 — logo appears in header on all 12 pages", () => {
       sections: Array(5).fill({ type: "survey-table", rows: 5 }),
     });
 
-    const blob = await pdf(doc).toBlob();
+    const blob = await pdf(doc as Parameters<typeof pdf>[0]).toBlob();
     // blob 存在即代表渲染成功（詳細 logo 出現每頁驗證需 PDF parser）
     expect(blob.size).toBeGreaterThan(1000);
   });
@@ -201,7 +201,7 @@ describe("CLU-008 — no logo shows placeholder text", () => {
     });
 
     // 渲染為字串以驗證 placeholder text
-    const blob = await pdf(doc).toBlob();
+    const blob = await pdf(doc as Parameters<typeof pdf>[0]).toBlob();
     const text = await blob.text();
     // PDF 內文要包含 placeholder 字串（可能被 UTF encode，但 PDF 字串層可搜尋）
     expect(blob.size).toBeGreaterThan(0);

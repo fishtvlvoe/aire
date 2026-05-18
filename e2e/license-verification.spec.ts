@@ -64,8 +64,8 @@ async function installInvokeMock(page: Page): Promise<void> {
 
           // 線上：依測試指定回應
           const response = window.__VERIFY_RESPONSES__![license] ?? {
-            status: 'not_found',
-            license_number: license,
+            status: 'not_found' as const,
+          license_number: license,
           };
           window.__CACHE__![license] = {
             cached_at: now,
@@ -169,7 +169,7 @@ test.describe('經紀人證號驗證：debounce + 三態 UI + 離線 fallback + 
       {
         key: license,
         value: {
-          status: 'verified',
+          status: 'verified' as const,
           license_number: license,
           broker_name: '王大明',
           verified_at: '2026-05-14',
@@ -214,7 +214,7 @@ test.describe('經紀人證號驗證：debounce + 三態 UI + 離線 fallback + 
       {
         key: license,
         value: {
-          status: 'expired',
+          status: 'expired' as const,
           license_number: license,
           broker_name: '陳小華',
           verified_at: '2026-05-14',
@@ -245,7 +245,7 @@ test.describe('經紀人證號驗證：debounce + 三態 UI + 離線 fallback + 
       {
         key: license,
         value: {
-          status: 'verified',
+          status: 'verified' as const,
           license_number: license,
           broker_name: '林美麗',
           verified_at: '2026-05-10',
@@ -287,7 +287,7 @@ test.describe('經紀人證號驗證：debounce + 三態 UI + 離線 fallback + 
       {
         key: license,
         value: {
-          status: 'verified',
+          status: 'verified' as const,
           license_number: license,
           broker_name: '黃志明',
           verified_at: '2026-05-14',

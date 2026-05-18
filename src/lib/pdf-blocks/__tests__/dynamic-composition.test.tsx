@@ -19,7 +19,7 @@ import {
 // PDF page count helper（用 @react-pdf render blob 後用 regex 粗估）
 async function renderAndCountPages(options: DisclosureDocOptions): Promise<number> {
   const doc = buildDisclosureDoc(options);
-  const blob = await pdf(doc).toBlob();
+  const blob = await pdf(doc as Parameters<typeof pdf>[0]).toBlob();
   const text = await blob.text();
   // PDF 內 /Type /Page 出現次數 ≈ 頁數（不含 /Type /Pages 的 root）
   const matches = text.match(/\/Type\s*\/Page[^s]/g);
@@ -141,7 +141,7 @@ describe("DPC-007 — page footer shows correct page numbers", () => {
       sections: [],
     });
 
-    const blob = await pdf(doc).toBlob();
+    const blob = await pdf(doc as Parameters<typeof pdf>[0]).toBlob();
     const text = await blob.text();
 
     // 頁碼格式驗證（PDF 文字層）

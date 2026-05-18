@@ -69,7 +69,7 @@ describe("RPE-004 — render does NOT write temp files", () => {
     const writeCalls: string[] = [];
 
     // Spy on Tauri IPC invoke — 如果 engine 呼叫 write_file 就記錄
-    const originalInvoke = (globalThis as Record<string, unknown>).__TAURI_INTERNALS__?.invoke;
+    const originalInvoke = ((globalThis as Record<string, unknown>).__TAURI_INTERNALS__ as { invoke?: (...a: unknown[]) => unknown } | undefined)?.invoke;
     if (typeof originalInvoke === "function") {
       (globalThis as Record<string, unknown>).__TAURI_INTERNALS__ = {
         invoke: (cmd: string, ...args: unknown[]) => {
