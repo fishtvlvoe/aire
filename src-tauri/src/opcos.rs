@@ -83,6 +83,11 @@ struct ApiError {
 }
 
 fn base_url() -> String {
+    // build.rs 在 release profile 透過 cargo:rustc-env 注入 compile-time 值；
+    // dev 模式退回 runtime env var，再退回預設值。
+    if let Some(url) = option_env!("OPCOS_API_BASE_URL") {
+        return url.to_string();
+    }
     std::env::var("OPCOS_API_BASE_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_string())
 }
 

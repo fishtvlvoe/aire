@@ -704,3 +704,26 @@ tests:
   - src/components/__tests__/LogoUploader.test.tsx
   - e2e/pdf-legal-notice-position.spec.ts
 -->
+
+---
+### Requirement: Empty token_endpoint preserves Basic auth for sandbox compatibility
+When `ApiCredentials.token_endpoint` is an empty string, the system SHALL use `Authorization: Basic base64(client_id:secret)` directly for all COP API calls without attempting token acquisition. This preserves backward compatibility for unit tests and sandbox environments that accept Basic auth.
+
+#### Scenario: Empty token_endpoint uses Basic auth
+- **GIVEN** `StaticApiKeyProvider::configured(client_id, secret)` is used (token_endpoint empty)
+- **WHEN** a COP API call is made
+- **THEN** the Authorization header SHALL be `Basic base64(client_id:secret)`
+- **AND** no token endpoint call SHALL be made
+
+<!-- @trace
+source: fix-cop-bearer-token-and-fake-paths
+updated: 2026-05-18
+code:
+  - src-tauri/src/land_registry/apis/mortgages.rs
+  - src-tauri/src/land_registry/api_key_storage.rs
+  - src-tauri/src/land_registry/apis/co_owners.rs
+  - src-tauri/src/land_registry/apis/building_registry.rs
+  - src-tauri/src/land_registry/apis/mod.rs
+  - src-tauri/src/land_registry/apis/building_ownership.rs
+  - src-tauri/src/land_registry/pull.rs
+-->

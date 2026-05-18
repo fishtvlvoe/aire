@@ -1,0 +1,12 @@
+name = "aire-opcos-me"
+main = "src/index.ts"
+compatibility_date = "2025-05-18"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "LICENSES"
+id = "dd808f84169542ccb42d7a7b3efc2477"
+
+[[routes]]
+pattern = "aire.opcos.me/*"
+zone_name = "opcos.me"

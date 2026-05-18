@@ -85,3 +85,36 @@ The system SHALL treat a 401 or 403 response from `POST /api/license/verify` as 
 
 - **WHEN** verification returns 403 with `{ error: 'device_mismatch' }`
 - **THEN** the system shows activation screen with message `此電腦不在授權清單，請重新啟用`
+
+---
+### Requirement: OPCOS API base URL points to production server in release build
+
+In a `cargo build --release` build (or when `AIRE_RELEASE_BUILD=1` is set), the compiled binary SHALL use `https://aire.opcos.me` as the base URL for license API calls. The `build.rs` script SHALL emit `cargo:rustc-env=OPCOS_API_BASE_URL=https://aire.opcos.me` when in release mode.
+
+#### Scenario: Release binary uses aire.opcos.me
+
+- **GIVEN** `cargo build --release` is executed
+- **WHEN** The binary is inspected with `strings target/release/aire | grep aire.opcos.me`
+- **THEN** At least one match is found
+
+<!-- @trace
+source: aire-opcos-me-license
+updated: 2026-05-18
+code:
+  - cloudflare-worker/.wrangler/state/v3/kv/miniflare-KVNamespaceObject/metadata.sqlite-wal
+  - cloudflare-worker/.wrangler/state/v3/kv/miniflare-KVNamespaceObject/metadata.sqlite-shm
+  - cloudflare-worker/src/index.ts
+  - cloudflare-worker/package.json
+  - src-tauri/build.rs
+  - cloudflare-worker/.wrangler/state/v3/cache/miniflare-CacheObject/metadata.sqlite-shm
+  - cloudflare-worker/wrangler.toml
+  - cloudflare-worker/.wrangler/state/v3/kv/miniflare-KVNamespaceObject/eeed5a80fd33f459c3423ee01ec52aa0dc4f301e20606a58b8eb7bde19f2c951.sqlite-shm
+  - cloudflare-worker/src/types.ts
+  - cloudflare-worker/.wrangler/state/v3/cache/miniflare-CacheObject/metadata.sqlite-wal
+  - cloudflare-worker/.wrangler/state/v3/kv/REPLACE_WITH_KV_ID/blobs/3566842bfc172d6aa8cf5aac012536014df539e675fc8ae36cef2c355ed8ea340000019e3b75d7ff
+  - cloudflare-worker/.wrangler/state/v3/kv/miniflare-KVNamespaceObject/eeed5a80fd33f459c3423ee01ec52aa0dc4f301e20606a58b8eb7bde19f2c951.sqlite-wal
+  - cloudflare-worker/src/handlers/verify.ts
+  - cloudflare-worker/src/handlers/activate.ts
+  - cloudflare-worker/tsconfig.json
+  - cloudflare-worker/DEPLOY.md
+-->
