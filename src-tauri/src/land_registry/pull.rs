@@ -289,13 +289,17 @@ mod tests {
             .await;
 
         Mock::given(method("POST"))
-            .and(path("/land/parcel/land-registry"))
+            .and(path("/LandDescription/1.0/QueryByLandNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "land_area": 120.0,
-                    "land_purpose": "住宅區",
-                    "owner_name": "王小明"
-                }
+                "STATUS": 1,
+                "RESPONSE": [{
+                    "LANDREG": {
+                        "AREA": "120",
+                        "ZONING": "住宅區",
+                        "ALVALUE": "100",
+                        "ALPRICE": "50"
+                    }
+                }]
             })))
             .mount(&server)
             .await;
@@ -312,12 +316,12 @@ mod tests {
             .await;
 
         let conn = rusqlite::Connection::open_in_memory().unwrap();
-        record_consent(&conn, "0301-0001", "agent@example.com").unwrap();
-        assert!(check_consent(&conn, "0301-0001").unwrap());
+        record_consent(&conn, "A-0301-0001", "agent@example.com").unwrap();
+        assert!(check_consent(&conn, "A-0301-0001").unwrap());
 
         let billing_log = BillingLog::new_in_memory();
         let result = land_registry_pull_data_core(
-            "0301-0001".to_string(),
+            "A-0301-0001".to_string(),
             vec![
                 "building_registry".to_string(),
                 "land_registry".to_string(),

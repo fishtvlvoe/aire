@@ -22,48 +22,47 @@ pub struct AddressToParcelEndpoint;
 
 impl LandRegistryEndpoint<Vec<ParcelInfo>> for AddressToParcelEndpoint {
     fn endpoint_path() -> &'static str {
-        "/land/address-to-parcel"
+        "/BuildingNo/1.0/QueryByAddress"
     }
 
     fn parse_response(json: Value) -> Result<Vec<ParcelInfo>, LandRegistryError> {
-        fn parse_entry(entry: &Value) -> Option<ParcelInfo> {
-            Some(ParcelInfo {
-                parcel_id: entry.get("parcel_id")?.as_str()?.to_string(),
-                address: entry
-                    .get("address")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-                lot_number: entry
-                    .get("lot_number")
-                    .or_else(|| entry.get("lotNo"))
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-                building_number: entry
-                    .get("building_number")
-                    .or_else(|| entry.get("buildingNo"))
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-            })
+        // 確認 STATUS == 1
+        let status = json.get("STATUS").and_then(|s| s.as_u64());
+        if status != Some(1) {
+            return Ok(vec![]);
         }
 
-        let mut rows = match json {
-            Value::Array(items) => items
-                .iter()
-                .filter_map(parse_entry)
-                .collect::<Vec<ParcelInfo>>(),
-            Value::Object(_) => json
-                .get("results")
-                .and_then(Value::as_array)
-                .map(|items| items.iter().filter_map(parse_entry).collect())
-                .unwrap_or_default(),
-            _ => vec![],
+        // 取 RESPONSE[0]
+        let response_arr = json
+            .get("RESPONSE")
+            .and_then(|r| r.as_array());
+
+        let first_entry = match response_arr.and_then(|arr| arr.first()) {
+            Some(e) => e,
+            None => return Ok(vec![]),
         };
 
-        rows.sort_by(|a, b| a.parcel_id.cmp(&b.parcel_id));
-        Ok(rows)
+        // 取 BLDGREG（可能為 null）
+        let bldgreg = first_entry.get("BLDGREG");
+        match bldgreg {
+            None | Some(Value::Null) => Ok(vec![]),
+            Some(bldg) => {
+                let unit = bldg.get("UNIT").and_then(Value::as_str).unwrap_or_default();
+                let sec = bldg.get("SEC").and_then(Value::as_str).unwrap_or_default();
+                let no = bldg.get("NO").and_then(Value::as_str).unwrap_or_default();
+                let address = first_entry
+                    .get("ADDRESS")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_string();
+                Ok(vec![ParcelInfo {
+                    parcel_id: format!("{}-{}-{}", unit, sec, no),
+                    address,
+                    lot_number: sec.to_string(),
+                    building_number: no.to_string(),
+                }])
+            }
+        }
     }
 
     fn field_mappings() -> Vec<FieldMapping> {
@@ -123,7 +122,8 @@ impl<P: ApiKeyProvider> AddressToParcelApi<P> {
             return AddressToParcelEndpoint::parse_response(cached);
         }
 
-        let payload = serde_json::json!({"address": normalized});
+        let city_code = crate::land_registry::client::city_code_from_address(&normalized);
+        let payload = serde_json::json!([{"CITY": city_code, "ADDRESS": normalized}]);
         let (_, json) = post_json_with_key(
             &self.http_client,
             &self.base_url,
@@ -154,25 +154,21 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn returns_sorted_parcels_for_two_results() {
+    async fn returns_parcel_for_valid_address() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/address-to-parcel"))
+            .and(path("/BuildingNo/1.0/QueryByAddress"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "results": [
-                    {
-                        "parcel_id": "0301-0002",
-                        "address": "台北市大安區和平東路一段100號",
-                        "lot_number": "0301",
-                        "building_number": "0002"
-                    },
-                    {
-                        "parcel_id": "0301-0001",
-                        "address": "台北市大安區和平東路一段100號",
-                        "lot_number": "0301",
-                        "building_number": "0001"
+                "STATUS": 1,
+                "RESPONSE": [{
+                    "CITY": "A",
+                    "ADDRESS": "台北市大安區和平東路一段100號",
+                    "BLDGREG": {
+                        "UNIT": "A",
+                        "SEC": "0301",
+                        "NO": "0001"
                     }
-                ]
+                }]
             })))
             .mount(&server)
             .await;
@@ -185,18 +181,18 @@ mod tests {
         );
 
         let result = api.lookup("台北市大安區和平東路一段100號").await.unwrap();
-        assert_eq!(result.len(), 2);
-        assert_eq!(result[0].parcel_id, "0301-0001");
-        assert_eq!(result[1].parcel_id, "0301-0002");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].parcel_id, "A-0301-0001");
     }
 
     #[tokio::test]
     async fn returns_empty_when_no_results() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/address-to-parcel"))
+            .and(path("/BuildingNo/1.0/QueryByAddress"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "results": []
+                "STATUS": 1,
+                "RESPONSE": [{"CITY": "A", "ADDRESS": "不存在的地址", "BLDGREG": null}]
             })))
             .mount(&server)
             .await;
@@ -216,13 +212,17 @@ mod tests {
     async fn second_lookup_uses_cache_without_second_http_call() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/address-to-parcel"))
+            .and(path("/BuildingNo/1.0/QueryByAddress"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "results": [{
-                    "parcel_id": "0301-0001",
-                    "address": "台北市大安區和平東路一段100號",
-                    "lot_number": "0301",
-                    "building_number": "0001"
+                "STATUS": 1,
+                "RESPONSE": [{
+                    "CITY": "A",
+                    "ADDRESS": "台北市大安區和平東路一段100號",
+                    "BLDGREG": {
+                        "UNIT": "A",
+                        "SEC": "0301",
+                        "NO": "0001"
+                    }
                 }]
             })))
             .mount(&server)
