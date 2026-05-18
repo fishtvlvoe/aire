@@ -12,7 +12,9 @@ const API_ID: &str = "land_value";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LandValueData {
+    #[serde(rename = "announced_value")]
     pub announced_land_value: f64,
+    #[serde(rename = "assessed_value")]
     pub assessed_land_value: f64,
 }
 

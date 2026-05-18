@@ -277,10 +277,10 @@ mod tests {
     async fn pull_three_apis_returns_three_results_and_total_cost() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/BuildingDescription/1.0/QueryByBuildingNo"))
+            .and(path("/BuildingDescription/1.0/QueryByBuildNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "STATUS": 1,
-                "RESPONSE": [{"BUILDREG": {"BLDGAREA": "52.5", "MAINUSE": "住家用", "COMPLETE": "090/09/01"}}]
+                "RESPONSE": [{"BLDGREG": {"AREA": "52.5", "PURPOSE": "住家用", "COMPLETEDATE": "090/09/01"}}]
             })))
             .mount(&server)
             .await;
@@ -302,12 +302,12 @@ mod tests {
             .await;
 
         Mock::given(method("POST"))
-            .and(path("/LandOwnership/1.0/QueryByLandNo"))
+            .and(path("/LandOwnership/1.0/QueryByLimit"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
                 "STATUS": 1,
-                "RESPONSE": [{"LANDOWNER": [
-                    {"OWNERNAME": "王小明", "OWNERPERCENT": "1/2"},
-                    {"OWNERNAME": "王小美", "OWNERPERCENT": "1/2"}
+                "RESPONSE": [{"LANDOWNERSHIP": [
+                    {"NUMERATOR": "1", "DENOMINATOR": "2", "OWNER": {"LNAME": "王小明"}},
+                    {"NUMERATOR": "1", "DENOMINATOR": "2", "OWNER": {"LNAME": "王小美"}}
                 ]}]
             })))
             .mount(&server)

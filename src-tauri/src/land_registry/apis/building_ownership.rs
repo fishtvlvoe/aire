@@ -14,6 +14,7 @@ const API_ID: &str = "building_ownership";
 pub struct BuildingOwnershipData {
     pub owner_name: String,
     pub certificate_no: String,
+    #[serde(rename = "ownership_date")]
     pub issue_date: String,
 }
 
