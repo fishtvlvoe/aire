@@ -28,6 +28,8 @@ pub trait LandRegistryEndpoint<T> {
 pub struct ApiCredentials {
     pub client_id: String,
     pub client_secret: String,
+    /// 空字串 = 維持 Basic auth（沙箱/測試用）；非空 = GET token_endpoint → Bearer token
+    pub token_endpoint: String,
 }
 
 pub trait ApiKeyProvider: Send + Sync {
@@ -45,6 +47,21 @@ impl StaticApiKeyProvider {
             credentials: Arc::new(Some(ApiCredentials {
                 client_id: client_id.into(),
                 client_secret: client_secret.into(),
+                token_endpoint: String::new(),
+            })),
+        }
+    }
+
+    pub fn with_token_endpoint(
+        client_id: impl Into<String>,
+        client_secret: impl Into<String>,
+        token_endpoint: impl Into<String>,
+    ) -> Self {
+        Self {
+            credentials: Arc::new(Some(ApiCredentials {
+                client_id: client_id.into(),
+                client_secret: client_secret.into(),
+                token_endpoint: token_endpoint.into(),
             })),
         }
     }
@@ -174,5 +191,130 @@ mod tests {
     #[test]
     fn trims_and_collapses_spaces() {
         assert_eq!(normalize_address(" 台北  市 "), "台北 市");
+    }
+
+    // ── TDD 紅燈測試：Token 認證流程 ─────────────────────────────────────
+
+    use super::{post_json_with_key, ApiKeyProvider, StaticApiKeyProvider};
+    use base64::Engine as _;
+    use crate::land_registry::errors::LandRegistryError;
+    use wiremock::matchers::{header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    /// Task 1.1: token_endpoint 非空時，業務 API 請求應使用 Bearer token
+    #[tokio::test]
+    async fn token_endpoint_set_uses_bearer_auth() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/cp/getToken"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "test-tok",
+                "expires_in": 300
+            })))
+            .mount(&server)
+            .await;
+
+        Mock::given(method("POST"))
+            .and(path("/TestApi/1.0/Query"))
+            .and(header("Authorization", "Bearer test-tok"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "STATUS": 1,
+                "RESPONSE": []
+            })))
+            .mount(&server)
+            .await;
+
+        let token_url = format!("{}/cp/getToken", server.uri());
+        let credentials = StaticApiKeyProvider::with_token_endpoint("cid", "secret", &token_url)
+            .get_api_key()
+            .unwrap()
+            .unwrap();
+
+        let client = reqwest::Client::new();
+        let result = post_json_with_key(
+            &client,
+            &server.uri(),
+            "/TestApi/1.0/Query",
+            &credentials,
+            &serde_json::json!([{}]),
+        )
+        .await;
+
+        assert!(result.is_ok(), "expected ok, got {:?}", result);
+    }
+
+    /// Task 1.2: token endpoint 回 401 → 應回 AuthFailed
+    #[tokio::test]
+    async fn token_endpoint_401_returns_auth_failed() {
+        let server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .and(path("/cp/getToken"))
+            .respond_with(ResponseTemplate::new(401).set_body_string("Unauthorized"))
+            .mount(&server)
+            .await;
+
+        let token_url = format!("{}/cp/getToken", server.uri());
+        let credentials = StaticApiKeyProvider::with_token_endpoint("cid", "secret", &token_url)
+            .get_api_key()
+            .unwrap()
+            .unwrap();
+
+        let client = reqwest::Client::new();
+        let result = post_json_with_key(
+            &client,
+            &server.uri(),
+            "/TestApi/1.0/Query",
+            &credentials,
+            &serde_json::json!([{}]),
+        )
+        .await;
+
+        assert!(
+            matches!(result, Err(LandRegistryError::AuthFailed { .. })),
+            "expected AuthFailed, got {:?}",
+            result
+        );
+    }
+
+    /// Task 1.3: token_endpoint 為空 → 維持 Basic auth，不呼叫 token endpoint
+    #[tokio::test]
+    async fn empty_token_endpoint_uses_basic_auth() {
+        let server = MockServer::start().await;
+
+        // 正確的 Basic base64("cid:secret")
+        let expected_basic = format!(
+            "Basic {}",
+            base64::engine::general_purpose::STANDARD
+                .encode("cid:secret")
+        );
+
+        Mock::given(method("POST"))
+            .and(path("/TestApi/1.0/Query"))
+            .and(header("Authorization", expected_basic.as_str()))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "STATUS": 1,
+                "RESPONSE": []
+            })))
+            .mount(&server)
+            .await;
+
+        let credentials = StaticApiKeyProvider::configured("cid", "secret")
+            .get_api_key()
+            .unwrap()
+            .unwrap();
+
+        let client = reqwest::Client::new();
+        let result = post_json_with_key(
+            &client,
+            &server.uri(),
+            "/TestApi/1.0/Query",
+            &credentials,
+            &serde_json::json!([{}]),
+        )
+        .await;
+
+        assert!(result.is_ok(), "expected ok with Basic auth, got {:?}", result);
     }
 }

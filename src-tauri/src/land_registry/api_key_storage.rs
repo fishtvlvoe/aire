@@ -89,6 +89,8 @@ impl<'a> ApiKeyStorage<'a> {
                 Ok(Some(ApiCredentials {
                     client_id: parsed.client_id,
                     client_secret: parsed.client_secret,
+                    token_endpoint: std::env::var("LAND_REGISTRY_TOKEN_ENDPOINT")
+                        .unwrap_or_default(),
                 }))
             }
         }
