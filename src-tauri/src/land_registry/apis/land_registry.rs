@@ -15,33 +15,63 @@ pub struct LandRegistryData {
     pub land_area: f64,
     pub land_purpose: String,
     pub owner_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub zoning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub announced_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assessed_value: Option<String>,
 }
 
 pub struct LandRegistryEndpointImpl;
 
 impl LandRegistryEndpoint<LandRegistryData> for LandRegistryEndpointImpl {
     fn endpoint_path() -> &'static str {
-        "/land/parcel/land-registry"
+        "/LandDescription/1.0/QueryByLandNo"
     }
 
     fn parse_response(json: Value) -> Result<LandRegistryData, LandRegistryError> {
-        let root = json.get("data").unwrap_or(&json);
+        // COP API format: {"STATUS": 1, "RESPONSE": [{"LANDREG": {...}}]}
+        let status = json.get("STATUS").and_then(|s| s.as_u64());
+        if status != Some(1) {
+            return Err(LandRegistryError::Internal {
+                message: "COP API returned non-success STATUS".to_string(),
+            });
+        }
+
+        let first_entry = json
+            .get("RESPONSE")
+            .and_then(|r| r.as_array())
+            .and_then(|arr| arr.first())
+            .ok_or_else(|| LandRegistryError::Internal {
+                message: "COP API RESPONSE array is empty".to_string(),
+            })?;
+
+        let landreg = first_entry
+            .get("LANDREG")
+            .ok_or_else(|| LandRegistryError::Internal {
+                message: "COP API missing LANDREG".to_string(),
+            })?;
+
+        let area_str = landreg.get("AREA").and_then(Value::as_str).unwrap_or("0");
+        let land_area = area_str.parse::<f64>().unwrap_or(0.0);
+        let zoning = landreg.get("ZONING").and_then(Value::as_str).map(|s| s.to_string());
+        let announced_value = landreg
+            .get("ALVALUE")
+            .and_then(Value::as_str)
+            .map(|s| s.to_string());
+        let assessed_value = landreg
+            .get("ALPRICE")
+            .and_then(Value::as_str)
+            .map(|s| s.to_string());
+
         Ok(LandRegistryData {
-            land_area: root.get("land_area").and_then(Value::as_f64).ok_or(
-                LandRegistryError::Internal {
-                    message: "missing land_area".to_string(),
-                },
-            )?,
-            land_purpose: root
-                .get("land_purpose")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
-            owner_name: root
-                .get("owner_name")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string(),
+            land_area,
+            land_purpose: zoning.clone().unwrap_or_default(),
+            owner_name: String::new(),
+            zoning,
+            announced_value,
+            assessed_value,
         })
     }
 
@@ -85,7 +115,17 @@ impl<P: ApiKeyProvider> LandRegistryApi<P> {
 
     pub async fn fetch(&self, parcel_id: &str) -> Result<LandRegistryData, LandRegistryError> {
         let credentials = require_api_key(self.key_provider.as_ref())?;
-        let payload = serde_json::json!({ "parcel_id": parcel_id });
+
+        let parts: Vec<&str> = parcel_id.splitn(3, '-').collect();
+        let (unit, sec, no) = if parts.len() == 3 {
+            (parts[0], parts[1], parts[2])
+        } else {
+            return Err(LandRegistryError::Internal {
+                message: format!("invalid parcel_id format: {parcel_id}"),
+            });
+        };
+        let payload = serde_json::json!([{ "UNIT": unit, "SEC": sec, "NO": no }]);
+
         let response = post_json_with_key(
             &self.http_client,
             &self.base_url,
@@ -145,13 +185,17 @@ mod tests {
     async fn parses_land_registry_and_records_billing() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
-            .and(path("/land/parcel/land-registry"))
+            .and(path("/LandDescription/1.0/QueryByLandNo"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "land_area": 120.0,
-                    "land_purpose": "住宅區",
-                    "owner_name": "王小明"
-                }
+                "STATUS": 1,
+                "RESPONSE": [{
+                    "LANDREG": {
+                        "AREA": "120",
+                        "ZONING": "住宅區",
+                        "ALVALUE": "100",
+                        "ALPRICE": "50"
+                    }
+                }]
             })))
             .mount(&server)
             .await;
@@ -163,12 +207,15 @@ mod tests {
             Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
         );
 
-        let result = api.fetch("0301-0001").await.unwrap();
+        let result = api.fetch("A-0301-0001").await.unwrap();
         assert!((result.land_area - 120.0).abs() < f64::EPSILON);
         assert_eq!(result.land_purpose, "住宅區");
-        assert_eq!(result.owner_name, "王小明");
+        assert_eq!(result.owner_name, "");
+        assert_eq!(result.zoning, Some("住宅區".to_string()));
+        assert_eq!(result.announced_value, Some("100".to_string()));
+        assert_eq!(result.assessed_value, Some("50".to_string()));
 
-        let entries = billing_log.get_entries_for("0301-0001");
+        let entries = billing_log.get_entries_for("A-0301-0001");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].api_id(), "land_registry");
         assert!((entries[0].cost() - 10.0).abs() < f64::EPSILON);
