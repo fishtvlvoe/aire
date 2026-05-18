@@ -253,3 +253,35 @@ describe("assembleDossierData — zoningType 映射", () => {
     expect(result.buildingLineNote).toBe("依主管機關規定辦理");
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// assembleDossierData — 封面品牌資訊
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("assembleDossierData — 封面品牌資訊", () => {
+  it("get_brand_text_settings 回傳 company_name → cover.brokerageCompanyName 正確", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return { company_name: "大安不動產" };
+      if (cmd === "land_registry_pull_data") return mockPullResultLand;
+      if (cmd === "get_legal_clause") return mockLegalClauses;
+      if (cmd === "query_real_price") return mockRealPriceRecords;
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData(landCaseRow);
+    expect(result.cover?.brokerageCompanyName).toBe("大安不動產");
+  });
+
+  it("get_brand_text_settings 失敗時 cover.brokerageCompanyName 為空字串", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") throw new Error("IPC error");
+      if (cmd === "land_registry_pull_data") return mockPullResultLand;
+      if (cmd === "get_legal_clause") return mockLegalClauses;
+      if (cmd === "query_real_price") return mockRealPriceRecords;
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData(landCaseRow);
+    expect(result.cover?.brokerageCompanyName).toBe("");
+  });
+});

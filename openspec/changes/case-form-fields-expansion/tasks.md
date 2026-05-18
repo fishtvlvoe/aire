@@ -60,10 +60,10 @@
 
 ## Wave 3 — Build & Test
 
-- [ ] **Task 3.1** — Rust + frontend build verification
+- [x] **Task 3.1** — Rust + frontend build verification
   Run `cargo build` in `src-tauri/` — expect 0 errors. Run `npm run build` in project root — expect 0 errors. Fix any type or compile errors found before marking this task done.
   **Verify:** Both commands exit with code 0.
 
-- [ ] **Task 3.2** — Add/update tests for new fields
+- [x] **Task 3.2** — Add/update tests for new fields
   (a) Update or add a test in `src/components/__tests__/CaseWizardStep1.test.tsx` that renders Step 1 with a mock case having `asking_price: 30000000` and asserts the input displays "3000". (b) Add a test asserting that submitting the form with input value "2500" calls `updateCase` with `asking_price: 25000000`. (c) Add a test in `src/components/__tests__/CaseWizardStep2.test.tsx` asserting the 建號 input is present and bound to `building_lot_no`. (d) Add a unit test for `assembleDossierData` that mocks `get_brand_text_settings` to return `{ company_name: "大安" }` and asserts `result.cover.brokerageCompanyName === "大安"`.
   **Verify:** `npm run test -- --run` passes for all affected test files with no new failures.

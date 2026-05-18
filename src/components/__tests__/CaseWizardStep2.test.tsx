@@ -51,6 +51,23 @@ describe("CaseWizardStep2", () => {
     mocks.updateCase.mockResolvedValue(baseCase);
   });
 
+  it("建號輸入框存在且可編輯，失焦時呼叫 update", async () => {
+    render(<CaseWizardStep2 caseData={{ ...baseCase, building_lot_no: "778-2" }} />);
+
+    const input = screen.getByLabelText("建號") as HTMLInputElement;
+    expect(input).toBeInTheDocument();
+    expect(input.value).toBe("778-2");
+
+    fireEvent.change(input, { target: { value: "999-1" } });
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(mocks.updateCase).toHaveBeenCalledWith("case-002", {
+        building_lot_no: "999-1",
+      });
+    });
+  });
+
   it("fills land/building lot numbers from nested land_registry_data and persists", async () => {
     render(<CaseWizardStep2 caseData={baseCase} />);
 
