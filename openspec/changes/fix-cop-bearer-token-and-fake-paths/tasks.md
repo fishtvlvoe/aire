@@ -18,6 +18,6 @@
 
 ## 4. 整合驗證（沙箱）
 
-- [ ] 4.1 撰寫 `/tmp/test-cop-sandbox-bearer.mjs` 腳本：使用 `LAND_REGISTRY_CLIENT_ID` + `LAND_REGISTRY_CLIENT_SECRET` 呼叫沙箱 token endpoint（`https://copapi.moi.gov.tw/sandbox/api/...` 或確認沙箱 token endpoint），取得 Bearer token，以 Bearer 打四支 API 沙箱端點，記錄 STATUS 與 container 欄位名稱到 `/tmp/cop-sandbox-bearer-result.txt`
-- [ ] 4.2 依據 4.1 沙箱實際回應，驗證 `parse_response` 的 container 名稱（`BUILDREG` / `LANDOWNER` / `BUILDOWNER` / `LANDOTHER`）與欄位名稱正確；若不符則修正 3.1-3.4 的 `parse_response` 並重跑 `cargo test` 確認全綠
-- [ ] 4.3 執行 `cargo test -p aire-lib 2>&1 | tail -5`，確認 0 failed；git add + commit `fix(land_registry): Bearer token auth + COP 真實 API 路徑修正`
+- [x] 4.1 撰寫 `/tmp/test-cop-sandbox-bearer.mjs` 腳本：使用 `LAND_REGISTRY_CLIENT_ID` + `LAND_REGISTRY_CLIENT_SECRET` 呼叫沙箱 token endpoint（`https://copapi.moi.gov.tw/sandbox/api/...` 或確認沙箱 token endpoint），取得 Bearer token，以 Bearer 打四支 API 沙箱端點，記錄 STATUS 與 container 欄位名稱到 `/tmp/cop-sandbox-bearer-result.txt`
+- [x] 4.2 依據 4.1 沙箱實際回應，驗證 `parse_response` 的 container 名稱（`BUILDREG` / `LANDOWNER` / `BUILDOWNER` / `LANDOTHER`）與欄位名稱正確；若不符則修正 3.1-3.4 的 `parse_response` 並重跑 `cargo test` 確認全綠
+- [x] 4.3 執行 `cargo test -p aire-lib 2>&1 | tail -5`，確認 0 failed；git add + commit `fix(land_registry): Bearer token auth + COP 真實 API 路徑修正`
