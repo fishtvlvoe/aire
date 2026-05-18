@@ -269,6 +269,8 @@ pub fn run() {
             land_registry::consent::land_registry_record_consent,
             geo_services::overpass::query_nearby_amenities,
             geo_services::osm_map::fetch_location_map,
+            geo_services::nlsc_aerial::fetch_aerial_photo,
+            geo_services::mapillary::fetch_street_view,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");
