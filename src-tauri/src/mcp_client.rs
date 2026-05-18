@@ -6,11 +6,13 @@ pub async fn call_opendata_query(
     keyword: &str,
     limit: u32,
 ) -> Result<Vec<Value>, String> {
-    let api_key = env::var("TWINKLE_HUB_API_KEY")
-        .map_err(|_| "TWINKLE_HUB_API_KEY not set".to_string())?;
+    let api_key = env::var("TWINKLE_AI_API_KEY")
+        .map_err(|_| "TWINKLE_AI_API_KEY not set".to_string())?;
+
+    let dataset_id = dataset_id_for_city(district);
 
     let where_clause = format!(
-        "district LIKE '%{}%' AND road LIKE '%{}%'",
+        "\"鄉鎮市區\" LIKE '%{}%' AND \"土地區段位置或建物區門牌\" LIKE '%{}%'",
         district.replace("'", "''"),
         keyword.replace("'", "''")
     );
@@ -21,7 +23,7 @@ pub async fn call_opendata_query(
         "params": {
             "name": "opendata-query_rows",
             "arguments": {
-                "dataset": "lvr-trades",
+                "dataset_id": dataset_id,
                 "where": where_clause,
                 "limit": limit
             }
@@ -34,25 +36,18 @@ pub async fn call_opendata_query(
         .post("https://api.twinkleai.tw/mcp/")
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
+        .header("Accept", "application/json, text/event-stream")
         .json(&body)
         .send()
         .await
         .map_err(|e| format!("Request failed: {}", e))?;
 
-    let json: Value = response
-        .json()
+    let body_text = response
+        .text()
         .await
-        .map_err(|e| format!("Parse response failed: {}", e))?;
+        .map_err(|e| format!("Read response body failed: {}", e))?;
 
-    let text = json
-        .pointer("/result/content/0/text")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| format!("Unexpected response shape: {}", json))?;
-
-    let records: Vec<Value> = serde_json::from_str(text)
-        .map_err(|e| format!("Parse records failed: {}", e))?;
-
-    Ok(records)
+    parse_sse_response(&body_text)
 }
 
 // --- TDD stubs (to be implemented) ---
@@ -61,22 +56,51 @@ pub fn get_api_key_for_test() -> Result<String, String> {
     std::env::var("TWINKLE_AI_API_KEY").map_err(|_| "TWINKLE_AI_API_KEY not set".to_string())
 }
 
-pub fn dataset_id_for_city(_city: &str) -> &'static str {
-    todo!("implement dataset routing")
+pub fn dataset_id_for_city(city: &str) -> &'static str {
+    if city.starts_with("台南市") {
+        "128852"
+    } else {
+        "lvr-trades"
+    }
 }
 
-pub fn parse_sse_response(_body: &str) -> Result<Vec<serde_json::Value>, String> {
-    todo!("implement SSE parsing")
+pub fn parse_sse_response(body: &str) -> Result<Vec<serde_json::Value>, String> {
+    // 找第一個 data: 開頭的行
+    let data_line = body
+        .lines()
+        .find(|line| line.starts_with("data:"))
+        .ok_or_else(|| "no data: line found in SSE response".to_string())?;
+
+    // 去除 "data: " 前綴
+    let json_str = data_line.trim_start_matches("data:").trim();
+
+    // 解析外層 JSON（MCP 回應格式）
+    let outer: serde_json::Value =
+        serde_json::from_str(json_str).map_err(|e| format!("SSE outer JSON parse failed: {}", e))?;
+
+    // 取出 result.content[0].text
+    let text = outer
+        .pointer("/result/content/0/text")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| format!("unexpected SSE response shape: {}", outer))?;
+
+    // 解析 records array
+    serde_json::from_str::<Vec<serde_json::Value>>(text)
+        .map_err(|e| format!("SSE records JSON parse failed: {}", e))
 }
 
-pub fn build_mcp_request_body(dataset_id: &str, where_clause: &str, limit: u32) -> serde_json::Value {
+pub fn build_mcp_request_body(
+    dataset_id: &str,
+    where_clause: &str,
+    limit: u32,
+) -> serde_json::Value {
     serde_json::json!({
         "jsonrpc": "2.0",
         "method": "tools/call",
         "params": {
             "name": "opendata-query_rows",
             "arguments": {
-                "dataset": dataset_id,  // BUG: should be "dataset_id"
+                "dataset_id": dataset_id,
                 "where": where_clause,
                 "limit": limit
             }
@@ -142,17 +166,23 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "implement dataset routing")]
     fn test_dataset_id_for_city_tainan() {
-        // stub 目前 todo!() → panics → 測試以 should_panic 確認紅燈
-        let _ = crate::mcp_client::dataset_id_for_city("台南市");
+        // Wave 3 實作後：台南市 → dataset_id "128852"
+        let result = crate::mcp_client::dataset_id_for_city("台南市");
+        assert_eq!(result, "128852", "台南市 dataset id 應為 128852");
     }
 
     #[test]
-    #[should_panic(expected = "implement SSE parsing")]
     fn test_sse_response_parsing() {
-        // stub 目前 todo!() → panics
-        let sse = "event: message\ndata: {\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"[]\"}]}}\n";
-        let _ = crate::mcp_client::parse_sse_response(sse);
+        // Wave 3 實作後：應能正確解析 SSE data: 行
+        let sse = "event: message\ndata: {\"jsonrpc\":\"2.0\",\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"[{\\\"單價每平方公尺\\\":\\\"50000\\\"}]\"}]}}\n";
+        let result = crate::mcp_client::parse_sse_response(sse);
+        assert!(result.is_ok(), "SSE 解析應成功，got: {:?}", result.err());
+        let records = result.unwrap();
+        assert_eq!(records.len(), 1, "應有 1 筆 record");
+        assert!(
+            records[0].get("單價每平方公尺").is_some(),
+            "record 應有 '單價每平方公尺' 欄位"
+        );
     }
 }
