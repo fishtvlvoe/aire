@@ -12,7 +12,9 @@ const API_ID: &str = "land_registry";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LandRegistryData {
+    #[serde(rename = "area")]
     pub land_area: f64,
+    #[serde(rename = "purpose")]
     pub land_purpose: String,
     pub owner_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]

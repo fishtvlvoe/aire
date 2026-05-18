@@ -12,9 +12,16 @@ const API_ID: &str = "building_registry";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BuildingRegistryData {
+    #[serde(rename = "area")]
     pub building_area: f64,
+    #[serde(rename = "purpose")]
     pub building_purpose: String,
     pub construction_date: String,
+    pub main_building_area: f64,
+    pub auxiliary_area: f64,
+    pub common_area: f64,
+    pub parking_area: f64,
+    pub construction_company: String,
 }
 
 pub struct BuildingRegistryEndpoint;
@@ -46,16 +53,29 @@ impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
                     building_area: 0.0,
                     building_purpose: String::new(),
                     construction_date: String::new(),
+                    main_building_area: 0.0,
+                    auxiliary_area: 0.0,
+                    common_area: 0.0,
+                    parking_area: 0.0,
+                    construction_company: String::new(),
                 });
             }
         };
 
-        let building_area = bldgreg
-            .get("AREA")
-            .and_then(Value::as_str)
-            .unwrap_or("0")
-            .parse::<f64>()
-            .unwrap_or(0.0);
+        let parse_area = |key: &str| {
+            bldgreg
+                .get(key)
+                .and_then(Value::as_str)
+                .unwrap_or("0")
+                .parse::<f64>()
+                .unwrap_or(0.0)
+        };
+
+        let building_area = parse_area("AREA");
+        let main_building_area = parse_area("MAINAREA");
+        let auxiliary_area = parse_area("ATTAREA");
+        let common_area = parse_area("SHAREAREA");
+        let parking_area = parse_area("PARKAREA");
 
         let building_purpose = bldgreg
             .get("PURPOSE")
@@ -69,10 +89,21 @@ impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
             .unwrap_or_default()
             .to_string();
 
+        let construction_company = bldgreg
+            .get("CONBUILDNAME")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string();
+
         Ok(BuildingRegistryData {
             building_area,
             building_purpose,
             construction_date,
+            main_building_area,
+            auxiliary_area,
+            common_area,
+            parking_area,
+            construction_company,
         })
     }
 
