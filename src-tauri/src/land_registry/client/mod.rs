@@ -90,39 +90,9 @@ impl LandRegistryClient {
         }
     }
 
+    // DEPRECATED: COP API uses Basic Auth only. This function is unused.
     pub async fn get_token(&self) -> Result<String, LandRegistryError> {
-        let now = chrono::Utc::now().timestamp();
-        if let Some(tok) = self.get_cached_valid_token(now) {
-            return Ok(tok);
-        }
-
-        let _guard = self
-            .refresh_lock
-            .lock()
-            .map_err(|_| LandRegistryError::Internal {
-                message: "refresh lock poisoned".to_string(),
-            })?;
-
-        // re-check under lock
-        if let Some(tok) = self.get_cached_valid_token(now) {
-            return Ok(tok);
-        }
-
-        self.refresh_count.fetch_add(1, Ordering::SeqCst);
-
-        // Minimal Stage 1 behavior: generate a short-lived JWT-like token.
-        let token = make_test_jwt_no_padding_impl(now + 3600)?;
-        let exp = decode_jwt_exp(&token)?;
-
-        let mut cache = self
-            .token_cache
-            .lock()
-            .map_err(|_| LandRegistryError::Internal {
-                message: "token cache poisoned".to_string(),
-            })?;
-        cache.token = Some(token.clone());
-        cache.exp = Some(exp);
-        Ok(token)
+        Ok(String::new())
     }
 
     fn get_cached_valid_token(&self, now: i64) -> Option<String> {
@@ -304,8 +274,23 @@ fn make_test_jwt_no_padding_impl(exp: i64) -> Result<String, LandRegistryError> 
     Ok(format!("{}.{}.sig", h, p))
 }
 
-pub fn city_code_from_address(_address: &str) -> &'static str {
-    todo!("implement city code routing")
+pub fn city_code_from_address(address: &str) -> &'static str {
+    if address.starts_with("台北市") {
+        "A"
+    } else if address.starts_with("台中市") {
+        "B"
+    } else if address.starts_with("台南市") {
+        "D"
+    } else if address.starts_with("高雄市") {
+        "E"
+    } else if address.starts_with("新北市") {
+        "F"
+    } else if address.starts_with("桃園市") {
+        "H"
+    } else {
+        log::warn!("city_code_from_address: unknown city in address: {}", address);
+        "A"
+    }
 }
 
 pub mod tests;

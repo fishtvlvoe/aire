@@ -263,15 +263,16 @@ mod tests {
         assert_eq!(result, "A", "台北市應回傳縣市代碼 A");
     }
 
-    #[test]
-    fn test_get_token_deprecated_returns_empty() {
-        // get_token() 目前回傳假 JWT，Wave 4 修正後應回傳 Ok("")
-        // COP API 用 Basic Auth，不需要 Bearer token
-        // 用永遠失敗的 assertion 記錄預期行為（紅燈）
+    #[tokio::test]
+    async fn test_get_token_deprecated_returns_empty() {
+        // DEPRECATED: get_token() 應回傳 Ok("") — COP API uses Basic Auth only
+        let client = LandRegistryClient::new(ClientConfig::default_test());
+        let result = client.get_token().await;
+        assert!(result.is_ok(), "get_token() 應回傳 Ok, got: {:?}", result.err());
         assert_eq!(
-            "get_token_must_return_empty_after_wave4",
-            "FAIL_UNTIL_WAVE4_IMPLEMENTS_THIS",
-            "DEPRECATED: get_token() MUST return Ok(\"\") — COP API uses Basic Auth only"
+            result.unwrap(),
+            "",
+            "get_token() 應回傳空字串（COP API 不用 Bearer token）"
         );
     }
 }
