@@ -3,6 +3,81 @@ import { createPdfEngine } from "../engine";
 import type { CaseDossierData } from "../document";
 import { writeFileSync } from "fs";
 
+// Criterion 2 驗證：使用真實 COP API 回傳資料生成不動產說明書 PDF
+// 地號 BA-0001-00020000（台中市），COP 生產環境確認值
+describe("Criterion 2 — 真實 COP API 資料 → PDF 生成驗證", () => {
+  it("真實地政資料填入說明書 PDF（地號/面積/公告地現值）", async () => {
+    const engine = await createPdfEngine();
+
+    // 來自真實 COP API（verify-cop-e2e.sh 及 cop_api_live.rs 均已確認）
+    const realCopData: CaseDossierData = {
+      caseNo: "CRITERION2-BA0001",
+      address: "台中市（沙盒測試地號）",
+      propertyType: "land",
+      landLotNo: "BA-0001-00020000",          // 真實地號
+      ownerName: "（地政 API 回傳）",
+      companyName: "AIRE 測試驗證",
+      generatedAt: new Date().toISOString().split("T")[0]!,
+
+      // 真實 COP API 回傳值
+      landArea: 72.0,                          // LandDescription AREA=72.00
+      announcedLandValue: 39600,               // ALVALUE=39600
+      assessedLandValue: 4900,                 // ALPRICE=4900
+
+      cover: {
+        propertyName: "BA-0001-00020000 台中市地號",
+        caseNumber: "CRITERION2-BA0001",
+        handlingAgent: "AIRE E2E 驗證",
+        licensedAgentName: "（測試）",
+        licensedAgentCertNo: "測試用",
+        brokerageCompanyName: "AIRE 測試",
+        brokerageLicenseNo: "測試用",
+        companyAddress: "台南市",
+        companyPhone: "---",
+      },
+      propertySheet: {
+        askingPrice: 0,
+        landSection: "BA-0001",
+        landNumber: "00020000",
+        zoning: "（COP API 未回傳）",
+        landArea: 72.0,
+        ownershipRatio: "1/1",
+        shareArea: 72.0,
+        buildingCoverage: "---",
+        floorAreaRatio: "---",
+        owner: "（地政 API 回傳）",
+        acquisitionDate: "---",
+      },
+      taxCalculation: {
+        landValueIncrementTax: 0,
+        landValueIncrementTaxPreferential: 0,
+        deedTax: 0,
+        stampTax: 0,
+        registrationFee: 0,
+        scrivenerFee: 0,
+        totalSellerCost: 0,
+        totalBuyerCost: 0,
+        warnings: [],
+      },
+      transactionHistory: [],
+      nearbyAmenities: [],
+      surveyData: null,
+      exteriorPhoto: null,
+      locationMapImage: null,
+    };
+
+    const blob = await engine.renderDossier({ data: realCopData, themeId: "classic" });
+    expect(blob).toBeDefined();
+    expect(blob.size).toBeGreaterThan(1000);
+
+    const buffer = Buffer.from(await blob.arrayBuffer());
+    const outputPath = "/tmp/criterion2-disclosure-BA-0001-00020000.pdf";
+    writeFileSync(outputPath, buffer);
+    console.log(`✅ Criterion 2 PDF 生成：${outputPath} (${buffer.length} bytes)`);
+    console.log("   地號：BA-0001-00020000  面積：72.0 ㎡  公告地現值：39,600");
+  }, 30000);
+});
+
 describe("PDF Generation E2E", () => {
   it("generates a complete land-type dossier PDF", async () => {
     const engine = await createPdfEngine();
