@@ -50,7 +50,7 @@ const baseCase: CaseRow = {
   address: "台南市東區測試路 1 號",
   owner_name: "王小明",
   land_registry_data: null,
-  current_step: 4,
+  current_step: 5,
   status: "draft",
   created_at: 1,
   updated_at: 1,
@@ -64,7 +64,7 @@ describe("CaseWizard", () => {
     mocks.safeInvoke.mockResolvedValue([{ id: "premium_real_price_enabled", enabled: true }]);
   });
 
-  it("passes caseData into step 4 and hides next button on final step", async () => {
+  it("passes caseData into step 5 and hides next button on final step", async () => {
     render(<CaseWizard caseId={baseCase.id} />);
 
     await waitFor(() => {

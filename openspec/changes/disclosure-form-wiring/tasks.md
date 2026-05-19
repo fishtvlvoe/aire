@@ -26,6 +26,6 @@
 
 ## 6. 驗收測試
 
-- [ ] [P] 6.1 在 `src/components/case-wizard/__tests__/` 新增 `CaseWizardStep3Disclosure.test.tsx`：測試成屋案件渲染 `DisclosureFormResidential`（`property_type = "residential"`）；測試土地案件渲染 `DisclosureFormLand`（`property_type = "land"`）；測試「下一步」按鈕在欄位全空時不被 disabled。驗收：`npm test -- CaseWizardStep3Disclosure` 全部通過
-- [ ] [P] 6.2 在 `src/lib/__tests__/` 新增 `disclosure-schema.test.ts`：測試 `getRequiredFields("residential")` 回傳陣列長度 > 0 且每筆含 `key`, `label`, `fieldType`；同上測試 `getRequiredFields("land")`。驗收：`npm test -- disclosure-schema` 全部通過
-- [ ] [P] 6.3 在 `src/components/__tests__/` 新增 `CaseSupplementDialog.disclosure.test.tsx`：mock `get_draft` 回傳有空值欄位的 payload，驗證 dialog 顯示對應的 input；mock `get_draft` 回傳全填 payload，驗證 dialog 不顯示多餘 input。驗收：`npm test -- CaseSupplementDialog.disclosure` 全部通過
+- [x] [P] 6.1 在 `src/components/case-wizard/__tests__/` 新增 `CaseWizardStep3Disclosure.test.tsx`：測試成屋案件渲染 `DisclosureFormResidential`（`property_type = "residential"`）；測試土地案件渲染 `DisclosureFormLand`（`property_type = "land"`）；測試「下一步」按鈕在欄位全空時不被 disabled。驗收：`npm test -- CaseWizardStep3Disclosure` 全部通過
+- [x] [P] 6.2 在 `src/lib/__tests__/` 新增 `disclosure-schema.test.ts`：測試 `getRequiredFields("residential")` 回傳陣列長度 > 0 且每筆含 `key`, `label`, `fieldType`；同上測試 `getRequiredFields("land")`。驗收：`npm test -- disclosure-schema` 全部通過
+- [x] [P] 6.3 在 `src/components/__tests__/` 新增 `CaseSupplementDialog.disclosure.test.tsx`：mock `get_draft` 回傳有空值欄位的 payload，驗證 dialog 顯示對應的 input；mock `get_draft` 回傳全填 payload，驗證 dialog 不顯示多餘 input。驗收：`npm test -- CaseSupplementDialog.disclosure` 全部通過
