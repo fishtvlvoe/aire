@@ -105,6 +105,78 @@ export function HtmlLocationMap({
   );
 }
 
+// ─── HtmlAerialPhoto ─────────────────────────────────────────────────────
+
+export interface HtmlAerialPhotoProps {
+  aerialPhoto?: Uint8Array | null;
+  imageUrl?: string;
+  tokens: HtmlThemeTokens;
+}
+
+export function HtmlAerialPhoto({
+  aerialPhoto,
+  imageUrl,
+  tokens,
+}: HtmlAerialPhotoProps): React.ReactElement {
+  const resolvedSrc: string | null =
+    aerialPhoto && aerialPhoto.length > 0
+      ? uint8ArrayToDataUrl(aerialPhoto, "image/png")
+      : (imageUrl ?? null);
+
+  const containerStyle: CSSProperties = {
+    height: 430,
+    border: `1px solid ${tokens.border}`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F9FAFB",
+    overflow: "hidden",
+  };
+
+  const headingStyle: CSSProperties = {
+    fontSize: 20,
+    marginBottom: 16,
+    color: tokens.primary,
+    fontFamily: tokens.fontFamily,
+    fontWeight: 600,
+  };
+
+  const captionStyle: CSSProperties = {
+    fontSize: 7,
+    color: "#9CA3AF",
+    marginTop: 4,
+    textAlign: "right",
+    fontFamily: tokens.fontFamily,
+  };
+
+  return (
+    <div style={{ fontFamily: tokens.fontFamily }}>
+      <p style={headingStyle}>空拍圖</p>
+
+      <div style={containerStyle}>
+        {resolvedSrc ? (
+          <img
+            src={resolvedSrc}
+            alt="空拍圖"
+            style={{ width: "100%", height: 430, objectFit: "contain" }}
+          />
+        ) : (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ color: tokens.text, fontSize: 14, fontFamily: tokens.fontFamily, marginBottom: 8 }}>
+              空拍圖
+            </p>
+            <p style={{ color: "#9CA3AF", fontSize: 10, fontFamily: tokens.fontFamily, margin: 0 }}>
+              待取得空拍圖資料後自動填入
+            </p>
+          </div>
+        )}
+      </div>
+
+      <p style={captionStyle}>國土測繪中心正射影像</p>
+    </div>
+  );
+}
+
 // ─── HtmlExteriorPhoto ────────────────────────────────────────────────────
 
 export interface HtmlExteriorPhotoProps {

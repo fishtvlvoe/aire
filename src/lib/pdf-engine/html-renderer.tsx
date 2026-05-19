@@ -11,7 +11,7 @@ import {
 import { HtmlPropertyDataSheet } from "./html-blocks/property-data-sheet";
 import { HtmlTransactionHistory } from "./html-blocks/transaction-history";
 import { HtmlLifeAmenities } from "./html-blocks/life-amenities";
-import { HtmlLocationMap, HtmlExteriorPhoto } from "./html-blocks/location-and-exterior";
+import { HtmlLocationMap, HtmlAerialPhoto, HtmlExteriorPhoto } from "./html-blocks/location-and-exterior";
 import { HtmlTaxFee } from "./html-blocks/tax-fee";
 import { HtmlSignatureBlockFull } from "./html-blocks/signature-block";
 import { HtmlLandConditionSurvey } from "./html-blocks/land-condition-survey";
@@ -173,7 +173,22 @@ export function renderDisclosureHtml(
     );
   }
 
-  // Page 8: 建物外觀（無條件渲染，元件內部有佔位邏輯）
+  // Page 8: 空拍圖（無條件渲染，元件內部有佔位邏輯）
+  {
+    const pn = ++pageNum;
+    pages.push(
+      <div className="page" key="aerial-photo">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlAerialPhoto
+          aerialPhoto={data.aerialPhoto}
+          tokens={tokens}
+        />
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // Page 9: 建物外觀（無條件渲染，元件內部有佔位邏輯）
   {
     const pn = ++pageNum;
     pages.push(
@@ -188,7 +203,7 @@ export function renderDisclosureHtml(
     );
   }
 
-  // Page 9: 現況調查表
+  // Page 10: 現況調查表
   if (data.surveyData) {
     const pn = ++pageNum;
     pages.push(
