@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     apiUrl.searchParams.set("access_token", token);
     // Mapillary closeto uses lon,lat order
     apiUrl.searchParams.set("closeto", `${lng},${lat}`);
-    apiUrl.searchParams.set("radius", "100");
+    apiUrl.searchParams.set("radius", "50");
     apiUrl.searchParams.set("limit", "1");
 
     const metaResp = await fetch(apiUrl.toString(), {
