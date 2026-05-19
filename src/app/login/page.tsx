@@ -27,7 +27,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await mockInvoke("login", { email, password });
-      router.push("/cases");
+      router.push("/dashboard");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("INVALID_CREDENTIALS")) {

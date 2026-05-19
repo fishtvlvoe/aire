@@ -15,6 +15,12 @@ vi.mock("@/lib/tauri-bridge", () => ({
   NotInTauriError: class NotInTauriError extends Error {},
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/cases",
+}));
+
 import CasesPage from "../page";
 import { casesApi } from "@/lib/cases-api";
 import { NotInTauriError } from "@/lib/tauri-bridge";

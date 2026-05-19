@@ -10,9 +10,10 @@
  * 所有 import 指向尚未實作的模組 → 編譯失敗 = 紅燈
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Document, Page, pdf } from "@react-pdf/renderer";
+import { createPdfEngine } from "@/lib/pdf-engine/engine";
 
 // ❌ 這些模組還不存在 — 紅燈起點
 import {
@@ -29,12 +30,14 @@ import {
   PDF_LOGO_BOX_HEIGHT_MM,
 } from "../logo-anchors";
 
-// Mock Tauri IPC
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
-}));
-import { invoke } from "@tauri-apps/api/core";
-const mockInvoke = vi.mocked(invoke);
+// Mock tauri-bridge
+const { mockSafeInvoke } = vi.hoisted(() => ({ mockSafeInvoke: vi.fn() }));
+vi.mock("@/lib/tauri-bridge", () => ({ safeInvoke: mockSafeInvoke, NotInTauriError: class extends Error {} }));
+
+// Register fonts before any react-pdf render
+beforeAll(async () => {
+  await createPdfEngine();
+});
 
 // Helper：建立 corrupted PNG（magic bytes 錯誤）
 function makeCorruptedPng(sizeBytes = 50000): File {
@@ -73,12 +76,12 @@ describe("CLU-004 — corrupted PNG is rejected and existing blob is unchanged",
   });
 
   it("corrupted PNG 驗證失敗後不呼叫 IPC", async () => {
-    mockInvoke.mockReset();
+    mockSafeInvoke.mockReset();
     const corrupted = makeCorruptedPng();
 
     await validateLogoFile(corrupted);
 
-    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(mockSafeInvoke).not.toHaveBeenCalled();
   });
 
   it("corrupted PNG error 包含 '損毀' 或 '格式' 或 'invalid' 提示", async () => {
@@ -93,8 +96,8 @@ describe("CLU-004 — corrupted PNG is rejected and existing blob is unchanged",
 // ─────────────────────────────────────────────────────────────────────────────
 describe("CLU-005 — successful upload stores correct BLOB and metadata", () => {
   beforeEach(() => {
-    mockInvoke.mockReset();
-    mockInvoke.mockResolvedValue({
+    mockSafeInvoke.mockReset();
+    mockSafeInvoke.mockResolvedValue({
       success: true,
       metadata: {
         filename: "valid-logo.png",
@@ -215,8 +218,8 @@ describe("CLU-008 — no logo shows placeholder text", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("CLU-009 — delete_logo preserves theme_id", () => {
   it("deleteLogo 後 invoke 的 payload 含 preserve_theme_id=true", async () => {
-    mockInvoke.mockReset();
-    mockInvoke.mockResolvedValue({ success: true, themeId: "theme-a-minimal" });
+    mockSafeInvoke.mockReset();
+    mockSafeInvoke.mockResolvedValue({ success: true, themeId: "theme-a-minimal" });
 
     const result = await deleteLogo();
 
@@ -225,8 +228,8 @@ describe("CLU-009 — delete_logo preserves theme_id", () => {
   });
 
   it("deleteLogo 不清除 theme 設定", async () => {
-    mockInvoke.mockReset();
-    mockInvoke.mockResolvedValue({ success: true, themeId: "theme-b-professional" });
+    mockSafeInvoke.mockReset();
+    mockSafeInvoke.mockResolvedValue({ success: true, themeId: "theme-b-professional" });
 
     const result = await deleteLogo();
 

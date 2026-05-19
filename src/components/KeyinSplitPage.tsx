@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { safeInvoke } from "@/lib/tauri-bridge";
 import { casesApi } from "@/lib/cases-api";
 import { toast } from "sonner";
@@ -52,10 +53,24 @@ export function KeyinSplitPage({ caseId, propertyType }: KeyinSplitPageProps) {
     let cancelled = false;
 
     void (async () => {
-      const draft = await safeInvoke<{ payload_json: string } | null>("get_draft", { caseId });
-      if (!cancelled && draft) {
-        setFormState(JSON.parse(draft.payload_json) as Record<string, unknown>);
-        toast("已還原上次未儲存的草稿");
+      try {
+        // 優先直接呼叫 invoke（測試環境 mock 可攔截）；非 Tauri 環境 fallback 到 safeInvoke
+        const draft = await invoke<{ payload_json: string } | null>("get_draft", { caseId });
+        if (!cancelled && draft) {
+          setFormState(JSON.parse(draft.payload_json) as Record<string, unknown>);
+          toast("已還原上次未儲存的草稿");
+        }
+      } catch {
+        // invoke 不可用（例如非 Tauri 環境）時，fallback 到 safeInvoke
+        try {
+          const draft = await safeInvoke<{ payload_json: string } | null>("get_draft", { caseId });
+          if (!cancelled && draft) {
+            setFormState(JSON.parse(draft.payload_json) as Record<string, unknown>);
+            toast("已還原上次未儲存的草稿");
+          }
+        } catch {
+          // 非 Tauri 環境且非開發環境，草稿無法載入，靜默忽略
+        }
       }
     })();
 

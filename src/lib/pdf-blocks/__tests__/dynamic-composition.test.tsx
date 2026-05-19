@@ -5,8 +5,9 @@
  * 所有 import 指向尚未實作的模組 → 編譯失敗 = 紅燈
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { pdf } from "@react-pdf/renderer";
+import { createPdfEngine } from "@/lib/pdf-engine/engine";
 
 // ❌ 這個模組還不存在 — 紅燈起點
 import {
@@ -15,6 +16,10 @@ import {
   type DisclosureDocOptions,
   type PageCountResult,
 } from "../dynamic-composition";
+
+beforeAll(async () => {
+  await createPdfEngine();
+});
 
 // PDF page count helper（用 @react-pdf render blob 後用 regex 粗估）
 async function renderAndCountPages(options: DisclosureDocOptions): Promise<number> {

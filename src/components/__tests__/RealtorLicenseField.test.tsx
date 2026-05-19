@@ -27,12 +27,13 @@ import {
   type LicenseVerificationState,
 } from "../RealtorLicenseField";
 
-// Mock Tauri IPC
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
-}));
+// Mock Tauri IPC — 直接 mock safeInvoke，與元件實際呼叫路徑一致
+const mocks = vi.hoisted(() => ({ invoke: vi.fn() }));
 
-import { invoke } from "@tauri-apps/api/core";
+vi.mock("@/lib/tauri-bridge", () => ({
+  safeInvoke: mocks.invoke,
+  NotInTauriError: class extends Error {},
+}));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 輔助：模擬輸入 + 推進 debounce + flush Promise microtasks
@@ -65,8 +66,7 @@ afterEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-001 — 500ms debounce: 快速輸入只觸發一次 IPC", () => {
   it("每次按鍵間隔 100ms，只在最後一次輸入後 500ms 發出一次 verify_realtor_license", async () => {
-    const mockInvoke = vi.mocked(invoke);
-    mockInvoke.mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "verified",
       verified_at: "2026-05-14T10:00:00Z",
       source: "fresh",
@@ -85,14 +85,14 @@ describe("RLV-001 — 500ms debounce: 快速輸入只觸發一次 IPC", () => {
     }
 
     // debounce 尚未到期
-    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(mocks.invoke).not.toHaveBeenCalled();
 
     // 推進 500ms（最後一次輸入的 debounce 到期）
     await vi.advanceTimersByTimeAsync(500);
 
     // 只觸發一次
-    expect(mockInvoke).toHaveBeenCalledTimes(1);
-    expect(mockInvoke).toHaveBeenCalledWith("verify_realtor_license", {
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+    expect(mocks.invoke).toHaveBeenCalledWith("verify_realtor_license", {
       licenseNumber: expect.any(String),
     });
   });
@@ -103,8 +103,6 @@ describe("RLV-001 — 500ms debounce: 快速輸入只觸發一次 IPC", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-001b — Unmount 後不觸發 IPC", () => {
   it("元件 unmount 後 debounce 到期，不發 IPC", async () => {
-    const mockInvoke = vi.mocked(invoke);
-
     const { unmount } = render(<RealtorLicenseField onChange={vi.fn()} />);
 
     const input = screen.getByRole("textbox", { name: /經紀人證號/i });
@@ -117,7 +115,7 @@ describe("RLV-001b — Unmount 後不觸發 IPC", () => {
     await vi.advanceTimersByTimeAsync(600);
 
     // unmount 後不應觸發 IPC
-    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(mocks.invoke).not.toHaveBeenCalled();
   });
 });
 
@@ -126,7 +124,7 @@ describe("RLV-001b — Unmount 後不觸發 IPC", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-003 — 三態 UI 渲染", () => {
   it("verified：顯示「已驗證」文字", async () => {
-    vi.mocked(invoke).mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "verified",
       verified_at: "2026-05-14T10:00:00Z",
       source: "fresh",
@@ -139,7 +137,7 @@ describe("RLV-003 — 三態 UI 渲染", () => {
   });
 
   it("not_found：顯示「證號不存在」文字", async () => {
-    vi.mocked(invoke).mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "not_found",
       source: "fresh",
     });
@@ -151,7 +149,7 @@ describe("RLV-003 — 三態 UI 渲染", () => {
   });
 
   it("expired：顯示「證號已過期」文字", async () => {
-    vi.mocked(invoke).mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "expired",
       verified_at: "2025-01-01T00:00:00Z",
       source: "fresh",
@@ -169,7 +167,7 @@ describe("RLV-003 — 三態 UI 渲染", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-005 — 驗證失敗不阻擋 form submit", () => {
   it("expired 狀態下 form 仍可提交", async () => {
-    vi.mocked(invoke).mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "expired",
       verified_at: "2025-01-01T00:00:00Z",
       source: "fresh",
@@ -194,7 +192,7 @@ describe("RLV-005 — 驗證失敗不阻擋 form submit", () => {
   });
 
   it("not_found 狀態下 form 仍可提交", async () => {
-    vi.mocked(invoke).mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "not_found",
       source: "fresh",
     });
@@ -222,7 +220,7 @@ describe("RLV-005 — 驗證失敗不阻擋 form submit", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-007 — onVerificationChange callback", () => {
   it("verified 驗證結果正確傳出 LicenseVerificationState", async () => {
-    vi.mocked(invoke).mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "verified",
       verified_at: "2026-05-14T10:00:00Z",
       source: "fresh",
@@ -266,7 +264,7 @@ describe("RLV-007 — onVerificationChange callback", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("RLV-009 — 離線 + 有 cache", () => {
   it("顯示「已驗證（最後驗證日期 YYYY-MM-DD，目前離線中）」", async () => {
-    vi.mocked(invoke).mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "verified",
       verified_at: "2026-05-01T10:00:00Z",
       source: "offline",
@@ -286,7 +284,7 @@ describe("RLV-009 — 離線 + 有 cache", () => {
 describe("RLV-011 — 離線 + 無 cache", () => {
   it("顯示「離線中、無法驗證」文字", async () => {
     // offline + 無 verified_at（無 cache）
-    vi.mocked(invoke).mockResolvedValue({
+    mocks.invoke.mockResolvedValue({
       status: "not_found",
       source: "offline",
     });
@@ -309,6 +307,6 @@ describe("RLV-015 — 空輸入不觸發 IPC", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /經紀人證號/i }), { target: { value: "" } });
     await vi.advanceTimersByTimeAsync(600);
 
-    expect(vi.mocked(invoke)).not.toHaveBeenCalled();
+    expect(mocks.invoke).not.toHaveBeenCalled();
   });
 });

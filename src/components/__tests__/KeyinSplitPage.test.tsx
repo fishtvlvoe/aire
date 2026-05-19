@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
+vi.mock("@/lib/tauri-bridge", () => ({ safeInvoke: mocks.invoke, isTauriEnv: vi.fn().mockResolvedValue(true), NotInTauriError: class extends Error {} }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(() => Promise.resolve(() => undefined)) }));
 vi.mock("next/navigation", () => ({ useRouter: mocks.useRouter, useParams: vi.fn(() => ({ id: "case-001" })) }));
 

@@ -13,12 +13,13 @@ import React from "react";
 
 import SyncStatusPage from "../page";
 
-// Mock Tauri IPC
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: vi.fn(),
-}));
+// Mock tauri-bridge（元件呼叫 safeInvoke，不是 invoke）
+const { mockSafeInvoke } = vi.hoisted(() => ({ mockSafeInvoke: vi.fn() }));
 
-import { invoke } from "@tauri-apps/api/core";
+vi.mock("@/lib/tauri-bridge", () => ({
+  safeInvoke: mockSafeInvoke,
+  NotInTauriError: class extends Error {},
+}));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixtures
@@ -49,6 +50,7 @@ const MOCK_CLAUSES = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockSafeInvoke.mockReset();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,7 +58,7 @@ beforeEach(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe("SyncStatusPage — 顯示三條法規", () => {
   it("應顯示三條法規名稱", async () => {
-    vi.mocked(invoke).mockResolvedValue(MOCK_CLAUSES);
+    mockSafeInvoke.mockResolvedValue(MOCK_CLAUSES);
 
     render(<SyncStatusPage />);
 
@@ -68,7 +70,7 @@ describe("SyncStatusPage — 顯示三條法規", () => {
   });
 
   it("版本日期應以中文格式顯示（民國雙年制）", async () => {
-    vi.mocked(invoke).mockResolvedValue(MOCK_CLAUSES);
+    mockSafeInvoke.mockResolvedValue(MOCK_CLAUSES);
 
     render(<SyncStatusPage />);
 
@@ -80,7 +82,7 @@ describe("SyncStatusPage — 顯示三條法規", () => {
   });
 
   it("應顯示同步時間（N 天前）", async () => {
-    vi.mocked(invoke).mockResolvedValue(MOCK_CLAUSES);
+    mockSafeInvoke.mockResolvedValue(MOCK_CLAUSES);
 
     render(<SyncStatusPage />);
 
@@ -92,7 +94,7 @@ describe("SyncStatusPage — 顯示三條法規", () => {
   });
 
   it("近期同步的法規應顯示已同步狀態 icon", async () => {
-    vi.mocked(invoke).mockResolvedValue(MOCK_CLAUSES);
+    mockSafeInvoke.mockResolvedValue(MOCK_CLAUSES);
 
     render(<SyncStatusPage />);
 
@@ -104,7 +106,7 @@ describe("SyncStatusPage — 顯示三條法規", () => {
 
   it("過期法規應顯示過期狀態", async () => {
     const STALE_DATE = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(); // 40 天前
-    vi.mocked(invoke).mockResolvedValue([
+    mockSafeInvoke.mockResolvedValue([
       { ...MOCK_CLAUSES[0], fetched_at: STALE_DATE },
     ]);
 
@@ -122,7 +124,7 @@ describe("SyncStatusPage — 顯示三條法規", () => {
 describe("SyncStatusPage — 三態 UI", () => {
   it("載入中應顯示 LoadingState（role=status）", () => {
     // 讓 invoke 永遠 pending
-    vi.mocked(invoke).mockReturnValue(new Promise(() => {}));
+    mockSafeInvoke.mockReturnValue(new Promise(() => {}));
 
     render(<SyncStatusPage />);
 
@@ -131,7 +133,7 @@ describe("SyncStatusPage — 三態 UI", () => {
   });
 
   it("空資料應顯示 EmptyState 提示文字", async () => {
-    vi.mocked(invoke).mockResolvedValue([]);
+    mockSafeInvoke.mockResolvedValue([]);
 
     render(<SyncStatusPage />);
 
@@ -142,7 +144,7 @@ describe("SyncStatusPage — 三態 UI", () => {
   });
 
   it("資料載入失敗應顯示 ErrorState", async () => {
-    vi.mocked(invoke).mockRejectedValue(new Error("IPC timeout"));
+    mockSafeInvoke.mockRejectedValue(new Error("IPC timeout"));
 
     render(<SyncStatusPage />);
 
@@ -158,7 +160,7 @@ describe("SyncStatusPage — 三態 UI", () => {
 describe("SyncStatusPage — 立即同步按鈕", () => {
   it("點擊後應呼叫 sync_legal_clauses IPC", async () => {
     const user = userEvent.setup();
-    vi.mocked(invoke)
+    mockSafeInvoke
       .mockResolvedValueOnce(MOCK_CLAUSES) // list_legal_clauses（初始載入）
       .mockResolvedValueOnce(undefined)    // sync_legal_clauses
       .mockResolvedValueOnce(MOCK_CLAUSES); // list_legal_clauses（同步後刷新）
@@ -169,13 +171,13 @@ describe("SyncStatusPage — 立即同步按鈕", () => {
     await user.click(btn);
 
     await waitFor(() => {
-      expect(vi.mocked(invoke)).toHaveBeenCalledWith("sync_legal_clauses");
+      expect(mockSafeInvoke).toHaveBeenCalledWith("sync_legal_clauses");
     });
   });
 
   it("同步中按鈕應 disabled（防重複點擊）", async () => {
     const user = userEvent.setup();
-    vi.mocked(invoke)
+    mockSafeInvoke
       .mockResolvedValueOnce(MOCK_CLAUSES) // list_legal_clauses
       .mockImplementationOnce(
         () => new Promise((resolve) => setTimeout(resolve, 2000)), // sync（慢）
@@ -194,7 +196,7 @@ describe("SyncStatusPage — 立即同步按鈕", () => {
 
   it("同步失敗應顯示錯誤 banner", async () => {
     const user = userEvent.setup();
-    vi.mocked(invoke)
+    mockSafeInvoke
       .mockResolvedValueOnce(MOCK_CLAUSES)     // list_legal_clauses
       .mockRejectedValueOnce(new Error("同步逾時")); // sync_legal_clauses 失敗
 
@@ -218,7 +220,7 @@ describe("SyncStatusPage — 立即同步按鈕", () => {
       fetched_at: UPDATED_DATE,
     }));
 
-    vi.mocked(invoke)
+    mockSafeInvoke
       .mockResolvedValueOnce(MOCK_CLAUSES)   // 初始載入
       .mockResolvedValueOnce(undefined)       // sync_legal_clauses
       .mockResolvedValueOnce(UPDATED_CLAUSES); // 刷新
@@ -230,7 +232,7 @@ describe("SyncStatusPage — 立即同步按鈕", () => {
 
     await waitFor(() => {
       // 同步後資料刷新，invoke 應被呼叫 3 次
-      expect(vi.mocked(invoke)).toHaveBeenCalledTimes(3);
+      expect(mockSafeInvoke).toHaveBeenCalledTimes(3);
     });
   });
 });
