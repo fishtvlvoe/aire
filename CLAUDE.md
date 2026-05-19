@@ -27,4 +27,13 @@ Changes can be parked（暫存）— temporarily moved out of `openspec/changes/
 
 <!-- SPECTRA:END -->
 
+## 業務邏輯（必讀，不要再問 Fish）
+
+核心概念：`docs/aire-business-logic.md`
+
+重點：
+- **草稿書**（Draft）= 地政 API + AI 產出的暫定範本，業務拿去現場簽約用
+- **說明書**（Official）= 簽約回來後，前面內容不變，最後加客戶簽名頁
+- 補件 = 業務現場回補的照片/格局圖/缺漏欄位，嵌入頁面不是 popup
+
 @AGENTS.md
