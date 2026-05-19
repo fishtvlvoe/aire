@@ -23,6 +23,7 @@ import { BuildingConditionSurveyPages } from "@/lib/pdf-blocks/building-conditio
 import { LocationMapPage } from "@/lib/pdf-blocks/location-map";
 import { AerialPhotoPage } from "@/lib/pdf-blocks/aerial-photo-page";
 import { ExteriorPhotoPage } from "@/lib/pdf-blocks/exterior-photo-page";
+import FieldSketchFloorPlanPage from "@/lib/pdf-blocks/field-sketch-floor-plan-page";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -84,6 +85,16 @@ export interface CaseDossierData {
   recentSalePricePerSqm?: number;
   recentSaleCount?: number;
   legalClauses?: string[];
+
+  // 格局圖（現場手稿整理圖）
+  fieldSketchFloorPlan?: {
+    renderedSvg: string;
+    sourceLabel: "現場手稿整理圖";
+    approvedAt: string;
+    disclaimer: string;
+    originalSketchVersion: number;
+    conversionId: string;
+  };
 
   // ─── 封面完整欄位 ───
   cover?: {
@@ -632,6 +643,9 @@ function BuildingPages({
       <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}
       <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
+      {data.fieldSketchFloorPlan && (
+        <FieldSketchFloorPlanPage {...data.fieldSketchFloorPlan} />
+      )}
       {/* 簽章欄（只出現一次，在最後） */}
       <SignatureBlock />
     </>

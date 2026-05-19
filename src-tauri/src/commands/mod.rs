@@ -9,6 +9,10 @@
 
 pub mod cases;
 pub mod drafts;
+pub mod floor_plan;
+pub mod floor_plan_approval;
+pub mod floor_plan_extraction;
+pub mod floor_plan_rendering;
 pub mod license;
 pub mod log;
 pub mod pdf;

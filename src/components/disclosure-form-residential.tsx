@@ -11,7 +11,7 @@
  * - 「標示為完成」按鈕用 residentialSchemaCompleted 驗證、失敗 inline error
  */
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -31,6 +31,7 @@ import { useDraftAutosave, loadDraft } from "@/lib/use-draft-autosave";
 import { cn } from "@/lib/utils";
 import { RealtorLicenseField } from "@/components/RealtorLicenseField";
 import { PullParcelDataButton } from "@/components/PullParcelDataButton";
+import { FieldSketchFloorPlanPanel } from "@/components/FieldSketchFloorPlanPanel";
 
 /**
  * 經紀人證號 + 驗證狀態（#1d Stage 7.3）
@@ -91,6 +92,7 @@ export function DisclosureFormResidential({
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
+  const [sketchApproved, setSketchApproved] = useState(false);
   // #1d Stage 7.3 — 經紀人證號 local state（未納入 zod schema，僅進 autosave payload）
   const [realtorLicenseNumber, setRealtorLicenseNumber] = useState<string>("");
   const [realtorLicenseVerificationStatus, setRealtorLicenseVerificationStatus] =
@@ -284,11 +286,21 @@ export function DisclosureFormResidential({
         {residentialFormTabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="space-y-4">
             {tab.fields.map((field) => (
-              <FieldRow
-                key={field.key as string}
-                field={field}
-                form={form}
-              />
+              <Fragment key={field.key as string}>
+                <FieldRow field={field} form={form} />
+                {field.key === "attachment_floor_plan" && (
+                  <FieldSketchFloorPlanPanel
+                    caseId={caseId}
+                    hasApproved={sketchApproved}
+                    onApprovedChange={(approved) => {
+                      setSketchApproved(approved);
+                      if (approved) {
+                        form.setValue("attachment_floor_plan", "true");
+                      }
+                    }}
+                  />
+                )}
+              </Fragment>
             ))}
           </TabsContent>
         ))}

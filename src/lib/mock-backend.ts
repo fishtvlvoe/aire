@@ -29,6 +29,20 @@ interface LogoAsset {
   mime: string;
 }
 
+interface FloorPlanSketchRow {
+  id: string;
+  case_id: string;
+  original_asset_id: string;
+  original_sha256: string;
+  source_type: string;
+  version: number;
+  uploaded_at: string;
+  uploaded_by: string | null;
+  upload_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface MockSessionUser {
   email: string;
   role: "admin" | "user";
@@ -374,9 +388,13 @@ export class MockStore {
     ...flag,
   }));
   private consentedCases = new Set<string>();
+  private floorPlanSketches: FloorPlanSketchRow[] = [];
+  private floorPlanConversions: unknown[] = [];
 
   constructor() {
     this.reset();
+    this.floorPlanSketches = [];
+    this.floorPlanConversions = [];
     this.restorePersistedState();
   }
 
@@ -409,6 +427,8 @@ export class MockStore {
       premiumUnlocked: DEFAULT_APP_SETTINGS.premiumUnlocked,
     };
     this.featureFlags = DEFAULT_FEATURE_FLAGS.map((flag) => ({ ...flag }));
+    this.floorPlanSketches = [];
+    this.floorPlanConversions = [];
   }
 
   async invoke<T>(cmd: string, args?: CommandArgs): Promise<T> {
@@ -527,6 +547,55 @@ export class MockStore {
           return this.landRegistryGetBalance() as T;
         case "land_registry_record_consent":
           return this.landRegistryRecordConsent(args) as T;
+
+        case "upload_floor_plan_sketch":
+          return this.uploadFloorPlanSketch(args) as T;
+        case "list_floor_plan_conversion_history":
+          return this.listFloorPlanConversionHistory(args) as T;
+        case "extract_floor_plan_sketch": {
+          const sketchId = String((args as Record<string, unknown> | undefined)?.sketch_id ?? "");
+          const sketch = this.floorPlanSketches.find((s) => s.id === sketchId);
+          const iso = new Date().toISOString();
+          const convId = `conv-${Date.now()}`;
+          const extracted = JSON.stringify({
+            rooms: [
+              { label: "客廳", area_sqm: 20, dimensions_text: "4m×5m" },
+              { label: "主臥", area_sqm: 12, dimensions_text: "3m×4m" },
+              { label: "廚房", area_sqm: 8, dimensions_text: "2m×4m" },
+            ],
+            openings: [{ type: "door", between: ["客廳", "主臥"] }],
+            adjacency: [{ room_a: "客廳", room_b: "主臥" }],
+            uncertainty: [],
+          });
+          const conv = {
+            id: convId, sketch_id: sketchId, case_id: sketch?.case_id ?? "",
+            status: "draft", extracted_json: extracted,
+            manual_edits_json: "{}", uncertainty_json: "[]",
+            renderer_version: null, rendered_asset_id: null,
+            approval_checklist_json: "{}", approved_by: null, approved_at: null,
+            model_provider: "openai", model_id: "gpt-4o-mock",
+            prompt_template_version: null, response_fingerprint: null,
+            created_at: iso, updated_at: iso,
+          };
+          this.floorPlanConversions = [...(this.floorPlanConversions ?? []), conv];
+          return conv as T;
+        }
+        case "render_floor_plan_conversion":
+          return "<svg><!--mock--></svg>" as T;
+        case "approve_floor_plan_conversion":
+          return {
+            id: (args as Record<string, unknown> | undefined)?.conversion_id,
+            status: "approved",
+            ...(((args as Record<string, unknown> | undefined)?.checklist as Record<
+              string,
+              unknown
+            >) ?? {}),
+          } as T;
+        case "revoke_floor_plan_conversion":
+          return {
+            id: (args as Record<string, unknown> | undefined)?.conversion_id,
+            status: "revoked",
+          } as T;
 
         default:
           throw new Error(`Mock not implemented: ${cmd}`);
@@ -1215,6 +1284,43 @@ export class MockStore {
       this.consentedCases.add(caseId);
     }
     return undefined;
+  }
+
+  private uploadFloorPlanSketch(args?: CommandArgs): FloorPlanSketchRow {
+    const caseId = String((args as Record<string, unknown> | undefined)?.case_id ?? "");
+    const existingCount = this.floorPlanSketches.filter((s) => s.case_id === caseId)
+      .length;
+    const version = existingCount + 1;
+    const now = Date.now();
+    const iso = new Date().toISOString();
+
+    const sketch: FloorPlanSketchRow = {
+      id: `sketch-${now}`,
+      case_id: caseId,
+      original_asset_id: `asset-${now}`,
+      original_sha256: "mock-sha256",
+      source_type: "field_sketch",
+      version,
+      uploaded_at: iso,
+      uploaded_by: null,
+      upload_note: null,
+      created_at: iso,
+      updated_at: iso,
+    };
+
+    this.floorPlanSketches.push(sketch);
+    return sketch;
+  }
+
+  private listFloorPlanConversionHistory(args?: CommandArgs): {
+    sketches: FloorPlanSketchRow[];
+    conversions: unknown[];
+  } {
+    const caseId = String((args as Record<string, unknown> | undefined)?.case_id ?? "");
+    return {
+      sketches: this.floorPlanSketches.filter((s) => s.case_id === caseId),
+      conversions: (this.floorPlanConversions as Array<Record<string, unknown>>).filter((c) => c.case_id === caseId),
+    };
   }
 
   private restorePersistedState(): void {

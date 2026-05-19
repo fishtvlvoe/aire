@@ -147,6 +147,7 @@ describe("assembleDossierData — 土地版成功路徑", () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       if (cmd === "query_real_price") return mockRealPriceRecords;
       throw new Error(`Unexpected invoke: ${cmd}`);
     });
@@ -198,6 +199,7 @@ describe("assembleDossierData — invoke 失敗時降級", () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       if (cmd === "query_real_price") return [];
       throw new Error(`Unexpected: ${cmd}`);
     });
@@ -225,6 +227,7 @@ describe("assembleDossierData — zoningType 映射", () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "land_registry_pull_data") return pullWithKnownZoning;
       if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       if (cmd === "query_real_price") return [];
       throw new Error(`Unexpected: ${cmd}`);
     });
@@ -246,6 +249,7 @@ describe("assembleDossierData — zoningType 映射", () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "land_registry_pull_data") return pullWithUnknownZoning;
       if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       if (cmd === "query_real_price") return [];
       throw new Error(`Unexpected: ${cmd}`);
     });
@@ -266,6 +270,7 @@ describe("assembleDossierData — 封面品牌資訊", () => {
       if (cmd === "get_brand_text_settings") return { company_name: "大安不動產" };
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       if (cmd === "query_real_price") return mockRealPriceRecords;
       throw new Error(`Unexpected invoke: ${cmd}`);
     });
@@ -279,11 +284,79 @@ describe("assembleDossierData — 封面品牌資訊", () => {
       if (cmd === "get_brand_text_settings") throw new Error("IPC error");
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       if (cmd === "query_real_price") return mockRealPriceRecords;
       throw new Error(`Unexpected invoke: ${cmd}`);
     });
 
     const result = await assembleDossierData(landCaseRow);
     expect(result.cover?.brokerageCompanyName).toBe("");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// assembleDossierData — 格局圖（現場手稿整理圖）
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("assembleDossierData — 格局圖（現場手稿整理圖）", () => {
+  const minimalLandCaseRow: CaseRow = {
+    id: "test-id",
+    case_no: "AIRE-TEST-FLOORPLAN",
+    property_type: "land",
+    land_lot_no: "",
+    land_lots: [""],
+    address: "",
+    owner_name: "",
+    status: "draft",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  };
+
+  it("only_approved_conversion_in_dossier", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") {
+        return {
+          sketches: [{ id: "s1", version: 1, case_id: "test-id" }],
+          conversions: [
+            {
+              id: "conv1",
+              status: "approved",
+              approved_at: "2026-01-01T00:00:00+08:00",
+              sketch_id: "s1",
+            },
+          ],
+        };
+      }
+      if (cmd === "render_floor_plan_conversion") return "<svg><!--test--></svg>";
+      return {};
+    });
+
+    const result = await assembleDossierData(minimalLandCaseRow);
+    expect(result.fieldSketchFloorPlan).toBeDefined();
+    expect(result.fieldSketchFloorPlan?.conversionId).toBe("conv1");
+  });
+
+  it("draft_conversion_not_in_dossier", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") {
+        return {
+          sketches: [{ id: "s1", version: 1, case_id: "test-id" }],
+          conversions: [{ id: "conv1", status: "draft", sketch_id: "s1" }],
+        };
+      }
+      if (cmd === "render_floor_plan_conversion") {
+        throw new Error("render_floor_plan_conversion should not be called");
+      }
+      return {};
+    });
+
+    const result = await assembleDossierData(minimalLandCaseRow);
+    expect(result.fieldSketchFloorPlan).toBeUndefined();
   });
 });

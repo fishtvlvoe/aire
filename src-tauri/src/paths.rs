@@ -20,6 +20,11 @@ use std::path::PathBuf;
 ///
 /// 注意：本函式只計算路徑，不保證目錄存在；建立目錄請呼叫 `ensure_app_dirs`。
 pub fn app_data_dir() -> io::Result<PathBuf> {
+    if let Ok(p) = std::env::var("AIRE_APP_DATA_DIR") {
+        if !p.trim().is_empty() {
+            return Ok(PathBuf::from(p));
+        }
+    }
     #[cfg(target_os = "macos")]
     {
         let home = std::env::var_os("HOME")

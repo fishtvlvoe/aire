@@ -20,6 +20,7 @@ pub mod log;
 pub mod opcos;
 pub mod paths;
 pub mod realtor_license;
+pub mod rendering;
 pub mod secrets;
 pub mod startup;
 
@@ -274,6 +275,12 @@ pub fn run() {
             geo_services::osm_map::fetch_location_map,
             geo_services::nlsc_aerial::fetch_aerial_photo,
             geo_services::mapillary::fetch_street_view,
+            commands::floor_plan::upload_floor_plan_sketch,
+            commands::floor_plan::list_floor_plan_conversion_history,
+            commands::floor_plan_extraction::extract_floor_plan_sketch,
+            commands::floor_plan_approval::approve_floor_plan_conversion,
+            commands::floor_plan_approval::revoke_floor_plan_conversion,
+            commands::floor_plan_rendering::render_floor_plan_conversion,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");

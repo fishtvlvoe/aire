@@ -12,6 +12,7 @@ use sha2::{Digest, Sha256};
 use std::path::Path;
 
 pub mod cases;
+pub mod floor_plan_sketches;
 pub mod drafts;
 pub mod oplog;
 pub mod settings;
@@ -38,6 +39,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/006_case_fields.sql"),
     include_str!("../../migrations/007_case_status_keyin.sql"),
     include_str!("../../migrations/008_land_lots.sql"),
+    include_str!("../../migrations/009_floor_plan_sketches.sql"),
 ];
 
 /// AIRE 資料庫統一錯誤型別。

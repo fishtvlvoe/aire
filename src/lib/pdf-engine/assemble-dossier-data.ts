@@ -4,6 +4,9 @@ import type { CaseDossierData } from "./document";
 import { calculateTaxFees } from "@/lib/tax-calculator";
 import { queryNearbyAmenities } from "@/lib/overpass-client";
 
+type SketchRow = { id: string; version: number; case_id: string };
+type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 使用分區 → 法規限制 lookup table
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,6 +174,40 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     // 失敗時回退至空陣列
   }
 
+  // ── 格局圖（現場手稿整理圖）───────────────────────────────────────────────
+
+  let fieldSketchFloorPlan: CaseDossierData["fieldSketchFloorPlan"] = undefined;
+  try {
+    const history = await safeInvoke<{ sketches: SketchRow[]; conversions: ConversionRow[] }>(
+      "list_floor_plan_conversion_history",
+      { case_id: caseRow.id },
+    );
+    const approvedConversion = history.conversions
+      .filter((c: ConversionRow) => c.status === "approved")
+      .sort((a: ConversionRow, b: ConversionRow) =>
+        (b.approved_at ?? "").localeCompare(a.approved_at ?? ""),
+      )[0];
+    const sketchForConversion = history.sketches.find(
+      (s: SketchRow) => s.id === approvedConversion?.sketch_id,
+    );
+    if (approvedConversion && sketchForConversion) {
+      const svgResult = await safeInvoke<string>("render_floor_plan_conversion", {
+        conversion_id: approvedConversion.id,
+      });
+      fieldSketchFloorPlan = {
+        renderedSvg: svgResult,
+        sourceLabel: "現場手稿整理圖",
+        approvedAt: approvedConversion.approved_at ?? "",
+        disclaimer:
+          "本圖依現場手稿整理，供空間配置參考；實際面積、權利範圍、登記事項與法定用途，以地政謄本、權狀、主管機關資料及現場確認為準。",
+        originalSketchVersion: sketchForConversion.version,
+        conversionId: approvedConversion.id,
+      };
+    }
+  } catch {
+    // floor plan is optional, do not fail if unavailable
+  }
+
   // ── 實價登錄 ─────────────────────────────────────────────────────────────
 
   let recentSalePricePerSqm: number | undefined;
@@ -317,6 +354,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       transactionHistory,
       nearbyAmenities,
       legalClauses,
+      fieldSketchFloorPlan,
       cover: {
         propertyName: caseRow.address ?? "",
         caseNumber: caseRow.case_no ?? caseRow.id.slice(0, 8),
@@ -403,6 +441,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       transactionHistory,
       nearbyAmenities,
       legalClauses,
+      fieldSketchFloorPlan,
       cover: {
         propertyName: caseRow.address ?? "",
         caseNumber: caseRow.case_no ?? caseRow.id.slice(0, 8),

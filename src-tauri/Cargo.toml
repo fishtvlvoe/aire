@@ -29,8 +29,8 @@ log = "0.4"
 # SQLite（Group 2 起會用到，先納入依賴避免後續 Wave 重 build）
 rusqlite = { version = "0.31", features = ["bundled"] }
 
-# HTTP 客戶端（Group 4 用於 OPCOS API）
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+# HTTP 客戶端（Group 4 用於 OPCOS API / Phase 3.1 用於 OpenAI blocking 呼叫）
+reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"], default-features = false }
 
 # OS keychain（Group 3 用於憑證儲存）
 keyring = "2"
