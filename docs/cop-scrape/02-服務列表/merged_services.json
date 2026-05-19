@@ -1,0 +1,789 @@
+[
+  {
+    "serviceId": "24ED4437-DD2B-4FC1-A246-1AEF73681E0B",
+    "serviceName": "MOI_API_001地籍土地標示部資料服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1zTM_uih8qK1X3hTedbzISqNs_LcQ5Lsz5KZcPpDHJ8k",
+    "serviceDescription": "<p>土地登記謄本之土地標示部，描述<span style=\"color:#c0392b\"><strong>一宗土地</strong></span>基本資料。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「土地(宗地)」為單位之標示部各欄位資訊，包括土地的面積、登記日期與原因、土地使用地目及類別、公告地現值、公告地價、所在區位與坐標等，將傳入參數使用陣列傳遞，單次引用可介接25筆資料。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_ROW"
+      ],
+      "pricing": [
+        "回傳筆數計費：每筆1元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 944366,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=24ED4437-DD2B-4FC1-A246-1AEF73681E0B",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?24ED4437-DD2B-4FC1-A246-1AEF73681E0B"
+  },
+  {
+    "serviceId": "8C8F0F4C-EF41-4426-A800-3EF15AA9886D",
+    "serviceName": "MOI_API_002地籍土地所有權部資料服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1_2GRLW7AdPTmLJfOhvDVk8X7TYjO0S8or6YTHMXnDWg",
+    "serviceDescription": "<p>土地登記謄本之所有權部，描述土地所有權人的權利資料。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「土地(宗地)」為單位之土地所有權部資訊，包括土地所有權部、權利人(權利人資訊僅提供類別為「國有」、「省市有」、「縣市有」、「鄉鎮市有」，其餘類別則以null呈現)、相關他項權利部、前次移轉現值、其他登記事項等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_ROW"
+      ],
+      "pricing": [
+        "回傳筆數計費：每筆1元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 1868549,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=8C8F0F4C-EF41-4426-A800-3EF15AA9886D",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?8C8F0F4C-EF41-4426-A800-3EF15AA9886D"
+  },
+  {
+    "serviceId": "467165FA-11B9-416A-BE89-90E86B20242C",
+    "serviceName": "MOI_API_003地籍土地他項權利部資料服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1cb9-FhO08Ep-JApe4sfeN657SOOIFYSuCOm8DsG_574",
+    "serviceDescription": "<p>土地登記謄本之他項權利部，為<span style=\"color:#c0392b\">一宗土地</span>的所有權人將自己的權利範圍設定給第三人的情形，可得知除了土地所有權人之外，還有哪些人對該土地具有其他物權，一般申請地籍謄本時，若申請出來的謄本沒有他項權利的資料，則表示這宗土地沒有設定他項權利。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「土地(宗地)」為單位之他項權利部設定情形，包括設定及債權權利範圍、擔保債權金額及價值、他項權利檔、共同擔保地及建號等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_ROW"
+      ],
+      "pricing": [
+        "回傳筆數計費：每筆1元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 2031634,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=467165FA-11B9-416A-BE89-90E86B20242C",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?467165FA-11B9-416A-BE89-90E86B20242C"
+  },
+  {
+    "serviceId": "EB95D5DC-2F03-41DA-8406-B69F2D7ECC15",
+    "serviceName": "MOI_API_004地籍建物標示部資料服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=16QbWDqx8G4j4OWj9EBOdF1pv0UF7tpQBV8KERCDRWew",
+    "serviceDescription": "<p>建物登記謄本之建物標示部，描述<span style=\"color:#c0392b\"><strong>一筆建物</strong></span>基本資料。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「建物」為單位之標示部各欄位資訊，包括建物總面積、建物分層或附屬建物資訊、共有部分資訊，並將傳入參數使用陣列傳遞，單次引用可介接25筆資料。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_ROW"
+      ],
+      "pricing": [
+        "回傳筆數計費：每筆1元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 2075049,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=EB95D5DC-2F03-41DA-8406-B69F2D7ECC15",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?EB95D5DC-2F03-41DA-8406-B69F2D7ECC15"
+  },
+  {
+    "serviceId": "5A582A73-3E5F-4528-B423-A95F79F9E216",
+    "serviceName": "MOI_API_005地籍建物所有權部資料服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1lllUmh2QpIEoLyIJhV4hHVhu9Mv4ar9UBhxmQZZ8Juw",
+    "serviceDescription": "<p>建物登記謄本之所有權部，描述建物所有權人的權利資料，本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「建物」為單位之建物所有權部資訊，包括建物所有權部、權利人(權利人資訊僅提供類別為「國有」、「省市有」、「縣市有」、「鄉鎮市有」，其餘類別則以null呈現)、相關他項權利部、其他登記事項等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_ROW"
+      ],
+      "pricing": [
+        "回傳筆數計費：每筆1元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 557140,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=5A582A73-3E5F-4528-B423-A95F79F9E216",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?5A582A73-3E5F-4528-B423-A95F79F9E216"
+  },
+  {
+    "serviceId": "19879C20-3F2E-4586-8A58-B0AC42C2FE1A",
+    "serviceName": "MOI_API_006地籍建物他項權利部資料服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1tzzmwSnsrDqIvrYv6npPWnTe1--IdbCfi-R-iPn5G6M",
+    "serviceDescription": "<p>建物登記謄本之他項權利部，為<span style=\"color:#c0392b\">一筆建物</span>的所有權人將自己的權利範圍設定給第三人的情形，可得知除了建物所有權人之外，還有哪些人對該土地具有其他物權，一般申請地籍謄本時，若申請出來的謄本沒有他項權利的資料，則表示這筆建物沒有設定他項權利，本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「建物」為單位之他項權利部設定情形，包括設定及債權權利範圍、擔保債權金額及價值、他項權利檔、共同擔保地及建號等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_ROW"
+      ],
+      "pricing": [
+        "回傳筆數計費：每筆1元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 402923,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=19879C20-3F2E-4586-8A58-B0AC42C2FE1A",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?19879C20-3F2E-4586-8A58-B0AC42C2FE1A"
+  },
+  {
+    "serviceId": "6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0",
+    "serviceName": "MOI_API_007地號資料服務",
+    "priceDescribeUser": "依地段每段 10 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1A3k9ZxgidgiUapFx374rThsK2XrzEF9hO89MpF8Xqhc",
+    "serviceDescription": "<p>本服務以地段或坐標條件查詢地號資料，主要以地政事務所(代碼)、及地段(代碼)為主要查詢條件，輔以空間坐標、土地使用分區、土地使用地類別、公私別、管理單位等為選擇性條件，並回傳地號資料，單次引用可介接10筆資料。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_LOCATION"
+      ],
+      "pricing": [
+        "依地段數計費:每地段10元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 187513,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0"
+  },
+  {
+    "serviceId": "34C16667-25E6-428A-9D56-26E1B0AC3A48",
+    "serviceName": "MOI_API_008土地標示部異動索引服務",
+    "priceDescribeUser": "依地號提供，單筆 3 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1wP-mXLqOlW8qJkXMHsaAWHOIzH1VtM_pmLOvu8SRXfA",
+    "serviceDescription": "<p>本服務查詢土地標示部有無異動紀錄，並包含異動資料及原因等。主要提供以地政事務所(代碼)、地段(代碼)及地號為查詢條件，回傳土地登記資料中有關土地標示部的異動索引紀錄，單次引用可介接25筆資料。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_ROW"
+      ],
+      "pricing": [
+        "回傳筆數計費：每筆3元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 7103,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=34C16667-25E6-428A-9D56-26E1B0AC3A48",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?34C16667-25E6-428A-9D56-26E1B0AC3A48"
+  },
+  {
+    "serviceId": "FE871A32-EE35-4D27-A49A-929DDC6E061D",
+    "serviceName": "MOI_API_009所有權人比對服務",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1hZLMuYXTTV3NmzDdYse_RCb_hEc9jc8dpjO5xtlRMrQ",
+    "serviceDescription": "<p>本服務輸入地號以及<span style=\"color:#c0392b\">土地所有權人姓名</span>、<span style=\"color:#c0392b\">個人統一編號</span>為參數，比對與該土地登記之所有權人姓名和統一編號是否吻合，單次引用可介接25筆資料。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "GOV_APPLY"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 0,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=FE871A32-EE35-4D27-A49A-929DDC6E061D",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?FE871A32-EE35-4D27-A49A-929DDC6E061D"
+  },
+  {
+    "serviceId": "C2E96298-A335-4BB9-9744-C471D8E2AE6B",
+    "serviceName": "MOI_API_010公有土地登記資料服務",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1EeRVuF8641dxkOdzTCo0-Umb5TG51CYfJbI2owdZfmw",
+    "serviceDescription": "<p>本服務主要以地政事務所代碼、地段代碼及地號為查詢條件，查詢公有土地登記資料、所有權人及管理機關，單次引用可介接25筆資料。亦可透過<a href=\"https://data.gov.tw/dataset/34315\">政府資料開放平台</a>、<a href=\"https://goo.gl/hGJwbu\">內政資料開放平台</a>取得公有土地登記資料。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "GOV_APPLY"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 0,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=C2E96298-A335-4BB9-9744-C471D8E2AE6B",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?C2E96298-A335-4BB9-9744-C471D8E2AE6B"
+  },
+  {
+    "serviceId": "5CBBC19B-8618-4ADD-99A3-921E672F3488",
+    "serviceName": "MOI_API_011新舊地建號轉換服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": "https://drive.google.com/open?id=1BPxw1cJ-kp2QR679c2tPjA45eo0JVK_KJWZv4bIjR-U",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "A5CCC85A-EEF3-4659-8829-DA21CD0DCC95",
+    "serviceName": "MOI_API_012全國土地基本資料庫代碼資料服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": "https://drive.google.com/open?id=1XgQeV0kWAbOmsODxa1aNpI1CDzpmdUOHXar09vB4sG8",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "29784081-ABB1-496B-BC5A-4EB32B4776F2",
+    "serviceName": "MOI_API_013地段資料服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": "https://drive.google.com/open?id=1SdEngKSgDX2rieXLAfm8RbYbj5nILvFoHYrVikmSDMs",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "DE5CD3B8-FB43-4866-9941-EEBB5227F35A",
+    "serviceName": "MOI_API_014公告地價與公告土地現值資料服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": "https://drive.google.com/open?id=1BcHbBwJn1h02tLd1vsNCx3ChNJp8N3E09qGMfCkm_fw",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "5ECA2D36-A997-4379-89FB-D3FD15FD0A32",
+    "serviceName": "MOI_API_015建號資料服務",
+    "priceDescribeUser": "每筆地號 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1XlwzEeBzNljUr6U1dxzI8DTZfUd_ac-GB-xhcyo8Zk8",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 96088
+  },
+  {
+    "serviceId": "FDF55264-DB29-4D86-A9EA-8946F1F7595A",
+    "serviceName": "MOI_API_016土地標示及權利範圍查詢服務",
+    "priceDescribeUser": "單筆 2 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1E_pDZaz_iqQ5zDAxSYxzb_kq8NIOgJCIZYYtBpR1sb4",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 55
+  },
+  {
+    "serviceId": "6C27FE70-CBF2-49E4-B9C5-A4A9C0A63EF9",
+    "serviceName": "MOI_API_017土地權利種類及登記事項查詢服務",
+    "priceDescribeUser": "單筆 2 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1vrB02e6DuwyyGDG7zV3ljyYxgP8xGYZKdZ_ctSMjGfQ",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 2
+  },
+  {
+    "serviceId": "C08C0CD6-8B37-4DF0-AD33-76F015530558",
+    "serviceName": "MOI_API_018非都市土地使用管制註記查詢服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1_aDGv2Hw7XAjG2MUSMQ-bbB6Wg26ReMt6zaKYrdKnfU",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 2
+  },
+  {
+    "serviceId": "01DE39B8-B513-4F00-B03E-D9B2A1CD3A37",
+    "serviceName": "MOI_API_019興建農舍註記資料服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1EIhIgTgDDH0sMF2-4e_ebeYJb3kEV75f2heFc2xgzMk",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 13677
+  },
+  {
+    "serviceId": "438F30F4-D042-4598-A874-500FE9450A65",
+    "serviceName": "MOI_API_020土壤或地下水污染場址註記查詢服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1QEiNa67asiLOTvvYvd0fstbU1mKHgn2e1Xl9SvNPNoQ",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 3
+  },
+  {
+    "serviceId": "CDEABB8D-A701-4575-9564-B5D05B16A408",
+    "serviceName": "MOI_API_021地籍圖重測註記查詢服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=13Gbb5YW5NynT1ZOWK5mNWqIWyLI8RvErP5-mFXbj4X8",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 2
+  },
+  {
+    "serviceId": "8487A3D7-11B1-4974-B4C4-E4E7A53586AA",
+    "serviceName": "MOI_API_022公告徵收註記查詢服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1vuTrIXPeIsqcJKKL399Rnuh1RsjIjowOJuzueZ0QPlw",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 2
+  },
+  {
+    "serviceId": "2435F112-DFEB-4E5A-919F-DC44A639D3F5",
+    "serviceName": "MOI_API_023土地位置概圖服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1p9wC0B1NzH2ssGgxV0QZPhyOWStAQMO7bQohsI8ODtU",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 1
+  },
+  {
+    "serviceId": "099E8055-D64E-471E-9C4F-A8ECCBC971FC",
+    "serviceName": "MOI_API_024地籍圖詮釋資料",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": "https://drive.google.com/open?id=13ahWqDecbXvWjRfFUwna3OP2piKio3mTJY-OBotzg6c",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "510C580B-44E0-4A59-A49A-5D240966EFD8",
+    "serviceName": "MOI_API_025罕用字查詢",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": "https://drive.google.com/open?id=1bHsl0PMXLY16Cqms2XaCREKuggWZWFgLTOuM-iy2tE4",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "864AC92B-D17A-4E99-858E-48DB6EBEBCB6",
+    "serviceName": "MOI_API_026建物標示及權利範圍查詢服務",
+    "priceDescribeUser": "單筆 2 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1ysENfQspzEGff7sWyMQ4lrpxzwSiGxJLfHIlYFJopBI",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "36686DF2-96D3-442F-A693-7AC52E1BBB1C",
+    "serviceName": "MOI_API_027建物遭受放射性污染之虞註記查詢服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "3E2706C0-9CD3-4F25-8C15-9AC49E8A131E",
+    "serviceName": "MOI_API_028建物權利種類及其登記狀態查詢服務",
+    "priceDescribeUser": "單筆 2 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1LY7L8i85ox73P83CZYDp4r7f5vcJPqUm-H6FZC1qcMA",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 398
+  },
+  {
+    "serviceId": "29940f0c-da7d-4e88-94ef-41fc1a0690a6",
+    "serviceName": "MOI_API_030高程陰影分析服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "e7cff4ed-5ecd-492b-a669-247c2aa0474a",
+    "serviceName": "MOI_API_031等高線分析服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "11e55298-de03-4aaf-a2ba-6bf9f6ff1266",
+    "serviceName": "MOI_API_032坡度分析服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "a4378707-0404-45aa-b839-d8b63498fbb9",
+    "serviceName": "MOI_API_033坡向分析服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "51a073f6-d92f-4872-917c-5f1f7b8d0359",
+    "serviceName": "MOI_API_034路線剖面分析服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "fb8e86ef-d21a-4189-98ff-5a66668e07c5",
+    "serviceName": "MOI_API_035縱橫斷面分析服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "524768d5-5634-46db-aff3-945f2c905a81",
+    "serviceName": "MOI_API_036門牌查建號服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "06f371da-9d61-412b-a223-350ecc44433c",
+    "serviceName": "MOI_API_037門牌模糊檢索建號服務",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "2d224c9d-15d5-453b-8fe9-30781326f75a",
+    "serviceName": "MOI_API_038車位查詢服務",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "da8a69fd-673a-4a56-9548-4b11dfbf02e2",
+    "serviceName": "MOI_API_039公有土地開放資料服務",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "c5b7da6c-0df3-496c-804c-8d57b167db55",
+    "serviceName": "MOI_API_040分割合併前後地建號資料服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "0ed33302-dffb-4830-bb9e-8440b0dfac66",
+    "serviceName": "MOI_API_041帳務查詢API",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "d2ee4de0-417e-48f8-b88b-9659eac0b06a",
+    "serviceName": "MOI_API_042土地遭棄置廢棄物資訊註記服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "d573fbbd-2db7-4ead-9412-8c419637e841",
+    "serviceName": "MOI_API_043新舊地段查詢服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "79a021c3-96f3-49b1-a4d9-92f644c917d4",
+    "serviceName": "MOI_API_044宗地中心點坐標資料服務",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "a32b801f-12bb-46de-ac56-8d9fb4831661",
+    "serviceName": "MOI_API_045三維地籍建物標示部資料服務",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "1b395503-0e5f-45eb-bd27-451b9e79bcca",
+    "serviceName": "MOI_API_046三維地籍建號定位點資料服務",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "562943EA-0CA9-4758-8127-25DAD3E0605D",
+    "serviceName": "MOI_WFS_001地籍圖WFS",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1GYh69wWSiz5VPT8FUCOY8FpfTwP_iegMk7UC2uVfQXo",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 499930
+  },
+  {
+    "serviceId": "668F1B05-EF45-4D78-9F00-C8B640B62035",
+    "serviceName": "MOI_WFS_002地籍圖WFS(SHP檔)",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1GIOCgR50e8YAx7J_SqOeYuxJkDzdms2UJrewrCXv5nE",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "9B1DE5B0-E56B-4601-A85E-99F568FC82A7",
+    "serviceName": "MOI_WFS_003圖幅接合地籍圖WFS",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1C5JlqzOAAon0KmX2_VzcKswRIc71r4DSij3ZRR3hXFo",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 71245
+  },
+  {
+    "serviceId": "db79332a-de68-42d2-aa13-97903ff751d5",
+    "serviceName": "MOI_WFS_004區段徵收範圍WFS",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "44e7e9d7-ef6d-4fc2-896f-d01bf299e53b",
+    "serviceName": "MOI_WFS_005公有土地開放資料WFS服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "4821e03a-18a7-4abe-8b96-29efa7c9b4e3",
+    "serviceName": "MOI_WFS_006市地重劃與農村社區重劃範圍WFS",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "E0C751CE-8FEA-4DEA-9C58-FA48D80F85CE",
+    "serviceName": "MOI_WMS_001地籍圖WMS(SHP檔)",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1YB3VvJ0WNwfxKwHWKtDdJkSOZ53uEChy80s2bIL9HGs",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "207F3D84-DE2B-435E-85F7-581EA5129DDE",
+    "serviceName": "MOI_WMS_002地籍圖WMS",
+    "priceDescribeUser": "每 3 分鐘 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1ZuERpvWlx8tFtYbXVClgKW7wermCkh76qfINTa1Vxhs",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 2956
+  },
+  {
+    "serviceId": "FF1472EC-3851-446F-8DC9-4101B24E7229",
+    "serviceName": "MOI_WMS_003圖幅接合地籍圖WMS",
+    "priceDescribeUser": "每 3 分鐘 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1f7DkGnm9hxd2Pmu5Hkbo5zDzBHI9Q_4yjTbZFbwdEX8",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 6
+  },
+  {
+    "serviceId": "48eb0322-29df-4611-98bd-5c731e7483d3",
+    "serviceName": "MOI_WMS_004自來水水質水量保護區",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "e25e4246-d282-451a-af01-7380b62760c7",
+    "serviceName": "MOI_WMS_005都市計畫土地使用分區",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "2654b2e6-362c-46ab-a011-51308912b7a1",
+    "serviceName": "MOI_WMS_007活動斷層圖",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "f42b4601-4023-4f03-b551-f982c072aef4",
+    "serviceName": "MOI_WMS_008特定水土保持區範圍",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "8d614c24-1ce1-4209-9ebd-74f4b63aad3b",
+    "serviceName": "MOI_WMS_009山坡地範圍",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "b316efd6-02a7-4553-8485-6b70a4c672cc",
+    "serviceName": "MOI_WMS_010國家公園區內之特別景觀區、生態保護區、史蹟保存區",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "11f283ff-56f3-4544-be83-0d68a4a5fa0a",
+    "serviceName": "MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "7da0ce6a-24ed-484c-8a0d-b0b65f22ef00",
+    "serviceName": "MOI_WMS_012以段為單位地籍圖",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "915d5c4b-0f24-4acd-ba05-0b35d38d5851",
+    "serviceName": "MOI_WMS_013公有土地開放資料WMS服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  }
+]

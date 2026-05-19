@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!-- saved from url=(0109)https://cop.land.moi.gov.tw/Services/service_Introduce/service_desc_CDEABB8D-A701-4575-9564-B5D05B16A408.html -->
+<html lang="zh-Hant-TW"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_021地籍圖重測註記查詢服務服務說明文件</title>
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+ 
+<h1>MOI_API_021地籍圖重測註記</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">1.以地號查詢：QueryByLandNo</h2>
+
+<span class="subtitle">1.1.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>NO</td>
+		<td>必填</td>
+		<td>地號，字元長度為8</td>
+	</tr>
+	</tbody>
+</table>
+<small>➔單次查詢上限25筆</small>
+	
+	<p></p>
+
+
+<span class="subtitle">1.2.輸出欄位</span>
+
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>已辦理地籍圖重測：RESURVEY</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>RESURVEY</td>
+		<td>已辦理地籍圖重測註記</td>
+	</tr>
+	<tr>
+		<td>NUMBER</td>
+		<td>序號</td>
+	</tr>
+	<tr>
+		<td>CATEGORY</td>
+		<td>其他登記事項分類(※代碼30)</td>
+	</tr>
+	<tr>
+		<td>CONTENT</td>
+		<td>其他登記事項內容</td>
+	</tr>
+ 
+	</tbody>
+</table>
+ 
+<small>
+※相關代碼對照請參閱本站服務目錄&gt;搜尋<a href="https://cop.moi.gov.tw/Services/service_interfaceInfo.aspx?A5CCC85A-EEF3-4659-8829-DA21CD0DCC95" target="_blank" title="另開新視窗">MOI_API_012全國土地基本資料庫代碼資料服務</a>，參考其<a href="https://cop.moi.gov.tw/Services/service_Introduce/service_desc_A5CCC85A-EEF3-4659-8829-DA21CD0DCC95.html" target="_blank" title="另開新視窗">服務介面與回傳欄位說明。</a>
+</small>
+
+ 
+
+
+</div>
+
+</div> 
+
+
+    
+</body></html>

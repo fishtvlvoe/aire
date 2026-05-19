@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_WFS_004區段徵收空間範圍WFS</title>
+<link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+
+<body>
+ 
+<h1>MOI_WFS_004區段徵收空間範圍WFS</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">一、	服務說明</h2>
+
+<p>區段徵收空間範圍WFS (Web Feature Service；網路圖徵服務)查詢服務以縣市(代碼)、案件類型(代碼)、案件狀態(代碼)等條件，查詢取得區段徵收範圍資訊，引用介接參數之坐標系統可為WGS84。欲瞭解WFS服務類型與原理請先參考<a href="https://cop.land.moi.gov.tw/ServicesInfo/typeInfo.aspx" target="_blank" title="另開新視窗">平台服務類型</a>，若欲進一步了解WFS標準格式相關規格請參閱<a href="https://www.ogc.org/standards/wfs" target="_blank" title="另開新視窗">OGC網站</a>，詳細服務介接資訊可參考<a href="https://cop.land.moi.gov.tw/ServicesInfo/useflowInfo_GIS.aspx#step06" target="_blank" title="另開新視窗">服務引用流程說明</a>。</p>
+
+   
+</div>
+
+  
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">二、	服務規格</h2>
+
+  
+<span class="subtitle">(一)	HTTP HEADER資訊</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>名稱</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UserName</td>
+		<td>應用系統識別碼（使用者帳號）</td> 
+	</tr>
+		<tr>
+		<td>Password</td>
+		<td>應用系統密碼（使用者密碼）</td> 
+	</tr> 
+	</tbody>
+</table> 
+					<ul class="style_none">
+						<li>(1)	UserName：為應用系統識別碼（政府機關）或使用者帳號（付費使用者），用以驗證平台使用者資訊。</li>
+				<li>(2)	Password：為應用系統密碼（政府機關）或使用者密碼（付費使用者），用以驗證平台使用者資訊。</li>
+				</li>
+					</ul>
+	<p></p>
+
+
+<span class="subtitle">(二)	介面設計</span>
+
+<p>本平台目前提供的WFS服務支援兩個操作介面，包括GetCapabilities、GetFeature，詳細查詢參數與回傳結果說明規格如下：</p>
+
+<ul class="style_none">
+	<li>  <p>1、Getcapabilites  </p>
+	        <p>此方法是取得WFS服務基本資訊的主要方法，其格式為XML，內容主要描述該服務目前提供的圖層資訊。</p>
+	
+	<p>(1)	查詢參數</p>
+	<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>條件</th>
+		<th>參數值</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>service</td>
+		<td>必填</td>
+		<td>WMS</td>
+		<td>服務性質</td>  
+	</tr>
+		<tr>
+		<td>request</td>
+		<td>必填</td>
+		<td>GetCapabilities</td>
+		<td>服務要求</td> 
+	</tr> 
+			<tr>
+		<td>CITY</td>
+		<td>必填</td>
+		<td>可依需求自行設定</td>
+		<td>縣市代碼，字元長度為1</td> 
+	</tr>
+			<tr>
+		<td>STATUS</td>
+		<td>選填</td>
+		<td>可依需求自行設定</td>
+		<td>辦理狀態，0:規劃中(辦理中)，1:辦理完成，不填則全部</td> 
+	</tbody>
+</table> 
+	 
+	 <p>(2)	輸出資料</p>
+		<p><img src="images/WFS004-1.png"></p> 
+		
+	</li>
+	 
+	<li>
+	 <p>2、GetFeature  </p>
+		  <p>此方法是取得圖層的向量資料的主要方法，而向量資料則是以GML格式進行描述，必要參數如以下所示。</p>
+	
+	<p>(1)	查詢參數</p>
+	<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>條件</th>
+		<th>參數值</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>service</td>
+		<td>必</td>
+		<td>WFS</td>
+		<td>服務性質</td>  
+	</tr>
+		<tr>
+		<td> version</td>
+		<td>必</td>
+		<td>以預設值即可</td>
+		<td>服務版本</td> 
+	</tr> 
+			<tr>
+		<td> request</td>
+		<td>必</td>
+		<td>GetFeature</td>
+		<td>服務要求</td> 
+	</tr> 
+	<tr>
+		<td> typeName</td>
+		<td>必</td>
+		<td>值為區段徵收案號，例：TJS2479929227</td>
+		<td>依據GetCapabilities FeatureTypeName內容設置</td> 
+	</tr> 
+	<tr>
+		<td> srs</td>
+		<td>必</td>
+		<td>epsg:4326(預設值)、epsg:3826、epsg:3828</td>
+		<td>坐標系統參數</td> 
+	</tr> 
+	</tbody>
+</table> 
+	  
+	 <p>(2)	輸出資料</p>
+		<p><img src="images/WFS004-2.png"></p> 
+	</li>
+</ul>
+ 
+
+</div>
+
+
+
+</div> 
+
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<!-- saved from url=(0109)https://cop.land.moi.gov.tw/Services/service_Introduce/service_desc_8C8F0F4C-EF41-4426-A800-3EF15AA9886D.html -->
+<html lang="zh-Hant-TW"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_040分割合併地建號資料服務服務說明文件</title>
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+
+ 
+<h1>MOI_API_040分割合併地建號資料服務</h1>
+
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">1.查詢特定時段內分割(或合併)之地建號</h2>
+
+<span class="subtitle">1.1.以地段查詢：QueryBySEC</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>TYPE</td>
+		<td>必填</td>
+		<td>查詢條件類型，S：分割，M：合併</td>
+	</tr>
+		<tr>
+		<td>STARTDATE</td>
+		<td>選填</td>
+		<td>查詢區段起始日期，格式：民國年月日(0980123)</td>
+	</tr>
+		<tr>
+		<td>ENDDATE</td>
+		<td>選填</td>
+		<td>查詢區段結束日期，格式：民國年月日(1031201)</td>
+	</tr>
+		<tr>
+		<td>ENABLE</td>
+		<td>選填</td>
+		<td>有效資料的輸出，0(預設值)：全部，1：僅輸出有效</td>
+ 
+	</tbody>
+</table>
+
+<small>➔單次僅能輸入一組參數JSON結構，輸入參數包含包含地政事務所代碼、地段代碼、時間區段、分割(或合併)、設定有效資料的輸出等，陣列的長度上限為1筆</small>
+
+
+<h2 class="color_deepblue">1.2輸出欄位</h2>	
+
+ 
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>分割合併地建號 DIVISIONMERGE</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>RDATE</td>
+		<td>登記日期</td>
+	</tr>
+	<tr>
+		<td>RECPYEAR</td>
+		<td>收件年期</td>
+	</tr>
+	<tr>
+		<td>RECP</td>
+		<td>收件字</td>
+	</tr>
+ 
+	<tr>
+		<td>RECPNO</td>
+		<td>收件號</td>
+	</tr>
+	<tr>
+		<td>BESEC</td>
+		<td>分割後(合併前)段小段</td>
+	</tr>
+	<tr>
+		<td>BEBNO</td>
+		<td>分割後(合併前)地建號</td>
+	</tr>
+	<tr>
+		<td>AFSEC</td>
+		<td>分割前(合併後)段小段</td>
+	</tr>
+	<tr>
+		<td>AFNO</td>
+		<td>分割前(合併後)地建號</td>
+	</tr>
+	<tr>
+		<td>FLAG</td>
+		<td>分割合併註記，S：分割，M：合併</td>
+	</tr>
+	<tr>
+		<td>COMMENT</td>
+		<td>資料已無使用註記，Y：已無使用</td>
+	</tr>
+	 </tbody>
+</table>
+
+
+</div>
+
+
+<div class="dashed_bottom">
+	<h2 class="color_deepblue">2.查詢分割合併前後歷次地建號</h2>
+
+<span class="subtitle">2.1.以地號查詢：QueryLandNo</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>NO</td>
+		<td>必填</td>
+		<td>地號，字元長度為8</td>
+	</tr>
+	
+ 
+	</tbody>
+</table>
+
+<small>➔單次僅能輸入一組參數JSON結構，輸入參數包含包含地政事務所代碼、地段代碼、地號的輸出等，陣列的長度上限為1筆</small>
+<p></p>
+
+<span class="subtitle">2.2.以建號查詢：QueryBuildingNo</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>NO</td>
+		<td>必填</td>
+		<td>建號，字元長度為8</td></tr>
+	</tr>
+	
+ 
+	</tbody>
+</table>
+
+<small>➔單次僅能輸入一組參數JSON結構，輸入參數包含包含地政事務所代碼、地段代碼、地號的輸出等，陣列的長度上限為1筆</small>
+
+
+
+
+<h2 class="color_deepblue">2.輸出欄位</h2>	
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>分割合併地建號 DIVISIONMERGE</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>RECPYEAR</td>
+		<td>收件年期</td>
+	</tr>
+	<tr>
+		<td>RECP</td>
+		<td>收件字</td>
+	</tr>
+ 
+	<tr>
+		<td>RECPNO</td>
+		<td>收件號</td>
+	</tr>
+	<tr>
+		<td>REASON</td>
+		<td>登記原因</td>
+	</tr>
+	<tr>
+		<td>RDATE</td>
+		<td>登記日期</td>
+	</tr>
+	
+	 </tbody>
+</table>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>分割DIVISION(合併MERGE)前後地建號BEFORE/AFTER</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>UNIT</td>
+		<td>地政事務所代碼</td>
+	</tr>
+<tr>
+		<td>SEC</td>
+		<td>分割後(合併前)段小段</td>
+	</tr>
+	<tr>
+		<td>NO</td>
+		<td>分割後(合併前)地建號</td>
+	</tr>
+	
+	 </tbody>
+</table>
+
+</div>
+</body></html>

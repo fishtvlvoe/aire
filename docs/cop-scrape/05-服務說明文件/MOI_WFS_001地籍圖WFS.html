@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_WFS_001地籍圖WFS</title>
+<link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+
+<body>
+ 
+<h1>MOI_WFS_001地籍圖WFS</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">一、	服務說明</h2>
+
+<p>本服務以土地(宗地)為單位，依地號查詢取得地籍圖WFS(Web Feature Service；網路圖徵服務)，是將原始資料轉譯成GML供服務介接端使用，欲瞭解WFS服務類型與原理請先參考<a href="https://cop.land.moi.gov.tw/ServicesInfo/typeInfo.aspx" target="_blank" title="另開新視窗">平台服務類型</a>，若欲進一步了解WFS標準格式相關規格請參閱<a href="https://www.ogc.org/standards/wfs" target="_blank" title="另開新視窗">OGC網站</a>，詳細服務介接資訊可參考<a href="https://cop.land.moi.gov.tw/ServicesInfo/useflowInfo_GIS.aspx#step06" target="_blank" title="另開新視窗">服務引用流程說明</a>。</p>
+
+   
+</div>
+
+  
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">二、	服務規格</h2>
+
+  
+<span class="subtitle">(一)	HTTP HEADER資訊</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>名稱</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UserName</td>
+		<td>應用系統識別碼（使用者帳號）</td> 
+	</tr>
+		<tr>
+		<td>Password</td>
+		<td>應用系統密碼（使用者密碼）</td> 
+	</tr> 
+	</tbody>
+</table> 
+					<ul class="style_none">
+						<li>(1)	UserName：為應用系統識別碼（政府機關）或使用者帳號（付費使用者），用以驗證平台使用者資訊。</li>
+				<li>(2)	Password：為應用系統密碼（政府機關）或使用者密碼（付費使用者），用以驗證平台使用者資訊。</li>
+				</li>
+					</ul>
+	<p></p>
+
+
+<span class="subtitle">(二)	介面設計</span>
+
+<p>本平台目前提供的WFS服務支援兩個操作介面，包括GetCapabilities、GetFeature，詳細查詢參數與回傳結果說明規格如下：</p>
+
+<ul class="style_none">
+	<li>  <p>1、Getcapabilites  </p>
+	        <p>此方法是取得WFS服務基本資訊的主要方法，其格式為XML，內容主要描述該服務目前提供的圖層資訊。</p>
+	
+	<p>(1)	查詢參數</p>
+	<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>條件</th>
+		<th>參數值</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>service</td>
+		<td>必填</td>
+		<td>WMS</td>
+		<td>服務性質</td>  
+	</tr>
+		<tr>
+		<td>request</td>
+		<td>必填</td>
+		<td>GetCapabilities</td>
+		<td>服務要求</td> 
+	</tr> 
+			<tr>
+		<td>LD</td>
+		<td>必填</td>
+		<td>可依需求自行設定</td>
+		<td>事務所代碼，字元長度為2</td> 
+	</tr>
+			<tr>
+		<td>SCNO</td>
+		<td>必填</td>
+		<td>可依需求自行設定</td>
+		<td>段代碼，字元長度為4</td> 
+	</tr>
+			<tr>
+		<td>PO</td>
+		<td>必填</td>
+		<td>可依需求自行設定</td>
+		<td>可依需求自行設定	地號，字元長度為8</td> 
+	</tr>
+	</tbody>
+</table> 
+	 
+	 <p>(2)	輸出資料</p>
+		<p><img src="images/img_MOI_WFS_001_01.png" alt="輸出資料" aria-hidden="true"></p> 
+		
+	</li>
+	 
+	<li>
+	 <p>2、GetFeature  </p>
+		  <p>此方法是取得圖層的向量資料的主要方法，而向量資料則是以GML格式進行描述，必要參數如以下所示。</p>
+	
+	<p>(1)	查詢參數</p>
+		<div class="overflow_w">
+	<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>條件</th>
+		<th>參數值</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>service</td>
+		<td>必</td>
+		<td>WFS</td>
+		<td>服務性質</td>  
+	</tr>
+		<tr>
+		<td> version</td>
+		<td>必</td>
+		<td>以預設值即可</td>
+		<td>服務版本</td> 
+	</tr> 
+			<tr>
+		<td> request</td>
+		<td>必</td>
+		<td>GetFeature</td>
+		<td>服務要求</td> 
+	</tr> 
+	<tr>
+		<td> typeName</td>
+		<td>必</td>
+		<td>值為地政事務所代碼、段代碼、地號組合，例：AA000100010000</td>
+		<td>依據GetCapabilities FeatureTypeName內容設置</td> 
+	</tr> 
+	<tr>
+		<td> srs</td>
+		<td>必</td>
+		<td>epsg:4326(預設值)、epsg:3826、epsg:3828</td>
+		<td>坐標系統參數</td> 
+	</tr> 
+	<tr>
+		<td> width</td>
+		<td>選</td>
+		<td>可依需求自行設定</td>
+		<td>顯示圖徵範圍寬度</td> 
+	</tr> 
+	<tr>
+		<td> height</td>
+		<td>選</td>
+		<td>可依需求自行設定</td>
+		<td>顯示圖徵範圍高度</td> 
+	</tr>
+	<tr>
+		<td> LD</td>
+		<td>必</td>
+		<td>依需求自行設定地政事務所代碼</td>
+		<td>協作平台必要參數</td> 
+	</tr>
+	<tr>
+		<td> SCNO</td>
+		<td>必</td>
+		<td>依需求自行設定段代碼</td>
+		<td>協作平台必要參數</td> 
+	</tr>
+	<tr>
+		<td> PO</td>
+		<td>必</td>
+		<td>依需求自行設定地號</td>
+		<td>協作平台必要參數</td> 
+	</tr>
+	</tbody>
+</table> 
+	</div>   
+	 <p>(2)	輸出資料</p>
+		<p><img src="images/img_MOI_WFS_001_02.png" alt="輸出資料" aria-hidden="true"></p> 
+	</li>
+</ul>
+ 
+
+</div>
+
+
+
+</div> 
+
+
+
+
+
+
+</body>
+</html>

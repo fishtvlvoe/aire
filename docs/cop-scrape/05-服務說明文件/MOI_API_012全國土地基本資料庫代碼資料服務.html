@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_012全國土地基本資料庫代碼資料服務服務說明文件</title>
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+ 
+<h1>MOI_API_012全國土地基本資料庫代碼資料服務</h1>
+
+
+<div class="contentbody">
+<div class="padding10">
+本服務提供23項介面查詢，其查詢項目、介面與代碼如下表所示，各介面所對應之輸入輸出格式，請參閱下方代碼與輸入輸出格式對照。</div>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th class="w_40">代碼</th>
+		<th>介面名稱</th>
+		<th>介面名稱</th>
+		<th>備註</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td class="text_center">45 </td>
+		<td> 縣市</td>
+		<td> QueryCity</td>
+		<td> </td>
+	</tr>
+ 		<tr>
+		<td class="text_center"> 46</td>
+		<td>鄉鎮 </td>
+		<td> QueryTown</td>
+		<td>需輸入縣市代碼查詢 </td>
+	</tr>
+			<tr>
+		<td class="text_center"> 55</td>
+		<td> 事務所</td>
+		<td> QueryUnit</td>
+		<td>需輸入縣市代碼查詢 </td>
+	</tr>
+ <tr>
+		<td class="text_center">11 </td>
+		<td>非都市土地使用分區 </td>
+		<td>QueryZone </td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center"> 12</td>
+		<td>非都市土地使用地類別</td>
+		<td>QueryZoneDetail </td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center"> 04</td>
+		<td>收件字 </td>
+		<td>QueryReceiptNumber </td>
+		<td>需輸入地政事務所代碼查詢 </td>
+	</tr>
+  	<tr>
+		<td class="text_center">06 </td>
+		<td> 登記原因</td>
+		<td> QueryReason</td>
+		<td> 需輸入地政事務所代碼查詢</td>
+	</tr>
+			<tr>
+		<td class="text_center">09 </td>
+		<td> 權利人類別</td>
+		<td> QueryObligeeType</td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center"> 15</td>
+		<td>權利範圍類別 </td>
+		<td> QueryRights</td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center"> 16</td>
+		<td>權狀年字號 </td>
+		<td>QueryCertificate </td>
+		<td> 需輸入地政事務所代碼查詢</td>
+	</tr>
+			<tr>
+		<td class="text_center"> 18</td>
+		<td>債權權利範圍類別</td>
+		<td>QueryLoanRightsRange</td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center">27 </td>
+		<td> 權利種類&標的種類</td>
+		<td> QueryRightsAndTypes</td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center">17 </td>
+		<td>他項權利檔權利價值類別 </td>
+		<td>QueryRightsValue </td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center"> 19</td>
+		<td> 他項權利檔存續期間類別</td>
+		<td>QueryDuration </td>
+		<td> </td>
+	</tr>
+  <tr>
+		<td class="text_center">20 </td>
+		<td>他項權利檔清償日期類別 </td>
+		<td> QueryTermination</td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center"> 21</td>
+		<td> 他項權利檔利息(率)或地租類別&遲延利息(率)類別&違約金類別</td>
+		<td> QueryRTOGH</td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center">33 </td>
+		<td> 他項權利檔擔保債權種類及範圍類別</td>
+		<td>QueryLoanAndRange </td>
+		<td> </td>
+	</tr>
+			<tr>
+		<td class="text_center">34 </td>
+		<td>他項權利檔擔保債權確定期日類別 </td>
+		<td> QueryLoanDate</td>
+		<td> </td>
+	</tr>
+ <tr>
+		<td class="text_center">35 </td>
+		<td>他項權利檔其他擔保範圍約定類別 </td>
+		<td>QueryGuarantees </td>
+		<td> </td>
+	</tr>
+ 
+	<tr>
+		<td class="text_center"> 0B</td>
+		<td> 建物主要用途</td>
+		<td> QueryMainUsage</td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td class="text_center">0C </td>
+		<td>建物主要建材 </td>
+		<td> QueryMaterials</td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td class="text_center"> 14</td>
+		<td> 建物分層或附屬建物用途</td>
+		<td> QueryAccessoryUsage</td>
+		<td>需輸入地政事務所代碼查詢 </td>
+	</tr>
+	<tr>
+		<td class="text_center">30 </td>
+		<td> 其他登記事項代碼</td>
+		<td> QueryRGALLCode</td>
+		<td> 需輸入地政事務所代碼查詢</td>
+	</tr>
+ 
+	</tbody>
+</table>
+
+ 
+ 
+<div class="dashed_bottom">
+<h2 class="color_deepblue">1.(代碼45)查詢縣市代碼：QueryCity</h2>
+
+<span class="subtitle">1.1.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">1.2.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>縣市代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>縣市代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>縣市名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+ 
+</div>
+
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">2.(代碼46)查詢鄉鎮市區代碼：QueryTown</h2>
+
+<span class="subtitle">2.3.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>CITY</td>
+		<td>必填</td>
+		<td>縣市代碼，字元長度為1</td>
+	</tr>
+ 
+	</tbody>
+</table>
+
+<p></p>
+<span class="subtitle">2.4.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>鄉鎮市區代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>UNIT</td>
+		<td>地政事務所代碼</td>
+	</tr>
+	<tr>
+		<td>CODE</td>
+		<td>鄉鎮市區代碼</td>
+	</tr>
+ <tr>
+		<td>NAME</td>
+		<td>鄉鎮市區名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+ 
+</div>
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">3.(代碼55)查詢事務所代碼：QueryUnit</h2>
+
+<span class="subtitle">3.5.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>CITY</td>
+		<td>必填</td>
+		<td>縣市代碼，字元長度為1</td>
+	</tr>
+ 
+	</tbody>
+</table>
+
+<p></p>
+<span class="subtitle">3.6.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>事務所代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>事務所代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>事務所名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">4.(代碼11)查詢非都市土地使用分區代碼：QueryZone</h2>
+
+<span class="subtitle">4.7.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">4.8.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>非都市土地使用分區代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>非都市土地使用分區代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>非都市土地使用分區名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+ 
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">5.(代碼12)查詢非都市土地使用地類別代碼：QueryZoneDetail</h2>
+
+<span class="subtitle">5.9.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">5.10.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>非都市土地使用地類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>非都市土地使用地類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>非都市土地使用地類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">6.(代碼04)查詢收件字代碼：QueryReceiptNumber</h2>
+
+<span class="subtitle">6.11.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>地政事務所代碼，字元長度為2</td>
+	</tr>
+ 
+	</tbody>
+</table>
+
+<p></p>
+<span class="subtitle">6.12.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>收件字代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+ 
+	<tr>
+		<td>CODE</td>
+		<td>收件字代碼</td>
+	</tr>
+ <tr>
+		<td>NAME</td>
+		<td>收件字名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+ 
+</div>
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">7.(代碼06)查詢登記原因代碼：QueryReason</h2>
+
+<span class="subtitle">7.13.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>地政事務所代碼，字元長度為2</td>
+	</tr>
+ 
+	</tbody>
+</table>
+
+<p></p>
+<span class="subtitle">7.14.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>登記原因代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+ 
+	<tr>
+		<td>CODE</td>
+		<td>登記原因代碼</td>
+	</tr>
+ <tr>
+		<td>NAME</td>
+		<td>登記原因代碼</td>
+	</tr>
+ 
+</tbody>
+</table>
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">8.(代碼09)查詢權利人類別代碼：QueryObligeeType</h2>
+
+<span class="subtitle">8.15.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">8.16.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>權利人類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>權利人類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>權利人類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">9.(代碼15)查詢權利範圍類別代碼：QueryRights</h2>
+
+<span class="subtitle">9.17.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">9.18.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>權利範圍類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>權利範圍類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>權利範圍類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">10.(代碼16)查詢權狀年字號代碼：QueryCertificate</h2>
+
+<span class="subtitle">10.19.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>地政事務所代碼，字元長度為2</td>
+	</tr>
+ 
+	</tbody>
+</table>
+
+<p></p>
+<span class="subtitle">10.20.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>權狀年字號代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+ 
+	<tr>
+		<td>CODE</td>
+		<td>權狀年字號代碼</td>
+	</tr>
+ <tr>
+		<td>NAME</td>
+		<td>權狀年字號名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">11.(代碼18)查詢債權權利範圍類別代碼：QueryLoanRightsRange</h2>
+
+<span class="subtitle">11.21.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">11.22.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>債權權利範圍類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>債權權利範圍類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>債權權利範圍類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">12.(代碼27)查詢權利種類&標的種類代碼：QueryRightsAndTypes</h2>
+
+<span class="subtitle">12.23.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">12.24.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>權利種類&標的種類代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>權利種類&標的種類代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>權利種類&標的種類名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">13.(代碼17)查詢他項權利檔權利價值類別代碼：QueryRightsValue</h2>
+
+<span class="subtitle">13.25.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">13.26.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>他項權利檔權利價值類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>他項權利檔權利價值類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>他項權利檔權利價值類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">14.(代碼19)查詢他項權利檔存續期間類別代碼：QueryDuration</h2>
+
+<span class="subtitle">14.1.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">14.2.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>他項權利檔權利價值類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>他項權利檔存續期間類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>他項權利檔存續期間類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">15.(代碼20)查詢他項權利檔清償日期類別代碼：QueryTermination</h2>
+
+<span class="subtitle">15.3.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">15.4.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>他項權利檔清償日期類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>他項權利檔清償日期類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>他項權利檔清償日期類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">16.(代碼21)查詢他項權利檔利息(率)或地租類別&遲延利息(率)類別&違約金類別代碼：QueryRTOGH</h2>
+
+<span class="subtitle">16.5.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">16.6.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>他項權利檔利息(率)或地租類別&遲延利息(率)類別&違約金類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>他項權利檔利息(率)或地租類別&遲延利息(率)類別&違約金類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>他項權利檔利息(率)或地租類別&遲延利息(率)類別&違約金類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">17.(代碼33)他項權利檔擔保債權種類及範圍類別代碼：QueryLoanAndRange</h2>
+
+<span class="subtitle">17.7.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">17.8.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>他項權利檔擔保債權種類及範圍類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>他項權利檔擔保債權種類及範圍類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>他項權利檔擔保債權種類及範圍類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">18.(代碼34)他項權利檔擔保債權確定期日類別代碼：QueryLoanDate</h2>
+
+<span class="subtitle">18.9.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">18.10.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>他項權利檔擔保債權確定期日類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>他項權利檔擔保債權確定期日類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>他項權利檔擔保債權確定期日類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">19.(代碼35)查詢他項權利檔其他擔保範圍約定類別代碼：QueryGuarantees</h2>
+
+<span class="subtitle">19.11.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">19.12.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>他項權利檔其他擔保範圍約定類別代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>他項權利檔其他擔保範圍約定類別代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>他項權利檔其他擔保範圍約定類別名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">20.(代碼0B)查詢建物主要用途代碼：QueryMainUsage</h2>
+
+<span class="subtitle">20.13.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">20.14.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>建物主要用途代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>權利種類&標的種類代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>權利種類&標的種類名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">21.(代碼0C)查詢建物主要建材代碼：QueryMaterials</h2>
+
+<span class="subtitle">21.15.查詢參數</span>
+
+<div class="font_none">無</div>
+
+<p></p>
+<span class="subtitle">21.16.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>建物主要建材代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>CODE</td>
+		<td>建物主要建材代碼</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>建物主要建材名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+
+ 
+</div>
+
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">22.(代碼14)查詢建物分層或附屬建物用途代碼：QueryAccessoryUsage</h2>
+
+<span class="subtitle">22.17.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>地政事務所代碼，字元長度為2</td>
+	</tr>
+ 
+	</tbody>
+</table>
+
+<p></p>
+<span class="subtitle">22.18.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>建物分層或附屬建物用途代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+ 
+	<tr>
+		<td>CODE</td>
+		<td>建物分層或附屬建物用途代碼</td>
+	</tr>
+ <tr>
+		<td>NAME</td>
+		<td>建物分層或附屬建物用途名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+ 
+</div>
+
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">23.(代碼30)查詢其他登記事項代碼：QueryRGALLCode</h2>
+
+<span class="subtitle">23.19.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>地政事務所代碼，字元長度為2</td>
+	</tr>
+ 
+	</tbody>
+</table>
+
+<p></p>
+<span class="subtitle">23.20.輸出欄位</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>其他登記事項代碼表</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+ 
+	<tr>
+		<td>CODE</td>
+		<td>其他登記事項代碼</td>
+	</tr>
+ <tr>
+		<td>NAME</td>
+		<td>其他登記事項名稱</td>
+	</tr>
+ 
+</tbody>
+</table>
+ 
+</div>
+
+</div> 
+
+</body>
+</html>

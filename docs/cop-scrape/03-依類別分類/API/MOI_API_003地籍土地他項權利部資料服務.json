@@ -1,0 +1,21 @@
+{
+  "serviceId": "467165FA-11B9-416A-BE89-90E86B20242C",
+  "serviceName": "MOI_API_003地籍土地他項權利部資料服務",
+  "priceDescribeUser": "單筆 1 元",
+  "priceDescribeGovernment": "免費需申請",
+  "documentUrl": "https://drive.google.com/open?id=1cb9-FhO08Ep-JApe4sfeN657SOOIFYSuCOm8DsG_574",
+  "serviceDescription": "<p>土地登記謄本之他項權利部，為<span style=\"color:#c0392b\">一宗土地</span>的所有權人將自己的權利範圍設定給第三人的情形，可得知除了土地所有權人之外，還有哪些人對該土地具有其他物權，一般申請地籍謄本時，若申請出來的謄本沒有他項權利的資料，則表示這宗土地沒有設定他項權利。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「土地(宗地)」為單位之他項權利部設定情形，包括設定及債權權利範圍、擔保債權金額及價值、他項權利檔、共同擔保地及建號等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+  "tags": {
+    "badges": [
+      "API",
+      "PRICE_BY_ROW"
+    ],
+    "pricing": [
+      "回傳筆數計費：每筆1元"
+    ]
+  },
+  "ableToPurchase": false,
+  "requestCount": 2031634,
+  "infoUrl": "/Services/service_Info.aspx?serviceID=467165FA-11B9-416A-BE89-90E86B20242C",
+  "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?467165FA-11B9-416A-BE89-90E86B20242C"
+}

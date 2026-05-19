@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_037門牌模糊檢索建號服務查詢服務說明文件</title> 
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+ 
+<h1>MOI_API_037門牌模糊檢索建號服務</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">1.以地址查詢：QueryByAddress</h2>
+
+<span class="subtitle">1.1.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>CITY</td>
+			<td>必填</td>
+			<td>縣市代碼，字元長度為1</td>
+		</tr>
+		<tr>
+			<td>ADDRESS</td>
+			<td>必填</td>
+			<td>地址必須包含縣市名稱、路名、門牌號</td>
+		</tr>
+	</tbody>
+</table>
+<small>➔單次查詢上限1筆</small>
+	
+	<p></p>
+
+
+<span class="subtitle">1.2.輸出欄位</span>
+
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>建物標示部：BLDGREG</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>UNIT</td>
+		<td>地政事務所代碼</td>
+	</tr>
+	<tr>
+		<td>SEC</td>
+		<td>段代碼</td>
+	</tr>
+	<tr>
+		<td>NO</td>
+		<td>建號</td>
+	</tr>
+	<tr>
+		<td>ADDRESS</td>
+		<td>建物門牌</td>
+	</tr>
+	 
+</tbody>
+</table>
+<small>※相關代碼對照請參閱本站服務目錄>搜尋<a href="https://cop.moi.gov.tw/Services/service_interfaceInfo.aspx?A5CCC85A-EEF3-4659-8829-DA21CD0DCC95" target="_blank" title="另開新視窗">MOI_API_012全國土地基本資料庫代碼資料服務</a>，參考其<a href="https://cop.moi.gov.tw/Services/service_Introduce/service_desc_A5CCC85A-EEF3-4659-8829-DA21CD0DCC95.html" target="_blank" title="另開新視窗">服務介面與回傳欄位說明。</a>
+	</small>
+
+ 
+
+</div>
+
+</div> 
+
+</body>
+    </body>
+</html>

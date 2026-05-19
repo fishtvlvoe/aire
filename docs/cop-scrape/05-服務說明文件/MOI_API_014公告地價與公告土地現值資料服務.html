@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_014公告地價與公告土地現值資料服務服務說明文件</title>
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body> 
+<h1>MOI_API_014公告地價與公告土地現值資料服務</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">1.查詢參數</h2>
+
+<span class="subtitle">1.1.以地號查詢最新公告：QueryLatest</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>NO</td>
+		<td>必填</td>
+		<td>地號，字元長度為8</td>
+	</tr>
+			 
+	</tbody>
+</table>
+<small>➔單次查詢上限25筆</small>
+	
+	<p></p>
+
+
+<span class="subtitle">1.2.以地號查詢歷年公告：QueryHistory</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>NO</td>
+		<td>必填</td>
+		<td>地號，字元長度為8</td>
+	</tr>
+		 
+	</tbody>
+</table>
+<small>➔單次查詢上限25筆</small>
+	
+	 
+	</div>
+	
+		
+			
+				
+ <div class="dashed_bottom">
+<h2 class="color_deepblue">2.輸出欄位</h2>	
+	
+	
+ 
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>公告地價與公告土地現值</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>YEAR</td>
+		<td>年度</td>
+	</tr>
+	<tr>
+		<td>LANDPRICE</td>
+		<td>公告地價</td>
+	</tr>
+	<tr>
+		<td>CURRENTVALUE</td>
+		<td>公告現值</td>
+	</tr>
+ 
+	 </tbody>
+</table>
+
+
+	</div>
+
+</div>
+
+
+ 
+
+</body>
+    </body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "serviceId": "6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0",
+  "serviceName": "MOI_API_007地號資料服務",
+  "priceDescribeUser": "依地段每段 10 元",
+  "priceDescribeGovernment": "免費需申請",
+  "documentUrl": "https://drive.google.com/open?id=1A3k9ZxgidgiUapFx374rThsK2XrzEF9hO89MpF8Xqhc",
+  "serviceDescription": "<p>本服務以地段或坐標條件查詢地號資料，主要以地政事務所(代碼)、及地段(代碼)為主要查詢條件，輔以空間坐標、土地使用分區、土地使用地類別、公私別、管理單位等為選擇性條件，並回傳地號資料，單次引用可介接10筆資料。</p>\r\n",
+  "tags": {
+    "badges": [
+      "API",
+      "PRICE_BY_LOCATION"
+    ],
+    "pricing": [
+      "依地段數計費:每地段10元"
+    ]
+  },
+  "ableToPurchase": false,
+  "requestCount": 187513,
+  "infoUrl": "/Services/service_Info.aspx?serviceID=6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0",
+  "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0"
+}

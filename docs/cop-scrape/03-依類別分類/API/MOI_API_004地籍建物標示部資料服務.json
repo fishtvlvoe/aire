@@ -1,0 +1,21 @@
+{
+  "serviceId": "EB95D5DC-2F03-41DA-8406-B69F2D7ECC15",
+  "serviceName": "MOI_API_004地籍建物標示部資料服務",
+  "priceDescribeUser": "單筆 1 元",
+  "priceDescribeGovernment": "免費需申請",
+  "documentUrl": "https://drive.google.com/open?id=16QbWDqx8G4j4OWj9EBOdF1pv0UF7tpQBV8KERCDRWew",
+  "serviceDescription": "<p>建物登記謄本之建物標示部，描述<span style=\"color:#c0392b\"><strong>一筆建物</strong></span>基本資料。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「建物」為單位之標示部各欄位資訊，包括建物總面積、建物分層或附屬建物資訊、共有部分資訊，並將傳入參數使用陣列傳遞，單次引用可介接25筆資料。</p>\r\n",
+  "tags": {
+    "badges": [
+      "API",
+      "PRICE_BY_ROW"
+    ],
+    "pricing": [
+      "回傳筆數計費：每筆1元"
+    ]
+  },
+  "ableToPurchase": false,
+  "requestCount": 2075049,
+  "infoUrl": "/Services/service_Info.aspx?serviceID=EB95D5DC-2F03-41DA-8406-B69F2D7ECC15",
+  "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?EB95D5DC-2F03-41DA-8406-B69F2D7ECC15"
+}

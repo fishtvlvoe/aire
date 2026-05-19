@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_023土地位置概圖服務服務說明文件</title>
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+ 
+
+<h1>MOI_API_023土地位置概圖服務</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+ <h2 class="color_deepblue">1.以地號查詢：GetNeighborhoodArea</h2>
+
+<span class="subtitle">1.1.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>NO</td>
+		<td>必填</td>
+		<td>地號，字元長度為8</td>
+	</tr>
+	</tbody>
+</table>
+ 
+	
+	<p></p>
+
+
+<span class="subtitle">1.2.輸出欄位</span> 
+<div class="padding10">預設輸出圖形格式採用PNG，圖片大小固定為1024*768，顯示圖形包括查詢參數本身地號(藍色框線)及毗鄰地號(紅色框線)，底圖套疊臺灣通用電子地圖。</div>
+<div class="text_center">
+	<img src="images/023.png" alt="輸出格式" aria-hidden="true">
+	
+</div>
+ 
+
+</div>
+
+</div> 
+
+</body>
+    </body>
+</html>

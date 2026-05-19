@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<!-- saved from url=(0109)https://cop.land.moi.gov.tw/Services/service_Introduce/service_desc_FF1472EC-3851-446F-8DC9-4101B24E7229.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_WMS_013公有土地開放資料WMS服務</title>
+<link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+
+<body>
+ 
+<h1>MOI_WMS_013公有土地開放資料WMS服務</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">一、	服務說明</h2>
+
+<p>本服務以土地(宗地)為單位，依地號查詢取得地籍圖WMS(Web Map Service；網路地圖服務，是一種最簡單快速的網路產圖服務，欲瞭解WMS服務類型與原理請先參考<a href="https://cop.land.moi.gov.tw/ServicesInfo/typeInfo.aspx" target="_blank" title="另開新視窗">平台服務類型</a>若欲進一步了解WMS標準格式相關規格請參閱<a href="http://www.opengeospatial.org/standards/wms" target="_blank" title="另開新視窗">OGC網站</a> 。</p>
+
+</div>
+
+  
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">二、	服務規格</h2>
+
+  
+<span class="subtitle">(一)	HTTP HEADER資訊</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>名稱</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UserName</td>
+		<td>應用系統識別碼（使用者帳號）</td> 
+	</tr>
+		<tr>
+		<td>Password</td>
+		<td>應用系統密碼（使用者密碼）</td> 
+	</tr> 
+	</tbody>
+</table> 
+					<ul class="style_none">
+						<li>(1)	UserName：為應用系統識別碼（政府機關）或使用者帳號（付費使用者），用以驗證平台使用者資訊。</li>
+				<li>(2)	Password：為應用系統密碼（政府機關）或使用者密碼（付費使用者），用以驗證平台使用者資訊。</li>
+				
+					</ul>
+	<p></p>
+
+
+<span class="subtitle">(二)	介面設計</span>
+
+<p>本平台目前提供的WMS服務支援兩個操作介面，包括GetCapabilities、GetMap，詳細查詢參數與回傳結果說明規格如下：</p>
+
+<ul class="style_none">
+	<li>  <p>1、Getcapabilites  </p>
+	        <p>此方法是取得WMS服務基本資訊的主要方法，其格式為XML，內容包括圖層名稱、坐標系統、圖形範圍坐標、支援圖檔格式等等。</p>
+	
+	<small class="color_red">※請先使用GetCapabilities取得您查詢地號的圖形範圍坐標（bbox），再進一步將bbox代入GetMap之必要參數。</small>
+	
+	<p>(1)	查詢參數</p>
+	<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>條件</th>
+		<th>參數值</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>service</td>
+		<td>必填</td>
+		<td>WMS</td>
+		<td>服務性質</td>  
+	</tr>
+		<tr>
+		<td>request</td>
+		<td>必填</td>
+		<td>GetCapabilities</td>
+		<td>服務要求</td> 
+	</tr> 
+			<tr>
+		<td>CITY</td>
+		<td>必填</td>
+		<td>A</td>
+		<td>縣市代碼，字元長度為1</td> 
+	</tr>
+			<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>0001</td>
+		<td>段代碼，字元長度為4</td> 
+	</tr>
+	</tbody>
+</table> 
+	 
+	 <p>(2)	輸出資料</p>
+		<p><img src="./images/img_MOI_WMS_013_01.png"></p> 
+		
+	</li>
+	 
+	<li>
+	 <p>2、GetMap  </p>
+		  <p>此方法是取得WMS圖形的方法，其輸出格式依據引用端使用的參數來提供。必要參數如以下所示。</p>
+	
+	<p>(1)	查詢參數</p>
+	<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>條件</th>
+		<th>參數值</th>
+		<th>說明</th> 
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>service</td>
+		<td>必</td>
+		<td>WMS</td>
+		<td>服務性質</td>  
+	</tr>
+	 	<tr>
+		<td>version</td>
+		<td>必</td>
+		<td>以預設值即可</td>
+		<td>服務版本</td>  
+	</tr>
+		<tr>
+		<td>request</td>
+		<td>必</td>
+		<td>GetMap</td>
+		<td>服務要求</td>  
+	</tr>
+		<tr>
+		<td>layers</td>
+		<td>必</td>
+		<td>值為地政事務所代碼、段代碼、地號組合，例：AA000100010000</td>
+		<td>依據GetCapabilities LayerName內容設置</td>  
+	</tr>
+		<tr>
+		<td>bbox</td>
+		<td>必</td>
+		<td>(左上X坐標,左上Y坐標,右下X坐標,右下Y坐標)</td>
+		<td>縣市圖徵左上角及右下角坐標</td>  
+	</tr>
+		<tr>
+		<td>srs</td>
+		<td>必</td>
+		<td>epsg:4326、epsg:3826、epsg:3828</td>
+		<td>坐標系統參數</td>  
+	</tr>
+	<tr>
+		<td>format</td>
+		<td>必</td>
+		<td>格式：image/影像格式
+              (png、jpeg、gif)</td>
+		<td>顯示格式
+               (參考WMS規範)</td>  
+	</tr>
+	<tr>
+		<td>styles</td>
+		<td>選</td>
+		<td>提供default、labeling兩種樣式，default僅繪製地籍圖，labeling則額外繪製地號於圖形上</td>
+		<td>顯示圖徵型態</td>  
+	</tr>
+	<tr>
+		<td>width</td>
+		<td>選</td>
+		<td>可依需求自行設定</td>
+		<td>顯示圖徵範圍寬度</td>  
+	</tr>
+	<tr>
+		<td>height</td>
+		<td>選</td>
+		<td>可依需求自行設定</td>
+		<td>顯示圖徵範圍高度</td>  
+	</tr>
+	<tr>
+		<td>CITY</td>
+		<td>必</td>
+		<td>縣市代碼</td>
+		<td>A</td>  
+	</tr>
+	<tr>
+		<td>SEC</td>
+		<td>必</td>
+		<td>段代碼</td>
+		<td>0001</td>  
+	</tr>
+	</tbody>
+</table> 
+  
+	 <p>(2)	輸出資料</p>
+		<p><img src="./images/img_MOI_WMS_013_02.png"></p> 
+	</li>
+</ul>
+ 
+
+</div>
+
+
+
+</div> 
+
+
+
+
+
+
+
+
+</body></html>

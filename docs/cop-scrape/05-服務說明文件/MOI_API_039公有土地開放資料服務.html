@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!-- saved from url=(0109)https://cop.land.moi.gov.tw/Services/service_Introduce/service_desc_8C8F0F4C-EF41-4426-A800-3EF15AA9886D.html -->
+<html lang="zh-Hant-TW"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_039公有土地開放資料服務服務說明文件</title>
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+ 
+<h1>MOI_API_039公有土地開放資料服務</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">1.查詢參數</h2>
+
+<span class="subtitle">1.1.以鄉鎮查詢：QueryByTown</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>CITY</td>
+		<td>必填</td>
+		<td>縣市代碼，字元長度為1</td>
+	</tr>
+		<tr>
+		<td>TOWN</td>
+		<td>必填</td>
+		<td>鄉鎮代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+ 
+	</tbody>
+</table>
+
+<small>➔單次僅能輸入一組參數JSON結構<br>
+➔單次<span class="color_red">查詢條件</span>上限25筆</small>
+	
+	<p></p>
+
+
+<span class="subtitle">1.2.以地政事務所查詢：QueryByUnit</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+ 
+	</tbody>
+</table>
+<small>➔單次僅能輸入一組參數JSON結構<br>
+➔單次<span class="color_red">查詢條件</span>上限25筆</small>
+	
+<p></p>
+
+
+
+
+</div>
+
+
+<div class="dashed_bottom">
+<h2 class="color_deepblue">2.輸出欄位</h2>	
+
+ 
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>公有土地資料 PUBLIC</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>City</td>
+		<td>縣市代碼</td>
+	</tr>
+	<tr>
+		<td>Town</td>
+		<td>鄉鎮代碼</td>
+	</tr>
+	<tr>
+		<td>Scno</td>
+		<td>段代碼</td>
+	</tr>
+ 
+	<tr>
+		<td>SCName</td>
+		<td>段名</td>
+	</tr>
+	<tr>
+		<td>No</td>
+		<td>地號</td>
+	</tr>
+	<tr>
+		<td>Area</td>
+		<td>登記面積</td>
+	</tr>
+	<tr>
+		<td>Zoning</td>
+		<td>使用分區</td>
+	</tr>
+	<tr>
+		<td>LandClass</td>
+		<td>使用地</td>
+	</tr>
+	<tr>
+		<td>ALValue</td>
+		<td>公告現值</td>
+	</tr>
+	<tr>
+		<td>ALPrice</td>
+		<td>公告地價</td>
+	</tr>
+	 </tbody>
+</table>
+
+	<p></p>
+		
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>所有權人 OWNER</caption>
+<thead>
+	<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+	</thead>
+	<tbody>
+	<tr>
+		<td>RNo</td>
+		<td>所有權登記次序</td>
+	</tr>
+	<tr>
+		<td>OwnerName</td>
+		<td>權利人名稱</td>
+	</tr>
+	<tr>
+		<td>LID</td>
+		<td>權利人統一編號</td>
+	</tr>
+	<tr>
+		<td>OwnerType</td>
+		<td>所有權人類別</td>
+	<tr>
+		<td>RightType</td>
+		<td>權利範圍類別</td>
+	</tr>
+	<tr>
+		<td>Denominator</td>
+		<td>權利範圍分母</td>
+	</tr>
+	<tr>
+		<td>Numerator</td>
+		<td>權利範圍分子</td>
+	</tr>
+	<tr>
+		<td>DLPrice</td>
+		<td>申報地價</td>
+	</tr>
+	<tr>
+		<td>ManagerName</td>
+		<td>管理者名稱</td>
+	</tr>
+	</tr></tbody>
+</table>
+</div> 
+
+
+    
+</body></html>

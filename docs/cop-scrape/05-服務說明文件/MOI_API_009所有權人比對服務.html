@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_009所有權人比對服務服務說明文件</title>
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+ 
+<h1>MOI_API_009所有權人比對服務</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+<h2 class="color_deepblue">1.查詢參數</h2>
+
+<span class="subtitle">1.1.以所有權人查詢：CompareName</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>NO</td>
+		<td>必填</td>
+		<td>地號，字元長度為8</td>
+	</tr>
+		 	<tr>
+		<td>NAME</td>
+		<td>必填</td>
+		<td>所有權人名稱</td>
+	</tr>
+	</tbody>
+</table>
+ 
+<small>➔單次查詢上限25筆 </small> 
+<span class="subtitle">1.2.以所有權人統一編號查詢：CompareLID</span>
+
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>UNIT</td>
+		<td>必填</td>
+		<td>事務所代碼，字元長度為2</td>
+	</tr>
+		<tr>
+		<td>SEC</td>
+		<td>必填</td>
+		<td>段代碼，字元長度為4</td>
+	</tr>
+		<tr>
+		<td>NO</td>
+		<td>必填</td>
+		<td>地號，字元長度為8</td>
+	</tr>
+		 	<tr>
+		<td>LID</td>
+		<td>必填</td>
+		<td>所有權人統一編號</td>
+	</tr>
+	</tbody>
+</table>
+ 
+<small>➔單次查詢上限25筆 </small>
+	<p></p>
+	
+
+<h2 class="color_deepblue">2.輸出欄位</h2>	
+<span class="subtitle">2.1.以所有權人查詢</span>
+
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+<caption>所有權人比對：CompareName</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>UNIT</td>
+		<td>事務所代碼</td>
+	</tr>
+	<tr>
+		<td>SEC</td>
+		<td>段代碼</td>
+	</tr>
+	<tr>
+		<td>NO</td>
+		<td>地號</td>
+	</tr>
+	<tr>
+		<td>NAME</td>
+		<td>查詢的所有權人名稱</td>
+	</tr>
+	<tr>
+		<td>RESULT</td>
+		<td>比對結果【0：錯誤、1：正確】</td>
+	</tr>
+ 
+
+ <table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+ 	 <span class="subtitle">2.2.以所有權人統一編號查詢</span>
+<caption>所有權人統一編號比對：CompareLID</caption>
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td>UNIT</td>
+		<td>事務所代碼</td>
+	</tr>
+	<tr>
+		<td>SEC</td>
+		<td>段代碼</td>
+	</tr>
+	<tr>
+		<td>NO</td>
+		<td>地號</td>
+	</tr>
+	<tr>
+		<td>LID</td>
+		<td>查詢的所有權人統一編號</td>
+	</tr>
+	<tr>
+		<td>RESULT</td>
+		<td>比對結果【0：錯誤、1：正確】</td>
+	</tr>
+</tbody>
+</table>
+ 
+	
+	</div>
+ 
+
+</div> 
+
+</body>
+    </body>
+</html>

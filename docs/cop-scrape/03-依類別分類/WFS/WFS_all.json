@@ -1,0 +1,68 @@
+[
+  {
+    "serviceId": "562943EA-0CA9-4758-8127-25DAD3E0605D",
+    "serviceName": "MOI_WFS_001地籍圖WFS",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1GYh69wWSiz5VPT8FUCOY8FpfTwP_iegMk7UC2uVfQXo",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 499930
+  },
+  {
+    "serviceId": "668F1B05-EF45-4D78-9F00-C8B640B62035",
+    "serviceName": "MOI_WFS_002地籍圖WFS(SHP檔)",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1GIOCgR50e8YAx7J_SqOeYuxJkDzdms2UJrewrCXv5nE",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "9B1DE5B0-E56B-4601-A85E-99F568FC82A7",
+    "serviceName": "MOI_WFS_003圖幅接合地籍圖WFS",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1C5JlqzOAAon0KmX2_VzcKswRIc71r4DSij3ZRR3hXFo",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 71245
+  },
+  {
+    "serviceId": "db79332a-de68-42d2-aa13-97903ff751d5",
+    "serviceName": "MOI_WFS_004區段徵收範圍WFS",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "44e7e9d7-ef6d-4fc2-896f-d01bf299e53b",
+    "serviceName": "MOI_WFS_005公有土地開放資料WFS服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "4821e03a-18a7-4abe-8b96-29efa7c9b4e3",
+    "serviceName": "MOI_WFS_006市地重劃與農村社區重劃範圍WFS",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  }
+]

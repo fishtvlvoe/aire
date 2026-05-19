@@ -1,0 +1,93 @@
+{
+  "data": [
+    {
+      "serviceName": "MOI_API_004地籍建物標示部資料服務",
+      "requestCount": 2075049
+    },
+    {
+      "serviceName": "MOI_API_003地籍土地他項權利部資料服務",
+      "requestCount": 2031634
+    },
+    {
+      "serviceName": "MOI_API_002地籍土地所有權部資料服務",
+      "requestCount": 1868549
+    },
+    {
+      "serviceName": "MOI_API_001地籍土地標示部資料服務",
+      "requestCount": 944366
+    },
+    {
+      "serviceName": "MOI_API_005地籍建物所有權部資料服務",
+      "requestCount": 557140
+    },
+    {
+      "serviceName": "MOI_WFS_001地籍圖WFS",
+      "requestCount": 499930
+    },
+    {
+      "serviceName": "MOI_API_006地籍建物他項權利部資料服務",
+      "requestCount": 402923
+    },
+    {
+      "serviceName": "MOI_API_007地號資料服務",
+      "requestCount": 187513
+    },
+    {
+      "serviceName": "MOI_API_015建號資料服務",
+      "requestCount": 96088
+    },
+    {
+      "serviceName": "MOI_WFS_003圖幅接合地籍圖WFS",
+      "requestCount": 71245
+    },
+    {
+      "serviceName": "MOI_API_019興建農舍註記資料服務",
+      "requestCount": 13677
+    },
+    {
+      "serviceName": "MOI_API_008土地標示部異動索引服務",
+      "requestCount": 7103
+    },
+    {
+      "serviceName": "MOI_WMS_002地籍圖WMS",
+      "requestCount": 2956
+    },
+    {
+      "serviceName": "MOI_API_028建物權利種類及其登記狀態查詢服務",
+      "requestCount": 398
+    },
+    {
+      "serviceName": "MOI_API_016土地標示及權利範圍查詢服務",
+      "requestCount": 55
+    },
+    {
+      "serviceName": "MOI_WMS_003圖幅接合地籍圖WMS",
+      "requestCount": 6
+    },
+    {
+      "serviceName": "MOI_API_020土壤或地下水污染場址註記查詢服務",
+      "requestCount": 3
+    },
+    {
+      "serviceName": "MOI_API_017土地權利種類及登記事項查詢服務",
+      "requestCount": 2
+    },
+    {
+      "serviceName": "MOI_API_018非都市土地使用管制註記查詢服務",
+      "requestCount": 2
+    },
+    {
+      "serviceName": "MOI_API_021地籍圖重測註記查詢服務",
+      "requestCount": 2
+    },
+    {
+      "serviceName": "MOI_API_022公告徵收註記查詢服務",
+      "requestCount": 2
+    },
+    {
+      "serviceName": "MOI_API_023土地位置概圖服務",
+      "requestCount": 1
+    }
+  ],
+  "totalCount": 22
+}

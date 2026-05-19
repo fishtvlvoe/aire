@@ -1,0 +1,18 @@
+{
+  "serviceId": "FE871A32-EE35-4D27-A49A-929DDC6E061D",
+  "serviceName": "MOI_API_009所有權人比對服務",
+  "priceDescribeUser": "僅提供中央機關申請",
+  "priceDescribeGovernment": "免費需申請",
+  "documentUrl": "https://drive.google.com/open?id=1hZLMuYXTTV3NmzDdYse_RCb_hEc9jc8dpjO5xtlRMrQ",
+  "serviceDescription": "<p>本服務輸入地號以及<span style=\"color:#c0392b\">土地所有權人姓名</span>、<span style=\"color:#c0392b\">個人統一編號</span>為參數，比對與該土地登記之所有權人姓名和統一編號是否吻合，單次引用可介接25筆資料。</p>\r\n",
+  "tags": {
+    "badges": [
+      "API",
+      "GOV_APPLY"
+    ]
+  },
+  "ableToPurchase": false,
+  "requestCount": 0,
+  "infoUrl": "/Services/service_Info.aspx?serviceID=FE871A32-EE35-4D27-A49A-929DDC6E061D",
+  "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?FE871A32-EE35-4D27-A49A-929DDC6E061D"
+}

@@ -1,0 +1,18 @@
+{
+  "serviceId": "C2E96298-A335-4BB9-9744-C471D8E2AE6B",
+  "serviceName": "MOI_API_010公有土地登記資料服務",
+  "priceDescribeUser": "僅提供中央機關申請",
+  "priceDescribeGovernment": "免費需申請",
+  "documentUrl": "https://drive.google.com/open?id=1EeRVuF8641dxkOdzTCo0-Umb5TG51CYfJbI2owdZfmw",
+  "serviceDescription": "<p>本服務主要以地政事務所代碼、地段代碼及地號為查詢條件，查詢公有土地登記資料、所有權人及管理機關，單次引用可介接25筆資料。亦可透過<a href=\"https://data.gov.tw/dataset/34315\">政府資料開放平台</a>、<a href=\"https://goo.gl/hGJwbu\">內政資料開放平台</a>取得公有土地登記資料。</p>\r\n",
+  "tags": {
+    "badges": [
+      "API",
+      "GOV_APPLY"
+    ]
+  },
+  "ableToPurchase": false,
+  "requestCount": 0,
+  "infoUrl": "/Services/service_Info.aspx?serviceID=C2E96298-A335-4BB9-9744-C471D8E2AE6B",
+  "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?C2E96298-A335-4BB9-9744-C471D8E2AE6B"
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "serviceId": "24ED4437-DD2B-4FC1-A246-1AEF73681E0B",
+    "serviceName": "MOI_API_001地籍土地標示部資料服務",
+    "priceDescribeUser": "單筆 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1zTM_uih8qK1X3hTedbzISqNs_LcQ5Lsz5KZcPpDHJ8k",
+    "serviceDescription": "<p>土地登記謄本之土地標示部，描述<span style=\"color:#c0392b\"><strong>一宗土地</strong></span>基本資料。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「土地(宗地)」為單位之標示部各欄位資訊，包括土地的面積、登記日期與原因、土地使用地目及類別、公告地現值、公告地價、所在區位與坐標等，將傳入參數使用陣列傳遞，單次引用可介接25筆資料。</p>\r\n",
+    "tags": {
+      "badges": [
+        "API",
+        "PRICE_BY_ROW"
+      ],
+      "pricing": [
+        "回傳筆數計費：每筆1元"
+      ]
+    },
+    "ableToPurchase": false,
+    "requestCount": 944162,
+    "infoUrl": "/Services/service_Info.aspx?serviceID=24ED4437-DD2B-4FC1-A246-1AEF73681E0B",
+    "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?24ED4437-DD2B-4FC1-A246-1AEF73681E0B"
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "serviceId": "34C16667-25E6-428A-9D56-26E1B0AC3A48",
+  "serviceName": "MOI_API_008土地標示部異動索引服務",
+  "priceDescribeUser": "依地號提供，單筆 3 元",
+  "priceDescribeGovernment": "免費需申請",
+  "documentUrl": "https://drive.google.com/open?id=1wP-mXLqOlW8qJkXMHsaAWHOIzH1VtM_pmLOvu8SRXfA",
+  "serviceDescription": "<p>本服務查詢土地標示部有無異動紀錄，並包含異動資料及原因等。主要提供以地政事務所(代碼)、地段(代碼)及地號為查詢條件，回傳土地登記資料中有關土地標示部的異動索引紀錄，單次引用可介接25筆資料。</p>\r\n",
+  "tags": {
+    "badges": [
+      "API",
+      "PRICE_BY_ROW"
+    ],
+    "pricing": [
+      "回傳筆數計費：每筆3元"
+    ]
+  },
+  "ableToPurchase": false,
+  "requestCount": 7103,
+  "infoUrl": "/Services/service_Info.aspx?serviceID=34C16667-25E6-428A-9D56-26E1B0AC3A48",
+  "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?34C16667-25E6-428A-9D56-26E1B0AC3A48"
+}

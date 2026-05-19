@@ -1,0 +1,134 @@
+[
+  {
+    "serviceId": "E0C751CE-8FEA-4DEA-9C58-FA48D80F85CE",
+    "serviceName": "MOI_WMS_001地籍圖WMS(SHP檔)",
+    "priceDescribeUser": "僅提供中央機關申請",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1YB3VvJ0WNwfxKwHWKtDdJkSOZ53uEChy80s2bIL9HGs",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "207F3D84-DE2B-435E-85F7-581EA5129DDE",
+    "serviceName": "MOI_WMS_002地籍圖WMS",
+    "priceDescribeUser": "每 3 分鐘 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1ZuERpvWlx8tFtYbXVClgKW7wermCkh76qfINTa1Vxhs",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 2956
+  },
+  {
+    "serviceId": "FF1472EC-3851-446F-8DC9-4101B24E7229",
+    "serviceName": "MOI_WMS_003圖幅接合地籍圖WMS",
+    "priceDescribeUser": "每 3 分鐘 1 元",
+    "priceDescribeGovernment": "免費需申請",
+    "documentUrl": "https://drive.google.com/open?id=1f7DkGnm9hxd2Pmu5Hkbo5zDzBHI9Q_4yjTbZFbwdEX8",
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 6
+  },
+  {
+    "serviceId": "48eb0322-29df-4611-98bd-5c731e7483d3",
+    "serviceName": "MOI_WMS_004自來水水質水量保護區",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "e25e4246-d282-451a-af01-7380b62760c7",
+    "serviceName": "MOI_WMS_005都市計畫土地使用分區",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "2654b2e6-362c-46ab-a011-51308912b7a1",
+    "serviceName": "MOI_WMS_007活動斷層圖",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "f42b4601-4023-4f03-b551-f982c072aef4",
+    "serviceName": "MOI_WMS_008特定水土保持區範圍",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "8d614c24-1ce1-4209-9ebd-74f4b63aad3b",
+    "serviceName": "MOI_WMS_009山坡地範圍",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "b316efd6-02a7-4553-8485-6b70a4c672cc",
+    "serviceName": "MOI_WMS_010國家公園區內之特別景觀區、生態保護區、史蹟保存區",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "11f283ff-56f3-4544-be83-0d68a4a5fa0a",
+    "serviceName": "MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區",
+    "priceDescribeUser": "免費",
+    "priceDescribeGovernment": "免費",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "7da0ce6a-24ed-484c-8a0d-b0b65f22ef00",
+    "serviceName": "MOI_WMS_012以段為單位地籍圖",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  },
+  {
+    "serviceId": "915d5c4b-0f24-4acd-ba05-0b35d38d5851",
+    "serviceName": "MOI_WMS_013公有土地開放資料WMS服務",
+    "priceDescribeUser": "免費，需帳號驗證",
+    "priceDescribeGovernment": "免費，需應用系統驗證",
+    "documentUrl": null,
+    "serviceDescription": null,
+    "tags": null,
+    "ableToPurchase": null,
+    "requestCount": 0
+  }
+]

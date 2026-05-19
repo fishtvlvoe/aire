@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+<title>MOI_API_024地籍圖詮釋資料服務說明文件</title>
+    <link href="Service_introduce.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body>
+ 
+
+<h1>MOI_API_024地籍圖詮釋資料</h1>
+<div class="contentbody">
+<div class="dashed_bottom">
+ 
+
+<span class="subtitle">1.1.查詢參數</span>
+
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+	<thead>
+	<tr>
+		<th>參數名稱</th>
+		<th>必選填</th>
+		<th>說明</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+		<td>LotCode</td>
+		<td>必填</td>
+		<td>地段代碼，字元長度為7<br> </td>
+	</tr>
+  
+	</tbody>
+</table>
+ 
+	
+	<p></p>
+
+
+<span class="subtitle">1.2.輸出欄位</span>
+
+<div class="padding10">詳細資訊，可至「地籍圖詮釋資料查詢網」進一步了解。</div>
+<table  border="0" cellspacing="1" cellpadding="3"  class="main_table">
+ 
+<thead>
+		<tr>
+	<th>回傳欄位名稱</th>
+	<th>資料欄位中文
+</th>
+	</tr>
+		</thead>
+	<tbody>
+	<tr>
+		<td> MapName</td>
+		<td> 圖層名稱</td>
+	</tr>
+	 	<tr>
+		<td>LotCode </td>
+		<td>地段代碼</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> ExcerptType</td>
+		<td>資料摘要 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Keyword</td>
+		<td>主題關鍵字 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>CompletiveTime </td>
+		<td>資料完成(公告)日期 </td>
+	</tr>
+ </tr>
+	 	<tr>
+		<td> CreateTime</td>
+		<td> 詮釋資料建置時間</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> CoordinateSystem</td>
+		<td>圖檔坐標系統 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>MapScale </td>
+		<td>比例尺分母 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>DescriptionOfQuality</td>
+		<td> 資料品質評估方法描述</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> DescriptionOfTrack</td>
+		<td> 資料歷程描述</td>
+	</tr>
+ 
+		</tr>
+	 	<tr>
+		<td>Subscription </td>
+		<td> 申購指引</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Holder_UnitName</td>
+		<td> 詮釋資料聯絡資訊-單位名稱</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Holder_ContactName</td>
+		<td>詮釋資料聯絡資訊-聯絡者姓名 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Holder_ContactTitle </td>
+		<td> 詮釋資料聯絡資訊-聯絡者職稱</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Holder_ContactTel</td>
+		<td> 詮釋資料聯絡資訊-聯絡者電話</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Holder_ContactFax </td>
+		<td> 詮釋資料聯絡資訊-傳真電話</td>
+	</tr>
+ 
+		</tr>
+	 	<tr>
+		<td> Holder_ContactAddress</td>
+		<td> 詮釋資料聯絡資訊-聯絡地址</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Holder_ContactEmail</td>
+		<td>詮釋資料聯絡資訊-電子信箱 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Holder_ContactOnlineInfo </td>
+		<td>詮釋資料聯絡資訊-線上資訊</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Maker_UnitName </td>
+		<td> 生產單位聯絡資訊-單位名稱</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Maker_ContactName</td>
+		<td> 生產單位聯絡資訊-聯絡者姓名</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Maker_ContactTitle</td>
+		<td> 生產單位聯絡資訊-聯絡者職稱</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Maker_ContactTel</td>
+		<td>生產單位聯絡資訊-聯絡者電話 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Maker_ContactFax </td>
+		<td>生產單位聯絡資訊-傳真電話 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Maker_ContactAddress</td>
+		<td>生產單位聯絡資訊-聯絡地址 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Maker_ContactEmail </td>
+		<td> 生產單位聯絡資訊-電子信箱</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Maker_ContactOnlineInfo </td>
+		<td> 生產單位聯絡資訊-線上資訊</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Supplier_UnitName </td>
+		<td>供應單位聯絡資訊-單位名稱 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Supplier_ContactName </td>
+		<td> 供應單位聯絡資訊-聯絡者姓名</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Supplier_ContactTitle</td>
+		<td> 供應單位聯絡資訊-聯絡者職稱</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Supplier_ContactTel </td>
+		<td>供應單位聯絡資訊-聯絡者電話 </td>
+	</tr>
+		</tr>
+ <tr>
+		<td> Supplier_ContactFax</td>
+		<td>供應單位聯絡資訊-傳真電話 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Supplier_ContactAddress </td>
+		<td>供應單位聯絡資訊-聯絡地址 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Supplier_ContactEmail </td>
+		<td>供應單位聯絡資訊-電子信箱 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Supplier_ContactOnlineInfo</td>
+		<td>供應單位聯絡資訊-線上資訊 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Authority_UnitName </td>
+		<td>權責單位聯絡資訊-單位名稱 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Authority_ContactName</td>
+		<td> 權責單位聯絡資訊-聯絡者姓名</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Authority_ContactTitle </td>
+		<td> 權責單位聯絡資訊-聯絡者職稱</td>
+	</tr>
+ 
+		</tr>
+	 	<tr>
+		<td> Authority_ContactTel</td>
+		<td>權責單位聯絡資訊-聯絡者電話 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Authority_ContactFax </td>
+		<td>權責單位聯絡資訊-傳真電話 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Authority_ContactAddress</td>
+		<td> 權責單位聯絡資訊-聯絡地址</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>Authority_ContactEmail </td>
+		<td> 權責單位聯絡資訊-電子信箱</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Authority_ContactOnlineInfo</td>
+		<td> 權責單位聯絡資訊-線上資訊</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Purpose</td>
+		<td> 資料建置目的</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Progress</td>
+		<td>資料建置狀況 </td>
+	</tr>
+  </tr>
+	 	<tr>
+		<td> SpatialRepresentationType</td>
+		<td>空間展示型別 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>WestBoundLongitude </td>
+		<td> 最西經度值</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> EastBoundLongitude</td>
+		<td> 最東經度值</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>SouthBoundLatitude </td>
+		<td> 最南緯度值</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> NorthBoundLatitude</td>
+		<td>最北緯度值 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> UseLimitation</td>
+		<td> 用途限制</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>GetRestriction </td>
+		<td>取得限制 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> UseRestriction</td>
+		<td> 使用限制</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> Classification</td>
+		<td> 安全分級</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>NameofMeasure </td>
+		<td> 量測名稱</td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td>GeometricObjectType </td>
+		<td>幾何物件型別 </td>
+	</tr>
+		</tr>
+	 	<tr>
+		<td> StandardOrderProcess</td>
+		<td>標準申購程序資訊費用 </td>
+	</tr>
+		<tr>
+		<td> PlannedAvailableDateTime </td>
+		<td> 標準申購程序資訊服務時間 </td>
+	</tr>
+		<tr>
+		<td> DistributionFormat </td>
+		<td>資料供應格式  </td>
+	</tr>
+		<tr>
+		<td> MeadiumName </td>
+		<td> 資料流通媒體名稱 </td>
+	</tr>
+		<tr>
+		<td>MaintenanceFrequency  </td>
+		<td> 更新或維護之頻率 </td>
+	</tr>
+ 
+	</tbody>
+</table>
+ 
+<small>
+※相關代碼對照請參閱本站服務目錄>搜尋<a href="https://cop.land.moi.gov.tw/Services/service_interfaceInfo.aspx?A5CCC85A-EEF3-4659-8829-DA21CD0DCC95" target="_blank" title="另開新視窗">MOI_API_012全國土地基本資料庫代碼資料服務</a>，參考其<a href="https://cop.land.moi.gov.tw/Services/service_Introduce/service_desc_A5CCC85A-EEF3-4659-8829-DA21CD0DCC95.html" target="_blank" title="另開新視窗">服務介面與回傳欄位說明。</a>
+</small>
+
+ 
+
+
+</div>
+
+</div> 
+
+</body>
+    </body>
+</html>

@@ -1,0 +1,62 @@
+[
+  {
+    "question": "加入會員跟非會員有甚麼差異？",
+    "answer": "<p>成為會員後，付費購買服務流量並進一步介接服務，亦可獲得平台相關訊息通知，非會員僅可瀏覽基本資訊。</p>\r\n"
+  },
+  {
+    "question": "如何成為會員？",
+    "answer": "<p>只要您有自然人憑證、工商憑證、組織憑證、機關憑證，就可以代表自然人或機關單位註冊個人帳號，帳號為個人所有，但會透過憑證類型綁定您的所屬單位，以利系統判斷使用族群</p>\r\n"
+  },
+  {
+    "question": "甚麼是地政資料？",
+    "answer": "<p>平台上各項地政資料服務其後端主要資料供應者為「全國土地基本資料庫」內豐厚的地政資訊，簡單說在生活中，我們常聽見的「地籍謄本」上記載的相關登記資訊，即屬於地政資料一部分，平台基本上提供謄本中土地標示部、土地所有權部、建物標示部、建物所有權部等如下圖資訊，更詳細的資料可自服務瀏覽中取得。</p>\r\n\r\n<p><img alt=\"地籍謄本資訊\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/QA_pict_whatmoidata.png\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>&nbsp;</p>\r\n"
+  },
+  {
+    "question": "使用憑證前，電腦環境該怎麼設定？",
+    "answer": "<h3>Step1.安裝e政府<a href=\"http://moica.nat.gov.tw/download_1.html\" target=\"_blank\" title=\"另開新視窗\">HiCOS元件</a></h3>\r\n\r\n<p>1.1　下載安裝HiCOS卡片管理工具：</p>\r\n\r\n<p><img src=\"https://cop.moi.gov.tw/moiapi/images/qa/QA_pict_1_1.png\" style=\"width:100%;max-width:650px;\" alt=\"下載HiCOS\" /></p>\r\n\r\n<p>1.2　元件下載完成後，解壓縮後執行安裝，將出現如下的畫面：</p>\r\n\r\n<p><img alt=\"檔案安裝畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/QA_pict_1_2.png\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>1.3　執行完上述的步驟，則客戶端元件已安裝完成，即可進行登入動作：</p>\r\n\r\n<p><img src=\"https://cop.moi.gov.tw/moiapi/images/qa/QA_pict_1_3.png\" alt=\"安裝成功\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<!%--\r\n\r\n<p>1.4　點選&rdquo;安裝&rdquo;按鍵以進行下一步驟，然後將出現如下的畫面：</p>\r\n\r\n<p><img alt=\"安裝執行中\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict14.jpg\" alt=\"安裝進度\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>1.5　執行完上述的步驟，則客戶端元件已安裝完成，然後即可再度進行登入的動作。</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<h3>Step2.取得憑證卡片、讀卡機</h3>\r\n\r\n<p>2.1　取出機關憑證、自然人憑證、工商憑證、組織憑證。</p>\r\n\r\n<p>2.2　如何申請機關憑證？&rarr;可至<a href=\"http://gca.nat.gov.tw/\" target=\"_blank\" title=\"另開新視窗\">政府憑證管理中心網站</a>(GCA)參考相關說明 。</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<h3>Step3.將作業系統內之「Smart Card」服務啟動</h3>\r\n\r\n<p>3.1　我的電腦&rarr;右鍵&rarr;管理&rarr;服務與應用程式&rarr;服務，啟動Smart Card。</p>\r\n\r\n<p><img alt=\"服務畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/QA_pict_3_1.png\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<h3>Step4.確認讀卡機驅動程式已正確安裝</h3>\r\n\r\n<p>4.1　開啟&rarr;程式集&rarr;附屬應用程式&rarr;HiCOS PKI Smart Card</p>\r\n\r\n<p>4.2　執行[HiCOS用戶端系統環境檢測工具]，出現如下畫面</p>\r\n\r\n<p><img alt=\"HiCOS用戶端系統環境檢測工具畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/QA_pict_4_1.png\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>4.3　執行[開始測試]，於第二項可檢測是否成功安裝讀卡機驅動程式</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<h3>Step5.設定瀏覽器</h3>\r\n\r\n<p>5.1　將「詮釋資料管理系統網站」加入IE「信任的網站」內<br />\r\n<br />\r\n步驟：到IE上方工具列點選【工具】&rarr;【網際網路選項】&rarr;【安全性】&rarr;【網站】</p>\r\n\r\n<p><img alt=\"信任網站設定畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict511.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<div class=\"colorR\">＊ 此區域內的所有網站需要伺服器驗證(https) 選項請勿打勾選取</div>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>5.2　ActiveX控制項設定<br />\r\n<br />\r\n步驟：到IE上方工具列點選【工具】&rarr;【網際網路選項】&rarr;【安全性】&rarr;【信任的網站】&rarr;【自訂等級】</p>\r\n\r\n<p><img alt=\"網站自訂等級畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict521.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>將「ActiveX控制項與外掛程式」下的 「二進位和指令碼行為」、 「下載已簽署的ActiveX控制項」、「起始不標示為安全的ActiveX控制項」、 「執行ActiveX控制項與外掛程式」共四個選項設定為&quot;啟用&quot;或&quot;提示&quot;， 並點選「確定」完成設定。</p>\r\n\r\n<p><img alt=\"信任網站區域設定畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict522.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>將[指令碼處理]的「Active scripting」選項設定為&quot;啟用&quot;或&quot;提示&quot;， 並點選「確定」完成設定。</p>\r\n\r\n<p><img alt=\"信任網站區域設定畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict523.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>將[雜項]下的「在較少特殊權限的網頁內容區域中的網站可以瀏覽到這個區域」選項設定為&quot;啟用&quot;或&quot;提示&quot;， 並點選「確定」完成設定。</p>\r\n\r\n<p><img alt=\"信任網站區域設定畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict524.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>5.3　 AuthUser Class 檔案移除</p>\r\n\r\n<p>步驟：到IE上方工具列點選【工具】&rarr;【網際網路選項】&rarr;【一般】&rarr;【設定】再勾選&quot;刪除Cookie &quot;，點選確定完成刪除。</p>\r\n\r\n<p><img alt=\"刪除Cookie畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict531.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>點選【檢視物件】</p>\r\n\r\n<p><img alt=\"檢視物件畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict532.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>移除AuthUser Class檔案<br />\r\n出現「c:\\windows\\download program flies」視窗，將AuthUser Class元件移除(按滑鼠右鍵點選移除)。</p>\r\n\r\n<p><img alt=\"移除AuthUser Class檔案畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict533.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<div class=\"colorR\">＊ 如無法移除請先將IE關閉 , 不需重開機 , 再次進入入口網登入頁就會再將Authuser class 元件安裝。</div>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>移除GetCert Class檔案<br />\r\n出現「c:\\windows\\download program flies」視窗，將GetCert Classs元件移除(按滑鼠右鍵點選移除)。</p>\r\n\r\n<p><img alt=\"移除GetCert Class檔案畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict534.jpg\"style=\"width:100%;max-width:650px;\"  /></p>\r\n\r\n<div class=\"colorR\">＊ 如無法移除請先將IE關閉 , 不需重開機 , 再次進入憑證上傳頁就會再將GetCert Class 元件安裝。<br />\r\n＊ 如無該元件可直接跳至下一步驟。</div>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>5.4　離線檔案刪除</p>\r\n\r\n<p>步驟 ： 到IE上方工具列點選【工具】&rarr;【網際網路選項】&rarr;【一般】&rarr;【刪除檔案】，勾選&quot;刪除所有離線內容&quot;，點選確定完成刪除。再勾選&quot;刪除Cookie &quot;，點選確定完成刪除。</p>\r\n\r\n<p><img alt=\"離線檔案刪除畫面\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/WIN_QA1_pict54.jpg\" style=\"width:100%;max-width:650px;\" /></p>\r\n\r\n<p>5.5　重開Internet Explorer：<br />\r\n將IE全部關閉，再重新啟開IE。</p>\r\n\r\n<p>&nbsp;</p>\r\n"
+  },
+  {
+    "question": "我引用了平台的服務，回傳了許多代碼，是甚麼意思呢？",
+    "answer": "<p>由於許多地政資料服務採用地政司「全國土地基本資料庫」資料，全國地政資料龐大，「全國土地基本資料庫」的設計採用代碼管理，許多資料項都是數字或英文代碼，請引用端視需求透過使用程式帶出其中文意義，相關變動頻率低之代碼請至 關於平台&rarr;文件下載&rarr;代碼資料 取用</p>\r\n"
+  },
+  {
+    "question": "我要怎麼引用服務？",
+    "answer": "<p>【免費】類型服務，直接取得服務網址引用即可，其餘的服務引用方式，請參閱服務介紹&rarr;服務引用流程說明。</p>\r\n"
+  },
+  {
+    "question": "我得到的資料回傳結果有亂碼？",
+    "answer": "<p>在地政資料中，從日據時代紙本人工登打作業過程，有許多特殊字，即我們說的罕用字，透過當時造字方式輸入到各地政事務所資料庫中，進入資料庫是以字碼代碼存在，現今網際網路的瀏覽端需要經過處理才可以正確顯示原本的字體，因此需要請引用端進一步處理罕用字，相關解決方案資訊可至地政罕用字查詢系統 取得。</p>\r\n"
+  },
+  {
+    "question": "平台供應的服務資料跟縣市政府地籍謄本資料有多少時間落差？",
+    "answer": "<p>本平台供應資料係由縣市政府同步至內政部，資料更新頻率約為3日。</p>\r\n"
+  },
+  {
+    "question": "謄本分級制說明與協作平台提供的資料的對應？",
+    "answer": "<p>依個人資料保護法規定，為兼顧個人資料之保護及土地法公示原則，土地登記謄本內容自民國104年起區分為3類，第一類謄本登記名義人全部登記及地價資料均予顯示，僅登記名義人或其他依法令得申請者得以申請；第二類謄本任何人均得提出申請，內容隱藏登記名義人(自然人)之出生日期、部分姓名及統一編號、債務人及債務額比例、設定義務人及其他法令規定須隱匿之資料；第三類謄本隱藏登記名義人之統一編號、出生日期，僅登記名義人、具有法律上通知義務或權利義務得喪變更關係之利害關係人得申請閱覽及列印謄本。基於個資法規定，協作平台所提供的資料是參考第二類謄本但以不涉及個資資料為前提。</p>\r\n"
+  },
+  {
+    "question": "協作平台所提供各GIS圖形服務的差異？",
+    "answer": "<p>協作平台主要提供WMS(Web Map Service)及WFS(Web Feature Service)服務，WMS以及WFS皆由開放式地理資訊系統協會(Open Geospatial Consortium , OGC)所提出網路服務標準。WMS能依使用者要求，從地理資訊系統資料庫中動態產生對應地圖影像服務；WFS提供一個讓使用者能夠在不同的平台上，直接透過標準網路呼叫取得向量式圖徵，可將向量式圖徵想像成地圖原始資料，服務回傳產生格式說明如表 23所示。</p>\r\n\r\n<div class=\"TOPsolidline inLeft\"><img alt=\"\" src=\"https://cop.moi.gov.tw/moiapi/images/qa/table.jpg\" /></div>\r\n"
+  },
+  {
+    "question": "公告現值、公告地價更新頻率？",
+    "answer": "<p>協作平台提供之「公告地價與公告土地現值」資料，由於106年度4月21日經立法院三讀通過修正公告地價改為2年更新1次，公告土地現值每1年更新1次，新年度全國土地基本資料庫年度結轉作業常於年底至隔年初進行，「MOI_API_014公告地價與公告土地現值資料服務」所回應之最新(即時)公告資訊，配合全國土地基本資料庫年度結轉作業供應更新資料，而歷年公告資訊則略晚於即時公告資訊約一個月作業期間。</p>\r\n"
+  },
+  {
+    "question": "是否可利用地址查詢到地號資訊？",
+    "answer": "<p>本平台僅提供政府機關申請以地址查詢地號的服務，可使用MOI_API_029門牌查地建號服務以及MOI_API_030門牌模糊檢索地建號服務查詢。其他會員建議可搭配利用地籍圖資網路便民系統以地址查詢地段號，即可使用地號查詢本服務，或者利用地理資訊圖資雲服務平台(TGO平台)的門牌地址定位服務取得XY坐標，透過MOI_API_007地號資料服務的QueryByXY介面取得地號資料。</p>\r\n"
+  },
+  {
+    "question": "公部門機關使用是否需付費？",
+    "answer": "<p>申請引用服務之公部門機關若建置相關平台，業經權責單位審核同意後，基於互惠原則開放本平台介接。</p>\r\n"
+  },
+  {
+    "question": "公部門機關欲引用服務是否需發文？",
+    "answer": "<p>除免費服務以外，公部門機關使用者引用服務須經本平台完成線上申請作業，同時檢附相關文件佐證使用目的，函文至主管機關備審。</p>\r\n\r\n<ul>\r\n\t<li>中央機關單位請發文至內政部</li>\r\n\t<li>地方政府單位請發文至資料範圍所在縣市政府(發文與否請依各縣市政府規定辦理)</li>\r\n</ul>\r\n\r\n<p>&nbsp;</p>\r\n"
+  },
+  {
+    "question": "可以查到哪些權利人資訊呢？",
+    "answer": "<p>本平台服務以<strong><u>不提供個資資訊</u></strong>前提下，權利人資訊僅提供類別為<span style=\"color:#0000ff\">「國有」、「省市有」、「縣市有」、「鄉鎮市有」</span>，其餘類別則以null呈現。</p>\r\n"
+  }
+]

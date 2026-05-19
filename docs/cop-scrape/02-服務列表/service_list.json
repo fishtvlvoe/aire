@@ -1,0 +1,170 @@
+{
+  "data": [
+    {
+      "serviceId": "24ED4437-DD2B-4FC1-A246-1AEF73681E0B",
+      "serviceName": "MOI_API_001地籍土地標示部資料服務",
+      "serviceDescription": "<p>土地登記謄本之土地標示部，描述<span style=\"color:#c0392b\"><strong>一宗土地</strong></span>基本資料。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「土地(宗地)」為單位之標示部各欄位資訊，包括土地的面積、登記日期與原因、土地使用地目及類別、公告地現值、公告地價、所在區位與坐標等，將傳入參數使用陣列傳遞，單次引用可介接25筆資料。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=24ED4437-DD2B-4FC1-A246-1AEF73681E0B",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?24ED4437-DD2B-4FC1-A246-1AEF73681E0B",
+      "tags": {
+        "badges": [
+          "API",
+          "PRICE_BY_ROW"
+        ],
+        "pricing": [
+          "回傳筆數計費：每筆1元"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "8C8F0F4C-EF41-4426-A800-3EF15AA9886D",
+      "serviceName": "MOI_API_002地籍土地所有權部資料服務",
+      "serviceDescription": "<p>土地登記謄本之所有權部，描述土地所有權人的權利資料。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「土地(宗地)」為單位之土地所有權部資訊，包括土地所有權部、權利人(權利人資訊僅提供類別為「國有」、「省市有」、「縣市有」、「鄉鎮市有」，其餘類別則以null呈現)、相關他項權利部、前次移轉現值、其他登記事項等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=8C8F0F4C-EF41-4426-A800-3EF15AA9886D",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?8C8F0F4C-EF41-4426-A800-3EF15AA9886D",
+      "tags": {
+        "badges": [
+          "API",
+          "PRICE_BY_ROW"
+        ],
+        "pricing": [
+          "回傳筆數計費：每筆1元"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "467165FA-11B9-416A-BE89-90E86B20242C",
+      "serviceName": "MOI_API_003地籍土地他項權利部資料服務",
+      "serviceDescription": "<p>土地登記謄本之他項權利部，為<span style=\"color:#c0392b\">一宗土地</span>的所有權人將自己的權利範圍設定給第三人的情形，可得知除了土地所有權人之外，還有哪些人對該土地具有其他物權，一般申請地籍謄本時，若申請出來的謄本沒有他項權利的資料，則表示這宗土地沒有設定他項權利。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「土地(宗地)」為單位之他項權利部設定情形，包括設定及債權權利範圍、擔保債權金額及價值、他項權利檔、共同擔保地及建號等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=467165FA-11B9-416A-BE89-90E86B20242C",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?467165FA-11B9-416A-BE89-90E86B20242C",
+      "tags": {
+        "badges": [
+          "API",
+          "PRICE_BY_ROW"
+        ],
+        "pricing": [
+          "回傳筆數計費：每筆1元"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "EB95D5DC-2F03-41DA-8406-B69F2D7ECC15",
+      "serviceName": "MOI_API_004地籍建物標示部資料服務",
+      "serviceDescription": "<p>建物登記謄本之建物標示部，描述<span style=\"color:#c0392b\"><strong>一筆建物</strong></span>基本資料。本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「建物」為單位之標示部各欄位資訊，包括建物總面積、建物分層或附屬建物資訊、共有部分資訊，並將傳入參數使用陣列傳遞，單次引用可介接25筆資料。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=EB95D5DC-2F03-41DA-8406-B69F2D7ECC15",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?EB95D5DC-2F03-41DA-8406-B69F2D7ECC15",
+      "tags": {
+        "badges": [
+          "API",
+          "PRICE_BY_ROW"
+        ],
+        "pricing": [
+          "回傳筆數計費：每筆1元"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "5A582A73-3E5F-4528-B423-A95F79F9E216",
+      "serviceName": "MOI_API_005地籍建物所有權部資料服務",
+      "serviceDescription": "<p>建物登記謄本之所有權部，描述建物所有權人的權利資料，本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「建物」為單位之建物所有權部資訊，包括建物所有權部、權利人(權利人資訊僅提供類別為「國有」、「省市有」、「縣市有」、「鄉鎮市有」，其餘類別則以null呈現)、相關他項權利部、其他登記事項等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=5A582A73-3E5F-4528-B423-A95F79F9E216",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?5A582A73-3E5F-4528-B423-A95F79F9E216",
+      "tags": {
+        "badges": [
+          "API",
+          "PRICE_BY_ROW"
+        ],
+        "pricing": [
+          "回傳筆數計費：每筆1元"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "19879C20-3F2E-4586-8A58-B0AC42C2FE1A",
+      "serviceName": "MOI_API_006地籍建物他項權利部資料服務",
+      "serviceDescription": "<p>建物登記謄本之他項權利部，為<span style=\"color:#c0392b\">一筆建物</span>的所有權人將自己的權利範圍設定給第三人的情形，可得知除了建物所有權人之外，還有哪些人對該土地具有其他物權，一般申請地籍謄本時，若申請出來的謄本沒有他項權利的資料，則表示這筆建物沒有設定他項權利，本服務以<span style=\"color:#c0392b\">不提供個資</span>資訊下，提供以「建物」為單位之他項權利部設定情形，包括設定及債權權利範圍、擔保債權金額及價值、他項權利檔、共同擔保地及建號等，將傳入參數使用陣列傳遞，單次引用可介接25筆地號。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=19879C20-3F2E-4586-8A58-B0AC42C2FE1A",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?19879C20-3F2E-4586-8A58-B0AC42C2FE1A",
+      "tags": {
+        "badges": [
+          "API",
+          "PRICE_BY_ROW"
+        ],
+        "pricing": [
+          "回傳筆數計費：每筆1元"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0",
+      "serviceName": "MOI_API_007地號資料服務",
+      "serviceDescription": "<p>本服務以地段或坐標條件查詢地號資料，主要以地政事務所(代碼)、及地段(代碼)為主要查詢條件，輔以空間坐標、土地使用分區、土地使用地類別、公私別、管理單位等為選擇性條件，並回傳地號資料，單次引用可介接10筆資料。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?6C8FA2C4-F824-42B8-B13C-3E6CBBFC6BE0",
+      "tags": {
+        "badges": [
+          "API",
+          "PRICE_BY_LOCATION"
+        ],
+        "pricing": [
+          "依地段數計費:每地段10元"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "34C16667-25E6-428A-9D56-26E1B0AC3A48",
+      "serviceName": "MOI_API_008土地標示部異動索引服務",
+      "serviceDescription": "<p>本服務查詢土地標示部有無異動紀錄，並包含異動資料及原因等。主要提供以地政事務所(代碼)、地段(代碼)及地號為查詢條件，回傳土地登記資料中有關土地標示部的異動索引紀錄，單次引用可介接25筆資料。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=34C16667-25E6-428A-9D56-26E1B0AC3A48",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?34C16667-25E6-428A-9D56-26E1B0AC3A48",
+      "tags": {
+        "badges": [
+          "API",
+          "PRICE_BY_ROW"
+        ],
+        "pricing": [
+          "回傳筆數計費：每筆3元"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "FE871A32-EE35-4D27-A49A-929DDC6E061D",
+      "serviceName": "MOI_API_009所有權人比對服務",
+      "serviceDescription": "<p>本服務輸入地號以及<span style=\"color:#c0392b\">土地所有權人姓名</span>、<span style=\"color:#c0392b\">個人統一編號</span>為參數，比對與該土地登記之所有權人姓名和統一編號是否吻合，單次引用可介接25筆資料。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=FE871A32-EE35-4D27-A49A-929DDC6E061D",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?FE871A32-EE35-4D27-A49A-929DDC6E061D",
+      "tags": {
+        "badges": [
+          "API",
+          "GOV_APPLY"
+        ]
+      },
+      "ableToPurchase": false
+    },
+    {
+      "serviceId": "C2E96298-A335-4BB9-9744-C471D8E2AE6B",
+      "serviceName": "MOI_API_010公有土地登記資料服務",
+      "serviceDescription": "<p>本服務主要以地政事務所代碼、地段代碼及地號為查詢條件，查詢公有土地登記資料、所有權人及管理機關，單次引用可介接25筆資料。亦可透過<a href=\"https://data.gov.tw/dataset/34315\">政府資料開放平台</a>、<a href=\"https://goo.gl/hGJwbu\">內政資料開放平台</a>取得公有土地登記資料。</p>\r\n",
+      "infoUrl": "/Services/service_Info.aspx?serviceID=C2E96298-A335-4BB9-9744-C471D8E2AE6B",
+      "interfaceInfoUrl": "/Services/service_interfaceInfo.aspx?C2E96298-A335-4BB9-9744-C471D8E2AE6B",
+      "tags": {
+        "badges": [
+          "API",
+          "GOV_APPLY"
+        ]
+      },
+      "ableToPurchase": false
+    }
+  ],
+  "totalCount": 63,
+  "maxPage": 7
+}

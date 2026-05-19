@@ -1,0 +1,148 @@
+{
+  "news": [
+    {
+      "newsId": "89e7b898-e144-4780-8289-b59ac2a71332",
+      "title": "內政部「地政罕用字查詢系統」網址異動公告",
+      "dateRange": "2025/7/30~2026/7/31"
+    },
+    {
+      "newsId": "378ea35a-0900-4171-85db-94f9e562c476",
+      "title": "地政整合資訊服務共享協作平台 服務屆期通知提醒",
+      "dateRange": "2026/4/7~2026/6/30"
+    },
+    {
+      "newsId": "e2dab4be-b406-43e4-80f3-812d6474e102",
+      "title": "系統暫停服務公告",
+      "dateRange": "2026/4/20~2026/5/20"
+    },
+    {
+      "newsId": "0a6649c3-aedb-4add-811b-a1e1f4fca810",
+      "title": "115/5/12(二)系統維護公告",
+      "dateRange": "2026/5/11~2026/5/12"
+    },
+    {
+      "newsId": "ff2f48f2-b251-4f26-979f-bae8d707ad93",
+      "title": "115/4/14(二)系統維護公告",
+      "dateRange": "2026/4/13~2026/4/14"
+    }
+  ],
+  "topServices": [
+    {
+      "serviceId": "EB95D5DC-2F03-41DA-8406-B69F2D7ECC15",
+      "serviceName": "MOI_API_004地籍建物標示部資料服務",
+      "requestCount": 2075049
+    },
+    {
+      "serviceId": "467165FA-11B9-416A-BE89-90E86B20242C",
+      "serviceName": "MOI_API_003地籍土地他項權利部資料服務",
+      "requestCount": 2031634
+    },
+    {
+      "serviceId": "8C8F0F4C-EF41-4426-A800-3EF15AA9886D",
+      "serviceName": "MOI_API_002地籍土地所有權部資料服務",
+      "requestCount": 1868549
+    }
+  ],
+  "topApplications": {
+    "central": [
+      {
+        "applicationName": "住宅補貼評點及查核系統",
+        "requestCount": 18795603,
+        "organization": "國土管理署",
+        "tYear": 115
+      },
+      {
+        "applicationName": "圖籍資料管理整合系統",
+        "requestCount": 9721396,
+        "organization": "經濟部水利署",
+        "tYear": 115
+      },
+      {
+        "applicationName": "水利空間資訊服務平台",
+        "requestCount": 8563844,
+        "organization": "經濟部水利署",
+        "tYear": 115
+      },
+      {
+        "applicationName": "全國飲用水水源水質保護區地理資訊網",
+        "requestCount": 4347353,
+        "organization": "環境部水質保護司",
+        "tYear": 115
+      },
+      {
+        "applicationName": "Web版財務管理作業系統",
+        "requestCount": 3755542,
+        "organization": "彰化管理處",
+        "tYear": 115
+      }
+    ],
+    "local": [
+      {
+        "applicationName": "桃園市山坡地資訊查詢系統",
+        "requestCount": 612605,
+        "organization": "桃園市水務局",
+        "tYear": 115
+      },
+      {
+        "applicationName": "臺中市政府水利局山坡地資訊查詢系統",
+        "requestCount": 269501,
+        "organization": "臺中市水利局",
+        "tYear": 115
+      },
+      {
+        "applicationName": "新竹縣政府財產管理資訊系統",
+        "requestCount": 174402,
+        "organization": "新竹縣財政處",
+        "tYear": 115
+      },
+      {
+        "applicationName": "新北市土地資產管理系統",
+        "requestCount": 139044,
+        "organization": "新北市工務局養護工程處",
+        "tYear": 115
+      },
+      {
+        "applicationName": "工廠環判智慧E化系統",
+        "requestCount": 115004,
+        "organization": "桃園市環境保護局",
+        "tYear": 115
+      }
+    ]
+  },
+  "serviceStatistics": {
+    "serviceCount": 63,
+    "totalRequestCount": 8758644
+  },
+  "indexContents": [
+    {
+      "title": "土地位置概圖服務",
+      "imageUrl": "https://cop.moi.gov.tw/moiapi/images/index/index_CM01.jpg",
+      "url": "https://cop.moi.gov.tw/ServiceList/ServiceData?id=2435F112-DFEB-4E5A-919F-DC44A639D3F5"
+    },
+    {
+      "title": "地籍土地所有權部資料服務 ",
+      "imageUrl": "https://cop.moi.gov.tw/moiapi/images/index/index_CM02.jpg",
+      "url": "https://cop.moi.gov.tw/ServiceList/ServiceData?id=8C8F0F4C-EF41-4426-A800-3EF15AA9886D"
+    },
+    {
+      "title": "新舊地建號轉換服務",
+      "imageUrl": "https://cop.moi.gov.tw/moiapi/images/index/index_CM03.jpg",
+      "url": "https://cop.moi.gov.tw/ServiceList/ServiceData?id=5CBBC19B-8618-4ADD-99A3-921E672F3488"
+    },
+    {
+      "title": "常見問題",
+      "imageUrl": "https://cop.moi.gov.tw/moiapi/images/index/index_CM04.jpg",
+      "url": "https://cop.moi.gov.tw/SiteInfo/QA"
+    },
+    {
+      "title": "公有土地登記資料服務",
+      "imageUrl": "https://cop.moi.gov.tw/moiapi/images/index/index_CM05.jpg",
+      "url": "https://cop.moi.gov.tw/ServiceList/ServiceData?id=C2E96298-A335-4BB9-9744-C471D8E2AE6B"
+    },
+    {
+      "title": "地籍建物所有權部資料服務",
+      "imageUrl": "https://cop.moi.gov.tw/moiapi/images/index/index_CM06.jpg",
+      "url": "https://cop.moi.gov.tw/ServiceList/ServiceData?id=5A582A73-3E5F-4528-B423-A95F79F9E216"
+    }
+  ]
+}
