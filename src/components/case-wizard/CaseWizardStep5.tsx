@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { CaseRow } from "@/lib/cases-api";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { toast } from "sonner";
 import { assembleDossierData } from "@/lib/pdf-engine/assemble-dossier-data";
 import { renderDisclosureHtml } from "@/lib/pdf-engine/html-renderer";
+import { PdfDocument } from "@/lib/pdf-engine/document";
+import type { CaseDossierData } from "@/lib/pdf-engine/document";
 import { Loader2, Download } from "lucide-react";
+import React from "react";
 
 interface CaseWizardStep5Props {
   caseId: string;
@@ -19,6 +22,7 @@ export function CaseWizardStep5({ caseId, caseData }: CaseWizardStep5Props) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const dossierRef = useRef<CaseDossierData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -28,6 +32,7 @@ export function CaseWizardStep5({ caseId, caseData }: CaseWizardStep5Props) {
       try {
         const dossier = await assembleDossierData(caseData);
         if (cancelled) return;
+        dossierRef.current = dossier;
         const html = renderDisclosureHtml(dossier, {
           themeId: "theme-a-minimal",
           generatedAt: new Date().toLocaleDateString("zh-TW"),
@@ -49,19 +54,30 @@ export function CaseWizardStep5({ caseId, caseData }: CaseWizardStep5Props) {
     setExporting(true);
     try {
       if ((window as unknown as Record<string, unknown>).__TAURI__) {
+        // Tauri 桌面版：呼叫 Rust IPC 匯出 PDF
         const result = await safeInvoke<{ filePath: string }>("export_pdf", {
           caseId,
           html: htmlContent,
         });
         toast.success("PDF 已匯出", { description: result?.filePath });
       } else {
-        const w = window.open("", "_blank");
-        if (w) {
-          w.document.write(htmlContent);
-          w.document.close();
-          w.print();
-        }
-        toast.success("已開啟列印視窗");
+        // 網頁版：用 @react-pdf/renderer 直接生成 PDF blob 觸發下載
+        const dossier = dossierRef.current;
+        if (!dossier) throw new Error("說明書資料尚未載入");
+
+        const { pdf, Document } = await import("@react-pdf/renderer");
+        const element = React.createElement(PdfDocument, {
+          data: dossier,
+          themeId: "theme-a-minimal",
+        }) as React.ReactElement<React.ComponentProps<typeof Document>>;
+        const blob = await pdf(element).toBlob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${dossier.caseNo ?? caseId}-說明書.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("PDF 已下載");
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "匯出失敗");
