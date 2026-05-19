@@ -5,13 +5,8 @@ interface StreetViewBody {
   lng?: number;
 }
 
-interface MapillaryImage {
-  id: string;
-  thumb_2048_url: string;
-}
-
-interface MapillaryResponse {
-  data?: MapillaryImage[];
+interface StreetViewMetadata {
+  status: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -33,47 +28,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid coordinates" }, { status: 400 });
   }
 
-  const token = process.env.MAPILLARY_ACCESS_TOKEN;
-  if (!token) {
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) {
     return NextResponse.json({ error: "street view not configured" }, { status: 503 });
   }
 
   try {
-    const apiUrl = new URL("https://graph.mapillary.com/images");
-    apiUrl.searchParams.set("fields", "id,thumb_2048_url");
-    apiUrl.searchParams.set("access_token", token);
-    // Mapillary closeto uses lon,lat order
-    apiUrl.searchParams.set("closeto", `${lng},${lat}`);
-    apiUrl.searchParams.set("radius", "50");
-    apiUrl.searchParams.set("limit", "1");
+    const location = `${lat},${lng}`;
 
-    const metaResp = await fetch(apiUrl.toString(), {
-      signal: AbortSignal.timeout(15000),
+    // 先查 metadata 確認該位置有沒有街景（避免拿到灰色佔位圖）
+    const metaUrl = new URL("https://maps.googleapis.com/maps/api/streetview/metadata");
+    metaUrl.searchParams.set("location", location);
+    metaUrl.searchParams.set("key", key);
+
+    const metaResp = await fetch(metaUrl.toString(), {
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!metaResp.ok) {
-      return NextResponse.json({ error: "mapillary api error" }, { status: 502 });
+      return NextResponse.json({ error: "street view api error" }, { status: 502 });
     }
 
-    const meta = (await metaResp.json()) as MapillaryResponse;
+    const meta = (await metaResp.json()) as StreetViewMetadata;
 
-    if (!meta.data?.length || !meta.data[0].thumb_2048_url) {
+    if (meta.status !== "OK") {
       return NextResponse.json({ error: "no street view found" }, { status: 404 });
     }
 
-    const imageResp = await fetch(meta.data[0].thumb_2048_url, {
-      signal: AbortSignal.timeout(20000),
+    // 取得 600×400 街景靜態圖
+    const imgUrl = new URL("https://maps.googleapis.com/maps/api/streetview");
+    imgUrl.searchParams.set("size", "600x400");
+    imgUrl.searchParams.set("location", location);
+    imgUrl.searchParams.set("key", key);
+
+    const imgResp = await fetch(imgUrl.toString(), {
+      signal: AbortSignal.timeout(15000),
     });
 
-    if (!imageResp.ok) {
+    if (!imgResp.ok) {
       return NextResponse.json({ error: "image download failed" }, { status: 502 });
     }
 
-    const buffer = await imageResp.arrayBuffer();
-    const contentType = imageResp.headers.get("Content-Type") ?? "image/jpeg";
+    const buffer = await imgResp.arrayBuffer();
 
     return new Response(buffer, {
-      headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=86400" },
+      headers: { "Content-Type": "image/jpeg", "Cache-Control": "public, max-age=86400" },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
