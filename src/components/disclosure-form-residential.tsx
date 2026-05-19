@@ -233,6 +233,25 @@ export function DisclosureFormResidential({
         />
       </section>
 
+      {/* 土地標示 */}
+      {Array.isArray(initialPayload?.land_lots) &&
+        (initialPayload.land_lots as string[]).length > 0 && (
+          <section
+            aria-label="土地標示"
+            className="mb-4 rounded-md border border-border bg-muted/20 p-3"
+          >
+            <p className="mb-2 text-sm font-medium">土地標示</p>
+            <ul
+              data-testid="land-lots-list"
+              className="list-disc pl-4 text-xs text-muted-foreground"
+            >
+              {(initialPayload.land_lots as string[]).map((lot, i) => (
+                <li key={i}>{lot}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
       {/* 拉謄本（地政 API 查詢） */}
       {parcelId && (
         <section

@@ -151,6 +151,7 @@ const SEED_CASES: CaseRow[] = [
     case_name: "和平東路案",
     property_type: "residential",
     land_lot_no: "大安段一小段 123-4",
+    land_lots: ["大安段一小段 123-4"],
     building_lot_no: "建號 556-1",
     address: "台北市大安區和平東路一段 100 號",
     owner_name: "陳小美",
@@ -167,6 +168,7 @@ const SEED_CASES: CaseRow[] = [
     case_name: "文化路土地案",
     property_type: "land",
     land_lot_no: "板橋段二小段 88-1",
+    land_lots: ["板橋段二小段 88-1"],
     building_lot_no: null,
     address: "新北市板橋區文化路一段 188 號",
     owner_name: "林大華",
@@ -794,6 +796,9 @@ export class MockStore {
       case_name: pickString(input, ["case_name"]),
       property_type: propertyType,
       land_lot_no: pickString(input, ["land_lot_no"]) ?? "",
+      land_lots: Array.isArray(input.land_lots) && (input.land_lots as string[]).length > 0
+        ? (input.land_lots as string[])
+        : [pickString(input, ["land_lot_no"]) ?? ""].filter(Boolean),
       building_lot_no: pickString(input, ["building_lot_no"]),
       address,
       owner_name: pickString(input, ["owner_name"]),

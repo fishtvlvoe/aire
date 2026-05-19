@@ -46,6 +46,7 @@ const baseCase: CaseRow = {
   case_name: "測試案件",
   property_type: "land",
   land_lot_no: "0001-0001",
+  land_lots: ["0001-0001"],
   building_lot_no: null,
   address: "台南市東區測試路 1 號",
   owner_name: "王小明",

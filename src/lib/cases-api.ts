@@ -9,6 +9,7 @@ export interface CaseRow {
   case_name?: string | null;
   property_type: "residential" | "land";
   land_lot_no: string;
+  land_lots: string[];
   building_lot_no?: string | null;
   address: string;
   owner_name: string | null;
@@ -23,6 +24,7 @@ export interface CaseRow {
 export interface CreateCaseInput {
   property_type: "residential" | "land";
   land_lot_no: string;
+  land_lots?: string[];
   address: string;
   owner_name?: string | null;
   case_no?: string | null;

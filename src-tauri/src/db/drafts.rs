@@ -77,6 +77,7 @@ mod tests {
             case_name: None,
             building_lot_no: None,
             asking_price: None,
+            land_lots: vec!["X-1".into()],
         };
         insert_case(conn, &c).unwrap();
     }

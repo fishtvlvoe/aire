@@ -35,6 +35,7 @@ pub struct CreateCaseInput {
     pub case_name: Option<String>,
     pub building_lot_no: Option<String>,
     pub asking_price: Option<i64>,
+    pub land_lots: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,6 +49,19 @@ pub struct UpdateCaseInput {
     pub case_name: Option<String>,
     pub building_lot_no: Option<String>,
     pub asking_price: Option<i64>,
+    pub land_lots: Option<Vec<String>>,
+}
+
+fn resolve_land_lots(land_lots: Option<Vec<String>>, land_lot_no: &str) -> Result<(String, Vec<String>), IpcError> {
+    let lots: Vec<String> = match land_lots {
+        Some(v) => v.into_iter().filter(|s| !s.trim().is_empty()).collect(),
+        None => vec![land_lot_no.to_string()],
+    };
+    if lots.is_empty() {
+        return Err(IpcError::new("missing_field", "地號為必填（land_lots 不可全為空字串）"));
+    }
+    let primary = lots[0].clone();
+    Ok((primary, lots))
 }
 
 fn now_secs() -> i64 {
@@ -89,12 +103,13 @@ pub async fn create_case(
         return Err(IpcError::new("missing_field", "地號與地址為必填"));
     }
 
+    let (land_lot_no, land_lots) = resolve_land_lots(input.land_lots, &input.land_lot_no)?;
     let now = now_secs();
     let c = cases::Case {
         id: uuid::Uuid::new_v4().to_string(),
         case_no: input.case_no,
         property_type: input.property_type,
-        land_lot_no: input.land_lot_no,
+        land_lot_no,
         address: input.address,
         owner_name: input.owner_name,
         status: "draft".into(),
@@ -103,6 +118,7 @@ pub async fn create_case(
         case_name: input.case_name,
         building_lot_no: input.building_lot_no,
         asking_price: input.asking_price,
+        land_lots,
     };
 
     let conn = lock(&db)?;
@@ -141,9 +157,11 @@ pub async fn update_case(
         existing.status = new_status.clone();
     }
 
+    let (land_lot_no, land_lots) = resolve_land_lots(input.land_lots, &input.land_lot_no)?;
     existing.case_no = input.case_no;
     existing.property_type = input.property_type;
-    existing.land_lot_no = input.land_lot_no;
+    existing.land_lot_no = land_lot_no;
+    existing.land_lots = land_lots;
     existing.address = input.address;
     existing.owner_name = input.owner_name;
     existing.case_name = input.case_name;
@@ -235,6 +253,7 @@ mod tests {
             case_name: None,
             building_lot_no: None,
             asking_price: None,
+            land_lots: vec!["X-1".into()],
         }
     }
 
@@ -292,6 +311,25 @@ mod tests {
         assert!(cases::update_case(&conn, &loaded).is_ok());
         let after = cases::get_case(&conn, &c.id).unwrap();
         assert_eq!(after.status, "completed");
+    }
+
+    // multi-lot TDD 紅燈測試（AC-1~AC-2，Task 1.1）
+    #[test]
+    fn create_case_with_multiple_lots() {
+        let conn = open_in_memory();
+        let mut c = sample("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee");
+        c.land_lots = vec!["123-4".into(), "456-7".into()]; // 紅燈：land_lots 欄位尚未存在
+        cases::insert_case(&conn, &c).unwrap();
+        let got = cases::get_case(&conn, &c.id).unwrap();
+        assert_eq!(got.land_lot_no, "123-4");
+        assert_eq!(got.land_lots.len(), 2);
+    }
+
+    #[test]
+    fn create_case_all_empty_lots_filtered_to_error() {
+        let lots: Vec<String> = vec!["".into(), "".into()];
+        let filtered: Vec<String> = lots.into_iter().filter(|s| !s.trim().is_empty()).collect();
+        assert!(filtered.is_empty());
     }
 
     // mark_completed 的核心轉換邏輯（直接測 db layer + 模擬命令邏輯）

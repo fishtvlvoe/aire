@@ -17,20 +17,28 @@ pub struct Case {
     pub land_lot_no: String,
     pub address: String,
     pub owner_name: Option<String>,
-    pub status: String, // 'draft' | 'completed' | 'exported'
+    pub status: String, // 'draft' | 'keyin' | 'completed' | 'exported'
     pub created_at: i64,
     pub updated_at: i64,
     pub case_name: Option<String>,
     pub building_lot_no: Option<String>,
     pub asking_price: Option<i64>,
+    pub land_lots: Vec<String>, // 多筆地號陣列（序列化為 JSON TEXT）
 }
 
 fn map_row(row: &Row<'_>) -> rusqlite::Result<Case> {
+    let land_lot_no: String = row.get(3)?;
+    let land_lots_json: Option<String> = row.get(12).ok();
+    let land_lots = land_lots_json
+        .as_deref()
+        .and_then(|s| serde_json::from_str::<Vec<String>>(s).ok())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| vec![land_lot_no.clone()]);
     Ok(Case {
         id: row.get(0)?,
         case_no: row.get(1)?,
         property_type: row.get(2)?,
-        land_lot_no: row.get(3)?,
+        land_lot_no,
         address: row.get(4)?,
         owner_name: row.get(5)?,
         status: row.get(6)?,
@@ -39,22 +47,25 @@ fn map_row(row: &Row<'_>) -> rusqlite::Result<Case> {
         case_name: row.get(9)?,
         building_lot_no: row.get(10)?,
         asking_price: row.get(11)?,
+        land_lots,
     })
 }
 
 const COLS: &str =
     "id, case_no, property_type, land_lot_no, address, owner_name, status, created_at, updated_at, \
-     case_name, building_lot_no, asking_price";
+     case_name, building_lot_no, asking_price, land_lots";
 
-/// 插入新案件。
+/// 插入新案件。land_lot_no 自動同步為 land_lots[0]（若 land_lots 非空）。
 pub fn insert_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
+    let land_lot_no = if !c.land_lots.is_empty() { &c.land_lots[0] } else { &c.land_lot_no };
+    let land_lots_json = serde_json::to_string(&c.land_lots).unwrap_or_else(|_| "[]".into());
     conn.execute(
-        &format!("INSERT INTO cases ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)"),
+        &format!("INSERT INTO cases ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)"),
         params![
             c.id,
             c.case_no,
             c.property_type,
-            c.land_lot_no,
+            land_lot_no,
             c.address,
             c.owner_name,
             c.status,
@@ -63,6 +74,7 @@ pub fn insert_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
             c.case_name,
             c.building_lot_no,
             c.asking_price,
+            land_lots_json,
         ],
     )?;
     Ok(())
@@ -94,16 +106,18 @@ pub fn list_cases(conn: &Connection) -> Result<Vec<Case>, DbError> {
     Ok(out)
 }
 
-/// 更新案件全欄位（除了 id、created_at）。
+/// 更新案件全欄位（除了 id、created_at）。land_lot_no 自動同步為 land_lots[0]。
 pub fn update_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
+    let land_lot_no = if !c.land_lots.is_empty() { &c.land_lots[0] } else { &c.land_lot_no };
+    let land_lots_json = serde_json::to_string(&c.land_lots).unwrap_or_else(|_| "[]".into());
     let n = conn.execute(
         "UPDATE cases SET case_no=?1, property_type=?2, land_lot_no=?3, address=?4, \
          owner_name=?5, status=?6, updated_at=?7, case_name=?8, building_lot_no=?9, \
-         asking_price=?10 WHERE id=?11",
+         asking_price=?10, land_lots=?11 WHERE id=?12",
         params![
             c.case_no,
             c.property_type,
-            c.land_lot_no,
+            land_lot_no,
             c.address,
             c.owner_name,
             c.status,
@@ -111,6 +125,7 @@ pub fn update_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
             c.case_name,
             c.building_lot_no,
             c.asking_price,
+            land_lots_json,
             c.id,
         ],
     )?;
@@ -148,6 +163,7 @@ mod tests {
             case_name: None,
             building_lot_no: None,
             asking_price: None,
+            land_lots: vec!["台北市信義區XX段 123-4".into()],
         }
     }
 

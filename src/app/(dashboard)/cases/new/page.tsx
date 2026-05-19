@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 import { casesApi } from "@/lib/cases-api";
+import { CaseLotInput } from "@/components/CaseLotInput";
 
 const schema = z.object({
   property_type: z.enum(["residential", "land"]),
@@ -33,6 +34,7 @@ export default function NewCasePage() {
     case_no: "",
     case_name: "",
   });
+  const [landLots, setLandLots] = useState<string[]>([""]);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,9 +59,12 @@ export default function NewCasePage() {
     }
     setLoading(true);
     try {
+      const filteredLots = landLots.filter((s) => s.trim() !== "");
+      const lots = filteredLots.length > 0 ? filteredLots : [parsed.data.land_lot_no || ""];
       const created = await casesApi.create({
         property_type: parsed.data.property_type,
-        land_lot_no: parsed.data.land_lot_no || "",
+        land_lot_no: lots[0],
+        land_lots: lots,
         address: parsed.data.address,
         owner_name: parsed.data.owner_name || null,
         case_no: parsed.data.case_no || null,
@@ -121,15 +126,9 @@ export default function NewCasePage() {
 
         <section style={{ marginBottom: 16 }}>
           <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-            地號
+            地號（可多筆）
           </label>
-          <input
-            type="text"
-            value={values.land_lot_no}
-            onChange={(e) => update("land_lot_no", e.target.value)}
-            style={inputStyle}
-            placeholder="可選填，例如：0001-0000（不確定可留空）"
-          />
+          <CaseLotInput value={landLots} onChange={setLandLots} />
           {errors.land_lot_no ? (
             <span style={{ color: "#b00020", fontSize: 12 }}>{errors.land_lot_no}</span>
           ) : null}

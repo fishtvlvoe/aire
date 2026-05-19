@@ -33,6 +33,7 @@ fn sample_case() -> Case {
         case_name: None,
         building_lot_no: None,
         asking_price: None,
+        land_lots: vec!["台北市大安區XX段 456-7".into()],
     }
 }
 

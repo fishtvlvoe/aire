@@ -20,18 +20,20 @@ vi.mock("@/components/disclosure-form-land", () => ({
   DisclosureFormLand: () => <div data-testid="disclosure-form-land" />,
 }));
 
-const baseCase: CaseRow = {
+const baseCase = {
   id: "case-001",
   case_no: "AIRE-001",
-  property_type: "residential",
+  property_type: "residential" as const,
   case_name: "測試",
   owner_name: "測試屋主",
   address: "台南市",
-  status: "draft",
+  land_lot_no: "",
+  land_lots: [] as string[],
+  status: "draft" as const,
   created_at: "2025-01-01T00:00:00Z",
   updated_at: "2025-01-01T00:00:00Z",
   current_step: 3,
-} as CaseRow;
+} as unknown as CaseRow;
 
 describe("CaseWizardStep3Disclosure", () => {
   it("成屋案件渲染 DisclosureFormResidential", async () => {

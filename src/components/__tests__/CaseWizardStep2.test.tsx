@@ -35,6 +35,7 @@ const baseCase: CaseRow = {
   case_name: "文化路土地案",
   property_type: "land",
   land_lot_no: "板橋段二小段 88-1",
+  land_lots: ["板橋段二小段 88-1"],
   building_lot_no: null,
   address: "新北市板橋區文化路一段 188 號",
   owner_name: "林大華",

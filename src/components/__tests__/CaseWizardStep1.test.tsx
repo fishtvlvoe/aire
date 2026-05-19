@@ -9,6 +9,7 @@ const baseCase: CaseRow = {
   case_name: "大安區案件",
   property_type: "residential",
   land_lot_no: "大安段 88-1",
+  land_lots: ["大安段 88-1"],
   building_lot_no: null,
   address: "台北市大安區忠孝東路四段 168 號",
   owner_name: "陳小明",
