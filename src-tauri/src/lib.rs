@@ -244,6 +244,7 @@ pub fn run() {
             commands::cases::update_case,
             commands::cases::delete_case,
             commands::cases::mark_completed,
+            commands::cases::mark_keyin,
             commands::drafts::save_draft,
             commands::drafts::get_draft,
             commands::pdf::export_pdf,

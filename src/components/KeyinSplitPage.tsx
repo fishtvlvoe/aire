@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { casesApi } from "@/lib/cases-api";
 import { toast } from "sonner";
 import { useDraftAutosave } from "@/lib/use-draft-autosave";
 import DisclosureFormResidential from "@/components/disclosure-form-residential";
@@ -42,6 +43,10 @@ export function KeyinSplitPage({ caseId, propertyType }: KeyinSplitPageProps) {
     payload: formState,
     debounceMs: 2000,
   });
+
+  useEffect(() => {
+    void casesApi.markKeyin(caseId).catch(() => {});
+  }, [caseId]);
 
   useEffect(() => {
     let cancelled = false;

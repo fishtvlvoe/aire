@@ -14,7 +14,7 @@ export interface CaseRow {
   owner_name: string | null;
   land_registry_data?: Record<string, unknown> | null;
   current_step?: number;
-  status: "draft" | "completed" | "exported";
+  status: "draft" | "keyin" | "completed" | "exported";
   created_at: number;
   updated_at: number;
   asking_price?: number | null;
@@ -43,7 +43,7 @@ export interface UpdateCaseInput {
   case_name?: string | null;
   land_registry_data?: Record<string, unknown> | null;
   current_step?: number;
-  status?: "draft" | "completed" | "exported";
+  status?: "draft" | "keyin" | "completed" | "exported";
   asking_price?: number | null;
 }
 
@@ -59,6 +59,7 @@ export const casesApi = {
     invokeIpc<CaseRow>("update_case", { id, input }),
   delete: (id: string) => invokeIpc<void>("delete_case", { id }),
   markCompleted: (caseId: string) => invokeIpc<CaseRow>("mark_completed", { caseId }),
+  markKeyin: (caseId: string) => invokeIpc<CaseRow>("mark_keyin", { caseId }),
 };
 
 const TPE_FMT = new Intl.DateTimeFormat("zh-TW", {
@@ -83,7 +84,8 @@ const PROPERTY_TYPE_LABEL: Record<CaseRow["property_type"], string> = {
 
 const STATUS_LABEL: Record<CaseRow["status"], string> = {
   draft: "草稿",
-  completed: "已完成",
+  keyin: "填入中",
+  completed: "完成",
   exported: "已匯出",
 };
 

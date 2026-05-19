@@ -36,6 +36,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/001_initial.sql"),
     include_str!("../../migrations/005_owner_consent_log.sql"),
     include_str!("../../migrations/006_case_fields.sql"),
+    include_str!("../../migrations/007_case_status_keyin.sql"),
 ];
 
 /// AIRE 資料庫統一錯誤型別。

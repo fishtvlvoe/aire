@@ -14,7 +14,6 @@ import {
   casesApi,
   formatTpeDate,
   propertyTypeLabel,
-  statusLabel,
   type CaseRow,
 } from "@/lib/cases-api";
 import {
@@ -25,7 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TauriRequired } from "@/components/TauriRequired";
@@ -34,14 +32,7 @@ import { CaseListActions } from "@/components/CaseListActions";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { toast } from "sonner";
-
-/** 依狀態回傳 Badge variant */
-function StatusBadge({ status }: { status: CaseRow["status"] }) {
-  if (status === "completed" || status === "exported") {
-    return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">完成</Badge>;
-  }
-  return <Badge variant="secondary">草稿</Badge>;
-}
+import { StatusBadge } from "@/components/StatusBadge";
 
 export default function CasesPage() {
   const router = useRouter();
