@@ -10,6 +10,8 @@ import {
 } from "@/lib/cases-api";
 import type { CaseDossierData } from "@/lib/pdf-engine/engine";
 import { assembleDossierData } from "@/lib/pdf-engine/assemble-dossier-data";
+import { PdfDocument } from "@/lib/pdf-engine/document";
+import React from "react";
 import { resolveThemeOrFallback } from "@/lib/pdf-themes/registry";
 import { BRANDING_CHANGED_EVENT } from "@/lib/pdf-themes/persistence";
 import { Button } from "@/components/ui/button";
@@ -52,13 +54,24 @@ export default function CasePreviewPage() {
         });
         toast.success("PDF 已匯出", { description: result.filePath });
       } else {
-        const printWindow = window.open("", "_blank");
-        if (printWindow) {
-          printWindow.document.write(htmlContent);
-          printWindow.document.close();
-          printWindow.print();
-        }
-        toast.success("已開啟列印視窗");
+        const dossier = caseDossierData;
+        if (!dossier) throw new Error("說明書資料尚未載入");
+
+        const { initReactPdfEngine } = await import("@/lib/pdf-engine/react-pdf-init");
+        initReactPdfEngine();
+        const { pdf, Document } = await import("@react-pdf/renderer");
+        const element = React.createElement(PdfDocument, {
+          data: dossier,
+          themeId,
+        }) as React.ReactElement<React.ComponentProps<typeof Document>>;
+        const blob = await pdf(element).toBlob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${dossier.caseNo ?? id}-說明書.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("PDF 已下載");
       }
     } catch (e) {
       toast.error("匯出失敗", { description: String(e) });

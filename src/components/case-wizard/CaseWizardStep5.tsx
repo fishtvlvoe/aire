@@ -65,6 +65,8 @@ export function CaseWizardStep5({ caseId, caseData }: CaseWizardStep5Props) {
         const dossier = dossierRef.current;
         if (!dossier) throw new Error("說明書資料尚未載入");
 
+        const { initReactPdfEngine } = await import("@/lib/pdf-engine/react-pdf-init");
+        initReactPdfEngine();
         const { pdf, Document } = await import("@react-pdf/renderer");
         const element = React.createElement(PdfDocument, {
           data: dossier,

@@ -1,6 +1,6 @@
 import { Font } from "@react-pdf/renderer";
 
-const DEFAULT_FONT_ASSET_PATH = "/resources/fonts/NotoSansTC-Regular.otf";
+const DEFAULT_FONT_ASSET_PATH = "/pdf-fonts/NotoSansTC-Regular.otf";
 
 let initialized = false;
 const registeredFamilies = new Set<string>();
@@ -14,6 +14,11 @@ function filePathFromUrl(url: URL): string | null {
 }
 
 function resolveNotoSubsetSrc(): string {
+  // Browser context: font served from public/pdf-fonts/
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/pdf-fonts/NotoSansTC-Regular.otf`;
+  }
+
   // Vitest/Node: use an absolute filesystem path so @react-pdf/font uses fs (not fetch).
   const isNode =
     typeof process !== "undefined" &&
