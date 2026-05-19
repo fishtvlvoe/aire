@@ -238,15 +238,45 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   // ── 周邊設施（Overpass API）─────────────────────────────────────────────────
 
+  // Web fallback helper：從 Next.js API route（POST）取得圖片 bytes
+  async function fetchWebImage(path: string, body: Record<string, unknown>): Promise<Uint8Array | null> {
+    try {
+      const base = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const resp = await fetch(`${base}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!resp.ok) return null;
+      return new Uint8Array(await resp.arrayBuffer());
+    } catch {
+      return null;
+    }
+  }
+
   let nearbyAmenities: CaseDossierData["nearbyAmenities"] = [];
-  const geoLat = safeGet(
+  let geoLat = safeGet(
     apiData["land_registry"]?.data ?? apiData["building_registry"]?.data,
     "lat", isNumber,
   );
-  const geoLng = safeGet(
+  let geoLng = safeGet(
     apiData["land_registry"]?.data ?? apiData["building_registry"]?.data,
     "lng", isNumber,
   );
+
+  // 若 API 資料無座標，嘗試用地址 geocode（Nominatim，免費）
+  if ((!geoLat || !geoLng) && caseRow.address) {
+    try {
+      const { geocodeAddress } = await import("@/lib/map-api");
+      const coords = await geocodeAddress(caseRow.address);
+      geoLat = coords.lat;
+      geoLng = coords.lng;
+    } catch {
+      // geocoding 失敗維持 undefined
+    }
+  }
+
   let locationMapImage: Uint8Array | null = null;
   if (geoLat && geoLng) {
     try {
@@ -265,7 +295,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         locationMapImage = new Uint8Array(pngBytes);
       }
     } catch {
-      // Tauri IPC 失敗（瀏覽器 dev 模式）→ 維持 null，元件顯示佔位
+      // Tauri IPC 失敗 → web fallback（OSM tiles via Next.js API route）
+      locationMapImage = await fetchWebImage("/api/location-map", { lat: geoLat, lng: geoLng });
     }
   }
 
@@ -281,7 +312,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         aerialPhoto = new Uint8Array(aerialBytes);
       }
     } catch {
-      // 航拍圖失敗→維持 null
+      // Tauri IPC 失敗 → web fallback（NLSC 空拍圖 via Next.js API route）
+      aerialPhoto = await fetchWebImage("/api/aerial-photo", { lat: geoLat, lng: geoLng });
     }
     try {
       const streetBytes = await safeInvoke<number[]>("fetch_street_view", {
@@ -292,7 +324,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         exteriorPhoto = new Uint8Array(streetBytes);
       }
     } catch {
-      // 街景圖失敗→維持 null
+      // Tauri IPC 失敗 → web fallback（Mapillary via Next.js API route）
+      exteriorPhoto = await fetchWebImage("/api/street-view", { lat: geoLat, lng: geoLng });
     }
   }
 
