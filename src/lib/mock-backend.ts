@@ -1425,6 +1425,21 @@ export class MockStore {
       return;
     }
 
+    // Preserve fields owned by MockStorageAdapter (disclosures, keyin_data, branding)
+    let existingExtra: Record<string, unknown> = {};
+    try {
+      const existing = storage.getItem(MOCK_STORAGE_KEY);
+      if (existing) {
+        const parsed = JSON.parse(existing) as Record<string, unknown>;
+        const { disclosures, keyin_data, branding } = parsed;
+        if (disclosures !== undefined) existingExtra.disclosures = disclosures;
+        if (keyin_data !== undefined) existingExtra.keyin_data = keyin_data;
+        if (branding !== undefined) existingExtra.branding = branding;
+      }
+    } catch {
+      // ignore
+    }
+
     const snapshot: PersistedMockState = {
       license: { ...this.license },
       sessionUser: this.sessionUser ? { ...this.sessionUser } : null,
@@ -1445,7 +1460,7 @@ export class MockStore {
     };
 
     try {
-      storage.setItem(MOCK_STORAGE_KEY, JSON.stringify(snapshot));
+      storage.setItem(MOCK_STORAGE_KEY, JSON.stringify({ ...existingExtra, ...snapshot }));
     } catch {
       // Ignore private-mode localStorage failures and stay memory-only.
     }

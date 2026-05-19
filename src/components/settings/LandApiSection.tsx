@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 import { mockInvoke } from "@/lib/mock-backend";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,16 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ComingSoonCard } from "@/components/ComingSoonCard";
 
-type ConnectionStatus = null | { success: boolean; latency_ms?: number };
-
 type LandApiSettingsResponse = {
   clientId: string;
   secret: string;
-};
-
-type LandApiConnectionResponse = {
-  success: true;
-  latency_ms: number;
 };
 
 export function LandApiSection() {
@@ -27,7 +21,11 @@ export function LandApiSection() {
   const [secret, setSecret] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [testing, setTesting] = React.useState(false);
-  const [connectionStatus, setConnectionStatus] = React.useState<ConnectionStatus>(null);
+  const [connectionStatus, setConnectionStatus] = React.useState<{
+    success: boolean;
+    latency_ms?: number;
+    error?: string;
+  } | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -53,15 +51,14 @@ export function LandApiSection() {
 
   const hasValues = clientId.trim().length > 0 && secret.trim().length > 0;
   const actionsDisabled = !hasValues || loading || saving || testing;
-  const testConnectionTooltip = !hasValues ? "請先填入 Client ID 和安全碼" : undefined;
 
   async function handleSave() {
     setSaving(true);
     try {
-      await mockInvoke("save_land_api_settings", {
-        clientId,
-        secret,
-      });
+      await mockInvoke("save_land_api_settings", { clientId, secret });
+      toast.success("地政 API 設定已儲存");
+    } catch {
+      toast.error("儲存失敗，請重試");
     } finally {
       setSaving(false);
     }
@@ -71,10 +68,21 @@ export function LandApiSection() {
     setTesting(true);
     setConnectionStatus(null);
     try {
-      const res = await mockInvoke<LandApiConnectionResponse>("test_land_api_connection");
-      setConnectionStatus({ success: true, latency_ms: res.latency_ms });
+      const res = await fetch("/api/land-api/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, secret }),
+      });
+      const data = (await res.json()) as { success: boolean; latency_ms?: number; error?: string };
+      setConnectionStatus(data);
+      if (data.success) {
+        toast.success(`連線成功（延遲 ${data.latency_ms ?? 0}ms）`);
+      } else {
+        toast.error(data.error ?? "連線失敗");
+      }
     } catch {
-      setConnectionStatus({ success: false });
+      setConnectionStatus({ success: false, error: "連線逾時" });
+      toast.error("連線逾時");
     } finally {
       setTesting(false);
     }
@@ -120,7 +128,7 @@ export function LandApiSection() {
               <Button onClick={handleSave} disabled={actionsDisabled}>
                 儲存
               </Button>
-              <span title={actionsDisabled ? testConnectionTooltip : undefined}>
+              <span title={!hasValues ? "請先填入 Client ID 和安全碼" : undefined}>
                 <Button
                   variant="outline"
                   onClick={handleTestConnection}
@@ -131,15 +139,13 @@ export function LandApiSection() {
               </span>
             </div>
 
-            {connectionStatus ? (
-              connectionStatus.success ? (
-                <div className="text-sm text-green-700">
-                  連線成功（延遲 {connectionStatus.latency_ms ?? 0}ms）
-                </div>
-              ) : (
-                <div className="text-sm text-red-600">連線失敗</div>
-              )
-            ) : null}
+            {connectionStatus !== null && (
+              <div className={`text-sm ${connectionStatus.success ? "text-green-700" : "text-red-600"}`}>
+                {connectionStatus.success
+                  ? `連線成功（延遲 ${connectionStatus.latency_ms ?? 0}ms）`
+                  : connectionStatus.error ?? "連線失敗"}
+              </div>
+            )}
 
             <ComingSoonCard title="教學影片" />
           </div>

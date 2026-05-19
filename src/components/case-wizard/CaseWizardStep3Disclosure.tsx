@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { CaseRow } from "@/lib/cases-api";
 import { loadDraft, useDraftAutosave } from "@/lib/use-draft-autosave";
 import { DisclosureFormResidential } from "@/components/disclosure-form-residential";
 import { DisclosureFormLand } from "@/components/disclosure-form-land";
+import { storage } from "@/lib/storage";
+import type { DisclosureData } from "@/lib/storage";
 
 interface CaseWizardStep3DisclosureProps {
   caseId: string;
@@ -13,6 +15,25 @@ interface CaseWizardStep3DisclosureProps {
   onNext: () => void;
   onPrev: () => void;
 }
+
+function toDisclosureData(p: Record<string, unknown>): DisclosureData {
+  const tri = (v: unknown) => v === "true";
+  return {
+    conditionLeakage: tri(p.condition_leakage),
+    conditionRenovation: tri(p.condition_renovation),
+    conditionIllegalStructure: tri(p.condition_illegal_addition),
+  };
+}
+
+function fromDisclosureData(d: DisclosureData): Record<string, string> {
+  return {
+    condition_leakage: d.conditionLeakage ? "true" : "false",
+    condition_renovation: d.conditionRenovation ? "true" : "false",
+    condition_illegal_addition: d.conditionIllegalStructure ? "true" : "false",
+  };
+}
+
+const CONDITION_KEYS = ["condition_leakage", "condition_renovation", "condition_illegal_addition"];
 
 export function CaseWizardStep3Disclosure({
   caseId,
@@ -22,19 +43,39 @@ export function CaseWizardStep3Disclosure({
 }: CaseWizardStep3DisclosureProps) {
   const [payload, setPayload] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
+  const prevConditionRef = useRef<string>("");
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const draft = await loadDraft(caseId);
+      const [draft, disclosures] = await Promise.all([
+        loadDraft(caseId),
+        storage.getCaseDisclosures(caseId),
+      ]);
       if (cancelled) return;
-      setPayload(draft ?? {});
+      const base = draft ?? {};
+      const merged = disclosures
+        ? { ...base, ...fromDisclosureData(disclosures) }
+        : base;
+      setPayload(merged);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, [caseId]);
+
+  // Persist condition fields whenever they change
+  useEffect(() => {
+    if (loading) return;
+    const hasCondition = CONDITION_KEYS.some((k) => k in payload);
+    if (!hasCondition) return;
+    const data = toDisclosureData(payload);
+    const key = JSON.stringify(data);
+    if (key === prevConditionRef.current) return;
+    prevConditionRef.current = key;
+    void storage.saveCaseDisclosures(caseId, data);
+  }, [payload, caseId, loading]);
 
   const { flush } = useDraftAutosave({ caseId, payload, enabled: !loading });
 

@@ -4,6 +4,11 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LicenseSection } from "../LicenseSection";
 
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+  Toaster: () => null,
+}));
+
 vi.mock("@/lib/mock-backend", () => ({
   mockInvoke: vi.fn(),
 }));
@@ -11,10 +16,17 @@ vi.mock("@/lib/mock-backend", () => ({
 import { mockInvoke } from "@/lib/mock-backend";
 
 const mockInvokeFn = vi.mocked(mockInvoke);
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 describe("LicenseSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ success: true }),
+    });
   });
 
   it("未啟用狀態顯示序號輸入框和啟用按鈕", async () => {
@@ -31,9 +43,7 @@ describe("LicenseSection", () => {
   });
 
   it("啟用成功後顯示已啟用", async () => {
-    mockInvokeFn
-      .mockResolvedValueOnce({ status: "none", serial_key: null })
-      .mockResolvedValueOnce({ success: true });
+    mockInvokeFn.mockResolvedValueOnce({ status: "none", serial_key: null });
 
     render(<LicenseSection />);
 
@@ -48,15 +58,19 @@ describe("LicenseSection", () => {
       expect(screen.getByText("已啟用")).toBeInTheDocument();
     });
 
-    expect(mockInvokeFn).toHaveBeenCalledWith("activate_license", {
-      serial_key: "AIRE-TEST-VALID-001",
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/licenses/activate",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
   it("啟用失敗顯示序號無效", async () => {
-    mockInvokeFn
-      .mockResolvedValueOnce({ status: "none", serial_key: null })
-      .mockRejectedValueOnce(new Error("INVALID_KEY"));
+    mockInvokeFn.mockResolvedValueOnce({ status: "none", serial_key: null });
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: () => Promise.resolve({ error: "INVALID_KEY" }),
+    });
 
     render(<LicenseSection />);
 
@@ -68,7 +82,7 @@ describe("LicenseSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "啟用授權" }));
 
     await waitFor(() => {
-      expect(screen.getByText("序號無效")).toBeInTheDocument();
+      expect(screen.getByText(/序號無效/)).toBeInTheDocument();
     });
   });
 

@@ -13,11 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { recordConsent } from "@/lib/land-registry-api";
 
-/**
- * OwnerAuthorizationDialog — 所有權人授權確認 Dialog
- * 強制使用者勾選授權 checkbox 才能確認，
- * 確認後呼叫 recordConsent 記錄同意紀錄。
- */
 interface OwnerAuthorizationDialogProps {
   caseId: string;
   open: boolean;
@@ -34,17 +29,22 @@ export function OwnerAuthorizationDialog({
   const [checked, setChecked] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [showConsentError, setShowConsentError] = React.useState(false);
 
-  // 每次開啟重置狀態
   React.useEffect(() => {
     if (open) {
       setChecked(false);
       setError(null);
+      setShowConsentError(false);
     }
   }, [open]);
 
   async function handleConfirm() {
-    if (!checked) return;
+    if (!checked) {
+      setShowConsentError(true);
+      return;
+    }
+    setShowConsentError(false);
     setLoading(true);
     setError(null);
     try {
@@ -54,6 +54,13 @@ export function OwnerAuthorizationDialog({
       setError(err instanceof Error ? err.message : "記錄授權失敗，請稍後再試");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleCheckboxChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setChecked(e.target.checked);
+    if (e.target.checked) {
+      setShowConsentError(false);
     }
   }
 
@@ -71,20 +78,27 @@ export function OwnerAuthorizationDialog({
         </DialogHeader>
 
         {/* 授權 Checkbox */}
-        <label className="flex items-start gap-3 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(e) => setChecked(e.target.checked)}
-            disabled={loading}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border border-border accent-primary"
-          />
-          <span className="text-sm leading-snug">
-            客戶已書面授權查詢不動產資料
-          </span>
-        </label>
+        <div
+          className={`rounded p-2 -mx-2 ${showConsentError ? "border border-red-500" : ""}`}
+        >
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={handleCheckboxChange}
+              disabled={loading}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border border-border accent-primary"
+            />
+            <span className="text-sm leading-snug">
+              客戶已書面授權查詢不動產資料
+            </span>
+          </label>
+          {showConsentError && (
+            <p className="text-sm text-red-500 mt-1">請先勾選授權同意</p>
+          )}
+        </div>
 
-        {/* 錯誤訊息 */}
+        {/* API 錯誤訊息 */}
         {error && (
           <p className="text-sm text-destructive">{error}</p>
         )}
@@ -93,7 +107,7 @@ export function OwnerAuthorizationDialog({
           <Button variant="outline" onClick={onCancel} disabled={loading}>
             取消
           </Button>
-          <Button onClick={handleConfirm} disabled={!checked || loading}>
+          <Button onClick={handleConfirm} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             確認
           </Button>

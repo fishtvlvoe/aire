@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 import { mockInvoke } from "@/lib/mock-backend";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,13 +63,24 @@ export function LicenseSection() {
     setError(null);
     setSubmitting(true);
     try {
-      await mockInvoke("activate_license", {
-        serial_key: inputValue,
+      const res = await fetch("/api/v1/licenses/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serialKey: inputValue, deviceId: "web-dev" }),
       });
-      setLicenseStatus("valid");
-      setSerialKey(inputValue);
-    } catch (err) {
-      setError(mapActivateError(err));
+      const data = (await res.json()) as { success?: boolean; error?: string };
+      if (res.ok) {
+        setLicenseStatus("valid");
+        setSerialKey(inputValue);
+        toast.success("授權啟用成功");
+      } else {
+        const msg = data.error === "INVALID_KEY" ? "序號無效，請確認後重試" : (data.error ?? "啟用失敗");
+        setError(msg);
+        toast.error(msg);
+      }
+    } catch {
+      setError("啟用失敗");
+      toast.error("啟用失敗");
     } finally {
       setSubmitting(false);
     }

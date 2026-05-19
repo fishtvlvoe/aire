@@ -19,6 +19,8 @@
 import { useEffect, useRef, useState } from "react";
 import { safeInvoke, isTauriEnv } from "@/lib/tauri-bridge";
 import type { UnlistenFn } from "@tauri-apps/api/event";
+import { storage } from "@/lib/storage";
+import type { KeyinData } from "@/lib/storage";
 
 export type AutosaveState = "idle" | "saving" | "saved" | "error";
 
@@ -82,6 +84,11 @@ export function useDraftAutosave(
         payload: payloadRef.current,
         schemaVersion: schemaVersionRef.current,
       });
+      const keyinData: KeyinData = {
+        ...(payloadRef.current as Record<string, string | boolean | number>),
+        savedAt: new Date().toISOString(),
+      };
+      await storage.saveKeyinData(caseIdRef.current, keyinData);
       setState("saved");
       setSavedAt(new Date());
     } catch (err) {
@@ -172,5 +179,18 @@ export async function loadDraft<T = Record<string, unknown>>(
   } catch (err) {
     console.error("[loadDraft] failed:", err);
     return null;
+  }
+}
+
+/**
+ * 檢查 storage 是否有對應 caseId 的 KeyinData。
+ * 供 keyin/page.tsx 判斷是否顯示「已還原上次未儲存的草稿」toast。
+ */
+export async function hasDraftData(caseId: string): Promise<boolean> {
+  try {
+    const data = await storage.getKeyinData(caseId);
+    return data !== null;
+  } catch {
+    return false;
   }
 }

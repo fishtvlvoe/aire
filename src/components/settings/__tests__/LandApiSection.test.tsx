@@ -4,6 +4,11 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { LandApiSection } from "../LandApiSection";
 
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+  Toaster: () => null,
+}));
+
 vi.mock("@/lib/mock-backend", () => ({
   mockInvoke: vi.fn(),
 }));
@@ -11,11 +16,17 @@ vi.mock("@/lib/mock-backend", () => ({
 import { mockInvoke } from "@/lib/mock-backend";
 
 const mockInvokeFn = vi.mocked(mockInvoke);
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
 
 describe("LandApiSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockInvokeFn.mockResolvedValueOnce({ clientId: "", secret: "" });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true, latency_ms: 123 }),
+    });
   });
 
   it("預設空值時儲存和測試連線按鈕 disabled", async () => {
@@ -72,8 +83,6 @@ describe("LandApiSection", () => {
   });
 
   it("測試連線成功顯示延遲", async () => {
-    mockInvokeFn.mockResolvedValueOnce({ success: true, latency_ms: 123 });
-
     render(<LandApiSection />);
 
     await waitFor(() => screen.getByLabelText(/Client ID/));
@@ -93,7 +102,10 @@ describe("LandApiSection", () => {
   });
 
   it("測試連線失敗顯示連線失敗", async () => {
-    mockInvokeFn.mockRejectedValueOnce(new Error("連線失敗"));
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: false, latency_ms: 50, error: "認證失敗" }),
+    });
 
     render(<LandApiSection />);
 
@@ -108,7 +120,7 @@ describe("LandApiSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "測試連線" }));
 
     await waitFor(() => {
-      expect(screen.getByText("連線失敗")).toBeInTheDocument();
+      expect(screen.getByText("認證失敗")).toBeInTheDocument();
     });
   });
 

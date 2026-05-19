@@ -9,20 +9,45 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { brandingApi, type BrandTextSettings } from "@/lib/branding-api";
+import type { BrandTextSettings } from "@/lib/branding-api";
+import { storage } from "@/lib/storage";
 import { ThemeProvider } from "@/lib/pdf-themes/theme-provider";
 import { isTauriEnv } from "@/lib/tauri-bridge";
 
 function BrandTextForm() {
   const { register, handleSubmit, reset } = useForm<BrandTextSettings>();
 
+  function toStorageFormat(values: BrandTextSettings) {
+    return {
+      agentName: values.agent_name,
+      companyName: values.company_name,
+      agentCertNo: values.agent_cert_no,
+      companyLicenseNo: values.company_license_no,
+      companyAddress: values.company_address,
+      companyPhone: values.company_phone,
+      realtorName: values.realtor_name,
+    };
+  }
+
+  function fromStorageFormat(data: NonNullable<Awaited<ReturnType<typeof storage.getBranding>>>) {
+    return {
+      agent_name: data.agentName,
+      company_name: data.companyName,
+      agent_cert_no: data.agentCertNo,
+      company_license_no: data.companyLicenseNo,
+      company_address: data.companyAddress,
+      company_phone: data.companyPhone,
+      realtor_name: data.realtorName,
+    };
+  }
+
   useEffect(() => {
-    brandingApi.getBrandText().then((data) => reset(data)).catch(() => null);
+    storage.getBranding().then((data) => { if (data) reset(fromStorageFormat(data)); }).catch(() => null);
   }, [reset]);
 
   async function onSubmit(values: BrandTextSettings) {
     try {
-      await brandingApi.saveBrandText(values);
+      await storage.saveBranding(toStorageFormat(values));
       toast.success("品牌資訊已儲存");
     } catch {
       toast.error("儲存失敗，請重試");
