@@ -8,6 +8,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: mocks.invoke }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: mocks.listen }));
+vi.mock("@/lib/tauri-bridge", () => ({
+  safeInvoke: mocks.invoke,
+  isTauriEnv: vi.fn().mockResolvedValue(true),
+  NotInTauriError: class extends Error {},
+}));
 
 describe("useDraftAutosave — interval heartbeat", () => {
   beforeEach(() => {

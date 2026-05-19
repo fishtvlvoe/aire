@@ -27,4 +27,4 @@
 - [x] 5.1 Chrome MCP 自動化驗收：依序執行 Bug#3（dialog 紅框）、Bug#4（揭露資料持久化）、Bug#5（品牌設定持久化）、Bug NEW-2（autosave 持久化 + 無 draft 無 toast）共 5 個場景，截圖存 `.artifacts/fix-qa-bugs/` 目錄。驗收：每個場景截圖顯示預期狀態（紅框/欄位有值/toast 出現或不出現）。
 - [x] 5.2 Chrome MCP 自動化驗收：依序執行 Bug#6（Network 面板有 POST 到 licenses/activate）、Bug#7（地政 API toast）、Bug NEW-4（測試連線 Network 請求 + 假 credentials 失敗 toast）共 3 個場景，截圖存 `.artifacts/fix-qa-bugs/`。驗收：Network 面板截圖及 toast 截圖。
 - [x] 5.3 執行 `npm run build`，確認 0 型別錯誤 0 build 錯誤。驗收：build 輸出含 `Route (app)` 清單且無 Error。
-- [ ] 5.4 `git add -A && git commit -m "fix: 修復 QA 驗收發現的 7 個 bug（StorageAdapter + API 整合）"` 並 `git push`。驗收：`git log --oneline -1` 顯示本次 commit；`git status` 為 clean。
+- [x] 5.4 `git add -A && git commit -m "fix: 修復 QA 驗收發現的 7 個 bug（StorageAdapter + API 整合）"` 並 `git push`。驗收：`git log --oneline -1` 顯示本次 commit；`git status` 為 clean。

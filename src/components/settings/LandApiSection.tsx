@@ -128,15 +128,14 @@ export function LandApiSection() {
               <Button onClick={handleSave} disabled={actionsDisabled}>
                 儲存
               </Button>
-              <span title={!hasValues ? "請先填入 Client ID 和安全碼" : undefined}>
-                <Button
-                  variant="outline"
-                  onClick={handleTestConnection}
-                  disabled={actionsDisabled}
-                >
-                  測試連線
-                </Button>
-              </span>
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={actionsDisabled}
+                title={!hasValues ? "請先填入 Client ID 和安全碼" : undefined}
+              >
+                測試連線
+              </Button>
             </div>
 
             {connectionStatus !== null && (

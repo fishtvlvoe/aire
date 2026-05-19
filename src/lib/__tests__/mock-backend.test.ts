@@ -133,7 +133,11 @@ describe("MockStore", () => {
       mockInvoke("load_draft", {
         caseId: "case-1",
       }),
-    ).resolves.toEqual({ a: 1 });
+    ).resolves.toMatchObject({
+      case_id: "case-1",
+      payload_json: '{"a":1}',
+      schema_version: 1,
+    });
 
     const logs = await mockInvoke<Array<{ id: number }>>("list_recent_logs", {
       limit: 3,
