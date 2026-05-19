@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { casesApi } from "@/lib/cases-api";
+import { getRequiredFields as getResidentialRequiredFields } from "@/lib/disclosure-schema-residential";
+import { getRequiredFields as getLandRequiredFields } from "@/lib/disclosure-schema-land";
 
 interface CaseSupplementDialogProps {
   caseId: string;
@@ -35,6 +39,9 @@ export function CaseSupplementDialog({ caseId, open, onClose }: CaseSupplementDi
   const [caseName, setCaseName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [disclosurePayload, setDisclosurePayload] = useState<Record<string, unknown>>({});
+  const [disclosureMissingFields, setDisclosureMissingFields] = useState<Array<{ key: string; label: string }>>([]);
+  const [disclosureInputs, setDisclosureInputs] = useState<Record<string, string>>({});
 
   // C2: cancelled flag 防止 race condition；加 try/catch 防白屏
   useEffect(() => {
@@ -42,11 +49,33 @@ export function CaseSupplementDialog({ caseId, open, onClose }: CaseSupplementDi
     let cancelled = false;
     void (async () => {
       try {
-        const row = await casesApi.get(caseId);
+        // 平行取得案件資料與揭露草稿
+        const [row, draftResult] = await Promise.all([
+          casesApi.get(caseId),
+          invoke<{ payload_json: string } | null>("get_draft", { caseId }).catch(() => null),
+        ]);
         if (cancelled) return;
         setOwnerName(row.owner_name ?? "");
         setAddress(row.address ?? "");
         setCaseName(row.case_name ?? "");
+
+        // 解析揭露 payload 並找出缺漏欄位
+        const payload = draftResult
+          ? (JSON.parse(draftResult.payload_json) as Record<string, unknown>)
+          : {};
+        setDisclosurePayload(payload);
+
+        const requiredFields =
+          row.property_type === "land"
+            ? getLandRequiredFields("land")
+            : getResidentialRequiredFields("residential");
+
+        const missing = requiredFields.filter((f) => {
+          const v = payload[f.key];
+          return v === "" || v === null || v === undefined;
+        });
+        setDisclosureMissingFields(missing);
+        setDisclosureInputs({});
       } catch (err) {
         if (cancelled) return;
         console.error("[CaseSupplementDialog] 載入案件失敗", err);
@@ -92,6 +121,23 @@ export function CaseSupplementDialog({ caseId, open, onClose }: CaseSupplementDi
         address,
         case_name: caseName || null,
       });
+
+      // 若有填入任何揭露欄位，merge 後存回 draft
+      const filledEntries = Object.entries(disclosureInputs).filter(([, v]) => v !== "");
+      if (filledEntries.length > 0) {
+        const mergedPayload = {
+          ...disclosurePayload,
+          ...Object.fromEntries(filledEntries),
+        };
+        try {
+          await invoke("save_draft", { caseId, payload: mergedPayload, schemaVersion: 1 });
+        } catch (draftErr) {
+          console.error("[CaseSupplementDialog] 揭露草稿儲存失敗", draftErr);
+          toast("儲存失敗，請重試");
+          return; // 不關 dialog
+        }
+      }
+
       onClose();
     } catch (err) {
       console.error("[CaseSupplementDialog] 儲存失敗", err);
@@ -154,6 +200,16 @@ export function CaseSupplementDialog({ caseId, open, onClose }: CaseSupplementDi
               </div>
             </>
           )}
+          {disclosureMissingFields.map((f) => (
+            <div key={f.key} className="space-y-1.5">
+              <Label htmlFor={`supplement-disclosure-${f.key}`}>{f.label}</Label>
+              <Input
+                id={`supplement-disclosure-${f.key}`}
+                value={disclosureInputs[f.key] ?? ""}
+                onChange={(e) => setDisclosureInputs((prev) => ({ ...prev, [f.key]: e.target.value }))}
+              />
+            </div>
+          ))}
         </div>
 
         {saveError ? (

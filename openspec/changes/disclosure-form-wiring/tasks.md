@@ -16,8 +16,8 @@
 
 ## 4. 後補 Dialog 揭露欄位偵測與補填
 
-- [ ] 4.1 修改 `src/components/CaseSupplementDialog.tsx`（需求：Disclosure field completeness detection）：在 dialog open 時，平行呼叫 `invoke("get_draft", { caseId })` 和 `getRequiredFields(propertyType)`；計算 `payload_json` 中值為空字串、null 或 undefined 的 required 欄位（設計決策：D3：Supplement dialog — 讀 schema + diff payload 找空值必填欄位）；在「缺少必填欄位」區塊下方渲染這些欄位的 label + `<Input>` 元件；保留原有的 owner/address/case_name 三個欄位偵測邏輯不變。驗收：案件有 5 個空的 required 揭露欄位時，dialog 顯示至少 5 個可填寫的 input（加上原有基本欄位）；已填寫的揭露欄位不出現在列表
-- [ ] 4.2 修改 `CaseSupplementDialog` 的「儲存」handler（需求：Save patched disclosure payload）：將用戶填入的揭露欄位值 merge 進現有 `payload_json`（淺層合併，不覆蓋用戶未動的欄位）後呼叫 `invoke("save_draft", { caseId, payload: mergedPayload, schemaVersion: 1 })`（設計決策：D1：不新增 migration，沿用 `disclosure_drafts.payload_json`；D3：Supplement dialog — 讀 schema + diff payload 找空值必填欄位）；成功後關閉 dialog；失敗時顯示 toast "儲存失敗，請重試" 並保持 dialog 開啟。驗收：填入補件欄位後按「儲存」→ dialog 關閉 → 再次開啟 ⊕ → 剛才填的欄位不再出現在缺漏清單
+- [x] 4.1 修改 `src/components/CaseSupplementDialog.tsx`（需求：Disclosure field completeness detection）：在 dialog open 時，平行呼叫 `invoke("get_draft", { caseId })` 和 `getRequiredFields(propertyType)`；計算 `payload_json` 中值為空字串、null 或 undefined 的 required 欄位（設計決策：D3：Supplement dialog — 讀 schema + diff payload 找空值必填欄位）；在「缺少必填欄位」區塊下方渲染這些欄位的 label + `<Input>` 元件；保留原有的 owner/address/case_name 三個欄位偵測邏輯不變。驗收：案件有 5 個空的 required 揭露欄位時，dialog 顯示至少 5 個可填寫的 input（加上原有基本欄位）；已填寫的揭露欄位不出現在列表
+- [x] 4.2 修改 `CaseSupplementDialog` 的「儲存」handler（需求：Save patched disclosure payload）：將用戶填入的揭露欄位值 merge 進現有 `payload_json`（淺層合併，不覆蓋用戶未動的欄位）後呼叫 `invoke("save_draft", { caseId, payload: mergedPayload, schemaVersion: 1 })`（設計決策：D1：不新增 migration，沿用 `disclosure_drafts.payload_json`；D3：Supplement dialog — 讀 schema + diff payload 找空值必填欄位）；成功後關閉 dialog；失敗時顯示 toast "儲存失敗，請重試" 並保持 dialog 開啟。驗收：填入補件欄位後按「儲存」→ dialog 關閉 → 再次開啟 ⊕ → 剛才填的欄位不再出現在缺漏清單
 
 ## 5. PDF Inline Edit Overlay
 
