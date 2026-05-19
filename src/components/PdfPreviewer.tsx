@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, Download, Loader2, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 import { createPdfEngine, type PdfEngine, type RenderOptions, type CaseDossierData } from "../lib/pdf-engine/engine";
 import { BRANDING_CHANGED_EVENT } from "../lib/pdf-themes/persistence";
+import { PDF_FIELD_COORDS } from "@/lib/pdf-field-coords";
 
 type PreviewState = "idle" | "loading" | "ready" | "error";
 
@@ -44,6 +46,8 @@ export function PdfPreviewer({ caseId, content = "", caseData }: PdfPreviewerPro
   const [status, setStatus] = useState<PreviewState>("idle");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<PdfPreviewError | null>(null);
+  const [overlayValues, setOverlayValues] = useState<Record<string, string>>({});
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const renderPreview = useCallback(async () => {
     setStatus("loading");
@@ -117,6 +121,30 @@ export function PdfPreviewer({ caseId, content = "", caseData }: PdfPreviewerPro
     }
   }, [caseId]);
 
+  const handleOverlayBlur = useCallback(
+    async (fieldKey: string, value: string) => {
+      let existingPayload: Record<string, unknown> = {};
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const result = await invoke<{ payload_json: string } | null>("get_draft", { caseId });
+        if (result) existingPayload = JSON.parse(result.payload_json) as Record<string, unknown>;
+      } catch {
+        // 無草稿或解析失敗，維持空物件
+      }
+
+      const mergedPayload = { ...existingPayload, [fieldKey]: value };
+
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("save_draft", { caseId, payload: mergedPayload, schemaVersion: 1 });
+        void renderPreview();
+      } catch {
+        toast.error("預覽更新失敗");
+      }
+    },
+    [caseId, renderPreview],
+  );
+
   useEffect(() => {
     void renderPreview();
   }, [renderPreview]);
@@ -179,12 +207,54 @@ export function PdfPreviewer({ caseId, content = "", caseData }: PdfPreviewerPro
       )}
 
       {previewUrl && status !== "error" && (
-        <iframe
-          data-testid="pdf-iframe"
-          title="PDF Preview"
-          src={previewUrl}
-          style={{ width: "100%", height: "70vh", border: 0 }}
-        />
+        <div style={{ position: "relative" }}>
+          <iframe
+            data-testid="pdf-iframe"
+            title="PDF Preview"
+            src={previewUrl}
+            style={{ width: "100%", height: "70vh", border: 0 }}
+          />
+          <div
+            data-testid="pdf-overlay"
+            style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+          >
+            {Object.entries(PDF_FIELD_COORDS)
+              .filter(([, coord]) => coord.page === 1)
+              .map(([fieldKey, coord]) => {
+                const SCALE = 0.99;
+                const isFocused = focusedField === fieldKey;
+                return (
+                  <input
+                    key={fieldKey}
+                    data-field-key={fieldKey}
+                    value={overlayValues[fieldKey] ?? ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setOverlayValues((prev) => ({ ...prev, [fieldKey]: val }));
+                    }}
+                    onFocus={() => setFocusedField(fieldKey)}
+                    onBlur={(e) => {
+                      setFocusedField(null);
+                      void handleOverlayBlur(fieldKey, e.target.value);
+                    }}
+                    style={{
+                      position: "absolute",
+                      left: coord.x * SCALE,
+                      top: coord.y * SCALE,
+                      width: coord.w * SCALE,
+                      height: coord.h * SCALE,
+                      pointerEvents: "auto",
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      fontSize: 12,
+                      borderBottom: isFocused ? "1px solid #333" : "none",
+                    }}
+                  />
+                );
+              })}
+          </div>
+        </div>
       )}
 
       <button

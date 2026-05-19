@@ -21,8 +21,8 @@
 
 ## 5. PDF Inline Edit Overlay
 
-- [ ] 5.1 修改 `src/components/PdfPreviewer.tsx`（需求：Overlay input layer in PdfPreviewer；Scale-aware coordinate adjustment）：在 PDF canvas 的父容器上設定 `position: relative`（設計決策：D4：PDF inline edit — overlay div 絕對定位蓋在 PDF canvas 上）；疊加一個 `position: absolute; inset: 0; pointer-events: none` 的 overlay div；在 overlay 內，依 `PDF_FIELD_COORDS` 中的座標渲染 `<input>` 元件，座標乘以當前 scale 值（預設 0.99）以對應 Scale-aware coordinate adjustment；每個 input 設定 `pointer-events: auto`、`background: transparent`、`border: none`、`outline: none`（focused 時顯示底線）。驗收：PDF 封面頁載入後，承辦人/經紀人/物件名稱三個位置可被點擊並出現文字游標
-- [ ] 5.2 為 overlay 每個 input 加入 `onBlur` handler（需求：Blur saves and re-renders）：blur 時以 `fieldKey` 為 key、當前 input value 為值，patch 現有 payload 後呼叫 `invoke("save_draft", ...)`（設計決策：D1：不新增 migration，沿用 `disclosure_drafts.payload_json`；D4：PDF inline edit — overlay div 絕對定位蓋在 PDF canvas 上）；save 成功後觸發 PDF re-render（呼叫現有 `regeneratePdf()` 或等效方法）；save 失敗時顯示 toast "預覽更新失敗"。驗收：在承辦人 input 輸入「王大明」後點擊 PDF 其他位置 → PDF re-render → 封面頁承辦人欄位顯示「王大明」
+- [x] 5.1 修改 `src/components/PdfPreviewer.tsx`（需求：Overlay input layer in PdfPreviewer；Scale-aware coordinate adjustment）：在 PDF canvas 的父容器上設定 `position: relative`（設計決策：D4：PDF inline edit — overlay div 絕對定位蓋在 PDF canvas 上）；疊加一個 `position: absolute; inset: 0; pointer-events: none` 的 overlay div；在 overlay 內，依 `PDF_FIELD_COORDS` 中的座標渲染 `<input>` 元件，座標乘以當前 scale 值（預設 0.99）以對應 Scale-aware coordinate adjustment；每個 input 設定 `pointer-events: auto`、`background: transparent`、`border: none`、`outline: none`（focused 時顯示底線）。驗收：PDF 封面頁載入後，承辦人/經紀人/物件名稱三個位置可被點擊並出現文字游標
+- [x] 5.2 為 overlay 每個 input 加入 `onBlur` handler（需求：Blur saves and re-renders）：blur 時以 `fieldKey` 為 key、當前 input value 為值，patch 現有 payload 後呼叫 `invoke("save_draft", ...)`（設計決策：D1：不新增 migration，沿用 `disclosure_drafts.payload_json`；D4：PDF inline edit — overlay div 絕對定位蓋在 PDF canvas 上）；save 成功後觸發 PDF re-render（呼叫現有 `regeneratePdf()` 或等效方法）；save 失敗時顯示 toast "預覽更新失敗"。驗收：在承辦人 input 輸入「王大明」後點擊 PDF 其他位置 → PDF re-render → 封面頁承辦人欄位顯示「王大明」
 
 ## 6. 驗收測試
 
