@@ -9,6 +9,14 @@ export interface LocationMapPageProps {
   locationMapImage?: Uint8Array | null;
 }
 
+function uint8ToDataUrl(bytes: Uint8Array): string {
+  const isJpeg = bytes[0] === 0xFF && bytes[1] === 0xD8;
+  const mime = isJpeg ? "image/jpeg" : "image/png";
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return `data:${mime};base64,${btoa(binary)}`;
+}
+
 export function LocationMapPage({
   logo,
   locationMapImage,
@@ -42,10 +50,7 @@ export function LocationMapPage({
         {hasImage ? (
           <Image
             style={{ width: "100%", height: 430, objectFit: "contain" }}
-            src={{
-              data: Buffer.from(locationMapImage!),
-              format: "png" as const,
-            }}
+            src={uint8ToDataUrl(locationMapImage!)}
           />
         ) : (
           <View style={{ alignItems: "center" }}>
