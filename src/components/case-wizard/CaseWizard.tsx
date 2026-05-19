@@ -97,7 +97,7 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
         <CaseWizardStep3Disclosure
           caseId={caseId}
           caseData={caseData}
-          onNext={() => void updateStep(4)}
+          onNext={() => void updateStep(step3Enabled ? 4 : 5)}
           onPrev={() => void updateStep(2)}
         />
       );
@@ -120,14 +120,17 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
   }
 
   function handlePrevStep() {
-    void updateStep(Math.max(1, currentStep - 1));
+    const prev = currentStep === 5 && !step3Enabled ? 3 : Math.max(1, currentStep - 1);
+    void updateStep(prev);
   }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-5 gap-2">
+      <div className={`grid gap-2 ${step3Enabled ? "grid-cols-5" : "grid-cols-4"}`}>
         {STEP_LABELS.map((label, index) => {
           const step = index + 1;
+          // 未啟用實價登錄時，步驟列完全隱藏步驟 4
+          if (step === 4 && !step3Enabled) return null;
           const active = step === currentStep;
           const done = step < currentStep;
           return (
@@ -146,7 +149,7 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
                 </div>
               )}
               <span className={`text-xs ${active ? "text-foreground" : "text-muted-foreground"}`}>
-                {step === 4 && !step3Enabled ? `${label}（跳過）` : label}
+                {label}
               </span>
             </div>
           );
