@@ -12,6 +12,7 @@ import { useState } from "react";
 import { z } from "zod";
 import { casesApi } from "@/lib/cases-api";
 import { CaseLotInput } from "@/components/CaseLotInput";
+import { useIpcErrorToast } from "@/hooks/useIpcErrorToast";
 
 const schema = z.object({
   property_type: z.enum(["residential", "land"]),
@@ -26,6 +27,7 @@ type FormValues = z.infer<typeof schema>;
 
 export default function NewCasePage() {
   const router = useRouter();
+  const { handleError } = useIpcErrorToast();
   const [values, setValues] = useState<FormValues>({
     property_type: "residential",
     land_lot_no: "",
@@ -72,6 +74,7 @@ export default function NewCasePage() {
       });
       router.push(`/cases/${created.id}`);
     } catch (err) {
+      handleError(err);
       setSubmitError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);

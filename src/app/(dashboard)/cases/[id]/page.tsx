@@ -12,12 +12,14 @@ import {
   type CaseRow,
 } from "@/lib/cases-api";
 import { CaseWizard } from "@/components/case-wizard/CaseWizard";
+import { useIpcErrorToast } from "@/hooks/useIpcErrorToast";
 
 export default function CaseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const id = params?.id;
 
+  const { handleError } = useIpcErrorToast();
   const [caseData, setCaseData] = useState<CaseRow | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +34,7 @@ export default function CaseDetailPage() {
         }
       } catch (loadError) {
         if (!cancelled) {
+          handleError(loadError);
           setError(loadError instanceof Error ? loadError.message : String(loadError));
         }
       }
