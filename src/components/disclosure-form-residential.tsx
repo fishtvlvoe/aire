@@ -372,6 +372,44 @@ function FieldRow({ field, form }: FieldRowProps) {
             />
           )}
         />
+      ) : field.type === "date" ? (
+        <Controller
+          control={form.control}
+          name={key}
+          render={({ field: f }) => (
+            <Input
+              id={`field-${key}`}
+              type="date"
+              value={(f.value as string | undefined) ?? ""}
+              onChange={(e) => f.onChange(e.target.value)}
+              onBlur={f.onBlur}
+            />
+          )}
+        />
+      ) : field.type === "select" ? (
+        <Controller
+          control={form.control}
+          name={key}
+          render={({ field: f }) => (
+            <select
+              id={`field-${key}`}
+              value={(f.value as string | undefined) ?? ""}
+              onChange={(e) => f.onChange(e.target.value)}
+              onBlur={f.onBlur}
+              className={cn(
+                "h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              )}
+            >
+              <option value="">請選擇…</option>
+              {field.options?.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          )}
+        />
       ) : (
         <Controller
           control={form.control}

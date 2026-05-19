@@ -44,6 +44,9 @@ export const residentialSchema = z.object({
   tax_building_value: PositiveDecimal.optional(),
   tax_property_tax_annual: PositiveDecimal.optional(),
   tax_land_value_tax_annual: PositiveDecimal.optional(),
+  transaction_price: PositiveDecimal.optional(),
+  transfer_date: z.string().optional(),
+  usage_type: z.enum(["residential", "commercial"]).optional(),
 
   // === 現況（current condition）tab ===
   condition_leakage: TriState.optional(),
@@ -75,9 +78,10 @@ export const residentialSchemaCompleted = residentialSchema.extend({
 export interface FormFieldDef {
   key: keyof ResidentialPayload | string;
   label: string;
-  type: "text" | "number" | "tristate" | "textarea";
+  type: "text" | "number" | "tristate" | "textarea" | "date" | "select";
   placeholder?: string;
   required?: boolean;
+  options?: Array<{ value: string; label: string }>;
 }
 
 export interface FormTab {
@@ -118,6 +122,17 @@ export const residentialFormTabs: FormTab[] = [
       { key: "tax_building_value", label: "建物評定現值（元）", type: "number" },
       { key: "tax_property_tax_annual", label: "年度房屋稅（元）", type: "number" },
       { key: "tax_land_value_tax_annual", label: "年度地價稅（元）", type: "number" },
+      { key: "transaction_price", label: "交易價金（元）", type: "number" },
+      { key: "transfer_date", label: "交易日期", type: "date" },
+      {
+        key: "usage_type",
+        label: "使用用途",
+        type: "select",
+        options: [
+          { value: "residential", label: "住家用" },
+          { value: "commercial", label: "營業用" },
+        ],
+      },
     ],
   },
   {

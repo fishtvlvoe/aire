@@ -43,6 +43,32 @@ function calcLandValueIncrementTax(appreciation: number, originalValue: number):
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 說明書第7頁用純函式（design.md C1 contract）
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function stampTax(contractPrice: number, officialValue: number, shareRatio: number): number {
+  const base = contractPrice + officialValue * shareRatio;
+  if (base <= 0) return 0;
+  return Math.round(base * 0.001);
+}
+
+export function deedTax(contractPrice: number): number {
+  if (contractPrice <= 0) return 0;
+  return Math.round(contractPrice * 0.06);
+}
+
+export function buildingTax(buildingCurrentValue: number, usage: "residential" | "commercial"): number {
+  if (buildingCurrentValue <= 0) return 0;
+  const rate = usage === "commercial" ? 0.03 : 0.012;
+  return Math.round(buildingCurrentValue * rate);
+}
+
+export function landPriceTax(landCurrentValue: number, daysDiff: number): number {
+  if (landCurrentValue <= 0 || daysDiff <= 0) return 0;
+  return Math.round(landCurrentValue * (daysDiff / 365) * 0.002);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 主計算函式
 // ─────────────────────────────────────────────────────────────────────────────
 
