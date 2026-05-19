@@ -37,7 +37,7 @@ export function listThemes(): PdfTheme[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// resolveThemeOrFallback — 給 PdfPreviewer / document.tsx 用
+// resolveThemeOrFallback — 給 document.tsx 用
 // ─────────────────────────────────────────────────────────────────────────────
 export interface ThemeResolution {
   theme: PdfTheme;

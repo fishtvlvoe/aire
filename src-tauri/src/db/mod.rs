@@ -93,6 +93,7 @@ pub fn init_db(path: &Path) -> Result<Connection, DbError> {
     }
 
     let conn = Connection::open(path)?;
+    conn.execute_batch("PRAGMA journal_mode=WAL;")?;
     conn.execute_batch("PRAGMA foreign_keys = ON;")?;
 
     let mut current: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;

@@ -32,7 +32,6 @@ import { TauriRequired } from "@/components/TauriRequired";
 import { NotInTauriError } from "@/lib/tauri-bridge";
 import { CaseListActions } from "@/components/CaseListActions";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { CaseSupplementDialog } from "@/components/CaseSupplementDialog";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { toast } from "sonner";
 
@@ -50,7 +49,6 @@ export default function CasesPage() {
   const [error, setError] = useState<string | null>(null);
   const [requiresTauri, setRequiresTauri] = useState(false);
   const [deletingCase, setDeletingCase] = useState<CaseRow | null>(null);
-  const [supplementCaseId, setSupplementCaseId] = useState<string | null>(null);
   // W6: 刪除 loading state，防連點
   const [deleting, setDeleting] = useState(false);
 
@@ -188,7 +186,7 @@ export default function CasesPage() {
                 {/* 操作 */}
                 <TableCell className="text-right">
                   <CaseListActions
-                    onSupplement={() => setSupplementCaseId(c.id)}
+                    caseId={c.id}
                     onView={() => router.push(`/cases/${c.id}`)}
                     onEdit={() => router.push(`/cases/${c.id}`)}
                     onDelete={() => setDeletingCase(c)}
@@ -207,16 +205,6 @@ export default function CasesPage() {
         onConfirm={handleDeleteConfirm}
         isLoading={deleting}
       />
-      {supplementCaseId ? (
-        <CaseSupplementDialog
-          caseId={supplementCaseId}
-          open={Boolean(supplementCaseId)}
-          onClose={() => {
-            setSupplementCaseId(null);
-            void refreshCases();
-          }}
-        />
-      ) : null}
     </main>
   );
 }

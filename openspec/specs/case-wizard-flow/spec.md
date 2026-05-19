@@ -276,3 +276,37 @@ tests:
   - src/components/__tests__/CaseWizardStep2.test.tsx
   - src/app/(dashboard)/settings/branding/__tests__/branding-content.test.tsx
 -->
+
+---
+### Requirement: Step count and ordering
+
+The CaseWizard SHALL have 5 steps. Step 3 SHALL be "揭露資料". The former "實價登錄" SHALL become Step 4. The former "預覽匯出" SHALL become Step 5. Steps 1 and 2 SHALL remain unchanged.
+
+#### Scenario: Progress indicator shows 5 steps
+
+- **WHEN** a user opens any case in edit mode
+- **THEN** the progress indicator displays 5 numbered steps: 基本資料, 地政資料, 揭露資料, 實價登錄（跳過）, 預覽匯出
+
+<!-- @trace
+source: disclosure-form-wiring
+updated: 2026-05-19
+code:
+  - src/lib/disclosure-schema-residential.ts
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/components/disclosure-form-residential.tsx
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - src/lib/pdf-field-coords.ts
+  - src/components/case-wizard/CaseWizard.tsx
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - src/lib/disclosure-schema-land.ts
+  - AGENTS.md
+  - src/components/CaseSupplementDialog.tsx
+  - src/components/disclosure-form-land.tsx
+  - src/components/PdfPreviewer.tsx
+tests:
+  - src/lib/__tests__/disclosure-schema.test.ts
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure.test.tsx
+  - src/components/__tests__/CaseSupplementDialog.disclosure.test.tsx
+  - src/components/__tests__/CaseWizard.test.tsx
+-->

@@ -420,3 +420,5 @@ function TriStateButtons({ value, onChange, ariaLabel }: TriStateButtonsProps) {
     </div>
   );
 }
+
+export default DisclosureFormLand;

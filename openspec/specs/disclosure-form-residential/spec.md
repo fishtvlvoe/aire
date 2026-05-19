@@ -1129,3 +1129,42 @@ code:
   - src/lib/land-registry-api.ts
   - src/components/case-wizard/CaseWizard.tsx
 -->
+
+---
+### Requirement: Integration with CaseWizard Step 3
+
+`DisclosureFormResidential` SHALL accept `caseId: string`, `initialPayload: Record<string, unknown>`, and `onChange: (payload: Record<string, unknown>) => void` as props. When `initialPayload` is provided, all fields SHALL be pre-populated with its values. On any field change, `onChange` SHALL be called with the full updated payload. The component SHALL NOT manage its own persistence; persistence is handled by the parent step via `use-draft-autosave`.
+
+#### Scenario: Pre-populated form
+
+- **WHEN** `DisclosureFormResidential` receives a non-empty `initialPayload`
+- **THEN** all matching fields are filled with the values from `initialPayload`
+
+#### Scenario: Field change propagation
+
+- **WHEN** the user changes any field
+- **THEN** `onChange` is called with the complete updated form payload including all previously set values
+
+<!-- @trace
+source: disclosure-form-wiring
+updated: 2026-05-19
+code:
+  - src/lib/disclosure-schema-residential.ts
+  - src/components/case-wizard/CaseWizardStep4.tsx
+  - src/components/disclosure-form-residential.tsx
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - src/lib/pdf-field-coords.ts
+  - src/components/case-wizard/CaseWizard.tsx
+  - src/components/case-wizard/CaseWizardStep3.tsx
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - src/lib/disclosure-schema-land.ts
+  - AGENTS.md
+  - src/components/CaseSupplementDialog.tsx
+  - src/components/disclosure-form-land.tsx
+  - src/components/PdfPreviewer.tsx
+tests:
+  - src/lib/__tests__/disclosure-schema.test.ts
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure.test.tsx
+  - src/components/__tests__/CaseSupplementDialog.disclosure.test.tsx
+  - src/components/__tests__/CaseWizard.test.tsx
+-->

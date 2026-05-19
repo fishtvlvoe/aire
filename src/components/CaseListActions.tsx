@@ -7,10 +7,11 @@ import {
   PlusCircle,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 interface CaseListActionsProps {
-  onSupplement: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  caseId: string;
   onView: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onEdit: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onDelete: (event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -27,15 +28,22 @@ function stopPropagation(
 }
 
 export function CaseListActions({
-  onSupplement,
+  caseId,
   onView,
   onEdit,
   onDelete,
   onDownload,
 }: CaseListActionsProps) {
+  const router = useRouter();
+
+  function handleSupplement(event: React.MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    router.push(`/cases/${caseId}/keyin`);
+  }
+
   return (
     <div className="flex items-center justify-end gap-1">
-      <Button size="icon" variant="ghost" title="補件" onClick={stopPropagation(onSupplement)}>
+      <Button size="icon" variant="ghost" title="補件" onClick={handleSupplement}>
         <PlusCircle className="h-4 w-4" />
       </Button>
       <Button size="icon" variant="ghost" title="查看" onClick={stopPropagation(onView)}>

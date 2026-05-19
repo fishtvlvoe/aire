@@ -129,6 +129,22 @@ export function useDraftAutosave(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 
+  useEffect(() => {
+    if (!enabled) return;
+    if (!caseId) return;
+
+    const intervalId = setInterval(() => {
+      void performSave();
+    }, 15000);
+
+    return () => {
+      clearInterval(intervalId);
+      // flush on unmount
+      void performSave();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, caseId]);
+
   async function flush(): Promise<void> {
     if (timerRef.current) clearTimeout(timerRef.current);
     await performSave();
