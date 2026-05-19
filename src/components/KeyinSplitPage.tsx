@@ -1,12 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { useDraftAutosave } from "@/lib/use-draft-autosave";
 import DisclosureFormResidential from "@/components/disclosure-form-residential";
 import DisclosureFormLand from "@/components/disclosure-form-land";
 import DisclosureHtmlPreview from "@/components/DisclosureHtmlPreview";
+import type { TaxInputs } from "@/components/DossierPage7FeeTable";
+
+export function formStateToTaxInputs(
+  formState: Record<string, unknown>
+): TaxInputs | undefined {
+  const contractPrice = Number(formState.transaction_price ?? 0);
+  const officialLandValue = Number(formState.tax_land_value ?? 0);
+  const buildingCurrentValue = Number(formState.tax_building_value ?? 0);
+  if (contractPrice === 0 || officialLandValue === 0 || buildingCurrentValue === 0) {
+    return undefined;
+  }
+  return {
+    contractPrice,
+    officialLandValue,
+    shareRatio: Number(formState.share_ratio ?? 1),
+    buildingCurrentValue,
+    transactionDate: String(formState.transfer_date ?? ""),
+    usage: formState.usage_type === "commercial" ? "commercial" : "residential",
+  };
+}
 
 interface KeyinSplitPageProps {
   caseId: string;
@@ -15,6 +35,7 @@ interface KeyinSplitPageProps {
 
 export function KeyinSplitPage({ caseId, propertyType }: KeyinSplitPageProps) {
   const [formState, setFormState] = useState<Record<string, unknown>>({});
+  const taxInputs = useMemo(() => formStateToTaxInputs(formState), [formState]);
 
   const { flush } = useDraftAutosave({
     caseId,
@@ -61,7 +82,7 @@ export function KeyinSplitPage({ caseId, propertyType }: KeyinSplitPageProps) {
       </div>
       <div data-testid="keyin-right-panel" className="w-1/2">
         <div className="sticky top-4">
-          <DisclosureHtmlPreview formState={formState} propertyType={propertyType} />
+          <DisclosureHtmlPreview formState={formState} propertyType={propertyType} taxInputs={taxInputs} />
         </div>
       </div>
     </section>
