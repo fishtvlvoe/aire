@@ -6,8 +6,8 @@ import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { CaseWizardStep1 } from "@/components/case-wizard/CaseWizardStep1";
 import { CaseWizardStep2 } from "@/components/case-wizard/CaseWizardStep2";
-import { CaseWizardStep3 } from "@/components/case-wizard/CaseWizardStep3";
 import { CaseWizardStep4 } from "@/components/case-wizard/CaseWizardStep4";
+import { CaseWizardStep5 } from "@/components/case-wizard/CaseWizardStep5";
 
 interface CaseWizardProps {
   caseId: string;
@@ -92,10 +92,10 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
       return <CaseWizardStep2 caseData={caseData} />;
     }
     if (currentStep === 3) {
-      return <CaseWizardStep3 />;
+      return <CaseWizardStep4 />;
     }
     return (
-      <CaseWizardStep4
+      <CaseWizardStep5
         caseId={caseData.id}
         caseData={caseData}
       />

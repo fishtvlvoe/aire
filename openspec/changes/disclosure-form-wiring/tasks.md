@@ -5,7 +5,7 @@
 
 ## 2. Wizard 步驟重組
 
-- [ ] 2.1 將 `src/components/case-wizard/CaseWizardStep3.tsx` 重命名為 `CaseWizardStep4.tsx`，`CaseWizardStep4.tsx` 重命名為 `CaseWizardStep5.tsx`；用 grep 確認並更新所有 import（包含 `CaseWizard.tsx` 和任何 test 檔案）。設計決策：D2：Wizard 步驟插入位置 — step 3（原 step 3/4 順延）。驗收：`grep -r "CaseWizardStep3\b" src/` 回傳零筆（只有新建的 `CaseWizardStep3Disclosure` 除外）；`npm run build` 0 錯誤
+- [x] 2.1 將 `src/components/case-wizard/CaseWizardStep3.tsx` 重命名為 `CaseWizardStep4.tsx`，`CaseWizardStep4.tsx` 重命名為 `CaseWizardStep5.tsx`；用 grep 確認並更新所有 import（包含 `CaseWizard.tsx` 和任何 test 檔案）。設計決策：D2：Wizard 步驟插入位置 — step 3（原 step 3/4 順延）。驗收：`grep -r "CaseWizardStep3\b" src/` 回傳零筆（只有新建的 `CaseWizardStep3Disclosure` 除外）；`npm run build` 0 錯誤
 - [ ] 2.2 新建 `src/components/case-wizard/CaseWizardStep3Disclosure.tsx`：依 `caseData.property_type` 選擇渲染 `DisclosureFormResidential` 或 `DisclosureFormLand`（需求：Step rendering by property type）；mount 時呼叫 `invoke("get_draft", { caseId })` 取得 `initialPayload`（需求：Draft load on mount）；透過 `use-draft-autosave` 在 `onChange` 觸發後 1 秒自動呼叫 `save_draft`（需求：Autosave on field change）；提供「上一步」（→ Step 2）和「下一步」（→ Step 4）按鈕，導航前先 flush 存檔，按鈕在欄位全空時不 disabled（需求：Navigation does not block on empty fields）。設計決策：D1：不新增 migration，沿用 `disclosure_drafts.payload_json`；D2：Wizard 步驟插入位置 — step 3（原 step 3/4 順延）。驗收：成屋案件顯示 `DisclosureFormResidential`，土地案件顯示 `DisclosureFormLand`；填值後離開再回來，值仍存在
 - [ ] 2.3 更新 `src/components/case-wizard/CaseWizard.tsx`：step 總數改為 5（需求：Step count and ordering）；在 steps 陣列 index 2 插入 `{ label: "揭露資料", component: CaseWizardStep3Disclosure }`；匯入並移除舊 Step3/Step4 import，換成新 Step4/Step5。設計決策：D2：Wizard 步驟插入位置 — step 3（原 step 3/4 順延）。驗收：Wizard 進度條顯示 5 個步驟，第 3 步標籤為「揭露資料」
 

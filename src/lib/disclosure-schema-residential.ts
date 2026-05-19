@@ -141,6 +141,26 @@ export const residentialFormTabs: FormTab[] = [
   },
 ];
 
+/** 揭露欄位 — 用於後補 dialog 的缺漏偵測 */
+export interface RequiredField {
+  key: string;
+  label: string;
+  fieldType: "text" | "number" | "boolean";
+}
+
+/** 從 residentialFormTabs 收集 required: true 的欄位 */
+export function getRequiredFields(type: "residential"): RequiredField[] {
+  return residentialFormTabs
+    .flatMap((tab) => tab.fields)
+    .filter((f) => f.required === true)
+    .map((f) => ({
+      key: f.key as string,
+      label: f.label,
+      fieldType:
+        f.type === "number" ? "number" : f.type === "tristate" ? "boolean" : "text",
+    }));
+}
+
 /** 預設值（draft 開新案件時用） */
 export const residentialDefaults: ResidentialPayload = {
   building_lot_no: "",

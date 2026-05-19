@@ -28,13 +28,13 @@ vi.mock("@/components/case-wizard/CaseWizardStep2", () => ({
   CaseWizardStep2: () => <div data-testid="wizard-step2">Step 2</div>,
 }));
 
-vi.mock("@/components/case-wizard/CaseWizardStep3", () => ({
-  CaseWizardStep3: () => <div data-testid="wizard-step3">Step 3</div>,
+vi.mock("@/components/case-wizard/CaseWizardStep4", () => ({
+  CaseWizardStep4: () => <div data-testid="wizard-step4">Step 4</div>,
 }));
 
-vi.mock("@/components/case-wizard/CaseWizardStep4", () => ({
-  CaseWizardStep4: (props: { caseId: string; caseData?: { id: string } }) => (
-    <div data-testid="wizard-step4-props">
+vi.mock("@/components/case-wizard/CaseWizardStep5", () => ({
+  CaseWizardStep5: (props: { caseId: string; caseData?: { id: string } }) => (
+    <div data-testid="wizard-step5-props">
       {props.caseId}|{props.caseData?.id ?? "missing"}
     </div>
   ),
@@ -68,7 +68,7 @@ describe("CaseWizard", () => {
     render(<CaseWizard caseId={baseCase.id} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("wizard-step4-props")).toHaveTextContent("case-001|case-001");
+      expect(screen.getByTestId("wizard-step5-props")).toHaveTextContent("case-001|case-001");
     });
 
     expect(screen.queryByRole("button", { name: "下一步" })).toBeNull();
@@ -78,7 +78,7 @@ describe("CaseWizard", () => {
     render(<CaseWizard caseId={baseCase.id} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("wizard-step4-props")).toBeInTheDocument();
+      expect(screen.getByTestId("wizard-step5-props")).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: "1" }));

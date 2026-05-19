@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import type { RequiredField } from "./disclosure-schema-residential";
 
 /** Tri-state boolean：true / false / unknown */
 export const TriState = z.enum(["true", "false", "unknown"]);
@@ -131,6 +132,19 @@ export const landFormTabs: FormTab[] = [
     ],
   },
 ];
+
+/** 從 landFormTabs 收集 required: true 的欄位 */
+export function getRequiredFields(type: "land"): RequiredField[] {
+  return landFormTabs
+    .flatMap((tab) => tab.fields)
+    .filter((f) => f.required === true)
+    .map((f) => ({
+      key: f.key as string,
+      label: f.label,
+      fieldType:
+        f.type === "number" ? "number" : f.type === "tristate" ? "boolean" : "text",
+    }));
+}
 
 /** 預設值（draft 開新案件時用） */
 export const landDefaults: LandPayload = {
