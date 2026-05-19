@@ -6,6 +6,7 @@ import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { CaseWizardStep1 } from "@/components/case-wizard/CaseWizardStep1";
 import { CaseWizardStep2 } from "@/components/case-wizard/CaseWizardStep2";
+import { CaseWizardStep3Disclosure } from "@/components/case-wizard/CaseWizardStep3Disclosure";
 import { CaseWizardStep4 } from "@/components/case-wizard/CaseWizardStep4";
 import { CaseWizardStep5 } from "@/components/case-wizard/CaseWizardStep5";
 
@@ -13,7 +14,7 @@ interface CaseWizardProps {
   caseId: string;
 }
 
-const STEP_LABELS = ["基本資料", "地政資料", "實價登錄", "預覽匯出"];
+const STEP_LABELS = ["基本資料", "地政資料", "揭露資料", "實價登錄", "預覽匯出"];
 
 export function CaseWizard({ caseId }: CaseWizardProps) {
   const [caseData, setCaseData] = useState<CaseRow | null>(null);
@@ -92,6 +93,16 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
       return <CaseWizardStep2 caseData={caseData} />;
     }
     if (currentStep === 3) {
+      return (
+        <CaseWizardStep3Disclosure
+          caseId={caseId}
+          caseData={caseData}
+          onNext={() => void updateStep(4)}
+          onPrev={() => void updateStep(2)}
+        />
+      );
+    }
+    if (currentStep === 4) {
       return <CaseWizardStep4 />;
     }
     return (
@@ -104,7 +115,7 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
 
   // W8: 使用者點下一步才呼叫 API
   function handleNextStep() {
-    const next = currentStep === 2 && !step3Enabled ? 4 : Math.min(4, currentStep + 1);
+    const next = currentStep === 3 && !step3Enabled ? 5 : Math.min(5, currentStep + 1);
     void updateStep(next);
   }
 
@@ -114,7 +125,7 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {STEP_LABELS.map((label, index) => {
           const step = index + 1;
           const active = step === currentStep;
@@ -135,7 +146,7 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
                 </div>
               )}
               <span className={`text-xs ${active ? "text-foreground" : "text-muted-foreground"}`}>
-                {step === 3 && !step3Enabled ? `${label}（跳過）` : label}
+                {step === 4 && !step3Enabled ? `${label}（跳過）` : label}
               </span>
             </div>
           );
@@ -144,23 +155,25 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
 
       <div className="rounded-md border p-4">{renderStepContent()}</div>
 
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={handlePrevStep}
-          disabled={currentStep === 1}
-        >
-          上一步
-        </Button>
-        {currentStep < 4 ? (
+      {currentStep !== 3 && (
+        <div className="flex items-center justify-between">
           <Button
-            onClick={handleNextStep}
-            disabled={currentStep === 1 && !step1Valid}
+            variant="outline"
+            onClick={handlePrevStep}
+            disabled={currentStep === 1}
           >
-            下一步
+            上一步
           </Button>
-        ) : null}
-      </div>
+          {currentStep < 5 ? (
+            <Button
+              onClick={handleNextStep}
+              disabled={currentStep === 1 && !step1Valid}
+            >
+              下一步
+            </Button>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

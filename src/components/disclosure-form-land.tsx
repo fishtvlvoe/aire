@@ -59,12 +59,23 @@ export interface DisclosureFormLandProps {
   /** 地號（由案件載入，供拉謄本使用） */
   parcelId?: string;
   onMarkCompleted?: (payload: LandPayload) => Promise<void> | void;
+  /**
+   * 受控模式：傳入初始欄位值，key 對應 landFormTabs 裡的 field.key。
+   * 所有 props 為 optional，不傳時維持獨立（standalone）模式。
+   */
+  initialPayload?: Record<string, unknown>;
+  /**
+   * 受控模式：任一欄位變更後呼叫，payload 為目前所有欄位完整值。
+   */
+  onChange?: (payload: Record<string, unknown>) => void;
 }
 
 export function DisclosureFormLand({
   caseId,
   parcelId,
   onMarkCompleted,
+  initialPayload,
+  onChange,
 }: DisclosureFormLandProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>(landFormTabs[0]!.id);
@@ -106,6 +117,23 @@ export function DisclosureFormLand({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
 
+  // 受控模式：initialPayload 變更時，將對應欄位覆蓋進 form state
+  useEffect(() => {
+    if (!initialPayload || Object.keys(initialPayload).length === 0) return;
+    // 取出所有 landFormTabs 欄位 key，只套用有定義的 key
+    const allKeys = landFormTabs.flatMap((tab) => tab.fields.map((f) => f.key as string));
+    const overrides: Partial<LandPayload> = {};
+    for (const k of allKeys) {
+      if (Object.prototype.hasOwnProperty.call(initialPayload, k)) {
+        (overrides as Record<string, unknown>)[k] = initialPayload[k];
+      }
+    }
+    if (Object.keys(overrides).length > 0) {
+      form.reset({ ...form.getValues(), ...overrides });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPayload]);
+
   // #1d Stage 7.3 — 把證號 + 驗證狀態混入 payload，隨 autosave 寫回 SQLite
   const watched = form.watch();
   const autosavePayload = {
@@ -121,6 +149,17 @@ export function DisclosureFormLand({
 
   // 取得表單中的地號值，作為拉謄本的參考
   const watchedLotNo = form.watch("land_lot_no" as keyof LandPayload) as string | undefined;
+
+  /**
+   * 受控模式 onChange 通知。
+   * 在各欄位的 onChange handler 呼叫，傳入最新的 key/value；
+   * 與當前 form values 合併後呼叫外部 onChange?.(payload)。
+   */
+  function notifyChange(key: string, value: unknown) {
+    if (!onChange) return;
+    const current = form.getValues() as Record<string, unknown>;
+    onChange({ ...current, [key]: value });
+  }
 
   async function handleMarkCompleted() {
     setCompletionError(null);
@@ -197,7 +236,12 @@ export function DisclosureFormLand({
         {landFormTabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="space-y-4">
             {tab.fields.map((field) => (
-              <FieldRow key={field.key as string} field={field} form={form} />
+              <FieldRow
+                key={field.key as string}
+                field={field}
+                form={form}
+                onFieldChange={notifyChange}
+              />
             ))}
           </TabsContent>
         ))}
@@ -236,9 +280,11 @@ interface FieldRowProps {
   field: FormFieldDef;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: ReturnType<typeof useForm<any>>;
+  /** 受控模式：欄位值變更時呼叫，key 為欄位 key，value 為最新值 */
+  onFieldChange?: (key: string, value: unknown) => void;
 }
 
-function FieldRow({ field, form }: FieldRowProps) {
+function FieldRow({ field, form, onFieldChange }: FieldRowProps) {
   const key = field.key as string;
   const errors = form.formState.errors as Record<string, { message?: string } | undefined>;
   const errMsg = errors[key]?.message;
@@ -257,7 +303,10 @@ function FieldRow({ field, form }: FieldRowProps) {
           render={({ field: f }) => (
             <TriStateButtons
               value={(f.value ?? "unknown") as string}
-              onChange={f.onChange}
+              onChange={(v) => {
+                f.onChange(v);
+                onFieldChange?.(key, v);
+              }}
               ariaLabel={field.label}
             />
           )}
@@ -270,7 +319,10 @@ function FieldRow({ field, form }: FieldRowProps) {
             <textarea
               id={`field-${key}`}
               value={(f.value as string | undefined) ?? ""}
-              onChange={(e) => f.onChange(e.target.value)}
+              onChange={(e) => {
+                f.onChange(e.target.value);
+                onFieldChange?.(key, e.target.value);
+              }}
               onBlur={f.onBlur}
               placeholder={field.placeholder}
               className={cn(
@@ -293,7 +345,9 @@ function FieldRow({ field, form }: FieldRowProps) {
               value={f.value === undefined || f.value === null ? "" : String(f.value)}
               onChange={(e) => {
                 const v = e.target.value;
-                f.onChange(v === "" ? undefined : Number(v));
+                const parsed = v === "" ? undefined : Number(v);
+                f.onChange(parsed);
+                onFieldChange?.(key, parsed);
               }}
               onBlur={f.onBlur}
               placeholder={field.placeholder}
@@ -309,7 +363,10 @@ function FieldRow({ field, form }: FieldRowProps) {
               id={`field-${key}`}
               type="text"
               value={(f.value as string | undefined) ?? ""}
-              onChange={(e) => f.onChange(e.target.value)}
+              onChange={(e) => {
+                f.onChange(e.target.value);
+                onFieldChange?.(key, e.target.value);
+              }}
               onBlur={f.onBlur}
               placeholder={field.placeholder}
             />

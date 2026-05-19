@@ -66,12 +66,25 @@ export interface DisclosureFormResidentialProps {
   parcelId?: string;
   /** 標示為完成觸發 — 由父層呼 markCompleted IPC */
   onMarkCompleted?: (payload: ResidentialPayload) => Promise<void> | void;
+  /**
+   * 受控模式（可選）：由外部傳入初始欄位值，mount 後合併至 form state。
+   * key 對應 residentialFormTabs 裡的 field.key（即 ResidentialPayload 欄位名稱）。
+   * 不傳此 prop 時元件行為與原本完全相同（standalone 獨立模式）。
+   */
+  initialPayload?: Record<string, unknown>;
+  /**
+   * 受控模式（可選）：任意欄位值改變時呼叫，傳入所有欄位的當前完整 payload。
+   * 不傳此 prop 時不做任何事。
+   */
+  onChange?: (payload: Record<string, unknown>) => void;
 }
 
 export function DisclosureFormResidential({
   caseId,
   parcelId,
   onMarkCompleted,
+  initialPayload,
+  onChange,
 }: DisclosureFormResidentialProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>(residentialFormTabs[0]!.id);
@@ -116,6 +129,49 @@ export function DisclosureFormResidential({
     // 故意只在 caseId 變動時重跑
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
+
+  // 受控模式：initialPayload 變動時合併至 form state
+  // 在 draftLoaded 完成後才套用，避免被草稿重置蓋掉
+  useEffect(() => {
+    if (!initialPayload || !draftLoaded) return;
+
+    // 收集所有 tab 的欄位定義，依型別轉換後 merge
+    const allFields = residentialFormTabs.flatMap((tab) => tab.fields);
+    const patch: Partial<ResidentialPayload> = {};
+    for (const fieldDef of allFields) {
+      const k = fieldDef.key as string;
+      if (!(k in initialPayload)) continue;
+      const raw = initialPayload[k];
+      if (raw === undefined) continue;
+
+      if (fieldDef.type === "number") {
+        const n = typeof raw === "number" ? raw : parseFloat(String(raw));
+        if (!isNaN(n)) {
+          (patch as Record<string, unknown>)[k] = n;
+        }
+      } else {
+        // text / textarea / tristate — 直接用 string
+        (patch as Record<string, unknown>)[k] = String(raw);
+      }
+    }
+    if (Object.keys(patch).length > 0) {
+      form.reset({ ...form.getValues(), ...patch });
+    }
+    // 依賴 initialPayload 與 draftLoaded；form 是穩定引用不列入
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPayload, draftLoaded]);
+
+  // 受控模式：訂閱 form 值變動，呼叫外部 onChange
+  // 用 form.watch(callback) 訂閱而非 useEffect 監聽 state，避免渲染迴圈
+  useEffect(() => {
+    if (!onChange) return;
+    const subscription = form.watch((values) => {
+      onChange(values as Record<string, unknown>);
+    });
+    return () => subscription.unsubscribe();
+    // onChange 用 ref 包裝可免依賴，但 prop 穩定時直接列入即可
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, onChange]);
 
   // 自動儲存（draft 載入完才啟動，避免 default 蓋掉 DB 值）
   // #1d Stage 7.3 — 把證號 + 驗證狀態混入 payload，隨 autosave 寫回 SQLite
