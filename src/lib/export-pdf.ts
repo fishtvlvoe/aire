@@ -9,7 +9,7 @@
  * 失敗回傳 ExportError，UI 用 code 顯示對應訊息。
  */
 
-import { invoke } from "@tauri-apps/api/core";
+import { safeInvoke } from "@/lib/tauri-bridge";
 import { save } from "@tauri-apps/plugin-dialog";
 import {
   renderDisclosurePdf,
@@ -89,7 +89,7 @@ export async function exportDisclosurePdf(
 
   // 3. invoke 寫檔
   try {
-    const outputPath = await invoke<string>("export_pdf", {
+    const outputPath = await safeInvoke<string>("export_pdf", {
       args: {
         caseId: input.caseId,
         pdfBytes: Array.from(pdfBytes),

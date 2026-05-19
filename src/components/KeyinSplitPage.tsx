@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { safeInvoke } from "@/lib/tauri-bridge";
 import { casesApi } from "@/lib/cases-api";
 import { toast } from "sonner";
 import { useDraftAutosave } from "@/lib/use-draft-autosave";
@@ -52,7 +52,7 @@ export function KeyinSplitPage({ caseId, propertyType }: KeyinSplitPageProps) {
     let cancelled = false;
 
     void (async () => {
-      const draft = await invoke<{ payload_json: string } | null>("get_draft", { caseId });
+      const draft = await safeInvoke<{ payload_json: string } | null>("get_draft", { caseId });
       if (!cancelled && draft) {
         setFormState(JSON.parse(draft.payload_json) as Record<string, unknown>);
         toast("已還原上次未儲存的草稿");

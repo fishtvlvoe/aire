@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { safeInvoke } from "@/lib/tauri-bridge";
 import { AlertTriangle, CheckCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -58,7 +58,7 @@ export default function SyncStatusPage(): React.ReactElement {
   const loadLaws = React.useCallback(async () => {
     setError(null);
     try {
-      const data = await invoke<LegalClause[]>("list_legal_clauses");
+      const data = await safeInvoke<LegalClause[]>("list_legal_clauses");
       setLaws(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -74,7 +74,7 @@ export default function SyncStatusPage(): React.ReactElement {
     setSyncing(true);
     setSyncError(null);
     try {
-      await invoke("sync_legal_clauses");
+      await safeInvoke("sync_legal_clauses");
       await loadLaws();
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : String(err));

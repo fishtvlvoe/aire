@@ -486,6 +486,7 @@ export class MockStore {
 
         case "save_draft":
           return this.saveDraft(args) as T;
+        case "get_draft":
         case "load_draft":
           return this.loadDraft(args) as T;
 
@@ -1008,7 +1009,15 @@ export class MockStore {
       throw new Error("load_draft requires caseId");
     }
 
-    return this.drafts.get(caseId) ?? null;
+    const data = this.drafts.get(caseId);
+    if (data === undefined || data === null) return null;
+    // 回傳與 Rust DraftReply 相同的結構 { payload_json: string }
+    return {
+      case_id: caseId,
+      payload_json: typeof data === "string" ? data : JSON.stringify(data),
+      schema_version: 1,
+      saved_at: Math.floor(Date.now() / 1000),
+    };
   }
 
   private writeLog(args?: CommandArgs): { success: true } {

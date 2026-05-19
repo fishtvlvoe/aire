@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { safeInvoke } from "@/lib/tauri-bridge";
 
 export interface LogoMetadata {
   filename: string;
@@ -57,7 +57,7 @@ export async function uploadLogo(file: File): Promise<UploadLogoResult> {
     Array.from(new Uint8Array(fileBuffer), (b) => String.fromCharCode(b)).join("")
   );
 
-  return invoke<UploadLogoResult>("upload_logo", {
+  return safeInvoke<UploadLogoResult>("upload_logo", {
     filename: file.name,
     mimeType: file.type,
     sizeBytes: file.size,
@@ -66,7 +66,7 @@ export async function uploadLogo(file: File): Promise<UploadLogoResult> {
 }
 
 export async function deleteLogo(): Promise<DeleteLogoResult> {
-  const raw = await invoke<{ success: boolean; themeId?: string; theme_id?: string }>(
+  const raw = await safeInvoke<{ success: boolean; themeId?: string; theme_id?: string }>(
     "delete_logo",
     { preserve_theme_id: true }
   );

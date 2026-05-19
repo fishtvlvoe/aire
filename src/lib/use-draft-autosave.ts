@@ -17,8 +17,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { safeInvoke, isTauriEnv } from "@/lib/tauri-bridge";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 
 export type AutosaveState = "idle" | "saving" | "saved" | "error";
 
@@ -77,7 +77,7 @@ export function useDraftAutosave(
     inflightRef.current = true;
     setState("saving");
     try {
-      await invoke("save_draft", {
+      await safeInvoke("save_draft", {
         caseId: caseIdRef.current,
         payload: payloadRef.current,
         schemaVersion: schemaVersionRef.current,
@@ -114,7 +114,10 @@ export function useDraftAutosave(
     if (!enabled) return;
     let unlisten: UnlistenFn | null = null;
     void (async () => {
+      const inTauri = await isTauriEnv();
+      if (!inTauri) return;
       try {
+        const { listen } = await import("@tauri-apps/api/event");
         unlisten = await listen("tauri://close-requested", async () => {
           if (timerRef.current) clearTimeout(timerRef.current);
           await performSave();
@@ -161,7 +164,7 @@ export async function loadDraft<T = Record<string, unknown>>(
   caseId: string,
 ): Promise<T | null> {
   try {
-    const result = await invoke<{ payload_json: string } | null>("get_draft", {
+    const result = await safeInvoke<{ payload_json: string } | null>("get_draft", {
       caseId,
     });
     if (!result) return null;

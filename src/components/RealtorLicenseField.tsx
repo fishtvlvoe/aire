@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { safeInvoke } from "@/lib/tauri-bridge";
 import { AlertTriangle, CheckCircle, XCircle, WifiOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -89,7 +89,7 @@ export function RealtorLicenseField({
         requestIdRef.current = requestId;
 
         try {
-          const response = (await invoke("verify_realtor_license", {
+          const response = (await safeInvoke("verify_realtor_license", {
             licenseNumber: nextValue,
           })) as VerifyRealtorLicenseResponse;
 
