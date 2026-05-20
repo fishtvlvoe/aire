@@ -62,7 +62,12 @@ export function PropertyDataSheetPage({
           <Row label="車位坪數" value={val(ps?.parkingArea, (v) => Number(v).toFixed(2))} />
 
           <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 14, marginBottom: 8, color: "#111827" }}>建物現況</Text>
+          <Row label="法定用途" value={val(ps?.legalUse)} />
+          <Row label="主要建材" value={val(ps?.material)} />
+          <Row label="建築完成日" value={val(ps?.constructionDate)} />
+          <Row label="屋齡" value={val(ps?.buildingAge)} />
           <Row label="樓層" value={val(ps?.floor)} />
+          <Row label="權利範圍" value={val(ps?.ownershipScope)} />
           <Row label="格局" value={val(ps?.rooms)} />
           <Row label="座向" value={val(ps?.direction)} />
           <Row label="管理費（元/月）" value={val(ps?.managementFee, (v) => Number(v).toLocaleString("zh-TW"))} />

@@ -5,6 +5,29 @@ export interface NearbyAmenity {
   address: string;
 }
 
+const LIFE_AMENITY_LIMITS: Record<string, number> = {
+  學校: 1,
+  醫療: 1,
+  醫院: 1,
+  公園: 1,
+  捷運: 1,
+  市場: 2,
+};
+
+export function summarizeNearbyAmenities(items: NearbyAmenity[]): NearbyAmenity[] {
+  const counts = new Map<string, number>();
+  return [...items]
+    .sort((a, b) => a.distanceM - b.distanceM)
+    .filter((item) => {
+      const limit = LIFE_AMENITY_LIMITS[item.category] ?? 0;
+      if (limit === 0) return false;
+      const count = counts.get(item.category) ?? 0;
+      if (count >= limit) return false;
+      counts.set(item.category, count + 1);
+      return true;
+    });
+}
+
 /**
  * 用 Haversine 公式計算兩個經緯度座標之間的直線距離（公尺）
  */
@@ -35,7 +58,7 @@ function inferCategory(tags: Record<string, string>): string | null {
   const station = tags.station;
 
   if (amenity === 'school' || amenity === 'university') return '學校';
-  if (amenity === 'hospital') return '醫院';
+  if (amenity === 'hospital' || amenity === 'clinic' || amenity === 'doctors') return '醫療';
   if (leisure === 'park') return '公園';
   if (station === 'subway' || railway === 'station') return '捷運';
   if (amenity === 'marketplace' || shop === 'supermarket') return '市場';
@@ -152,8 +175,7 @@ export async function queryNearbyAmenities(params: {
     amenities.sort((a, b) => a.distanceM - b.distanceM);
 
     return amenities;
-  } catch (err) {
-    console.warn('[overpass-client] query failed:', err);
+  } catch {
     return [];
   }
 }

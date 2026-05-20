@@ -244,6 +244,7 @@ pub fn run() {
             commands::cases::create_case,
             commands::cases::update_case,
             commands::cases::delete_case,
+            commands::cases::export_registry_payload,
             commands::cases::mark_completed,
             commands::cases::mark_keyin,
             commands::drafts::save_draft,

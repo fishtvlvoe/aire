@@ -2,7 +2,8 @@ import { safeInvoke } from "@/lib/tauri-bridge";
 import type { CaseRow } from "@/lib/cases-api";
 import type { CaseDossierData } from "./document";
 import { calculateTaxFees } from "@/lib/tax-calculator";
-import { queryNearbyAmenities } from "@/lib/overpass-client";
+import { queryNearbyAmenities, summarizeNearbyAmenities } from "@/lib/overpass-client";
+import { calculateBuildingAge } from "@/lib/registry-preview";
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
@@ -103,6 +104,51 @@ function safeGet<T>(
 
 const isNumber = (v: unknown): v is number => typeof v === "number" && isFinite(v);
 const isString = (v: unknown): v is string => typeof v === "string";
+
+function firstString(obj: unknown, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = safeGet(obj, key, isString);
+    if (value) return value;
+  }
+  return undefined;
+}
+
+function firstNumber(obj: unknown, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = safeGet(obj, key, isNumber);
+    if (typeof value === "number") return value;
+    const raw = (obj as Record<string, unknown> | undefined)?.[key];
+    if (typeof raw === "string" && raw.trim() !== "") {
+      const parsed = Number(raw.replace(/,/g, ""));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}
+
+function firstText(obj: unknown, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const record = obj as Record<string, unknown> | undefined;
+    const value = record?.[key];
+    if (typeof value === "string" && value.trim() !== "") return value;
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return undefined;
+}
+
+function m2ToPing(value?: number): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.round(value * 0.3025 * 100) / 100
+    : undefined;
+}
+
+function ratioText(obj: unknown): string {
+  const numerator = firstText(obj, ["NUMERATOR", "numerator"]);
+  const denominator = firstText(obj, ["DENOMINATOR", "denominator"]);
+  const direct = firstText(obj, ["RIGHT", "right", "ownership_scope", "right_scope"]);
+  if (numerator && denominator) return `${numerator}/${denominator}`;
+  return direct ?? "";
+}
 
 function base64ToUint8Array(base64: string): Uint8Array {
   const binary =
@@ -336,7 +382,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   let locationMapImage: Uint8Array | null = null;
   if (geoLat && geoLng) {
     try {
-      nearbyAmenities = await queryNearbyAmenities({ lat: geoLat, lng: geoLng, radiusM: 1000 });
+      nearbyAmenities = summarizeNearbyAmenities(
+        await queryNearbyAmenities({ lat: geoLat, lng: geoLng, radiusM: 1000 }),
+      );
     } catch {
       // 失敗維持空陣列
     }
@@ -502,6 +550,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const buildingReg = apiData["building_registry"]?.data;
     const buildingOwnership = apiData["building_ownership"]?.data;
     const mortgagesRaw = apiData["mortgages"]?.data;
+    const landReg = apiData["land_registry"]?.data;
+    const landOwnership = apiData["co_owners"]?.data;
 
     const mortgages = Array.isArray(mortgagesRaw)
       ? (mortgagesRaw as unknown[]).map((m) => ({
@@ -521,11 +571,11 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     return {
       ...base,
-      buildingArea: safeGet(buildingReg, "area", isNumber),
-      buildingPurpose: safeGet(buildingReg, "purpose", isString),
-      constructionDate: safeGet(buildingReg, "construction_date", isString),
+      buildingArea: firstNumber(buildingReg, ["area", "building_area", "AREA"]),
+      buildingPurpose: firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]),
+      constructionDate: firstString(buildingReg, ["construction_date", "COMPLETEDATE"]),
       buildingCertificateNo: safeGet(buildingOwnership, "certificate_no", isString),
-      buildingOwnershipDate: safeGet(buildingOwnership, "ownership_date", isString),
+      buildingOwnershipDate: firstString(buildingOwnership, ["ownership_date", "RDATE"]),
       mortgages,
       recentSalePricePerSqm,
       recentSaleCount,
@@ -546,28 +596,40 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       },
       propertySheet: {
         askingPrice: 0,
-        landSection: "",
+        landSection: firstString(landReg, ["section", "SECTION", "SUBSECTION"]) ?? "",
         landNumber: caseRow.land_lot_no ?? "",
-        zoning: "",
-        landArea: 0,
-        ownershipRatio: "",
+        zoning: firstString(landReg, ["zoning", "ZONING", "purpose", "land_purpose"]) ?? "",
+        landArea: firstNumber(landReg, ["area", "land_area", "AREA"]) ?? 0,
+        ownershipRatio: ratioText(landOwnership) || ratioText(buildingOwnership),
         shareArea: 0,
         buildingCoverage: "",
         floorAreaRatio: "",
-        owner: caseRow.owner_name ?? "",
-        acquisitionDate: safeGet(buildingOwnership, "ownership_date", isString) ?? "",
-        registeredArea: safeGet(buildingReg, "area", isNumber),
-        mainBuildingArea: safeGet(buildingReg, "main_building_area", isNumber),
-        auxiliaryArea: safeGet(buildingReg, "auxiliary_area", isNumber),
-        commonArea: safeGet(buildingReg, "common_area", isNumber),
-        parkingArea: safeGet(buildingReg, "parking_area", isNumber),
+        owner:
+          firstString(buildingOwnership, ["owner_name", "LNAME"]) ??
+          firstString(landOwnership, ["owner_name", "LNAME"]) ??
+          caseRow.owner_name ??
+          "",
+        acquisitionDate: firstString(buildingOwnership, ["ownership_date", "RDATE"]) ?? "",
+        registeredArea: m2ToPing(firstNumber(buildingReg, ["area", "building_area", "AREA"])),
+        mainBuildingArea: m2ToPing(firstNumber(buildingReg, ["main_building_area", "MAINAREA"])),
+        auxiliaryArea: m2ToPing(firstNumber(buildingReg, ["auxiliary_area", "ATTAREA"])),
+        commonArea: m2ToPing(firstNumber(buildingReg, ["common_area", "SHAREAREA"])),
+        parkingArea: m2ToPing(firstNumber(buildingReg, ["parking_area", "PARKAREA"])),
+        floor: firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"]),
+        legalUse: firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]),
+        material: firstString(buildingReg, ["material", "MATERIAL"]),
+        constructionDate: firstString(buildingReg, ["construction_date", "COMPLETEDATE"]),
+        buildingAge: calculateBuildingAge(
+          firstString(buildingReg, ["construction_date", "COMPLETEDATE"]) ?? "",
+        ),
+        ownershipScope: ratioText(buildingOwnership),
         constructionCompany: safeGet(buildingReg, "construction_company", isString),
       },
       buildingAreaBreakdown: {
-        main: safeGet(buildingReg, "main_building_area", isNumber) ?? 0,
-        auxiliary: safeGet(buildingReg, "auxiliary_area", isNumber) ?? 0,
-        common: safeGet(buildingReg, "common_area", isNumber) ?? 0,
-        parking: safeGet(buildingReg, "parking_area", isNumber) ?? 0,
+        main: firstNumber(buildingReg, ["main_building_area", "MAINAREA"]) ?? 0,
+        auxiliary: firstNumber(buildingReg, ["auxiliary_area", "ATTAREA"]) ?? 0,
+        common: firstNumber(buildingReg, ["common_area", "SHAREAREA"]) ?? 0,
+        parking: firstNumber(buildingReg, ["parking_area", "PARKAREA"]) ?? 0,
       },
     };
   }

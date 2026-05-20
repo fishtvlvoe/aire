@@ -128,4 +128,31 @@ describe("PdfDocument building pages unchanged", () => {
     expect(screen.getAllByTestId("pdf-page").length).toBeGreaterThanOrEqual(7);
     expect(screen.queryByText("簽章欄")).toBeNull();
   });
+
+  it("renders the MVP 38-question condition survey with blank checkboxes and no 未填 option", () => {
+    render(<PdfDocument data={baseBuildingData} themeId="theme-a-minimal" />);
+
+    expect(screen.getByText("肆、現況調查表")).toBeInTheDocument();
+    expect(screen.getByText("是否有依慣例使用之現況？")).toBeInTheDocument();
+    expect(screen.queryByText("未填")).toBeNull();
+    expect(screen.queryByText("肆、不動產現況說明書（建物）")).toBeNull();
+  });
+
+  it("combines location map and life amenities into one output page", () => {
+    render(
+      <PdfDocument
+        data={{
+          ...baseBuildingData,
+          locationMapImage: new Uint8Array([0x89, 0x50, 0x4E, 0x47]),
+          nearbyAmenities: [
+            { name: "大安國小", category: "學校", distanceM: 300, address: "臺北市大安區" },
+          ],
+        }}
+        themeId="theme-a-minimal"
+      />,
+    );
+
+    expect(screen.getByText("位置圖與生活機能")).toBeInTheDocument();
+    expect(screen.getByText("大安國小")).toBeInTheDocument();
+  });
 });

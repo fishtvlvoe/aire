@@ -36,7 +36,7 @@ const baseCase = {
 } as unknown as CaseRow;
 
 describe("CaseWizardStep3Disclosure", () => {
-  it("成屋案件渲染 DisclosureFormResidential", async () => {
+  it("成屋案件渲染 Page Contract workbench", async () => {
     render(
       <CaseWizardStep3Disclosure
         caseId="case-001"
@@ -47,8 +47,9 @@ describe("CaseWizardStep3Disclosure", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("disclosure-form-residential")).toBeTruthy();
+      expect(screen.getByTestId("house-mvp-workbench")).toBeTruthy();
     });
+    expect(screen.getByText("38 題空白勾選與手寫欄")).toBeTruthy();
     expect(screen.queryByTestId("disclosure-form-land")).toBeNull();
   });
 

@@ -61,7 +61,7 @@ export default function CaseDetailPage() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto py-8 px-6 space-y-6">
+    <main className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-6 lg:px-6">
       <header className="space-y-2">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => router.push("/cases")}>

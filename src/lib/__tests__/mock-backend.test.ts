@@ -252,6 +252,28 @@ describe("MockStore", () => {
     }
   });
 
+  it("query_real_price does not return fixed Tainan rows for a Taipei case", async () => {
+    const records = await mockInvoke<
+      Array<{
+        unit_price: number;
+        total_price: number;
+        area: number;
+        address: string;
+        date: string;
+      }>
+    >("query_real_price", {
+      district: "臺北市大安區",
+      keyword: "和平東路",
+      limit: 5,
+    });
+
+    expect(records.length).toBeGreaterThan(0);
+    for (const row of records) {
+      expect(row.address).toContain("臺北市");
+      expect(row.address).not.toContain("台南市");
+    }
+  });
+
   it("resets state to initial seed", async () => {
     const store = new MockStore();
 

@@ -14,6 +14,13 @@ function filePathFromUrl(url: URL): string | null {
 }
 
 function resolveNotoSubsetSrc(): string {
+  // Vitest uses jsdom, so `window` may exist even though @react-pdf should load
+  // the font from disk. Prefer the local file path in tests to avoid localhost fetch.
+  const isVitest = typeof process !== "undefined" && process.env["VITEST"] === "true";
+  if (isVitest && typeof process.cwd === "function") {
+    return `${process.cwd().replace(/\/$/, "")}/src/resources/fonts/NotoSansTC-Regular.otf`;
+  }
+
   // Browser context: font served from public/pdf-fonts/
   if (typeof window !== "undefined") {
     return `${window.location.origin}/pdf-fonts/NotoSansTC-Regular.otf`;

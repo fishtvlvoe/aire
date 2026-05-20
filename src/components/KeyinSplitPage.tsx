@@ -6,10 +6,15 @@ import { safeInvoke } from "@/lib/tauri-bridge";
 import { casesApi } from "@/lib/cases-api";
 import { toast } from "sonner";
 import { useDraftAutosave } from "@/lib/use-draft-autosave";
-import DisclosureFormResidential from "@/components/disclosure-form-residential";
 import DisclosureFormLand from "@/components/disclosure-form-land";
 import DisclosureHtmlPreview from "@/components/DisclosureHtmlPreview";
 import type { TaxInputs } from "@/components/DossierPage7FeeTable";
+import {
+  HouseMvpWorkbench,
+  createDefaultHouseMvpWorkbenchState,
+  normalizeHouseMvpWorkbenchState,
+  type HouseMvpWorkbenchState,
+} from "@/components/HouseMvpWorkbench";
 
 export function formStateToTaxInputs(
   formState: Record<string, unknown>
@@ -36,8 +41,16 @@ interface KeyinSplitPageProps {
 }
 
 export function KeyinSplitPage({ caseId, propertyType }: KeyinSplitPageProps) {
-  const [formState, setFormState] = useState<Record<string, unknown>>({});
+  const [formState, setFormState] = useState<Record<string, unknown>>(() =>
+    propertyType === "residential"
+      ? (createDefaultHouseMvpWorkbenchState({ caseNo: caseId }) as unknown as Record<string, unknown>)
+      : {},
+  );
   const taxInputs = useMemo(() => formStateToTaxInputs(formState), [formState]);
+  const houseWorkbenchState = useMemo(
+    () => normalizeHouseMvpWorkbenchState(formState, { caseNo: caseId }),
+    [caseId, formState],
+  );
 
   const { flush } = useDraftAutosave({
     caseId,
@@ -79,16 +92,19 @@ export function KeyinSplitPage({ caseId, propertyType }: KeyinSplitPageProps) {
     };
   }, [caseId]);
 
+  if (propertyType === "residential") {
+    return (
+      <HouseMvpWorkbench
+        value={houseWorkbenchState}
+        onChange={(nextValue: HouseMvpWorkbenchState) => setFormState(nextValue as unknown as Record<string, unknown>)}
+        onSave={flush}
+      />
+    );
+  }
+
   return (
     <section className="flex min-h-[calc(100vh-10rem)] gap-6">
       <div data-testid="keyin-left-panel" className="w-1/2 overflow-y-auto p-4">
-        {propertyType === "residential" ? (
-          <DisclosureFormResidential
-            caseId={caseId}
-            initialPayload={formState}
-            onChange={(data) => setFormState(data)}
-          />
-        ) : null}
         {propertyType === "land" ? (
           <DisclosureFormLand
             caseId={caseId}

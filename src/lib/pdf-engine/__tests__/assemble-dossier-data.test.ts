@@ -172,6 +172,85 @@ describe("assembleDossierData — 土地版成功路徑", () => {
   });
 });
 
+describe("assembleDossierData — 建物謄本自動帶入", () => {
+  it("使用本機保存的 API payload 帶入建物面積、用途、完成日、屋齡與權利範圍", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return mockLegalClauses;
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        land_registry: {
+          area: 1223,
+          ZONING: "住宅區",
+        },
+        co_owners: {
+          owner_name: "陳小美",
+          numerator: "91",
+          denominator: "10000",
+        },
+        building_registry: {
+          building_area: 84.13,
+          building_purpose: "住家用",
+          material: "鋼筋混凝土造",
+          building_floor: "013層",
+          construction_date: "083/10/18",
+          main_building_area: 84.13,
+          auxiliary_area: 11.09,
+          common_area: 31.24,
+        },
+        building_ownership: {
+          owner_name: "陳小美",
+          ownership_date: "083/12/13",
+          numerator: "1",
+          denominator: "1",
+        },
+      },
+    });
+
+    expect(result.propertySheet?.registeredArea).toBe(25.45);
+    expect(result.propertySheet?.mainBuildingArea).toBe(25.45);
+    expect(result.propertySheet?.auxiliaryArea).toBe(3.35);
+    expect(result.propertySheet?.commonArea).toBe(9.45);
+    expect(result.propertySheet?.legalUse).toBe("住家用");
+    expect(result.propertySheet?.material).toBe("鋼筋混凝土造");
+    expect(result.propertySheet?.constructionDate).toBe("083/10/18");
+    expect(result.propertySheet?.buildingAge).toBeTruthy();
+    expect(result.propertySheet?.floor).toBe("013層");
+    expect(result.propertySheet?.owner).toBe("陳小美");
+    expect(result.propertySheet?.ownershipScope).toBe("1/1");
+  });
+
+  it("支援地政 parser 回傳的數字型權利範圍", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        building_registry: { area: 84.13 },
+        building_ownership: {
+          owner_name: "陳小美",
+          numerator: 1,
+          denominator: 1,
+        },
+      },
+    });
+
+    expect(result.propertySheet?.ownershipScope).toBe("1/1");
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // assembleDossierData — 錯誤處理
 // ─────────────────────────────────────────────────────────────────────────────

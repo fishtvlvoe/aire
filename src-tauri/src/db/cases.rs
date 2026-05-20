@@ -5,6 +5,7 @@
 
 use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::DbError;
 
@@ -24,6 +25,8 @@ pub struct Case {
     pub building_lot_no: Option<String>,
     pub asking_price: Option<i64>,
     pub land_lots: Vec<String>, // 多筆地號陣列（序列化為 JSON TEXT）
+    pub land_registry_data: Option<Value>,
+    pub current_step: i64,
 }
 
 fn map_row(row: &Row<'_>) -> rusqlite::Result<Case> {
@@ -48,19 +51,29 @@ fn map_row(row: &Row<'_>) -> rusqlite::Result<Case> {
         building_lot_no: row.get(10)?,
         asking_price: row.get(11)?,
         land_lots,
+        land_registry_data: row
+            .get::<_, Option<String>>(13)
+            .ok()
+            .flatten()
+            .and_then(|raw| serde_json::from_str::<Value>(&raw).ok()),
+        current_step: row.get::<_, i64>(14).unwrap_or(1),
     })
 }
 
 const COLS: &str =
     "id, case_no, property_type, land_lot_no, address, owner_name, status, created_at, updated_at, \
-     case_name, building_lot_no, asking_price, land_lots";
+     case_name, building_lot_no, asking_price, land_lots, land_registry_data, current_step";
 
 /// 插入新案件。land_lot_no 自動同步為 land_lots[0]（若 land_lots 非空）。
 pub fn insert_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
     let land_lot_no = if !c.land_lots.is_empty() { &c.land_lots[0] } else { &c.land_lot_no };
     let land_lots_json = serde_json::to_string(&c.land_lots).unwrap_or_else(|_| "[]".into());
+    let land_registry_json = c
+        .land_registry_data
+        .as_ref()
+        .and_then(|value| serde_json::to_string(value).ok());
     conn.execute(
-        &format!("INSERT INTO cases ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)"),
+        &format!("INSERT INTO cases ({COLS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)"),
         params![
             c.id,
             c.case_no,
@@ -75,6 +88,8 @@ pub fn insert_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
             c.building_lot_no,
             c.asking_price,
             land_lots_json,
+            land_registry_json,
+            c.current_step,
         ],
     )?;
     Ok(())
@@ -110,10 +125,14 @@ pub fn list_cases(conn: &Connection) -> Result<Vec<Case>, DbError> {
 pub fn update_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
     let land_lot_no = if !c.land_lots.is_empty() { &c.land_lots[0] } else { &c.land_lot_no };
     let land_lots_json = serde_json::to_string(&c.land_lots).unwrap_or_else(|_| "[]".into());
+    let land_registry_json = c
+        .land_registry_data
+        .as_ref()
+        .and_then(|value| serde_json::to_string(value).ok());
     let n = conn.execute(
         "UPDATE cases SET case_no=?1, property_type=?2, land_lot_no=?3, address=?4, \
          owner_name=?5, status=?6, updated_at=?7, case_name=?8, building_lot_no=?9, \
-         asking_price=?10, land_lots=?11 WHERE id=?12",
+         asking_price=?10, land_lots=?11, land_registry_data=?12, current_step=?13 WHERE id=?14",
         params![
             c.case_no,
             c.property_type,
@@ -126,6 +145,8 @@ pub fn update_case(conn: &Connection, c: &Case) -> Result<(), DbError> {
             c.building_lot_no,
             c.asking_price,
             land_lots_json,
+            land_registry_json,
+            c.current_step,
             c.id,
         ],
     )?;
@@ -164,6 +185,8 @@ mod tests {
             building_lot_no: None,
             asking_price: None,
             land_lots: vec!["台北市信義區XX段 123-4".into()],
+            land_registry_data: None,
+            current_step: 1,
         }
     }
 
@@ -217,12 +240,25 @@ mod tests {
         c.case_name = Some("台北信義案".into());
         c.building_lot_no = Some("556-1".into());
         c.asking_price = Some(25_000_000);
+        c.land_registry_data = Some(serde_json::json!({
+            "building_registry": { "building_area": 84.13, "construction_date": "083/10/18" }
+        }));
+        c.current_step = 2;
         insert_case(&conn, &c).unwrap();
 
         let got = get_case(&conn, &c.id).unwrap();
         assert_eq!(got.case_name.as_deref(), Some("台北信義案"));
         assert_eq!(got.building_lot_no.as_deref(), Some("556-1"));
         assert_eq!(got.asking_price, Some(25_000_000));
+        assert_eq!(got.current_step, 2);
+        assert_eq!(
+            got.land_registry_data
+                .as_ref()
+                .and_then(|v| v.get("building_registry"))
+                .and_then(|v| v.get("building_area"))
+                .and_then(|v| v.as_f64()),
+            Some(84.13),
+        );
 
         // 更新後仍可取回
         let mut updated = got.clone();

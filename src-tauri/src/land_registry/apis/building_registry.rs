@@ -16,12 +16,22 @@ pub struct BuildingRegistryData {
     pub building_area: f64,
     #[serde(rename = "purpose")]
     pub building_purpose: String,
+    pub registration_date: String,
+    pub registration_reason: String,
+    pub building_address: String,
+    pub material: String,
+    pub building_floor: String,
     pub construction_date: String,
     pub main_building_area: f64,
     pub auxiliary_area: f64,
     pub common_area: f64,
     pub parking_area: f64,
     pub construction_company: String,
+    pub base_land_numbers: Vec<Value>,
+    pub floor_accessories: Vec<Value>,
+    pub shared_areas: Vec<Value>,
+    pub shared_parks: Vec<Value>,
+    pub other_notes: Vec<Value>,
 }
 
 pub struct BuildingRegistryEndpoint;
@@ -52,12 +62,22 @@ impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
                 return Ok(BuildingRegistryData {
                     building_area: 0.0,
                     building_purpose: String::new(),
+                    registration_date: String::new(),
+                    registration_reason: String::new(),
+                    building_address: String::new(),
+                    material: String::new(),
+                    building_floor: String::new(),
                     construction_date: String::new(),
                     main_building_area: 0.0,
                     auxiliary_area: 0.0,
                     common_area: 0.0,
                     parking_area: 0.0,
                     construction_company: String::new(),
+                    base_land_numbers: vec![],
+                    floor_accessories: vec![],
+                    shared_areas: vec![],
+                    shared_parks: vec![],
+                    other_notes: vec![],
                 });
             }
         };
@@ -72,9 +92,37 @@ impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
         };
 
         let building_area = parse_area("AREA");
+        let floor_accessories = bldgreg
+            .get("FLOORACC")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let shared_areas = bldgreg
+            .get("SHAREDAREA")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        let shared_parks = bldgreg
+            .get("SHAREDPARK")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+
+        let sum_nested_area = |rows: &[Value], keys: &[&str]| {
+            rows.iter()
+                .map(|row| {
+                    keys.iter()
+                        .find_map(|key| row.get(*key).and_then(Value::as_str))
+                        .unwrap_or("0")
+                        .parse::<f64>()
+                        .unwrap_or(0.0)
+                })
+                .sum::<f64>()
+        };
+
         let main_building_area = parse_area("MAINAREA");
-        let auxiliary_area = parse_area("ATTAREA");
-        let common_area = parse_area("SHAREAREA");
+        let auxiliary_area = sum_nested_area(&floor_accessories, &["FAREA_ABAREA", "ABAREA"]);
+        let common_area = sum_nested_area(&shared_areas, &["SAREA"]);
         let parking_area = parse_area("PARKAREA");
 
         let building_purpose = bldgreg
@@ -98,12 +146,51 @@ impl LandRegistryEndpoint<BuildingRegistryData> for BuildingRegistryEndpoint {
         Ok(BuildingRegistryData {
             building_area,
             building_purpose,
+            registration_date: bldgreg
+                .get("RDATE")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            registration_reason: bldgreg
+                .get("REASON")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            building_address: bldgreg
+                .get("BNUMBER")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            material: bldgreg
+                .get("MATERIAL")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            building_floor: bldgreg
+                .get("BUILDINGFLOOR")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
             construction_date,
             main_building_area,
             auxiliary_area,
             common_area,
             parking_area,
             construction_company,
+            base_land_numbers: bldgreg
+                .get("LANDNO")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default(),
+            floor_accessories,
+            shared_areas,
+            shared_parks,
+            other_notes: bldgreg
+                .get("NOTE")
+                .or_else(|| bldgreg.get("OTHER"))
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default(),
         })
     }
 

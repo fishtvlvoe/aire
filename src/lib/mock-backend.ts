@@ -46,9 +46,17 @@ interface FloorPlanSketchRow {
 interface CaseAssetRow {
   id: string;
   case_id: string;
-  kind: "floor_plan";
-  source: "manual_upload" | "legacy_floor_plan_photo";
-  trust_tier: "assistant_uploaded" | "legacy_import";
+  kind:
+    | "company_logo"
+    | "floor_plan"
+    | "exterior_photo"
+    | "location_map"
+    | "surrounding_map"
+    | "cadastral_map"
+    | "field_survey_photo"
+    | "other_site_photo";
+  source: "manual_upload" | "legacy_floor_plan_photo" | "auto_generated" | "api_generated";
+  trust_tier: "assistant_uploaded" | "legacy_import" | "system_generated";
   review_status: "approved";
   is_primary: boolean;
   file_name: string;
@@ -64,6 +72,24 @@ interface MockSessionUser {
   email: string;
   role: "admin" | "user";
 }
+
+const CASE_ASSET_KINDS = [
+  "company_logo",
+  "floor_plan",
+  "exterior_photo",
+  "location_map",
+  "surrounding_map",
+  "cadastral_map",
+  "field_survey_photo",
+  "other_site_photo",
+] as const satisfies readonly CaseAssetRow["kind"][];
+
+const CASE_ASSET_SOURCES = [
+  "manual_upload",
+  "legacy_floor_plan_photo",
+  "auto_generated",
+  "api_generated",
+] as const satisfies readonly CaseAssetRow["source"][];
 
 interface AppSettingsState {
   landApi: {
@@ -560,7 +586,7 @@ export class MockStore {
         case "land_registry_pull_data":
           return this.landRegistryPullData(args) as T;
         case "query_real_price":
-          return this.queryRealPrice() as T;
+          return this.queryRealPrice(args) as T;
         case "land_registry_set_api_key":
           return this.landRegistrySetApiKey(args) as T;
         case "land_registry_get_api_key":
@@ -1217,18 +1243,49 @@ export class MockStore {
     const results: Record<string, unknown> = {};
     const mockDataMap: Record<string, unknown> = {
       land_registry: { area: 125.8, purpose: "田", lot_number: "0456-0000" },
+      co_owners: {
+        owner_name: "",
+        registration_date: "2015-08-20",
+        registration_reason: "買賣",
+        denominator: 1,
+        numerator: 1,
+      },
       zoning: { zoning_type: "住宅區", usage_category: "甲種建築用地" },
       land_value: { announced_value: 58000, assessed_value: 42000 },
       mortgages: [{ creditor: "台灣銀行", amount: 3000000 }],
+      building_other_rights: {
+        rights: [
+          {
+            creditor: "台灣銀行",
+            amount: 3000000,
+            right_type: "抵押權",
+            collateral_building_numbers: ["大安段一小段-778-2"],
+          },
+        ],
+        raw_rows: [],
+      },
       building_registry: {
         area: 85.5,
+        building_area: 85.5,
         purpose: "住家用",
+        building_purpose: "住家用",
         construction_date: "2015-06-15",
         building_number: "建號 778-2",
+        building_floor: "013層",
+        main_building_area: 62.4,
+        auxiliary_area: 8.1,
+        common_area: 15.0,
+        parking_area: 0,
+        material: "鋼筋混凝土造",
+        address: "台北市大安區和平東路一段 100 號五樓之三",
       },
       building_ownership: {
+        owner_name: "",
         certificate_no: "北松字第012345號",
         ownership_date: "2015-08-20",
+        registration_reason: "買賣",
+        denominator: 1,
+        numerator: 1,
       },
     };
 
@@ -1244,7 +1301,7 @@ export class MockStore {
     return { results, total_cost: totalCost };
   }
 
-  private queryRealPrice(): Array<{
+  private queryRealPrice(args?: CommandArgs): Array<{
     unit_price: number;
     total_price: number;
     area: number;
@@ -1252,6 +1309,43 @@ export class MockStore {
     date: string;
     type: string;
   }> {
+    const district = String(args?.district ?? "");
+    const keyword = String(args?.keyword ?? "");
+    const normalizedQuery = `${district} ${keyword}`.replace(/台/g, "臺");
+
+    if (normalizedQuery.includes("臺北") || normalizedQuery.includes("大安")) {
+      return [
+        {
+          address: "臺北市大安區和平東路一段 88 號",
+          total_price: 42800000,
+          area: 36.2,
+          unit_price: 1182320,
+          date: "2025-10-12",
+          type: "大樓",
+        },
+        {
+          address: "臺北市大安區和平東路二段 66 號",
+          total_price: 51600000,
+          area: 42.8,
+          unit_price: 1205607,
+          date: "2025-12-08",
+          type: "大樓",
+        },
+        {
+          address: "臺北市大安區新生南路二段 15 號",
+          total_price: 39800000,
+          area: 33.5,
+          unit_price: 1188060,
+          date: "2026-01-22",
+          type: "大樓",
+        },
+      ];
+    }
+
+    if (!normalizedQuery.includes("臺南") && !normalizedQuery.includes("裕農")) {
+      return [];
+    }
+
     return [
       {
         address: "台南市東區裕農路123號",
@@ -1363,7 +1457,8 @@ export class MockStore {
       ? (payload.file_bytes as number[]).filter((n) => typeof n === "number")
       : [];
 
-    if (kind !== "floor_plan") throw new Error("unsupported_kind");
+    if (!CASE_ASSET_KINDS.includes(kind as CaseAssetRow["kind"])) throw new Error("unsupported_kind");
+    if (!CASE_ASSET_SOURCES.includes(source as CaseAssetRow["source"])) throw new Error("unsupported_source");
     if (mime !== "image/png" && mime !== "image/jpeg" && mime !== "image/webp") {
       throw new Error("unsupported_mime");
     }
@@ -1373,16 +1468,22 @@ export class MockStore {
     const now = new Date().toISOString();
     const id = `case-asset-${Date.now()}`;
     this.caseAssets = this.caseAssets.map((asset) =>
-      asset.case_id === caseId && asset.kind === "floor_plan"
+      asset.case_id === caseId && asset.kind === kind
         ? { ...asset, is_primary: false, updated_at: now }
         : asset,
     );
+    const normalizedSource = source as CaseAssetRow["source"];
     const asset: CaseAssetRow = {
       id,
       case_id: caseId,
-      kind: "floor_plan",
-      source: source === "legacy_floor_plan_photo" ? "legacy_floor_plan_photo" : "manual_upload",
-      trust_tier: source === "legacy_floor_plan_photo" ? "legacy_import" : "assistant_uploaded",
+      kind: kind as CaseAssetRow["kind"],
+      source: normalizedSource,
+      trust_tier:
+        normalizedSource === "legacy_floor_plan_photo"
+          ? "legacy_import"
+          : normalizedSource === "auto_generated" || normalizedSource === "api_generated"
+            ? "system_generated"
+            : "assistant_uploaded",
       review_status: "approved",
       is_primary: true,
       file_name: pickString(payload, ["file_name"]) ?? "floor-plan.png",

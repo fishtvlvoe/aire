@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { CaseRow } from "@/lib/cases-api";
-import { safeInvoke } from "@/lib/safe-invoke";
+import { isTauriEnv, safeInvoke } from "@/lib/safe-invoke";
 import { toast } from "sonner";
 import { assembleDossierData } from "@/lib/pdf-engine/assemble-dossier-data";
-import { renderDisclosureHtml } from "@/lib/pdf-engine/html-renderer";
 import { PdfDocument } from "@/lib/pdf-engine/document";
 import type { CaseDossierData } from "@/lib/pdf-engine/document";
 import { Loader2, Download } from "lucide-react";
@@ -17,8 +16,20 @@ interface CaseWizardStep5Props {
   caseData: CaseRow;
 }
 
+async function renderDossierPdfBlob(dossier: CaseDossierData): Promise<Blob> {
+  const { initReactPdfEngine } = await import("@/lib/pdf-engine/react-pdf-init");
+  initReactPdfEngine();
+  const { pdf, Document } = await import("@react-pdf/renderer");
+  const element = React.createElement(PdfDocument, {
+    data: dossier,
+    themeId: "theme-a-minimal",
+  }) as React.ReactElement<React.ComponentProps<typeof Document>>;
+  return pdf(element).toBlob();
+}
+
 export function CaseWizardStep5({ caseId, caseData }: CaseWizardStep5Props) {
-  const [htmlContent, setHtmlContent] = useState<string>("");
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -26,18 +37,24 @@ export function CaseWizardStep5({ caseId, caseData }: CaseWizardStep5Props) {
 
   useEffect(() => {
     let cancelled = false;
+    let createdPreviewUrl = "";
     void (async () => {
       setLoading(true);
       setLoadError(null);
+      setPdfBlob(null);
+      setPreviewUrl("");
       try {
         const dossier = await assembleDossierData(caseData);
         if (cancelled) return;
         dossierRef.current = dossier;
-        const html = renderDisclosureHtml(dossier, {
-          themeId: "theme-a-minimal",
-          generatedAt: new Date().toLocaleDateString("zh-TW"),
-        });
-        setHtmlContent(html);
+        const blob = await renderDossierPdfBlob(dossier);
+        createdPreviewUrl = URL.createObjectURL(blob);
+        if (cancelled) {
+          URL.revokeObjectURL(createdPreviewUrl);
+          return;
+        }
+        setPdfBlob(blob);
+        setPreviewUrl(createdPreviewUrl);
       } catch (err) {
         if (cancelled) return;
         setLoadError(err instanceof Error ? err.message : String(err));
@@ -47,33 +64,40 @@ export function CaseWizardStep5({ caseId, caseData }: CaseWizardStep5Props) {
     })();
     return () => {
       cancelled = true;
+      if (createdPreviewUrl) {
+        URL.revokeObjectURL(createdPreviewUrl);
+      }
     };
   }, [caseData]);
 
   async function handleExport() {
     setExporting(true);
     try {
-      if ((window as unknown as Record<string, unknown>).__TAURI__) {
-        // Tauri 桌面版：呼叫 Rust IPC 匯出 PDF
-        const result = await safeInvoke<{ filePath: string }>("export_pdf", {
-          caseId,
-          html: htmlContent,
-        });
-        toast.success("PDF 已匯出", { description: result?.filePath });
-      } else {
-        // 網頁版：用 @react-pdf/renderer 直接生成 PDF blob 觸發下載
-        const dossier = dossierRef.current;
-        if (!dossier) throw new Error("說明書資料尚未載入");
+      const dossier = dossierRef.current;
+      if (!dossier || !pdfBlob) throw new Error("說明書 PDF 尚未載入");
 
-        const { initReactPdfEngine } = await import("@/lib/pdf-engine/react-pdf-init");
-        initReactPdfEngine();
-        const { pdf, Document } = await import("@react-pdf/renderer");
-        const element = React.createElement(PdfDocument, {
-          data: dossier,
-          themeId: "theme-a-minimal",
-        }) as React.ReactElement<React.ComponentProps<typeof Document>>;
-        const blob = await pdf(element).toBlob();
-        const url = URL.createObjectURL(blob);
+      if (await isTauriEnv()) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const outputPath = await save({
+          defaultPath: `${dossier.caseNo ?? caseId}-說明書.pdf`,
+          filters: [{ name: "PDF", extensions: ["pdf"] }],
+          title: "選擇輸出位置",
+        });
+        if (!outputPath) {
+          toast.info("已取消匯出");
+          return;
+        }
+        const pdfBytes = new Uint8Array(await pdfBlob.arrayBuffer());
+        const writtenPath = await safeInvoke<string>("export_pdf", {
+          args: {
+            caseId,
+            pdfBytes: Array.from(pdfBytes),
+            outputPath,
+          },
+        });
+        toast.success("PDF 已匯出", { description: writtenPath });
+      } else {
+        const url = URL.createObjectURL(pdfBlob);
         const a = document.createElement("a");
         a.href = url;
         a.download = `${dossier.caseNo ?? caseId}-說明書.pdf`;
@@ -107,23 +131,26 @@ export function CaseWizardStep5({ caseId, caseData }: CaseWizardStep5Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">不動產說明書預覽</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3">
+        <div>
+          <p className="text-sm font-medium text-slate-950">不動產說明書預覽</p>
+          <p className="mt-1 text-xs text-slate-500">預覽與下載共用同一份 PDF，不會影響案件頁操作介面。</p>
+        </div>
         <Button
           type="button"
           onClick={handleExport}
-          disabled={exporting || !htmlContent}
+          disabled={exporting || !pdfBlob}
           size="sm"
         >
           <Download className="mr-1.5 h-4 w-4" />
           {exporting ? "匯出中…" : "匯出 PDF"}
         </Button>
       </div>
-      <div
-        className="overflow-auto rounded border bg-white"
-        style={{ height: "60vh" }}
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      <iframe
+        data-testid="dossier-preview-frame"
+        title="不動產說明書預覽"
+        className="h-[72vh] w-full rounded-md border border-slate-200 bg-slate-100"
+        src={previewUrl}
       />
     </div>
   );

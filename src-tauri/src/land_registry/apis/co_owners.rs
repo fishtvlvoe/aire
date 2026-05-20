@@ -14,11 +14,30 @@ const API_ID: &str = "co_owners";
 pub struct CoOwner {
     pub name: String,
     pub share: String,
+    pub registration_order: String,
+    pub registration_date: String,
+    pub registration_reason: String,
+    pub reason_date: String,
+    pub right_type: String,
+    pub denominator: String,
+    pub numerator: String,
+    pub declared_land_price: String,
+    pub identity_type: String,
+    pub identity_no: String,
+    pub address: String,
+    pub other_right_numbers: Vec<String>,
+    pub previous_transfer_date: String,
+    pub previous_transfer_value: String,
+    pub previous_right_type: String,
+    pub previous_denominator: String,
+    pub previous_numerator: String,
+    pub other_notes: Vec<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CoOwnersData {
     pub owners: Vec<CoOwner>,
+    pub raw_rows: Vec<Value>,
 }
 
 pub struct CoOwnersEndpoint;
@@ -48,6 +67,7 @@ impl LandRegistryEndpoint<CoOwnersData> for CoOwnersEndpoint {
         let owners = rows
             .iter()
             .map(|row| {
+                let owner = row.get("OWNER").unwrap_or(&Value::Null);
                 let name = row
                     .get("OWNER")
                     .and_then(|o| o.get("LNAME"))
@@ -62,11 +82,65 @@ impl LandRegistryEndpoint<CoOwnersData> for CoOwnersEndpoint {
                     }
                     _ => String::new(),
                 };
-                CoOwner { name, share }
+                let str_field = |key: &str| {
+                    row.get(key)
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string()
+                };
+                let owner_field = |key: &str| {
+                    owner
+                        .get(key)
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string()
+                };
+                let other_right_numbers = row
+                    .get("ORNO")
+                    .and_then(Value::as_array)
+                    .map(|items| {
+                        items
+                            .iter()
+                            .filter_map(Value::as_str)
+                            .map(str::to_string)
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let other_notes = row
+                    .get("NOTE")
+                    .or_else(|| row.get("OTHER"))
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default();
+                CoOwner {
+                    name,
+                    share,
+                    registration_order: str_field("OWRNO"),
+                    registration_date: str_field("RDATE"),
+                    registration_reason: str_field("REASON"),
+                    reason_date: str_field("REASONDATE"),
+                    right_type: str_field("RIGHT"),
+                    denominator: str_field("DENOMINATOR"),
+                    numerator: str_field("NUMERATOR"),
+                    declared_land_price: str_field("DLPRICE"),
+                    identity_type: owner_field("LTYPE"),
+                    identity_no: owner_field("LID"),
+                    address: owner_field("LADDR"),
+                    other_right_numbers,
+                    previous_transfer_date: str_field("LTDATE"),
+                    previous_transfer_value: str_field("LTVALUE"),
+                    previous_right_type: str_field("PORIGHT"),
+                    previous_denominator: str_field("PODENOMINATOR"),
+                    previous_numerator: str_field("PONUMERATOR"),
+                    other_notes,
+                }
             })
             .collect();
 
-        Ok(CoOwnersData { owners })
+        Ok(CoOwnersData {
+            owners,
+            raw_rows: rows,
+        })
     }
 
     fn field_mappings() -> Vec<FieldMapping> {
@@ -190,6 +264,7 @@ mod tests {
         assert_eq!(result.owners[0].name, "王小明");
         assert_eq!(result.owners[0].share, "1/2");
         assert_eq!(result.owners[1].name, "王小美");
+        assert_eq!(result.raw_rows.len(), 2);
 
         let entries = billing_log.get_entries_for("D-0200-00010000");
         assert_eq!(entries.len(), 1);

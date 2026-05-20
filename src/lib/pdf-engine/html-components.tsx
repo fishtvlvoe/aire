@@ -145,16 +145,7 @@ export function HtmlCover({
 export function HtmlPageHeader({
   tokens,
   caseNo,
-  pageNum,
-  totalPages,
 }: HtmlPageHeaderProps) {
-  const pageText =
-    pageNum === undefined
-      ? ""
-      : totalPages === undefined
-        ? `${pageNum}`
-        : `${pageNum} / ${totalPages}`;
-
   const containerStyle: CSSProperties = {
     ...baseTextStyle(tokens),
     alignItems: "center",
@@ -176,7 +167,7 @@ export function HtmlPageHeader({
   return (
     <div style={containerStyle}>
       <span>不動產說明書｜{caseNo}</span>
-      <span style={rightStyle}>{pageText}</span>
+      <span style={rightStyle} />
     </div>
   );
 }

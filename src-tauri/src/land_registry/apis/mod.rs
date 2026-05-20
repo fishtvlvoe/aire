@@ -5,6 +5,7 @@ use serde_json::Value;
 use std::sync::Arc;
 
 pub mod address_to_parcel;
+pub mod building_other_rights;
 pub mod building_ownership;
 pub mod building_registry;
 pub mod co_owners;

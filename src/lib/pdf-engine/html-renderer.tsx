@@ -12,7 +12,6 @@ import { HtmlPropertyDataSheet } from "./html-blocks/property-data-sheet";
 import { HtmlTransactionHistory } from "./html-blocks/transaction-history";
 import { HtmlLifeAmenities } from "./html-blocks/life-amenities";
 import {
-  HtmlLocationMap,
   HtmlAerialPhoto,
   HtmlExteriorPhoto,
   HtmlFloorPlanPhoto,
@@ -146,32 +145,16 @@ export function renderDisclosureHtml(
     );
   }
 
-  // Page 6: 生活機能
-  if (data.nearbyAmenities && data.nearbyAmenities.length > 0) {
+  // Page 6: 位置圖與生活機能（合併成一頁）
+  if ((data.nearbyAmenities && data.nearbyAmenities.length > 0) || data.locationMapImage) {
     const pn = ++pageNum;
     pages.push(
-      <div className="page" key="life-amenities">
+      <div className="page" key="location-and-life-amenities">
         <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
         <HtmlLifeAmenities
           tokens={tokens}
-          caseNo={data.caseNo}
-          generatedAt={options.generatedAt}
           nearbyAmenities={data.nearbyAmenities as any}
-        />
-        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
-      </div>
-    );
-  }
-
-  // Page 7: 位置圖（無條件渲染，元件內部有佔位邏輯）
-  {
-    const pn = ++pageNum;
-    pages.push(
-      <div className="page" key="location-map">
-        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
-        <HtmlLocationMap
-          locationMapImage={data.locationMapImage}
-          tokens={tokens}
+          locationMapImage={data.locationMapImage ?? null}
         />
         <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
       </div>

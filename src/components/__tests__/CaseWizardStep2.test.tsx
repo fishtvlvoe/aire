@@ -82,6 +82,51 @@ describe("CaseWizardStep2", () => {
     expect(mocks.updateCase).toHaveBeenCalledWith("case-002", {
       land_lot_no: "0456-0000",
       building_lot_no: "建號 778-2",
+      land_registry_data: {
+        land_registry: { data: { lot_number: "0456-0000" } },
+        building_registry: { data: { building_number: "建號 778-2" } },
+      },
     });
+  });
+
+  it("shows persisted registry preview with auto-fill targets before PDF export", () => {
+    render(
+      <CaseWizardStep2
+        caseData={{
+          ...baseCase,
+          property_type: "residential",
+          land_registry_data: {
+            land_registry: { data: { lot_number: "大安段一小段 123-4", area: 1223.45 } },
+            building_registry: {
+              data: {
+                building_number: "建號 556-1",
+                purpose: "住家用",
+                material: "鋼筋混凝土造",
+                construction_date: "083/10/18",
+              },
+            },
+            building_ownership: {
+              data: { owner_name: "陳小美", numerator: 1, denominator: 1 },
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("謄本資料預覽")).toBeInTheDocument();
+    expect(screen.getByText("建物標示部")).toBeInTheDocument();
+    expect(screen.getByText("住家用")).toBeInTheDocument();
+    expect(screen.getByText("鋼筋混凝土造")).toBeInTheDocument();
+    expect(screen.getByText("建物標示/法定用途")).toBeInTheDocument();
+  });
+
+  it("keeps the 38-question field survey out of the initial registry setup UI", () => {
+    render(<CaseWizardStep2 caseData={baseCase} />);
+
+    expect(screen.getByText("謄本資料預覽")).toBeInTheDocument();
+    expect(screen.queryByText("肆、現況調查表")).toBeNull();
+    expect(screen.queryByText("是否有依慣例使用之現況？")).toBeNull();
+    expect(screen.queryByText("現場必問工作台")).toBeNull();
+    expect(screen.queryByText("秘書後補工作台")).toBeNull();
   });
 });

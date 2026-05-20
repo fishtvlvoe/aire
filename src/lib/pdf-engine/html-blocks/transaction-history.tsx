@@ -99,14 +99,6 @@ export function HtmlTransactionHistory({ data, tokens }: HtmlTransactionHistoryP
     color: tokens.text,
   };
 
-  const pageFooterStyle: CSSProperties = {
-    fontSize: "8px",
-    color: tokens.textMuted,
-    marginTop: "8px",
-    textAlign: "right",
-    fontFamily: tokens.fontFamily,
-  };
-
   return (
     <>
       {pages.map((pageRows, pageIndex) => (
@@ -145,11 +137,6 @@ export function HtmlTransactionHistory({ data, tokens }: HtmlTransactionHistoryP
               })}
             </tbody>
           </table>
-          {pages.length > 1 && (
-            <p style={pageFooterStyle}>
-              第 {pageIndex + 1} 頁，共 {pages.length} 頁
-            </p>
-          )}
         </div>
       ))}
     </>

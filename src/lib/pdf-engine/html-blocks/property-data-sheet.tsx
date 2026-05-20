@@ -55,7 +55,12 @@ export function HtmlPropertyDataSheet({
 
   // 建物現況欄位，僅 building 顯示
   const conditionRows: Array<[string, string]> = [
+    ["法定用途", val(ps?.legalUse)],
+    ["主要建材", val(ps?.material)],
+    ["建築完成日", val(ps?.constructionDate)],
+    ["屋齡", val(ps?.buildingAge)],
     ["樓層", val(ps?.floor)],
+    ["權利範圍", val(ps?.ownershipScope)],
     ["格局", val(ps?.rooms)],
     ["座向", val(ps?.direction)],
     ["管理費（元/月）", val(ps?.managementFee, (v) => Number(v).toLocaleString("zh-TW"))],

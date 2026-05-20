@@ -4,15 +4,20 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import type { CaseRow } from "@/lib/cases-api";
 import { loadDraft, useDraftAutosave } from "@/lib/use-draft-autosave";
-import { DisclosureFormResidential } from "@/components/disclosure-form-residential";
 import { DisclosureFormLand } from "@/components/disclosure-form-land";
+import {
+  HouseMvpWorkbench,
+  normalizeHouseMvpWorkbenchState,
+  type HouseMvpWorkbenchState,
+} from "@/components/HouseMvpWorkbench";
 import { storage } from "@/lib/storage";
 import type { DisclosureData } from "@/lib/storage";
 import {
-  FLOOR_PLAN_MAX_BYTES,
-  importFloorPlanAsset,
-  isAcceptedFloorPlanMime,
-  listFloorPlanAssets,
+  CASE_ASSET_MAX_BYTES,
+  importCaseAsset,
+  isAcceptedCaseAssetMime,
+  listCaseAssets,
+  type CaseAssetKind,
   readCaseAssetBytes,
 } from "@/lib/floor-plan-assets";
 
@@ -74,13 +79,18 @@ function getPersistedFloorPlanPhoto(
 function PhotoUploadBlock({
   caseId,
   caseData,
+  kind,
+  label,
+  inputTestId,
+  previewAlt,
 }: {
   caseId: string;
   caseData: CaseRow;
+  kind: CaseAssetKind;
+  label: string;
+  inputTestId: string;
+  previewAlt: string;
 }) {
-  const isLand = caseData.property_type === "land";
-  const label = isLand ? "規劃圖上傳" : "格局圖上傳";
-  const inputTestId = isLand ? "planning-map-file-input" : "floor-plan-file-input";
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -90,7 +100,7 @@ function PhotoUploadBlock({
 
     void (async () => {
       try {
-        const [asset] = await listFloorPlanAssets(caseId);
+        const [asset] = await listCaseAssets(caseId, kind);
         if (asset) {
           const result = await readCaseAssetBytes(asset.id);
           if (cancelled) return;
@@ -105,7 +115,7 @@ function PhotoUploadBlock({
         // 舊案件或瀏覽器 mock 不支援時，繼續走 legacy fallback。
       }
 
-      const persisted = getPersistedFloorPlanPhoto(caseData.land_registry_data);
+      const persisted = kind === "floor_plan" ? getPersistedFloorPlanPhoto(caseData.land_registry_data) : null;
       if (!persisted || cancelled) return;
       createdUrl = URL.createObjectURL(
         new Blob([bytesToArrayBuffer(persisted.bytes)], { type: persisted.mime }),
@@ -117,25 +127,26 @@ function PhotoUploadBlock({
       cancelled = true;
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
-  }, [caseId, caseData.land_registry_data]);
+  }, [caseId, caseData.land_registry_data, kind]);
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     setError(null);
-    if (file.size > FLOOR_PLAN_MAX_BYTES) {
+    if (file.size > CASE_ASSET_MAX_BYTES) {
       setError("圖片大小不超過 10MB");
       return;
     }
-    if (!isAcceptedFloorPlanMime(file.type)) {
+    if (!isAcceptedCaseAssetMime(file.type)) {
       setError("僅支援 JPG、PNG 或 WebP");
       return;
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
     try {
-      await importFloorPlanAsset({
+      await importCaseAsset({
         caseId,
+        kind,
         fileName: file.name,
         mimeType: file.type,
         fileBytes: bytes,
@@ -176,9 +187,9 @@ function PhotoUploadBlock({
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {previewUrl ? (
         <img
-          data-testid="floor-plan-preview"
+          data-testid={`${kind}-preview`}
           src={previewUrl}
-          alt={isLand ? "土地規劃圖預覽" : "格局圖預覽"}
+          alt={previewAlt}
           className="h-32 max-w-full rounded border border-slate-200 object-contain"
         />
       ) : null}
@@ -233,8 +244,65 @@ export function CaseWizardStep3Disclosure({
   function renderForm() {
     if (loading) return <p>載入中…</p>;
     if (caseData.property_type === "residential") {
+      const workbenchState = normalizeHouseMvpWorkbenchState(payload, {
+        caseNo: caseData.case_no ?? caseId,
+        caseName: caseData.case_name ?? caseData.address ?? "",
+      });
       return (
-        <DisclosureFormResidential caseId={caseId} initialPayload={payload} onChange={setPayload} />
+        <HouseMvpWorkbench
+          value={workbenchState}
+          onChange={(nextValue: HouseMvpWorkbenchState) => setPayload(nextValue as unknown as Record<string, unknown>)}
+          imageUploadSlots={{
+            condition_survey_highrise: (
+              <div className="grid gap-3 lg:grid-cols-3">
+                <PhotoUploadBlock
+                  caseId={caseId}
+                  caseData={caseData}
+                  kind="field_survey_photo"
+                  label="現場調查照片上傳"
+                  inputTestId="field-survey-photo-file-input"
+                  previewAlt="現場調查照片預覽"
+                />
+                <PhotoUploadBlock
+                  caseId={caseId}
+                  caseData={caseData}
+                  kind="floor_plan"
+                  label="格局圖上傳"
+                  inputTestId="floor-plan-file-input"
+                  previewAlt="格局圖預覽"
+                />
+                <PhotoUploadBlock
+                  caseId={caseId}
+                  caseData={caseData}
+                  kind="exterior_photo"
+                  label="建物外觀照片上傳"
+                  inputTestId="exterior-photo-file-input"
+                  previewAlt="建物外觀照片預覽"
+                />
+              </div>
+            ),
+            living_function: (
+              <div className="grid gap-3 lg:grid-cols-2">
+                <PhotoUploadBlock
+                  caseId={caseId}
+                  caseData={caseData}
+                  kind="location_map"
+                  label="位置圖上傳"
+                  inputTestId="location-map-file-input"
+                  previewAlt="位置圖預覽"
+                />
+                <PhotoUploadBlock
+                  caseId={caseId}
+                  caseData={caseData}
+                  kind="surrounding_map"
+                  label="周邊圖上傳"
+                  inputTestId="surrounding-map-file-input"
+                  previewAlt="周邊圖預覽"
+                />
+              </div>
+            ),
+          }}
+        />
       );
     }
     if (caseData.property_type === "land") {
@@ -249,7 +317,16 @@ export function CaseWizardStep3Disclosure({
     <div className="space-y-6">
       {renderForm()}
 
-      <PhotoUploadBlock caseId={caseId} caseData={caseData} />
+      {caseData.property_type === "land" ? (
+        <PhotoUploadBlock
+          caseId={caseId}
+          caseData={caseData}
+          kind="floor_plan"
+          label="土地規劃圖上傳"
+          inputTestId="planning-map-file-input"
+          previewAlt="土地規劃圖預覽"
+        />
+      ) : null}
 
       <div className="flex items-center justify-between">
         <Button

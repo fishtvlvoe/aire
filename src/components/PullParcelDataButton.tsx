@@ -1,13 +1,18 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, FileSearch, CheckCircle, AlertTriangle, ChevronRight } from "lucide-react";
+import { Loader2, FileSearch, CheckCircle, AlertTriangle, ChevronRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OwnerAuthorizationDialog } from "@/components/OwnerAuthorizationDialog";
 import { PreChargeConfirmDialog } from "@/components/PreChargeConfirmDialog";
 import { ManualFallbackInput } from "@/components/ManualFallbackInput";
 import { pullData, type ApiResult } from "@/lib/land-registry-api";
 import { casesApi } from "@/lib/cases-api";
+import {
+  buildRegistryPreviewSections,
+  summarizeRegistryPreview,
+} from "@/lib/registry-preview";
+import { isTauriEnv, safeInvoke } from "@/lib/tauri-bridge";
 
 /**
  * 每支 API 的費用估算（新台幣）
@@ -28,6 +33,7 @@ interface PullParcelDataButtonProps {
   caseId: string;
   parcelId: string;
   apiIds: string[];
+  onPreview?: (data: Record<string, unknown> | null) => void;
   onSaved?: (data: Record<string, unknown>) => void;
 }
 
@@ -42,6 +48,7 @@ export function PullParcelDataButton({
   caseId,
   parcelId,
   apiIds,
+  onPreview,
   onSaved,
 }: PullParcelDataButtonProps) {
   const [step, setStep] = React.useState<FlowStep>("idle");
@@ -52,6 +59,7 @@ export function PullParcelDataButton({
   const [manualEntries, setManualEntries] = React.useState<ManualEntry[]>([]);
   const [savingResult, setSavingResult] = React.useState(false);
   const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+  const [exportingResult, setExportingResult] = React.useState(false);
 
   const estimatedCost = apiIds.length * COST_PER_API;
 
@@ -59,6 +67,7 @@ export function PullParcelDataButton({
   function handleClick() {
     setStep("auth-dialog");
     setResults(null);
+    onPreview?.(null);
     setPullError(null);
     setManualEntries([]);
     setSaveMessage(null);
@@ -87,6 +96,7 @@ export function PullParcelDataButton({
         .filter(([, r]) => !r.success)
         .map(([apiId]) => ({ apiId, data: null }));
       setManualEntries(failed);
+      onPreview?.(buildPreviewData(result.results, failed));
 
       setStep("done");
     } catch (err) {
@@ -97,9 +107,11 @@ export function PullParcelDataButton({
 
   // 手動填入完成
   function handleManualSubmit(apiId: string, data: Record<string, string>) {
-    setManualEntries((prev) =>
-      prev.map((e) => (e.apiId === apiId ? { ...e, data } : e))
-    );
+    setManualEntries((prev) => {
+      const next = prev.map((e) => (e.apiId === apiId ? { ...e, data } : e));
+      onPreview?.(buildPreviewData(results, next));
+      return next;
+    });
   }
 
   // 成功項目數
@@ -113,21 +125,38 @@ export function PullParcelDataButton({
   // 按鈕在查詢中或已完成時都 disabled，防止重複觸發扣款
   const buttonDisabled = step === "pulling" || step === "done" || apiIds.length === 0;
 
-  const previewData = React.useMemo(() => {
-    if (!results) return null;
+  function buildPreviewData(
+    sourceResults: Record<string, ApiResult> | null,
+    sourceManualEntries: ManualEntry[],
+  ) {
+    if (!sourceResults) return null;
     const preview: Record<string, unknown> = {};
-    for (const [apiId, result] of Object.entries(results)) {
+    for (const [apiId, result] of Object.entries(sourceResults)) {
       if (result.success && result.data) {
         preview[apiId] = result.data;
       }
     }
-    for (const entry of manualEntries) {
+    for (const entry of sourceManualEntries) {
       if (entry.data) {
         preview[entry.apiId] = entry.data;
       }
     }
     return Object.keys(preview).length > 0 ? preview : null;
-  }, [manualEntries, results]);
+  }
+
+  const previewData = React.useMemo(
+    () => buildPreviewData(results, manualEntries),
+    [manualEntries, results],
+  );
+
+  const previewSections = React.useMemo(
+    () => buildRegistryPreviewSections(previewData),
+    [previewData],
+  );
+  const previewSummary = React.useMemo(
+    () => summarizeRegistryPreview(previewSections),
+    [previewSections],
+  );
 
   async function handleConfirmSave() {
     if (!previewData) return;
@@ -143,6 +172,71 @@ export function PullParcelDataButton({
       );
     } finally {
       setSavingResult(false);
+    }
+  }
+
+  function defaultRegistryFileName() {
+    const cleanParcel = parcelId.replace(/[^\w.-]+/g, "-").replace(/-+/g, "-");
+    const date = new Date().toISOString().slice(0, 10);
+    return `${cleanParcel || caseId}-謄本資料-${date}.aire-registry.json`;
+  }
+
+  function buildRegistryExportPayload() {
+    return {
+      schema: "aire.registry-payload.v1",
+      exportedAt: new Date().toISOString(),
+      caseId,
+      parcelId,
+      apiIds,
+      payload: previewData,
+    };
+  }
+
+  function downloadInBrowser(fileName: string, content: string) {
+    const blob = new Blob([content], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleSaveAsFile() {
+    if (!previewData || exportingResult) return;
+    setExportingResult(true);
+    setSaveMessage(null);
+    try {
+      const fileName = defaultRegistryFileName();
+      const exportPayload = buildRegistryExportPayload();
+      const content = `${JSON.stringify(exportPayload, null, 2)}\n`;
+      if (await isTauriEnv()) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const outputPath = await save({
+          defaultPath: fileName,
+          filters: [{ name: "AIRE 謄本資料", extensions: ["json"] }],
+          title: "另存謄本資料",
+        });
+        if (!outputPath) {
+          setSaveMessage("已取消另存新檔");
+          return;
+        }
+        const writtenPath = await safeInvoke<string>("export_registry_payload", {
+          args: { outputPath, payload: exportPayload },
+        });
+        setSaveMessage(`已另存新檔：${writtenPath}`);
+      } else {
+        downloadInBrowser(fileName, content);
+        setSaveMessage("已下載謄本資料檔，可供未來匯入使用");
+      }
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error ? `另存失敗：${error.message}` : "另存失敗，請稍後再試",
+      );
+    } finally {
+      setExportingResult(false);
     }
   }
 
@@ -191,10 +285,30 @@ export function PullParcelDataButton({
           <p className="text-xs text-muted-foreground">
             實際扣款：NT${totalCost.toLocaleString()}
           </p>
+          {previewSections.length > 0 ? (
+            <div className="rounded-md border bg-muted/20 p-3 text-sm">
+              <p className="font-medium">右側已更新謄本資料預覽</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {previewSummary.statusText}。完整欄位請看右側，確認儲存後可在案件中再次叫出。
+              </p>
+            </div>
+          ) : null}
           {previewData ? (
-            <Button onClick={handleConfirmSave} disabled={savingResult} size="sm">
-              {savingResult ? "儲存中…" : "確認儲存"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleConfirmSave} disabled={savingResult} size="sm">
+                {savingResult ? "儲存中…" : "確認儲存"}
+              </Button>
+              <Button
+                onClick={handleSaveAsFile}
+                disabled={exportingResult}
+                size="sm"
+                variant="outline"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {exportingResult ? "另存中…" : "另存新檔"}
+              </Button>
+            </div>
           ) : null}
           {saveMessage ? (
             <p className="text-xs text-muted-foreground">{saveMessage}</p>

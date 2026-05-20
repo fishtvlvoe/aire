@@ -92,11 +92,6 @@ export function TransactionHistoryPage({ data }: TransactionHistoryPageProps): R
               </View>
             ))}
           </View>
-          {pages.length > 1 && (
-            <Text style={{ fontSize: 8, color: "#9CA3AF", marginTop: 8, textAlign: "right" }}>
-              第 {pageIndex + 1} 頁，共 {pages.length} 頁
-            </Text>
-          )}
         </Page>
       ))}
     </>

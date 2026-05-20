@@ -40,10 +40,9 @@ vi.mock("@/components/disclosure-form-land", () => ({
 }));
 
 import { storage } from "@/lib/storage";
+import { loadDraft } from "@/lib/use-draft-autosave";
 import { CaseWizardStep3Disclosure } from "../CaseWizardStep3Disclosure";
 import type { CaseRow } from "@/lib/cases-api";
-import userEvent from "@testing-library/user-event";
-import { screen } from "@testing-library/react";
 
 const CASE_ID = "test-case-001";
 const caseData = { property_type: "residential" } as unknown as CaseRow;
@@ -69,7 +68,12 @@ describe("CaseWizardStep3Disclosure — Bug#4 揭露資料持久化", () => {
     });
   });
 
-  it("payload 有 condition 欄位改變時呼叫 storage.saveCaseDisclosures", async () => {
+  it("legacy draft payload 有 condition 欄位時仍呼叫 storage.saveCaseDisclosures", async () => {
+    vi.mocked(loadDraft).mockResolvedValueOnce({
+      condition_leakage: "true",
+      condition_renovation: "false",
+    });
+
     render(
       <CaseWizardStep3Disclosure
         caseId={CASE_ID}
@@ -78,9 +82,6 @@ describe("CaseWizardStep3Disclosure — Bug#4 揭露資料持久化", () => {
         onPrev={vi.fn()}
       />,
     );
-    // wait for mount to finish
-    await waitFor(() => screen.getByTestId("trigger-disclosure-change"));
-    await userEvent.click(screen.getByTestId("trigger-disclosure-change"));
     await waitFor(() => {
       expect(storage.saveCaseDisclosures).toHaveBeenCalledWith(
         CASE_ID,

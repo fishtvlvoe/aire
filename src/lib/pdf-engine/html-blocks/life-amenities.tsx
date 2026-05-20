@@ -1,6 +1,6 @@
 import React, { CSSProperties } from "react";
 import type { HtmlThemeTokens } from "../html-themes";
-import { HtmlSection, HtmlPageHeader, HtmlPageFooter } from "../html-components";
+import { uint8ToDataUrl } from "@/lib/pdf-blocks/image-data-url";
 
 export interface NearbyAmenity {
   name: string;
@@ -11,30 +11,23 @@ export interface NearbyAmenity {
 
 export interface HtmlLifeAmenitiesProps {
   tokens: HtmlThemeTokens;
-  caseNo: string;
-  generatedAt: string;
   nearbyAmenities?: NearbyAmenity[];
+  locationMapImage?: Uint8Array | null;
 }
 
 export function HtmlLifeAmenities({
   tokens,
-  caseNo,
-  generatedAt,
   nearbyAmenities = [],
+  locationMapImage = null,
 }: HtmlLifeAmenitiesProps): React.ReactElement {
-  const pageStyle: CSSProperties = {
-    padding: "24px",
-    paddingTop: "120px",
+  const rootStyle: CSSProperties = {
     fontFamily: tokens.fontFamily,
-    backgroundColor: tokens.bg,
     color: tokens.text,
-    minHeight: "297mm",
-    boxSizing: "border-box",
   };
 
   const headingStyle: CSSProperties = {
     fontSize: "20px",
-    marginBottom: "16px",
+    marginBottom: "12px",
     color: tokens.primary,
     fontFamily: tokens.fontFamily,
   };
@@ -45,14 +38,44 @@ export function HtmlLifeAmenities({
     fontFamily: tokens.fontFamily,
   };
 
+  const mapBoxStyle: CSSProperties = {
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    border: `1px solid ${tokens.border}`,
+    display: "flex",
+    height: "260px",
+    justifyContent: "center",
+    marginBottom: "14px",
+    overflow: "hidden",
+  };
+
+  const resolvedMapSrc =
+    locationMapImage && locationMapImage.length > 0 ? uint8ToDataUrl(locationMapImage) : null;
+
+  const mapBlock = (
+    <div style={mapBoxStyle}>
+      {resolvedMapSrc ? (
+        <img
+          alt="位置圖"
+          src={resolvedMapSrc}
+          style={{ height: "260px", objectFit: "contain", width: "100%" }}
+        />
+      ) : (
+        <div style={{ textAlign: "center" }}>
+          <p style={{ color: tokens.text, fontSize: "12px", marginBottom: "6px" }}>位置圖</p>
+          <p style={{ color: tokens.textMuted, fontSize: "9px" }}>自動產生失敗時可手動上傳覆蓋</p>
+        </div>
+      )}
+    </div>
+  );
+
   // 空資料狀態
   if (!nearbyAmenities || nearbyAmenities.length === 0) {
     return (
-      <div style={pageStyle}>
-        <HtmlPageHeader tokens={tokens} caseNo={caseNo} />
-        <p style={headingStyle}>生活機能</p>
+      <div style={rootStyle}>
+        <p style={headingStyle}>位置圖與生活機能</p>
+        {mapBlock}
         <span style={emptyStyle}>尚未查詢周邊設施</span>
-        <HtmlPageFooter tokens={tokens} generatedAt={generatedAt} />
       </div>
     );
   }
@@ -90,9 +113,9 @@ export function HtmlLifeAmenities({
   };
 
   return (
-    <div style={pageStyle}>
-      <HtmlPageHeader tokens={tokens} caseNo={caseNo} />
-      <p style={headingStyle}>生活機能</p>
+    <div style={rootStyle}>
+      <p style={headingStyle}>位置圖與生活機能</p>
+      {mapBlock}
       {Array.from(grouped.entries()).map(([category, items]) => (
         <div key={category} style={{ marginBottom: "12px" }}>
           <p style={categoryHeadingStyle}>{category}</p>
@@ -122,7 +145,6 @@ export function HtmlLifeAmenities({
           </table>
         </div>
       ))}
-      <HtmlPageFooter tokens={tokens} generatedAt={generatedAt} />
     </div>
   );
 }

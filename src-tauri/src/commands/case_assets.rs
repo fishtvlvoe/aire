@@ -1,6 +1,6 @@
 // AIRE — Case asset IPC commands
 //
-// Bridge 階段只開放 Step 3 raster 格局圖匯入與 PDF 讀取。
+// Bridge 階段開放不動產說明書 MVP 需要的本機圖片資產匯入與 PDF 讀取。
 
 use chrono::{FixedOffset, Utc};
 use rusqlite::Connection;
@@ -13,6 +13,22 @@ use crate::paths::app_data_dir;
 use crate::DbState;
 
 const MAX_ASSET_BYTES: usize = 10 * 1024 * 1024;
+const SUPPORTED_KINDS: &[&str] = &[
+    "company_logo",
+    "floor_plan",
+    "exterior_photo",
+    "location_map",
+    "surrounding_map",
+    "cadastral_map",
+    "field_survey_photo",
+    "other_site_photo",
+];
+const SUPPORTED_SOURCES: &[&str] = &[
+    "manual_upload",
+    "legacy_floor_plan_photo",
+    "auto_generated",
+    "api_generated",
+];
 
 #[derive(Debug, Serialize, Clone)]
 pub struct IpcError {
@@ -74,13 +90,13 @@ fn validate_payload(payload: &ImportCaseAssetPayload) -> Result<&'static str, Ip
     if payload.case_id.trim().is_empty() {
         return Err(IpcError::new("missing_field", "case_id 為必填"));
     }
-    if payload.kind != "floor_plan" {
+    if !SUPPORTED_KINDS.contains(&payload.kind.as_str()) {
         return Err(IpcError::new(
             "unsupported_kind",
-            "kind 目前只支援 floor_plan",
+            "kind 不在支援的 MVP 圖片槽位內",
         ));
     }
-    if payload.source != "manual_upload" && payload.source != "legacy_floor_plan_photo" {
+    if !SUPPORTED_SOURCES.contains(&payload.source.as_str()) {
         return Err(IpcError::new("unsupported_source", "source 不支援"));
     }
     if payload.file_bytes.is_empty() {
@@ -96,6 +112,7 @@ fn validate_payload(payload: &ImportCaseAssetPayload) -> Result<&'static str, Ip
 fn trust_tier_for_source(source: &str) -> &'static str {
     match source {
         "legacy_floor_plan_photo" => "legacy_import",
+        "auto_generated" | "api_generated" => "system_generated",
         _ => "assistant_uploaded",
     }
 }
@@ -213,6 +230,8 @@ mod tests {
             building_lot_no: None,
             asking_price: None,
             land_lots: vec!["測試段1".into()],
+            land_registry_data: None,
+            current_step: 1,
         };
         cases::insert_case(conn, &case).unwrap();
     }
@@ -223,6 +242,24 @@ mod tests {
             kind: "floor_plan".into(),
             source: "manual_upload".into(),
             file_name: "floor.png".into(),
+            mime_type: mime_type.into(),
+            file_bytes: bytes,
+            metadata_json: None,
+        }
+    }
+
+    fn payload_with_kind(
+        case_id: &str,
+        kind: &str,
+        source: &str,
+        mime_type: &str,
+        bytes: Vec<u8>,
+    ) -> ImportCaseAssetPayload {
+        ImportCaseAssetPayload {
+            case_id: case_id.into(),
+            kind: kind.into(),
+            source: source.into(),
+            file_name: "asset.png".into(),
             mime_type: mime_type.into(),
             file_bytes: bytes,
             metadata_json: None,
@@ -251,6 +288,31 @@ mod tests {
         let deleted = case_assets::delete_asset(&conn, &asset.id).unwrap();
         std::fs::remove_file(&deleted.storage_path).unwrap();
         assert!(!Path::new(&deleted.storage_path).exists());
+    }
+
+    #[test]
+    fn imports_mvp_image_slot_beyond_floor_plan() {
+        let conn = open_in_memory();
+        insert_case(&conn, "case-command-map");
+        let temp = tempfile::tempdir().unwrap();
+
+        let asset = import_case_asset_impl(
+            &conn,
+            temp.path(),
+            payload_with_kind(
+                "case-command-map",
+                "location_map",
+                "manual_upload",
+                "image/png",
+                vec![1, 2, 3],
+            ),
+        )
+        .unwrap();
+
+        assert_eq!(asset.kind, "location_map");
+        let list = case_assets::list_assets(&conn, "case-command-map", Some("location_map")).unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].kind, "location_map");
     }
 
     #[test]

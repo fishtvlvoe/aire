@@ -18,6 +18,22 @@ function baseDossier(overrides: Partial<CaseDossierData> = {}): CaseDossierData 
 }
 
 describe("renderDisclosureHtml — floor-plan photo preview", () => {
+  it("combines location map and life amenities into one HTML page", () => {
+    const html = renderDisclosureHtml(
+      baseDossier({
+        locationMapImage: new Uint8Array([0x89, 0x50, 0x4E, 0x47]),
+        nearbyAmenities: [
+          { name: "大安國小", category: "學校", distanceM: 300, address: "臺北市大安區" },
+        ],
+      }),
+      { themeId: "theme-a-minimal", generatedAt: "2026-05-20" },
+    );
+
+    expect(html).toContain("位置圖與生活機能");
+    expect(html).toContain("大安國小");
+    expect((html.match(/key=\"life-amenities\"/g) ?? []).length).toBeLessThanOrEqual(1);
+  });
+
   it("renders residential floor-plan photo as a data URL image", () => {
     const html = renderDisclosureHtml(
       baseDossier({

@@ -16,6 +16,16 @@ pub struct BuildingOwnershipData {
     pub certificate_no: String,
     #[serde(rename = "ownership_date")]
     pub issue_date: String,
+    pub registration_reason: String,
+    pub reason_date: String,
+    pub right_type: String,
+    pub denominator: String,
+    pub numerator: String,
+    pub other_right_numbers: Vec<String>,
+    pub owner_identity_type: String,
+    pub owner_id: String,
+    pub owner_address: String,
+    pub other_notes: Vec<Value>,
 }
 
 pub struct BuildingOwnershipEndpoint;
@@ -49,9 +59,20 @@ impl LandRegistryEndpoint<BuildingOwnershipData> for BuildingOwnershipEndpoint {
                     owner_name: String::new(),
                     certificate_no: String::new(),
                     issue_date: String::new(),
+                    registration_reason: String::new(),
+                    reason_date: String::new(),
+                    right_type: String::new(),
+                    denominator: String::new(),
+                    numerator: String::new(),
+                    other_right_numbers: vec![],
+                    owner_identity_type: String::new(),
+                    owner_id: String::new(),
+                    owner_address: String::new(),
+                    other_notes: vec![],
                 });
             }
         };
+        let owner = record.get("OWNER").unwrap_or(&Value::Null);
 
         let owner_name = record
             .get("OWNER")
@@ -76,6 +97,62 @@ impl LandRegistryEndpoint<BuildingOwnershipData> for BuildingOwnershipEndpoint {
             owner_name,
             certificate_no,
             issue_date,
+            registration_reason: record
+                .get("REASON")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            reason_date: record
+                .get("REASONDATE")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            right_type: record
+                .get("RIGHT")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            denominator: record
+                .get("DENOMINATOR")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            numerator: record
+                .get("NUMERATOR")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            other_right_numbers: record
+                .get("ORNO")
+                .and_then(Value::as_array)
+                .map(|rows| {
+                    rows.iter()
+                        .filter_map(Value::as_str)
+                        .map(str::to_string)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            owner_identity_type: owner
+                .get("LTYPE")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            owner_id: owner
+                .get("LID")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            owner_address: owner
+                .get("LADDR")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            other_notes: record
+                .get("NOTE")
+                .or_else(|| record.get("OTHER"))
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default(),
         })
     }
 

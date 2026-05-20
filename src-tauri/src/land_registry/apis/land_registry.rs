@@ -17,12 +17,30 @@ pub struct LandRegistryData {
     #[serde(rename = "purpose")]
     pub land_purpose: String,
     pub owner_name: String,
+    pub registration_date: String,
+    pub registration_reason: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub zoning: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub usage_category: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub announced_value: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assessed_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub county: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub district: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x_coordinate: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y_coordinate: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mapsheet: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub building_count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub other_notes: Option<Vec<Value>>,
 }
 
 pub struct LandRegistryEndpointImpl;
@@ -58,6 +76,10 @@ impl LandRegistryEndpoint<LandRegistryData> for LandRegistryEndpointImpl {
         let area_str = landreg.get("AREA").and_then(Value::as_str).unwrap_or("0");
         let land_area = area_str.parse::<f64>().unwrap_or(0.0);
         let zoning = landreg.get("ZONING").and_then(Value::as_str).map(|s| s.to_string());
+        let usage_category = landreg
+            .get("LCLASS")
+            .and_then(Value::as_str)
+            .map(|s| s.to_string());
         let announced_value = landreg
             .get("ALVALUE")
             .and_then(Value::as_str)
@@ -71,9 +93,40 @@ impl LandRegistryEndpoint<LandRegistryData> for LandRegistryEndpointImpl {
             land_area,
             land_purpose: zoning.clone().unwrap_or_default(),
             owner_name: String::new(),
+            registration_date: landreg
+                .get("RDATE")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            registration_reason: landreg
+                .get("REASON")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
             zoning,
+            usage_category,
             announced_value,
             assessed_value,
+            county: landreg.get("COUNTY").and_then(Value::as_str).map(str::to_string),
+            district: landreg.get("DISTRICT").and_then(Value::as_str).map(str::to_string),
+            x_coordinate: landreg
+                .get("X_COORDINATE")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            y_coordinate: landreg
+                .get("Y_COORDINATE")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            mapsheet: landreg.get("MAPSHEET").and_then(Value::as_str).map(str::to_string),
+            building_count: landreg
+                .get("BUILDINGCOUNT")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            other_notes: first_entry
+                .get("NOTE")
+                .or_else(|| first_entry.get("LANDNOTE"))
+                .and_then(Value::as_array)
+                .cloned(),
         })
     }
 

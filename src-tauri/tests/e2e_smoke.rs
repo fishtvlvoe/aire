@@ -34,6 +34,8 @@ fn sample_case() -> Case {
         building_lot_no: None,
         asking_price: None,
         land_lots: vec!["台北市大安區XX段 456-7".into()],
+        land_registry_data: None,
+        current_step: 1,
     }
 }
 
@@ -70,6 +72,58 @@ fn test_full_case_lifecycle() {
     assert_eq!(after.updated_at, 1_700_000_100, "updated_at 應已更新");
     // created_at 不應變動
     assert_eq!(after.created_at, case.created_at, "created_at 不應變動");
+}
+
+/// 謄本 payload 持久化：模擬拉謄本後儲存、關閉 App、重開 DB，再讀回。
+#[test]
+fn test_land_registry_data_survives_db_reopen() {
+    let (dir, conn) = setup_db();
+    let mut case = sample_case();
+    insert_case(&conn, &case).expect("insert_case 失敗");
+
+    case.land_registry_data = Some(serde_json::json!({
+        "land_registry": {
+            "data": {
+                "lot_number": "大安段一小段 123-4",
+                "area": 125.8,
+                "purpose": "田"
+            }
+        },
+        "building_registry": {
+            "data": {
+                "building_number": "建號 778-2",
+                "building_area": 85.5,
+                "construction_date": "2015-06-15"
+            }
+        },
+        "building_ownership": {
+            "data": {
+                "owner_name": "王小明",
+                "ownership_date": "2015-08-20"
+            }
+        }
+    }));
+    case.updated_at = 1_700_000_200;
+    update_case(&conn, &case).expect("update_case land_registry_data 失敗");
+
+    drop(conn);
+
+    let db_path = dir.path().join("test.db");
+    let reopened = init_db(&db_path).expect("重新 init_db 失敗");
+    let got = get_case(&reopened, &case.id).expect("重開後 get_case 失敗");
+    let payload = got
+        .land_registry_data
+        .expect("重開後 land_registry_data 應存在");
+
+    assert_eq!(
+        payload["land_registry"]["data"]["lot_number"],
+        "大安段一小段 123-4"
+    );
+    assert_eq!(payload["building_registry"]["data"]["building_area"], 85.5);
+    assert_eq!(
+        payload["building_ownership"]["data"]["owner_name"],
+        "王小明"
+    );
 }
 
 /// PDF 寫檔驗證：寫 dummy bytes 到 .tmp → rename → 確認存在且內容一致

@@ -86,6 +86,28 @@ describe("LicenseSection", () => {
     });
   });
 
+  it("序號已綁定其他裝置時顯示客服轉移提示", async () => {
+    mockInvokeFn.mockResolvedValueOnce({ status: "none", serial_key: null });
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: () => Promise.resolve({ error: "ALREADY_ACTIVATED_OTHER_DEVICE" }),
+    });
+
+    render(<LicenseSection />);
+
+    await waitFor(() => screen.getByPlaceholderText(/序號/));
+
+    fireEvent.change(screen.getByPlaceholderText(/序號/), {
+      target: { value: "AIRE-TEST-USED-001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "啟用授權" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/已綁定其他裝置/)).toBeInTheDocument();
+    });
+  });
+
   it("停用確認後回到未啟用", async () => {
     mockInvokeFn
       .mockResolvedValueOnce({ status: "valid", serial_key: "AIRE-TEST-VALID-001" })

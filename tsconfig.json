@@ -47,6 +47,7 @@
   ],
   "exclude": [
     "node_modules",
+    "0520",
     "src-tauri",
     "cloudflare-worker",
     "legacy",

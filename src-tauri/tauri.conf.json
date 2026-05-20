@@ -38,6 +38,17 @@
     ],
     "category": "Productivity",
     "shortDescription": "不動產說明書桌面 App",
-    "longDescription": "AIRE — 房仲業者用的不動產說明書產製桌面 App，離線單機，輸出符合內政部底板的 PDF。"
+    "longDescription": "AIRE — 房仲業者用的不動產說明書產製桌面 App，離線單機，輸出符合內政部底板的 PDF。",
+    "windows": {
+      "allowDowngrades": false,
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    }
   }
 }

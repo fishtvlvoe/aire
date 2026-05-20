@@ -14,11 +14,42 @@ const API_ID: &str = "mortgages";
 pub struct Mortgage {
     pub creditor: String,
     pub amount: f64,
+    pub registration_order: String,
+    pub receive_year: String,
+    pub receive_no1: String,
+    pub receive_no2: String,
+    pub registration_date: String,
+    pub registration_reason: String,
+    pub right_type: String,
+    pub subject_type: String,
+    pub setting_right_type: String,
+    pub setting_denominator: String,
+    pub setting_numerator: String,
+    pub setting_area: String,
+    pub certificate_no: String,
+    pub claim_right_type: String,
+    pub claim_denominator: String,
+    pub claim_numerator: String,
+    pub duration_type: String,
+    pub start_date: String,
+    pub end_date: String,
+    pub payoff_date_type: String,
+    pub payoff_date_note: String,
+    pub interest_note: String,
+    pub delayed_interest_note: String,
+    pub penalty_note: String,
+    pub claim_scope_note: String,
+    pub claim_confirm_date: String,
+    pub other_guarantee_scope: String,
+    pub collateral_land_numbers: Vec<String>,
+    pub collateral_building_numbers: Vec<String>,
+    pub other_notes: Vec<Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MortgagesData {
     pub mortgages: Vec<Mortgage>,
+    pub raw_rows: Vec<Value>,
 }
 
 pub struct MortgagesEndpoint;
@@ -32,7 +63,7 @@ impl LandRegistryEndpoint<MortgagesData> for MortgagesEndpoint {
         let status = json.get("STATUS").and_then(|s| s.as_u64());
         // STATUS=0 means no records for this parcel — return empty list (not an error)
         if status != Some(1) {
-            return Ok(MortgagesData { mortgages: vec![] });
+            return Ok(MortgagesData { mortgages: vec![], raw_rows: vec![] });
         }
 
         let rows = json
@@ -46,22 +77,86 @@ impl LandRegistryEndpoint<MortgagesData> for MortgagesEndpoint {
 
         let mortgages = rows
             .iter()
-            .map(|row| Mortgage {
-                creditor: row
-                    .get("RIGHTPERSON")
-                    .and_then(Value::as_str)
-                    .unwrap_or_default()
-                    .to_string(),
-                amount: row
-                    .get("SETTING")
-                    .and_then(Value::as_str)
-                    .unwrap_or("0")
-                    .parse::<f64>()
-                    .unwrap_or(0.0),
+            .map(|row| {
+                let str_field = |key: &str| {
+                    row.get(key)
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string()
+                };
+                let list_numbers = |key: &str| {
+                    row.get(key)
+                        .and_then(Value::as_array)
+                        .map(|items| {
+                            items
+                                .iter()
+                                .filter_map(|item| {
+                                    if let Some(s) = item.as_str() {
+                                        Some(s.to_string())
+                                    } else {
+                                        let sec = item.get("SEC").and_then(Value::as_str).unwrap_or_default();
+                                        let no = item.get("NO").and_then(Value::as_str).unwrap_or_default();
+                                        (!sec.is_empty() || !no.is_empty()).then(|| format!("{sec}-{no}"))
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default()
+                };
+                Mortgage {
+                    creditor: row
+                        .get("RIGHTPERSON")
+                        .or_else(|| row.get("LNAME"))
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string(),
+                    amount: row
+                        .get("SETTING")
+                        .or_else(|| row.get("CCP_RV"))
+                        .and_then(Value::as_str)
+                        .unwrap_or("0")
+                        .parse::<f64>()
+                        .unwrap_or(0.0),
+                    registration_order: str_field("ORNO"),
+                    receive_year: str_field("RECEIVEYEAR"),
+                    receive_no1: str_field("RECEIVENO1"),
+                    receive_no2: str_field("RECEIVENO2"),
+                    registration_date: str_field("RDATE"),
+                    registration_reason: str_field("REASON"),
+                    right_type: str_field("RIGHTTYPE"),
+                    subject_type: str_field("SUBJECTTYPE"),
+                    setting_right_type: str_field("SETRIGHT"),
+                    setting_denominator: str_field("SRDENOMINATOR"),
+                    setting_numerator: str_field("SRNUMERATOR"),
+                    setting_area: str_field("AREA"),
+                    certificate_no: str_field("CERTIFICATENO"),
+                    claim_right_type: str_field("CLAIMRIGHT"),
+                    claim_denominator: str_field("CRDENOMINATOR"),
+                    claim_numerator: str_field("CRNUMERATOR"),
+                    duration_type: str_field("DURATIONTYPE"),
+                    start_date: str_field("STARTDATE"),
+                    end_date: str_field("ENDDATE"),
+                    payoff_date_type: str_field("PODT"),
+                    payoff_date_note: str_field("PODD"),
+                    interest_note: str_field("ID_LRD"),
+                    delayed_interest_note: str_field("DID"),
+                    penalty_note: str_field("PD"),
+                    claim_scope_note: str_field("CCCONTENT"),
+                    claim_confirm_date: str_field("CCSDD"),
+                    other_guarantee_scope: str_field("OGSAC"),
+                    collateral_land_numbers: list_numbers("COLAND"),
+                    collateral_building_numbers: list_numbers("COBUILD"),
+                    other_notes: row
+                        .get("NOTE")
+                        .or_else(|| row.get("OTHER"))
+                        .and_then(Value::as_array)
+                        .cloned()
+                        .unwrap_or_default(),
+                }
             })
             .collect();
 
-        Ok(MortgagesData { mortgages })
+        Ok(MortgagesData { mortgages, raw_rows: rows })
     }
 
     fn field_mappings() -> Vec<FieldMapping> {
@@ -181,6 +276,7 @@ mod tests {
         assert_eq!(result.mortgages.len(), 1);
         assert_eq!(result.mortgages[0].creditor, "台灣銀行");
         assert!((result.mortgages[0].amount - 1000000.0).abs() < f64::EPSILON);
+        assert_eq!(result.raw_rows.len(), 1);
 
         let entries = billing_log.get_entries_for("D-0200-00010000");
         assert_eq!(entries.len(), 1);

@@ -234,8 +234,6 @@ interface PdfPageHeaderProps {
 export function PdfPageHeader({
   tokens,
   caseNo,
-  pageNum,
-  totalPages,
 }: PdfPageHeaderProps): React.ReactElement {
   return (
     <View
@@ -254,12 +252,7 @@ export function PdfPageHeader({
       <Text style={{ fontSize: 9, color: tokens.textMuted }}>
         不動產說明書｜{caseNo}
       </Text>
-      {pageNum !== undefined && (
-        <Text style={{ fontSize: 9, color: tokens.textMuted }}>
-          {pageNum}
-          {totalPages !== undefined ? ` / ${totalPages}` : ""}
-        </Text>
-      )}
+      <Text style={{ fontSize: 9, color: tokens.textMuted }}> </Text>
     </View>
   );
 }

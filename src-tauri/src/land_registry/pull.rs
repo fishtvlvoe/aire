@@ -1,6 +1,7 @@
 use crate::commands::cases::IpcError;
 use crate::land_registry::api_key_storage::ApiKeyStorage;
 use crate::land_registry::apis::address_to_parcel::{AddressToParcelApi, ParcelInfo};
+use crate::land_registry::apis::building_other_rights::BuildingOtherRightsApi;
 use crate::land_registry::apis::building_ownership::BuildingOwnershipApi;
 use crate::land_registry::apis::building_registry::BuildingRegistryApi;
 use crate::land_registry::apis::co_owners::CoOwnersApi;
@@ -107,6 +108,14 @@ async fn call_single_api(
             serde_json::to_value(api.fetch(parcel_id).await?).map_err(|error| {
                 LandRegistryError::Internal {
                     message: format!("serialize building_ownership result failed: {error}"),
+                }
+            })
+        }
+        "building_other_rights" => {
+            let api = BuildingOtherRightsApi::new(base_url, billing_log.clone(), key_provider);
+            serde_json::to_value(api.fetch(parcel_id).await?).map_err(|error| {
+                LandRegistryError::Internal {
+                    message: format!("serialize building_other_rights result failed: {error}"),
                 }
             })
         }

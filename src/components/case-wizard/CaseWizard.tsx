@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { CheckCircle2, Circle, Dot } from "lucide-react";
 import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { CaseWizardStep1 } from "@/components/case-wizard/CaseWizardStep1";
@@ -14,7 +15,13 @@ interface CaseWizardProps {
   caseId: string;
 }
 
-const STEP_LABELS = ["基本資料", "地政資料", "揭露資料", "實價登錄", "預覽匯出"];
+const STEP_OPTIONS = [
+  { step: 1, label: "基本資料" },
+  { step: 2, label: "地政資料" },
+  { step: 3, label: "揭露資料" },
+  { step: 4, label: "實價登錄" },
+  { step: 5, label: "預覽匯出" },
+] as const;
 
 export function CaseWizard({ caseId }: CaseWizardProps) {
   const [caseData, setCaseData] = useState<CaseRow | null>(null);
@@ -126,32 +133,30 @@ export function CaseWizard({ caseId }: CaseWizardProps) {
 
   return (
     <div className="space-y-6">
-      <div className={`grid gap-2 ${step3Enabled ? "grid-cols-5" : "grid-cols-4"}`}>
-        {STEP_LABELS.map((label, index) => {
-          const step = index + 1;
-          // 未啟用實價登錄時，步驟列完全隱藏步驟 4
+      <div className="flex flex-wrap gap-2">
+        {STEP_OPTIONS.map(({ step, label }) => {
           if (step === 4 && !step3Enabled) return null;
           const active = step === currentStep;
           const done = step < currentStep;
+          const className = `inline-flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+            active
+              ? "border-slate-900 bg-slate-900 text-white"
+              : done
+                ? "border-green-200 bg-green-50 text-green-800"
+                : "border-slate-200 bg-white text-slate-500"
+          }`;
           return (
-            <div key={label} className="flex items-center gap-2">
-              {done ? (
-                <button
-                  type="button"
-                  onClick={() => void updateStep(step)}
-                  className="h-8 w-8 cursor-pointer rounded-full border border-green-600 bg-green-600 text-xs font-medium text-white transition-opacity hover:opacity-90"
-                >
-                  {step}
-                </button>
-              ) : (
-                <div className={`h-8 w-8 rounded-full border text-xs font-medium flex items-center justify-center ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground"}`}>
-                  {step}
-                </div>
-              )}
-              <span className={`text-xs ${active ? "text-foreground" : "text-muted-foreground"}`}>
-                {label}
-              </span>
-            </div>
+            done ? (
+              <button key={label} type="button" onClick={() => void updateStep(step)} className={className}>
+                <CheckCircle2 className="h-4 w-4" />
+                <span>{label}</span>
+              </button>
+            ) : (
+              <div key={label} aria-current={active ? "step" : undefined} className={className}>
+                {active ? <Dot className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                <span>{label}</span>
+              </div>
+            )
           );
         })}
       </div>

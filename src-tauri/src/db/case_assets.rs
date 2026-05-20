@@ -151,6 +151,8 @@ mod tests {
             building_lot_no: None,
             asking_price: None,
             land_lots: vec!["測試段1".into()],
+            land_registry_data: None,
+            current_step: 1,
         };
         cases::insert_case(conn, &case).unwrap();
     }

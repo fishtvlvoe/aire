@@ -5,6 +5,8 @@
 
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::path::Path;
 use tauri::State;
 
 use crate::db::{cases, oplog};
@@ -36,20 +38,31 @@ pub struct CreateCaseInput {
     pub building_lot_no: Option<String>,
     pub asking_price: Option<i64>,
     pub land_lots: Option<Vec<String>>,
+    pub land_registry_data: Option<Value>,
+    pub current_step: Option<i64>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct UpdateCaseInput {
+    pub case_no: Option<Option<String>>,
+    pub property_type: Option<String>,
+    pub land_lot_no: Option<String>,
+    pub address: Option<String>,
+    pub owner_name: Option<Option<String>>,
+    pub status: Option<String>,
+    pub case_name: Option<Option<String>>,
+    pub building_lot_no: Option<Option<String>>,
+    pub asking_price: Option<Option<i64>>,
+    pub land_lots: Option<Vec<String>>,
+    pub land_registry_data: Option<Option<Value>>,
+    pub current_step: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UpdateCaseInput {
-    pub case_no: Option<String>,
-    pub property_type: String,
-    pub land_lot_no: String,
-    pub address: String,
-    pub owner_name: Option<String>,
-    pub status: Option<String>,
-    pub case_name: Option<String>,
-    pub building_lot_no: Option<String>,
-    pub asking_price: Option<i64>,
-    pub land_lots: Option<Vec<String>>,
+#[allow(non_snake_case)]
+pub struct ExportRegistryPayloadInput {
+    pub outputPath: String,
+    pub payload: Value,
 }
 
 fn resolve_land_lots(land_lots: Option<Vec<String>>, land_lot_no: &str) -> Result<(String, Vec<String>), IpcError> {
@@ -119,6 +132,8 @@ pub async fn create_case(
         building_lot_no: input.building_lot_no,
         asking_price: input.asking_price,
         land_lots,
+        land_registry_data: input.land_registry_data,
+        current_step: input.current_step.unwrap_or(1).max(1),
     };
 
     let conn = lock(&db)?;
@@ -157,16 +172,50 @@ pub async fn update_case(
         existing.status = new_status.clone();
     }
 
-    let (land_lot_no, land_lots) = resolve_land_lots(input.land_lots, &input.land_lot_no)?;
-    existing.case_no = input.case_no;
-    existing.property_type = input.property_type;
-    existing.land_lot_no = land_lot_no;
-    existing.land_lots = land_lots;
-    existing.address = input.address;
-    existing.owner_name = input.owner_name;
-    existing.case_name = input.case_name;
-    existing.building_lot_no = input.building_lot_no;
-    existing.asking_price = input.asking_price;
+    if let Some(property_type) = input.property_type {
+        if property_type != "residential" && property_type != "land" {
+            return Err(IpcError::new(
+                "invalid_property_type",
+                "property_type 必須為 residential 或 land",
+            ));
+        }
+        existing.property_type = property_type;
+    }
+
+    if input.land_lots.is_some() || input.land_lot_no.is_some() {
+        let requested_land_lot_no = input.land_lot_no.unwrap_or_else(|| existing.land_lot_no.clone());
+        let (land_lot_no, land_lots) = resolve_land_lots(input.land_lots, &requested_land_lot_no)?;
+        existing.land_lot_no = land_lot_no;
+        existing.land_lots = land_lots;
+    }
+
+    if let Some(case_no) = input.case_no {
+        existing.case_no = case_no;
+    }
+    if let Some(address) = input.address {
+        if address.trim().is_empty() {
+            return Err(IpcError::new("missing_field", "地址不可為空"));
+        }
+        existing.address = address;
+    }
+    if let Some(owner_name) = input.owner_name {
+        existing.owner_name = owner_name;
+    }
+    if let Some(case_name) = input.case_name {
+        existing.case_name = case_name;
+    }
+    if let Some(building_lot_no) = input.building_lot_no {
+        existing.building_lot_no = building_lot_no;
+    }
+    if let Some(asking_price) = input.asking_price {
+        existing.asking_price = asking_price;
+    }
+    if let Some(land_registry_data) = input.land_registry_data {
+        existing.land_registry_data = land_registry_data;
+    }
+    if let Some(current_step) = input.current_step {
+        existing.current_step = current_step.max(1);
+    }
     existing.updated_at = now_secs();
 
     cases::update_case(&conn, &existing).map_err(|e| IpcError::new(&e.code, e.message))?;
@@ -180,6 +229,23 @@ pub async fn delete_case(id: String, db: State<'_, DbState>) -> Result<(), IpcEr
     let payload = format!("{{\"case_id\":\"{}\"}}", id);
     let _ = oplog::insert_log(&conn, "case_delete", Some(&payload), "ok");
     Ok(())
+}
+
+#[tauri::command]
+pub async fn export_registry_payload(args: ExportRegistryPayloadInput) -> Result<String, IpcError> {
+    if args.outputPath.trim().is_empty() {
+        return Err(IpcError::new("path_empty", "輸出路徑不可為空"));
+    }
+    let target = Path::new(&args.outputPath);
+    if target.parent().is_none() {
+        return Err(IpcError::new("path_invalid", "輸出路徑不正確"));
+    }
+    let content = serde_json::to_string_pretty(&args.payload).map_err(|error| {
+        IpcError::new("serialize_failed", format!("謄本資料序列化失敗：{error}"))
+    })?;
+    std::fs::write(target, format!("{content}\n"))
+        .map_err(|error| IpcError::new("file_io", format!("寫入謄本資料失敗：{error}")))?;
+    Ok(args.outputPath)
 }
 
 /// 標示案件為填入中（draft → keyin）。
@@ -254,6 +320,8 @@ mod tests {
             building_lot_no: None,
             asking_price: None,
             land_lots: vec!["X-1".into()],
+            land_registry_data: None,
+            current_step: 1,
         }
     }
 

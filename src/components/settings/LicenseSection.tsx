@@ -21,6 +21,12 @@ function mapActivateError(err: unknown): string {
     if (err.message === "INVALID_KEY") {
       return "序號無效";
     }
+    if (err.message === "MISSING_DEVICE") {
+      return "缺少裝置識別碼，請重新啟動 AIRE 後再試";
+    }
+    if (err.message === "ALREADY_ACTIVATED_OTHER_DEVICE") {
+      return "此序號已綁定其他裝置，請聯絡客服或申請授權轉移";
+    }
   }
   return "啟用失敗";
 }
@@ -74,7 +80,7 @@ export function LicenseSection() {
         setSerialKey(inputValue);
         toast.success("授權啟用成功");
       } else {
-        const msg = data.error === "INVALID_KEY" ? "序號無效，請確認後重試" : (data.error ?? "啟用失敗");
+        const msg = mapActivateError(new Error(data.error ?? "啟用失敗"));
         setError(msg);
         toast.error(msg);
       }

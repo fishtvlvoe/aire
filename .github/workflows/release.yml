@@ -1,9 +1,9 @@
-name: Electron Release
+name: Tauri Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   workflow_dispatch:
 
 permissions:
@@ -12,39 +12,58 @@ permissions:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            platform: mac
-          - os: windows-latest
-            platform: win
+          - platform: macos-latest
+            name: macos-aarch64
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-13
+            name: macos-x64
+            args: "--target x86_64-apple-darwin"
+          - platform: windows-latest
+            name: windows-x64
+            args: ""
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          version: 10.33.0
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: "${{ startsWith(matrix.platform, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}"
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build and upload Tauri bundles
+        uses: tauri-apps/tauri-action@v1
         env:
-          PUPPETEER_SKIP_DOWNLOAD: 'true'
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true'
-
-      - name: Build Next.js
-        run: npm run build
-
-      - name: Materialize standalone symlinks (fix pdfjs-dist packaging)
-        run: node scripts/materialize-standalone-symlinks.js
-
-      - name: Compile Electron TypeScript
-        run: npm run electron:compile
-
-      - name: Package & Publish to GitHub Releases
-        run: npx electron-builder --${{ matrix.platform }} --config electron-builder.json --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: "${{ github.ref_type == 'tag' && github.ref_name || 'aire-v__VERSION__' }}"
+          releaseName: "AIRE v__VERSION__"
+          releaseBody: "AIRE desktop app installers. Keep this release as draft until macOS and Windows UTM verification pass."
+          releaseDraft: true
+          prerelease: false
+          args: "${{ matrix.args }}"

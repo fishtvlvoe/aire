@@ -100,7 +100,7 @@ export function ConditionSurvey({ caseData, logo }: ConditionSurveyProps): React
         <Page key={`survey-${caseType}-${pageIndex}`} size="A4" style={{ padding: 24, paddingTop: 120 }} wrap>
           <PdfHeaderWithLogo logoDataUrl={typeof logo === "string" ? logo : undefined} />
           <Text style={{ fontSize: 18, color: headingColor, marginBottom: 12 }}>
-            {caseType === "land" ? "土地現況調查表" : "建物現況調查表"}（第 {pageIndex + 1} 頁）
+            {caseType === "land" ? "土地現況調查表" : "建物現況調查表"}
           </Text>
           <View
             fixed
@@ -130,7 +130,7 @@ export function ConditionSurvey({ caseData, logo }: ConditionSurveyProps): React
                 }}
               >
                 <Text style={{ width: "42%", padding: 6, fontSize: 9, color: textColor }}>{label}</Text>
-                <Text style={{ width: "18%", padding: 6, fontSize: 9, color: textColor }}>未填寫</Text>
+                <Text style={{ width: "18%", padding: 6, fontSize: 9, color: textColor }} />
                 <Text style={{ width: "40%", padding: 6, fontSize: 9, color: textColor }} />
               </View>
             ))}
@@ -141,4 +141,3 @@ export function ConditionSurvey({ caseData, logo }: ConditionSurveyProps): React
     </>
   );
 }
-

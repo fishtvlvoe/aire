@@ -40,7 +40,7 @@ vi.mock("@/components/disclosure-form-land", () => ({
   default: () => <div data-testid="mock-form-land" />,
 }));
 
-describe("KeyinSplitPage fee-stamp-tax preview", () => {
+describe("KeyinSplitPage land fee preview", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -57,7 +57,7 @@ describe("KeyinSplitPage fee-stamp-tax preview", () => {
       }),
     });
     const { KeyinSplitPage } = await import("../KeyinSplitPage");
-    render(<KeyinSplitPage caseId="test-case" propertyType="residential" />);
+    render(<KeyinSplitPage caseId="test-case" propertyType="land" />);
     await waitFor(() => {
       expect(screen.getByTestId("fee-stamp-tax").textContent).toMatch(/1800/);
     });
@@ -67,7 +67,7 @@ describe("KeyinSplitPage fee-stamp-tax preview", () => {
     const { invoke } = await import("@tauri-apps/api/core");
     (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     const { KeyinSplitPage } = await import("../KeyinSplitPage");
-    render(<KeyinSplitPage caseId="test-case" propertyType="residential" />);
+    render(<KeyinSplitPage caseId="test-case" propertyType="land" />);
     await waitFor(() => {
       expect(screen.getByText("—")).toBeTruthy();
     });

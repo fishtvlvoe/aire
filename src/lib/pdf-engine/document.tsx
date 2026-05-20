@@ -20,7 +20,6 @@ import { TaxFeeOverviewPage, LandValueTaxPage } from "@/lib/pdf-blocks/tax-fee-p
 import { SignatureBlock } from "@/lib/pdf-blocks/signature-block";
 import { LandConditionSurveyPages } from "@/lib/pdf-blocks/land-condition-survey";
 import { BuildingConditionSurveyPages } from "@/lib/pdf-blocks/building-condition-survey";
-import { LocationMapPage } from "@/lib/pdf-blocks/location-map";
 import { AerialPhotoPage } from "@/lib/pdf-blocks/aerial-photo-page";
 import { ExteriorPhotoPage } from "@/lib/pdf-blocks/exterior-photo-page";
 import FieldSketchFloorPlanPage from "@/lib/pdf-blocks/field-sketch-floor-plan-page";
@@ -129,6 +128,11 @@ export interface CaseDossierData {
     commonArea?: number;
     parkingArea?: number;
     floor?: string;
+    legalUse?: string;
+    material?: string;
+    constructionDate?: string;
+    buildingAge?: string;
+    ownershipScope?: string;
     rooms?: string;
     direction?: string;
     managementFee?: number;
@@ -493,10 +497,11 @@ function LandPages({
       <LandConditionSurveyPages surveyData={data.surveyData ?? null} />
       {/* 成交行情表 */}
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
-      {/* 生活機能 */}
-      <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
-      {/* 位置圖 */}
-      <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
+      {/* 位置圖與生活機能 */}
+      <LifeAmenitiesPage
+        nearbyAmenities={data.nearbyAmenities}
+        locationMapImage={data.locationMapImage ?? null}
+      />
       {/* 航拍位置圖 */}
       <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}
@@ -639,10 +644,11 @@ function BuildingPages({
       <BuildingConditionSurveyPages surveyData={data.surveyData ?? null} />
       {/* 成交行情表 */}
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
-      {/* 生活機能 */}
-      <LifeAmenitiesPage nearbyAmenities={data.nearbyAmenities} />
-      {/* 位置圖 */}
-      <LocationMapPage logo={data.logo} locationMapImage={data.locationMapImage ?? null} />
+      {/* 位置圖與生活機能 */}
+      <LifeAmenitiesPage
+        nearbyAmenities={data.nearbyAmenities}
+        locationMapImage={data.locationMapImage ?? null}
+      />
       {/* 航拍位置圖 */}
       <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}

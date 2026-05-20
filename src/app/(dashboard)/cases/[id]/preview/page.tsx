@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { renderDisclosureHtml } from "@/lib/pdf-engine/html-renderer";
 import {
   casesApi,
   propertyTypeLabel,
@@ -40,17 +39,18 @@ export default function CasePreviewPage() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoBytes, setLogoBytes] = useState<number[] | undefined>(undefined);
   const [caseDossierData, setCaseDossierData] = useState<CaseDossierData | undefined>(undefined);
-  const [htmlContent, setHtmlContent] = useState<string>("");
+  const [previewPdfBlob, setPreviewPdfBlob] = useState<Blob | null>(null);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  async function renderCurrentPdfBlob(dossier: CaseDossierData) {
+  async function renderCurrentPdfBlob(dossier: CaseDossierData, pdfThemeId = themeId) {
     const { initReactPdfEngine } = await import("@/lib/pdf-engine/react-pdf-init");
     initReactPdfEngine();
     const { pdf, Document } = await import("@react-pdf/renderer");
     const element = React.createElement(PdfDocument, {
       data: dossier,
-      themeId,
+      themeId: pdfThemeId,
     }) as React.ReactElement<React.ComponentProps<typeof Document>>;
     return pdf(element).toBlob();
   }
@@ -62,7 +62,7 @@ export default function CasePreviewPage() {
       const dossier = caseDossierData;
       if (!dossier) throw new Error("說明書資料尚未載入");
 
-      const blob = await renderCurrentPdfBlob(dossier);
+      const blob = previewPdfBlob ?? await renderCurrentPdfBlob(dossier);
       if (await isTauriEnv()) {
         const { save } = await import("@tauri-apps/plugin-dialog");
         const outputPath = await save({
@@ -105,6 +105,7 @@ export default function CasePreviewPage() {
 
     let cancelled = false;
     let createdLogoUrl: string | null = null;
+    let createdPreviewUrl: string | null = null;
 
     void (async () => {
       try {
@@ -141,11 +142,14 @@ export default function CasePreviewPage() {
         if (!cancelled) {
           const dossier = { ...assembled, logoBytes: resolvedLogoBytes };
           setCaseDossierData(dossier);
-          const html = renderDisclosureHtml(dossier, {
-            themeId: resolved.theme.id,
-            generatedAt: new Date().toISOString().slice(0, 10),
-          });
-          setHtmlContent(html);
+          const blob = await renderCurrentPdfBlob(dossier, resolved.theme.id);
+          createdPreviewUrl = URL.createObjectURL(blob);
+          if (cancelled) {
+            URL.revokeObjectURL(createdPreviewUrl);
+            return;
+          }
+          setPreviewPdfBlob(blob);
+          setPreviewPdfUrl(createdPreviewUrl);
         }
       } catch (err) {
         if (!cancelled) {
@@ -158,6 +162,9 @@ export default function CasePreviewPage() {
       cancelled = true;
       if (createdLogoUrl) {
         URL.revokeObjectURL(createdLogoUrl);
+      }
+      if (createdPreviewUrl) {
+        URL.revokeObjectURL(createdPreviewUrl);
       }
     };
   }, [id]);
@@ -234,7 +241,17 @@ export default function CasePreviewPage() {
         ) : null}
       </header>
 
-      <div dangerouslySetInnerHTML={{ __html: htmlContent }} style={{ background: '#f5f5f5', padding: 24, borderRadius: 8 }} />
+      <iframe
+        title="PDF 預覽"
+        style={{
+          width: "100%",
+          height: "78vh",
+          border: "1px solid #d1d5db",
+          borderRadius: 8,
+          background: "#f1f5f9",
+        }}
+        src={previewPdfUrl}
+      />
     </main>
   );
 }

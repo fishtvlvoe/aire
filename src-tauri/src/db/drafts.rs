@@ -78,6 +78,8 @@ mod tests {
             building_lot_no: None,
             asking_price: None,
             land_lots: vec!["X-1".into()],
+            land_registry_data: None,
+            current_step: 1,
         };
         insert_case(conn, &c).unwrap();
     }

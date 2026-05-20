@@ -82,7 +82,7 @@ describe("CaseWizard", () => {
       expect(screen.getByTestId("wizard-step5-props")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "1" }));
+    fireEvent.click(screen.getByRole("button", { name: "基本資料" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("wizard-step1")).toBeInTheDocument();
