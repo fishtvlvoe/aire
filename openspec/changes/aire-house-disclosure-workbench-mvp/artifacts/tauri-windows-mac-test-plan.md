@@ -14,6 +14,7 @@
 - 2026-05-21 已用 macOS 交叉編譯產出 Windows NSIS `setup.exe`；尚未在 Windows VM 安裝驗收。
 - `.github/workflows/release.yml` 仍是舊 Electron 發版流程，使用 `npm ci`、`electron:compile`、`electron-builder`，不符合目前 Tauri / pnpm 專案。
 - 2026-05-21 已將 release workflow 改為 Tauri / pnpm / GitHub Actions matrix，產物先進 draft release。
+- 2026-05-21 第一次手動觸發 GitHub Actions run `26180299101`，Windows / macOS job 在 setup 階段失敗，原因是 `tauri-apps/tauri-action@v1` 不存在；已改為 GitHub tags 中最新可用的 `tauri-apps/tauri-action@v0.6.2`。後續找時間再重跑 workflow 驗證。
 - 2026-05-21 已補 `src-tauri/tauri.conf.json` Windows installer 策略：
   - `targets` 保持 `all`，讓 Windows runner 產 `.msi` 與 NSIS `*-setup.exe`。
   - `webviewInstallMode.type = embedBootstrapper`，安裝檔增加約 1.8MB，但比純下載 bootstrapper 更穩。
@@ -35,7 +36,12 @@
   - 目標測試已通過：`life-amenities.test.tsx`、`overpass-client.test.ts`、`CaseWizardStep5.test.tsx`。
 - 2026-05-21 Windows-on-Mac 檢查結果：
   - `/Applications/UTM.app` 存在。
-  - 預設 UTM 文件位置未找到 `.utm` VM，因此目前不能直接做 8.5 到 8.7。
+  - 已下載 Microsoft 官方 Windows 11 ARM64 25H2 繁中 ISO：`/Users/fishtv/Downloads/Win11_25H2_Chinese_Traditional_Arm64_v2.iso`。
+  - ISO SHA256 已驗證：`1f6b97d3bca60a184a766ac48cfc514ecf26fb5e5556fae544b66f5593392f79`。
+  - 已建立 UTM VM：`/Users/fishtv/Library/Containers/com.utmapp.UTM/Data/Documents/Windows.utm`。
+  - VM 設定：Windows 11 ARM、8GB RAM、4 CPU、64GiB disk、WebDAV shared folder。
+  - 已建立共享資料夾：`/Users/fishtv/Downloads/AIRE-VM-Share`，內含 `AIRE_0.1.0_x64-setup.exe`。
+  - 尚未啟動 Windows installer，也尚未進 Windows 安裝流程；使用者決定找時間再測。
   - 本機有 Homebrew 與 `llvm`。
   - 使用者同意後，已安裝交叉編譯工具：
     - `makensis` v3.12

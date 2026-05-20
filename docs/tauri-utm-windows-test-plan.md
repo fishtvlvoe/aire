@@ -14,6 +14,10 @@ Windows 版要在 Windows 裡驗收。Mac 可以用 UTM 開 Windows VM 來測；
 - macOS Apple Silicon `.dmg` 已可在本機產出。
 - Windows NSIS `*-setup.exe` 已可在 Mac 透過交叉編譯產出；Windows VM 安裝驗收尚未完成。
 - Release workflow 應使用 Tauri / pnpm，不應再使用 Electron / npm / electron-builder。
+- 2026-05-21 已下載 Microsoft 官方 Windows 11 ARM64 25H2 繁中 ISO：`/Users/fishtv/Downloads/Win11_25H2_Chinese_Traditional_Arm64_v2.iso`。
+- 2026-05-21 已建立 UTM VM：`/Users/fishtv/Library/Containers/com.utmapp.UTM/Data/Documents/Windows.utm`。
+- 2026-05-21 已建立 VM 共享資料夾：`/Users/fishtv/Downloads/AIRE-VM-Share`，其中已放入 `AIRE_0.1.0_x64-setup.exe`。
+- 目前尚未啟動 Windows installer，Windows 安裝與 AIRE 實測留待之後執行。
 
 ## 需要準備的東西
 
