@@ -1,0 +1,851 @@
+# case-keyin-status Specification
+
+## Purpose
+
+TBD - created by archiving change 'case-status-expansion'. Update Purpose after archive.
+
+## Requirements
+
+### Requirement: keyin-status-lifecycle
+
+The case status lifecycle SHALL support four states: `draft` → `keyin` → `completed` → `exported`.
+
+The Rust IPC command `mark_keyin` SHALL transition a case status from `draft` to `keyin`. If the case is already in `keyin`, `mark_keyin` SHALL be idempotent and return the unchanged case. If the case is in `completed` or `exported`, `mark_keyin` SHALL return error code `invalid_status_transition`.
+
+The existing `mark_completed` command SHALL accept both `draft → completed` and `keyin → completed` transitions.
+
+The SQLite `cases` table CHECK constraint SHALL include `'keyin'` as a valid status value (migration required).
+
+##### Example: mark_keyin transitions
+
+| initial status | result |
+|----------------|--------|
+| draft | keyin (success) |
+| keyin | keyin (idempotent) |
+| completed | invalid_status_transition error |
+| exported | invalid_status_transition error |
+
+#### Scenario: mark_keyin on draft case
+
+- **GIVEN** a case with status `draft`
+- **WHEN** `mark_keyin` is called with that case's ID
+- **THEN** the case status becomes `keyin` and the updated `Case` struct is returned
+
+#### Scenario: mark_keyin idempotent on keyin case
+
+- **GIVEN** a case with status `keyin`
+- **WHEN** `mark_keyin` is called again
+- **THEN** the case is returned unchanged with status `keyin`
+
+#### Scenario: mark_keyin rejected on completed case
+
+- **GIVEN** a case with status `completed`
+- **WHEN** `mark_keyin` is called
+- **THEN** an error with code `invalid_status_transition` is returned
+
+#### Scenario: mark_completed accepts keyin status
+
+- **GIVEN** a case with status `keyin`
+- **WHEN** `mark_completed` is called
+- **THEN** the case status becomes `completed`
+
+
+<!-- @trace
+source: case-status-expansion
+updated: 2026-05-20
+code:
+  - docs/cop-scrape/05-服務說明文件/MOI_API_030高程陰影分析服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_041帳務查詢API.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_039公有土地開放資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_045三維地籍建物標示部資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_025罕用字查詢.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_001地籍圖WMS_SHP檔_.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_007活動斷層圖.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_007地號資料服務.json
+  - src/components/CaseLotInput.tsx
+  - docs/cop-scrape/01-入口資訊/qa.json
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - docs/cop-scrape/04-技術文件連結/document_links.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_016土地標示及權利範圍查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_021地籍圖重測註記查詢服務.html
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_037門牌模糊檢索建號服務.html
+  - public/pdf-fonts/NotoSansTC-Regular.otf
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_008土地標示部異動索引服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_003圖幅接合地籍圖WMS.html
+  - src-tauri/src/commands/floor_plan_rendering.rs
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_001地籍圖WFS.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_006地籍建物他項權利部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_004自來水水質水量保護區.html
+  - src-tauri/src/db/floor_plan_sketches.rs
+  - src/lib/storage/MockStorageAdapter.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_026建物標示及權利範圍查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_013公有土地開放資料WMS服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_019興建農舍註記資料服務.json
+  - src/app/api/location-map/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_008特定水土保持區範圍.html
+  - docs/cop-scrape/03-依類別分類_篩選/API/MOI_API_001地籍土地標示部資料服務.json
+  - docs/cop-scrape/03-依類別分類/WFS/WFS_all.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_032坡度分析服務.html
+  - src/components/KeyinSplitPage.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_003地籍土地他項權利部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_015建號資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_010公有土地登記資料服務.json
+  - src/components/FieldSketchFloorPlanPanel.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_031等高線分析服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_004區段徵收範圍WFS.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_043新舊地段查詢服務.json
+  - src/lib/use-draft-autosave.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_043新舊地段查詢服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_046三維地籍建號定位點資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_006地籍建物他項權利部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_035縱橫斷面分析服務.html
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_039公有土地開放資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_014公告地價與公告土地現值資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_031等高線分析服務.json
+  - src/components/StatusBadge.tsx
+  - docs/cop-scrape/06-服務說明文件Markdown/MOI_API_001地籍土地標示部資料服務.md
+  - src-tauri/migrations/009_floor_plan_sketches.sql
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_035縱橫斷面分析服務.json
+  - docs/cop-scrape/00-網站架構圖解.md
+  - docs/cop-scrape/05-服務說明文件/MOI_API_034路線剖面分析服務.html
+  - src/lib/ipc-error.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_017土地權利種類及登記事項查詢服務.json
+  - src-tauri/migrations/008_land_lots.sql
+  - src/lib/export-pdf.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_009所有權人比對服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_001地籍土地標示部資料服務.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_005都市計畫土地使用分區.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_008土地標示部異動索引服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_024地籍圖詮釋資料.json
+  - bug-report.md
+  - docs/cop-scrape/05-服務說明文件/MOI_API_036門牌查建號服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_013地段資料服務.json
+  - src-tauri/Cargo.toml
+  - docs/cop-scrape/05-服務說明文件/MOI_API_014公告地價與公告土地現值資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_012全國土地基本資料庫代碼資料服務.json
+  - src/app/api/land-api/test-connection/route.ts
+  - src/components/OwnerAuthorizationDialog.tsx
+  - docs/cop-scrape/02-服務列表/service_list.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_012以段為單位地籍圖.json
+  - docs/cop-scrape/02-服務列表/merged_services.json
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_004區段徵收範圍WFS.json
+  - src/components/settings/LandApiSection.tsx
+  - src/app/(dashboard)/settings/sync-status/page.tsx
+  - src-tauri/src/commands/mod.rs
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_002地籍圖WFS_SHP檔_.json
+  - src-tauri/src/commands/floor_plan.rs
+  - src/components/disclosure-form-residential.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/WMS_all.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_019興建農舍註記資料服務.html
+  - src/app/api/v1/licenses/activate/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_023土地位置概圖服務.html
+  - src-tauri/src/db/drafts.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_API_005地籍建物所有權部資料服務.html
+  - src/app/login/page.tsx
+  - src-tauri/src/rendering/floor_plan_renderer.rs
+  - src/lib/pdf-blocks/image-data-url.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_007活動斷層圖.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_022公告徵收註記查詢服務.html
+  - docs/cop-scrape/03-依類別分類_篩選/API/API_all.json
+  - src-tauri/src/commands/floor_plan_approval.rs
+  - src-tauri/src/paths.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_API_020土壤或地下水污染場址註記查詢服務.html
+  - docs/cop-scrape/01-入口資訊/news.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_006市地重劃與農村社區重劃範圍WFS.html
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/lib/nlsc-aerial-map.ts
+  - src/lib/storage/index.ts
+  - src-tauri/src/db/cases.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_002地籍圖WMS.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_009山坡地範圍.json
+  - src/lib/pdf-blocks/field-sketch-floor-plan-page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_036門牌查建號服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_044宗地中心點坐標資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_009山坡地範圍.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_007地號資料服務.html
+  - src/app/api/street-view/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_002地籍土地所有權部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_013地段資料服務.html
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/lib.rs
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_003圖幅接合地籍圖WMS.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_022公告徵收註記查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_026建物標示及權利範圍查詢服務.json
+  - src-tauri/migrations/007_case_status_keyin.sql
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_006市地重劃與農村社區重劃範圍WFS.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_001地籍土地標示部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_038車位查詢服務.html
+  - src/components/FloorPlanReviewPanel.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_028建物權利種類及其登記狀態查詢服務.html
+  - src/hooks/useIpcErrorToast.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_030高程陰影分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_027建物遭受放射性污染之虞註記查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_001地籍圖WMS_SHP檔_.html
+  - src/lib/mock-backend.ts
+  - docs/cop-scrape/02-服務列表/pricing.json
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_002地籍土地所有權部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_018非都市土地使用管制註記查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_005都市計畫土地使用分區.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_010國家公園區內之特別景觀區_生態保護區_史蹟保存區.json
+  - src/components/RealtorLicenseField.tsx
+  - src/components/disclosure-form-land.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_004地籍建物標示部資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_042土地遭棄置廢棄物資訊註記服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_005地籍建物所有權部資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_011新舊地建號轉換服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_041帳務查詢API.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_027建物遭受放射性污染之虞註記查詢服務.json
+  - src/lib/pdf-blocks/location-map.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_025罕用字查詢.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_002地籍圖WMS.json
+  - src/app/api/aerial-photo/route.ts
+  - src/app/(dashboard)/layout.tsx
+  - src/app/(dashboard)/cases/page.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_013公有土地開放資料WMS服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_012全國土地基本資料庫代碼資料服務.html
+  - src-tauri/src/db/mod.rs
+  - docs/cop-scrape/04-技術文件連結/document_links_selected.json
+  - src/lib/pdf-engine/document.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_042土地遭棄置廢棄物資訊註記服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_005公有土地開放資料WFS服務.html
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_033坡向分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_009所有權人比對服務.html
+  - src/lib/pdf-blocks/logo-upload.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_028建物權利種類及其登記狀態查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_045三維地籍建物標示部資料服務.json
+  - docs/cop-scrape/01-入口資訊/portal.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_044宗地中心點坐標資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_012以段為單位地籍圖.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_010公有土地登記資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_018非都市土地使用管制註記查詢服務.json
+  - docs/cop-scrape/02-服務列表/usage_stats.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_011新舊地建號轉換服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_038車位查詢服務.json
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/lib/pdf-engine/html-renderer.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_001地籍圖WFS.html
+  - docs/cop-scrape/.scrape_state.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_024地籍圖詮釋資料.html
+  - docs/cop-scrape/scrape_cop.py
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_002地籍圖WFS_SHP檔_.html
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_005公有土地開放資料WFS服務.json
+  - src/components/settings/LicenseSection.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_003圖幅接合地籍圖WFS.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_040分割合併前後地建號資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_003圖幅接合地籍圖WFS.html
+  - docs/cop-scrape/03-依類別分類/API/API_all.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_037門牌模糊檢索建號服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_015建號資料服務.json
+  - src/lib/cases-api.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_046三維地籍建號定位點資料服務.html
+  - src/lib/storage/StorageAdapter.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_020土壤或地下水污染場址註記查詢服務.json
+  - src-tauri/src/rendering/mod.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_021地籍圖重測註記查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_032坡度分析服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_034路線剖面分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_033坡向分析服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_017土地權利種類及登記事項查詢服務.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_023土地位置概圖服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_003地籍土地他項權利部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_004地籍建物標示部資料服務.html
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src-tauri/src/commands/floor_plan_extraction.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_016土地標示及權利範圍查詢服務.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_008特定水土保持區範圍.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_010國家公園區內之特別景觀區_生態保護區_史蹟保存區.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_040分割合併前後地建號資料服務.json
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_004自來水水質水量保護區.json
+tests:
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/FieldSketchFloorPlanPanel.autosave.test.tsx
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/components/__tests__/CaseLotInput.test.tsx
+  - src/components/__tests__/StatusBadge.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/components/__tests__/CaseWizard.test.tsx
+  - src/lib/pdf-engine/__tests__/floor-plan-fallback.test.ts
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/components/__tests__/KeyinSplitPage.markkeyin.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/components/__tests__/FloorPlanReviewPanel.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
+  - src/components/__tests__/FieldSketchFloorPlanPanel.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/lib/__tests__/ipc-error.test.ts
+  - src/components/__tests__/CaseWizardStep1.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/lib/pdf-blocks/__tests__/field-sketch-floor-plan-page.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+-->
+
+---
+### Requirement: keyin-auto-transition
+
+`KeyinSplitPage` SHALL call `mark_keyin` once on mount via `useEffect`. The transition is idempotent, so calling it multiple times is safe.
+
+#### Scenario: KeyinSplitPage triggers mark_keyin
+
+- **GIVEN** a case with status `draft`
+- **WHEN** the user navigates to `/cases/:id/keyin`
+- **THEN** `mark_keyin` is invoked and the case status transitions to `keyin`
+
+
+<!-- @trace
+source: case-status-expansion
+updated: 2026-05-20
+code:
+  - docs/cop-scrape/05-服務說明文件/MOI_API_030高程陰影分析服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_041帳務查詢API.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_039公有土地開放資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_045三維地籍建物標示部資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_025罕用字查詢.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_001地籍圖WMS_SHP檔_.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_007活動斷層圖.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_007地號資料服務.json
+  - src/components/CaseLotInput.tsx
+  - docs/cop-scrape/01-入口資訊/qa.json
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - docs/cop-scrape/04-技術文件連結/document_links.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_016土地標示及權利範圍查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_021地籍圖重測註記查詢服務.html
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_037門牌模糊檢索建號服務.html
+  - public/pdf-fonts/NotoSansTC-Regular.otf
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_008土地標示部異動索引服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_003圖幅接合地籍圖WMS.html
+  - src-tauri/src/commands/floor_plan_rendering.rs
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_001地籍圖WFS.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_006地籍建物他項權利部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_004自來水水質水量保護區.html
+  - src-tauri/src/db/floor_plan_sketches.rs
+  - src/lib/storage/MockStorageAdapter.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_026建物標示及權利範圍查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_013公有土地開放資料WMS服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_019興建農舍註記資料服務.json
+  - src/app/api/location-map/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_008特定水土保持區範圍.html
+  - docs/cop-scrape/03-依類別分類_篩選/API/MOI_API_001地籍土地標示部資料服務.json
+  - docs/cop-scrape/03-依類別分類/WFS/WFS_all.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_032坡度分析服務.html
+  - src/components/KeyinSplitPage.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_003地籍土地他項權利部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_015建號資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_010公有土地登記資料服務.json
+  - src/components/FieldSketchFloorPlanPanel.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_031等高線分析服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_004區段徵收範圍WFS.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_043新舊地段查詢服務.json
+  - src/lib/use-draft-autosave.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_043新舊地段查詢服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_046三維地籍建號定位點資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_006地籍建物他項權利部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_035縱橫斷面分析服務.html
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_039公有土地開放資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_014公告地價與公告土地現值資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_031等高線分析服務.json
+  - src/components/StatusBadge.tsx
+  - docs/cop-scrape/06-服務說明文件Markdown/MOI_API_001地籍土地標示部資料服務.md
+  - src-tauri/migrations/009_floor_plan_sketches.sql
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_035縱橫斷面分析服務.json
+  - docs/cop-scrape/00-網站架構圖解.md
+  - docs/cop-scrape/05-服務說明文件/MOI_API_034路線剖面分析服務.html
+  - src/lib/ipc-error.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_017土地權利種類及登記事項查詢服務.json
+  - src-tauri/migrations/008_land_lots.sql
+  - src/lib/export-pdf.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_009所有權人比對服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_001地籍土地標示部資料服務.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_005都市計畫土地使用分區.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_008土地標示部異動索引服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_024地籍圖詮釋資料.json
+  - bug-report.md
+  - docs/cop-scrape/05-服務說明文件/MOI_API_036門牌查建號服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_013地段資料服務.json
+  - src-tauri/Cargo.toml
+  - docs/cop-scrape/05-服務說明文件/MOI_API_014公告地價與公告土地現值資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_012全國土地基本資料庫代碼資料服務.json
+  - src/app/api/land-api/test-connection/route.ts
+  - src/components/OwnerAuthorizationDialog.tsx
+  - docs/cop-scrape/02-服務列表/service_list.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_012以段為單位地籍圖.json
+  - docs/cop-scrape/02-服務列表/merged_services.json
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_004區段徵收範圍WFS.json
+  - src/components/settings/LandApiSection.tsx
+  - src/app/(dashboard)/settings/sync-status/page.tsx
+  - src-tauri/src/commands/mod.rs
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_002地籍圖WFS_SHP檔_.json
+  - src-tauri/src/commands/floor_plan.rs
+  - src/components/disclosure-form-residential.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/WMS_all.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_019興建農舍註記資料服務.html
+  - src/app/api/v1/licenses/activate/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_023土地位置概圖服務.html
+  - src-tauri/src/db/drafts.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_API_005地籍建物所有權部資料服務.html
+  - src/app/login/page.tsx
+  - src-tauri/src/rendering/floor_plan_renderer.rs
+  - src/lib/pdf-blocks/image-data-url.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_007活動斷層圖.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_022公告徵收註記查詢服務.html
+  - docs/cop-scrape/03-依類別分類_篩選/API/API_all.json
+  - src-tauri/src/commands/floor_plan_approval.rs
+  - src-tauri/src/paths.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_API_020土壤或地下水污染場址註記查詢服務.html
+  - docs/cop-scrape/01-入口資訊/news.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_006市地重劃與農村社區重劃範圍WFS.html
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/lib/nlsc-aerial-map.ts
+  - src/lib/storage/index.ts
+  - src-tauri/src/db/cases.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_002地籍圖WMS.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_009山坡地範圍.json
+  - src/lib/pdf-blocks/field-sketch-floor-plan-page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_036門牌查建號服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_044宗地中心點坐標資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_009山坡地範圍.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_007地號資料服務.html
+  - src/app/api/street-view/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_002地籍土地所有權部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_013地段資料服務.html
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/lib.rs
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_003圖幅接合地籍圖WMS.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_022公告徵收註記查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_026建物標示及權利範圍查詢服務.json
+  - src-tauri/migrations/007_case_status_keyin.sql
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_006市地重劃與農村社區重劃範圍WFS.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_001地籍土地標示部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_038車位查詢服務.html
+  - src/components/FloorPlanReviewPanel.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_028建物權利種類及其登記狀態查詢服務.html
+  - src/hooks/useIpcErrorToast.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_030高程陰影分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_027建物遭受放射性污染之虞註記查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_001地籍圖WMS_SHP檔_.html
+  - src/lib/mock-backend.ts
+  - docs/cop-scrape/02-服務列表/pricing.json
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_002地籍土地所有權部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_018非都市土地使用管制註記查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_005都市計畫土地使用分區.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_010國家公園區內之特別景觀區_生態保護區_史蹟保存區.json
+  - src/components/RealtorLicenseField.tsx
+  - src/components/disclosure-form-land.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_004地籍建物標示部資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_042土地遭棄置廢棄物資訊註記服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_005地籍建物所有權部資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_011新舊地建號轉換服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_041帳務查詢API.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_027建物遭受放射性污染之虞註記查詢服務.json
+  - src/lib/pdf-blocks/location-map.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_025罕用字查詢.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_002地籍圖WMS.json
+  - src/app/api/aerial-photo/route.ts
+  - src/app/(dashboard)/layout.tsx
+  - src/app/(dashboard)/cases/page.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_013公有土地開放資料WMS服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_012全國土地基本資料庫代碼資料服務.html
+  - src-tauri/src/db/mod.rs
+  - docs/cop-scrape/04-技術文件連結/document_links_selected.json
+  - src/lib/pdf-engine/document.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_042土地遭棄置廢棄物資訊註記服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_005公有土地開放資料WFS服務.html
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_033坡向分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_009所有權人比對服務.html
+  - src/lib/pdf-blocks/logo-upload.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_028建物權利種類及其登記狀態查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_045三維地籍建物標示部資料服務.json
+  - docs/cop-scrape/01-入口資訊/portal.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_044宗地中心點坐標資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_012以段為單位地籍圖.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_010公有土地登記資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_018非都市土地使用管制註記查詢服務.json
+  - docs/cop-scrape/02-服務列表/usage_stats.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_011新舊地建號轉換服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_038車位查詢服務.json
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/lib/pdf-engine/html-renderer.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_001地籍圖WFS.html
+  - docs/cop-scrape/.scrape_state.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_024地籍圖詮釋資料.html
+  - docs/cop-scrape/scrape_cop.py
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_002地籍圖WFS_SHP檔_.html
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_005公有土地開放資料WFS服務.json
+  - src/components/settings/LicenseSection.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_003圖幅接合地籍圖WFS.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_040分割合併前後地建號資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_003圖幅接合地籍圖WFS.html
+  - docs/cop-scrape/03-依類別分類/API/API_all.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_037門牌模糊檢索建號服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_015建號資料服務.json
+  - src/lib/cases-api.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_046三維地籍建號定位點資料服務.html
+  - src/lib/storage/StorageAdapter.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_020土壤或地下水污染場址註記查詢服務.json
+  - src-tauri/src/rendering/mod.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_021地籍圖重測註記查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_032坡度分析服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_034路線剖面分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_033坡向分析服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_017土地權利種類及登記事項查詢服務.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_023土地位置概圖服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_003地籍土地他項權利部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_004地籍建物標示部資料服務.html
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src-tauri/src/commands/floor_plan_extraction.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_016土地標示及權利範圍查詢服務.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_008特定水土保持區範圍.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_010國家公園區內之特別景觀區_生態保護區_史蹟保存區.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_040分割合併前後地建號資料服務.json
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_004自來水水質水量保護區.json
+tests:
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/FieldSketchFloorPlanPanel.autosave.test.tsx
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/components/__tests__/CaseLotInput.test.tsx
+  - src/components/__tests__/StatusBadge.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/components/__tests__/CaseWizard.test.tsx
+  - src/lib/pdf-engine/__tests__/floor-plan-fallback.test.ts
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/components/__tests__/KeyinSplitPage.markkeyin.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/components/__tests__/FloorPlanReviewPanel.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
+  - src/components/__tests__/FieldSketchFloorPlanPanel.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/lib/__tests__/ipc-error.test.ts
+  - src/components/__tests__/CaseWizardStep1.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/lib/pdf-blocks/__tests__/field-sketch-floor-plan-page.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+-->
+
+---
+### Requirement: keyin-status-badge
+
+The case list `StatusBadge` component SHALL display distinct badges for all four statuses.
+
+##### Example: Status badge by status value
+
+| status | display text | data-testid |
+|--------|------|-------------|
+| draft | 草稿 | status-badge-draft |
+| keyin | 填入中 | status-badge-keyin |
+| completed | 完成 | status-badge-completed |
+| exported | 已匯出 | status-badge-exported |
+
+#### Scenario: Distinct exported badge
+
+- **GIVEN** a case with status `exported`
+- **WHEN** `StatusBadge` renders
+- **THEN** `data-testid="status-badge-exported"` shows text "已匯出" (not "完成")
+
+<!-- @trace
+source: case-status-expansion
+updated: 2026-05-20
+code:
+  - docs/cop-scrape/05-服務說明文件/MOI_API_030高程陰影分析服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_041帳務查詢API.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_039公有土地開放資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_045三維地籍建物標示部資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_025罕用字查詢.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_001地籍圖WMS_SHP檔_.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_007活動斷層圖.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_007地號資料服務.json
+  - src/components/CaseLotInput.tsx
+  - docs/cop-scrape/01-入口資訊/qa.json
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - docs/cop-scrape/04-技術文件連結/document_links.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_016土地標示及權利範圍查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_021地籍圖重測註記查詢服務.html
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_037門牌模糊檢索建號服務.html
+  - public/pdf-fonts/NotoSansTC-Regular.otf
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_008土地標示部異動索引服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_003圖幅接合地籍圖WMS.html
+  - src-tauri/src/commands/floor_plan_rendering.rs
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_001地籍圖WFS.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_006地籍建物他項權利部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_004自來水水質水量保護區.html
+  - src-tauri/src/db/floor_plan_sketches.rs
+  - src/lib/storage/MockStorageAdapter.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_026建物標示及權利範圍查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_013公有土地開放資料WMS服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_019興建農舍註記資料服務.json
+  - src/app/api/location-map/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_008特定水土保持區範圍.html
+  - docs/cop-scrape/03-依類別分類_篩選/API/MOI_API_001地籍土地標示部資料服務.json
+  - docs/cop-scrape/03-依類別分類/WFS/WFS_all.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_032坡度分析服務.html
+  - src/components/KeyinSplitPage.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_003地籍土地他項權利部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_015建號資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_010公有土地登記資料服務.json
+  - src/components/FieldSketchFloorPlanPanel.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_031等高線分析服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_004區段徵收範圍WFS.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_043新舊地段查詢服務.json
+  - src/lib/use-draft-autosave.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_043新舊地段查詢服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_046三維地籍建號定位點資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_006地籍建物他項權利部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_035縱橫斷面分析服務.html
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_039公有土地開放資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_014公告地價與公告土地現值資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_031等高線分析服務.json
+  - src/components/StatusBadge.tsx
+  - docs/cop-scrape/06-服務說明文件Markdown/MOI_API_001地籍土地標示部資料服務.md
+  - src-tauri/migrations/009_floor_plan_sketches.sql
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_035縱橫斷面分析服務.json
+  - docs/cop-scrape/00-網站架構圖解.md
+  - docs/cop-scrape/05-服務說明文件/MOI_API_034路線剖面分析服務.html
+  - src/lib/ipc-error.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_017土地權利種類及登記事項查詢服務.json
+  - src-tauri/migrations/008_land_lots.sql
+  - src/lib/export-pdf.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_009所有權人比對服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_001地籍土地標示部資料服務.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_005都市計畫土地使用分區.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_008土地標示部異動索引服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_024地籍圖詮釋資料.json
+  - bug-report.md
+  - docs/cop-scrape/05-服務說明文件/MOI_API_036門牌查建號服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_013地段資料服務.json
+  - src-tauri/Cargo.toml
+  - docs/cop-scrape/05-服務說明文件/MOI_API_014公告地價與公告土地現值資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_012全國土地基本資料庫代碼資料服務.json
+  - src/app/api/land-api/test-connection/route.ts
+  - src/components/OwnerAuthorizationDialog.tsx
+  - docs/cop-scrape/02-服務列表/service_list.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_012以段為單位地籍圖.json
+  - docs/cop-scrape/02-服務列表/merged_services.json
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_004區段徵收範圍WFS.json
+  - src/components/settings/LandApiSection.tsx
+  - src/app/(dashboard)/settings/sync-status/page.tsx
+  - src-tauri/src/commands/mod.rs
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_002地籍圖WFS_SHP檔_.json
+  - src-tauri/src/commands/floor_plan.rs
+  - src/components/disclosure-form-residential.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/WMS_all.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_019興建農舍註記資料服務.html
+  - src/app/api/v1/licenses/activate/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_023土地位置概圖服務.html
+  - src-tauri/src/db/drafts.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_API_005地籍建物所有權部資料服務.html
+  - src/app/login/page.tsx
+  - src-tauri/src/rendering/floor_plan_renderer.rs
+  - src/lib/pdf-blocks/image-data-url.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_007活動斷層圖.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_022公告徵收註記查詢服務.html
+  - docs/cop-scrape/03-依類別分類_篩選/API/API_all.json
+  - src-tauri/src/commands/floor_plan_approval.rs
+  - src-tauri/src/paths.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_API_020土壤或地下水污染場址註記查詢服務.html
+  - docs/cop-scrape/01-入口資訊/news.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_006市地重劃與農村社區重劃範圍WFS.html
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/lib/nlsc-aerial-map.ts
+  - src/lib/storage/index.ts
+  - src-tauri/src/db/cases.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_002地籍圖WMS.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_009山坡地範圍.json
+  - src/lib/pdf-blocks/field-sketch-floor-plan-page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_036門牌查建號服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_044宗地中心點坐標資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_009山坡地範圍.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_007地號資料服務.html
+  - src/app/api/street-view/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_002地籍土地所有權部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_013地段資料服務.html
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src-tauri/src/commands/cases.rs
+  - src-tauri/src/lib.rs
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_003圖幅接合地籍圖WMS.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_022公告徵收註記查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_026建物標示及權利範圍查詢服務.json
+  - src-tauri/migrations/007_case_status_keyin.sql
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_006市地重劃與農村社區重劃範圍WFS.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_001地籍土地標示部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_038車位查詢服務.html
+  - src/components/FloorPlanReviewPanel.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_028建物權利種類及其登記狀態查詢服務.html
+  - src/hooks/useIpcErrorToast.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_030高程陰影分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_027建物遭受放射性污染之虞註記查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_001地籍圖WMS_SHP檔_.html
+  - src/lib/mock-backend.ts
+  - docs/cop-scrape/02-服務列表/pricing.json
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_002地籍土地所有權部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_018非都市土地使用管制註記查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_005都市計畫土地使用分區.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_010國家公園區內之特別景觀區_生態保護區_史蹟保存區.json
+  - src/components/RealtorLicenseField.tsx
+  - src/components/disclosure-form-land.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_004地籍建物標示部資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_042土地遭棄置廢棄物資訊註記服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_005地籍建物所有權部資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_011新舊地建號轉換服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_041帳務查詢API.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_027建物遭受放射性污染之虞註記查詢服務.json
+  - src/lib/pdf-blocks/location-map.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_025罕用字查詢.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_002地籍圖WMS.json
+  - src/app/api/aerial-photo/route.ts
+  - src/app/(dashboard)/layout.tsx
+  - src/app/(dashboard)/cases/page.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_013公有土地開放資料WMS服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_012全國土地基本資料庫代碼資料服務.html
+  - src-tauri/src/db/mod.rs
+  - docs/cop-scrape/04-技術文件連結/document_links_selected.json
+  - src/lib/pdf-engine/document.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_042土地遭棄置廢棄物資訊註記服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_005公有土地開放資料WFS服務.html
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_033坡向分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_009所有權人比對服務.html
+  - src/lib/pdf-blocks/logo-upload.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_028建物權利種類及其登記狀態查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_045三維地籍建物標示部資料服務.json
+  - docs/cop-scrape/01-入口資訊/portal.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_044宗地中心點坐標資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_012以段為單位地籍圖.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_010公有土地登記資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_018非都市土地使用管制註記查詢服務.json
+  - docs/cop-scrape/02-服務列表/usage_stats.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_011新舊地建號轉換服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_038車位查詢服務.json
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/lib/pdf-engine/html-renderer.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_001地籍圖WFS.html
+  - docs/cop-scrape/.scrape_state.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_024地籍圖詮釋資料.html
+  - docs/cop-scrape/scrape_cop.py
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_002地籍圖WFS_SHP檔_.html
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_005公有土地開放資料WFS服務.json
+  - src/components/settings/LicenseSection.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_003圖幅接合地籍圖WFS.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_040分割合併前後地建號資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_003圖幅接合地籍圖WFS.html
+  - docs/cop-scrape/03-依類別分類/API/API_all.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_037門牌模糊檢索建號服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_015建號資料服務.json
+  - src/lib/cases-api.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_046三維地籍建號定位點資料服務.html
+  - src/lib/storage/StorageAdapter.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_020土壤或地下水污染場址註記查詢服務.json
+  - src-tauri/src/rendering/mod.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_021地籍圖重測註記查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_032坡度分析服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_034路線剖面分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_033坡向分析服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_017土地權利種類及登記事項查詢服務.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_023土地位置概圖服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_003地籍土地他項權利部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_004地籍建物標示部資料服務.html
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src-tauri/src/commands/floor_plan_extraction.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_016土地標示及權利範圍查詢服務.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_008特定水土保持區範圍.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_010國家公園區內之特別景觀區_生態保護區_史蹟保存區.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_040分割合併前後地建號資料服務.json
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_004自來水水質水量保護區.json
+tests:
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/FieldSketchFloorPlanPanel.autosave.test.tsx
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/components/__tests__/CaseLotInput.test.tsx
+  - src/components/__tests__/StatusBadge.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/components/__tests__/CaseWizard.test.tsx
+  - src/lib/pdf-engine/__tests__/floor-plan-fallback.test.ts
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/components/__tests__/KeyinSplitPage.markkeyin.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/components/__tests__/FloorPlanReviewPanel.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
+  - src/components/__tests__/FieldSketchFloorPlanPanel.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/lib/__tests__/ipc-error.test.ts
+  - src/components/__tests__/CaseWizardStep1.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/lib/pdf-blocks/__tests__/field-sketch-floor-plan-page.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+-->

@@ -898,3 +898,178 @@ tests:
   - src/components/__tests__/Stepper.test.tsx
   - e2e/listing-ux.spec.ts
 -->
+
+---
+### Requirement: Key-in autosave writes to persistent storage
+
+The Key-in page autosave feature SHALL write field values to `StorageAdapter.saveKeyinData(caseId, data)` whenever the debounced autosave triggers. The autosave indicator SHALL update to show "已於 HH:mm 儲存" only AFTER `saveKeyinData` resolves successfully. The indicator SHALL NOT show a saved timestamp when no actual write has occurred. If `saveKeyinData` rejects, the indicator SHALL show "自動儲存失敗".
+
+In development (browser), `MockStorageAdapter.saveKeyinData` SHALL write to `localStorage['aire-mock-store'].keyin_data[caseId]`. In production (Tauri), `TauriStorageAdapter.saveKeyinData` SHALL write to the SQLite case row.
+
+#### Scenario: Autosave writes to mock store
+
+- **WHEN** user types in a Key-in page field and the debounce timer elapses
+- **THEN** `StorageAdapter.saveKeyinData(caseId, { [fieldName]: value, savedAt: <ISO timestamp> })` SHALL be called
+- **THEN** `localStorage['aire-mock-store'].keyin_data[caseId]` SHALL contain the saved field value (in dev)
+
+#### Scenario: Autosave indicator reflects actual write
+
+- **WHEN** `StorageAdapter.saveKeyinData` resolves
+- **THEN** the indicator shows "已於 HH:mm 儲存" with the current time
+- **WHEN** `StorageAdapter.saveKeyinData` is never called (no user input)
+- **THEN** the indicator SHALL NOT show any saved timestamp
+
+#### Scenario: Fields restored on page reload
+
+- **WHEN** user has autosaved data in a Key-in field and reloads the page
+- **THEN** `StorageAdapter.getKeyinData(caseId)` is called on mount
+- **THEN** each field that has a saved value SHALL be pre-populated with that value
+
+
+<!-- @trace
+source: fix-qa-bugs
+updated: 2026-05-20
+code:
+  - src/components/KeyinSplitPage.tsx
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/lib/storage/StorageAdapter.ts
+  - src/app/api/land-api/test-connection/route.ts
+  - src/lib/storage/index.ts
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-engine/html-renderer.tsx
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/api/location-map/route.ts
+  - src/lib/pdf-blocks/location-map.tsx
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/app/api/aerial-photo/route.ts
+  - src/lib/use-draft-autosave.ts
+  - src/app/api/street-view/route.ts
+  - src/app/login/page.tsx
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - src/components/settings/LicenseSection.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/storage/MockStorageAdapter.ts
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src/lib/nlsc-aerial-map.ts
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - src/lib/pdf-blocks/image-data-url.ts
+  - src/app/api/v1/licenses/activate/route.ts
+  - src/components/settings/LandApiSection.tsx
+  - src/lib/pdf-engine/document.tsx
+  - public/pdf-fonts/NotoSansTC-Regular.otf
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src/app/(dashboard)/layout.tsx
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+tests:
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
+-->
+
+---
+### Requirement: Draft restore toast only when draft exists
+
+The system SHALL display the "已還原上次未儲存的草稿" toast on page load ONLY when `StorageAdapter.getKeyinData(caseId)` returns a non-null object with at least one field value. The system SHALL NOT display the toast when `getKeyinData` returns null or an empty object.
+
+#### Scenario: No draft — no restore toast
+
+- **WHEN** user opens a Key-in page for a case with no previously saved keyin data
+- **THEN** `StorageAdapter.getKeyinData(caseId)` returns null
+- **THEN** the "已還原上次未儲存的草稿" toast SHALL NOT appear
+
+#### Scenario: Draft exists — restore toast appears
+
+- **WHEN** user opens a Key-in page for a case with previously autosaved data
+- **THEN** `StorageAdapter.getKeyinData(caseId)` returns a non-null KeyinData object
+- **THEN** the "已還原上次未儲存的草稿" toast SHALL appear once on mount
+
+##### Example: Toast suppression when no data
+
+- **GIVEN** `aire-mock-store` has no `keyin_data` key or `keyin_data[caseId]` is null
+- **WHEN** Key-in page loads
+- **THEN** no "已還原上次未儲存的草稿" toast appears
+- **THEN** no autosave indicator shows a saved timestamp
+
+<!-- @trace
+source: fix-qa-bugs
+updated: 2026-05-20
+code:
+  - src/components/KeyinSplitPage.tsx
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/lib/storage/StorageAdapter.ts
+  - src/app/api/land-api/test-connection/route.ts
+  - src/lib/storage/index.ts
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-engine/html-renderer.tsx
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/api/location-map/route.ts
+  - src/lib/pdf-blocks/location-map.tsx
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/app/api/aerial-photo/route.ts
+  - src/lib/use-draft-autosave.ts
+  - src/app/api/street-view/route.ts
+  - src/app/login/page.tsx
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - src/components/settings/LicenseSection.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/storage/MockStorageAdapter.ts
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src/lib/nlsc-aerial-map.ts
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - src/lib/pdf-blocks/image-data-url.ts
+  - src/app/api/v1/licenses/activate/route.ts
+  - src/components/settings/LandApiSection.tsx
+  - src/lib/pdf-engine/document.tsx
+  - public/pdf-fonts/NotoSansTC-Regular.otf
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src/app/(dashboard)/layout.tsx
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+tests:
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
+-->

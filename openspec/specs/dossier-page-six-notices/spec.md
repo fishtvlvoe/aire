@@ -1,68 +1,31 @@
-# location-map-api Specification
+# dossier-page-six-notices Specification
 
 ## Purpose
 
-TBD - created by archiving change 'disclosure-smart-draft'. Update Purpose after archive.
+TBD - created by archiving change 'dossier-missing-pages'. Update Purpose after archive.
 
 ## Requirements
 
-### Requirement: Fetch static location map via Tauri IPC
+### Requirement: Page 6 renders six fixed legal notices
 
-The system SHALL provide a TypeScript function fetchStaticMap that generates a PNG image by downloading OpenStreetMap tiles from tile.openstreetmap.org at zoom level 16, compositing them into a single image, and adding a red circle marker at the property coordinate. No API key required. The function SHALL accept lat, lng, zoom (default 16), and size (width x height in pixels, default 600x400). The function SHALL return a Promise resolving to Uint8Array of PNG bytes. When the HTTP request to tile.openstreetmap.org fails or times out (30 second timeout), the function SHALL return an empty Uint8Array and log the error via console.warn. When lat or lng is outside valid range (-90 to 90 for lat, -180 to 180 for lng), the function SHALL return an empty Uint8Array and log a validation error.
+The system SHALL render Page 6 of the disclosure document as a static component containing six fixed legal notice items with no runtime dependencies on case data or user input.
 
-#### Scenario: Successful map generation
+#### Scenario: All six notices present
 
-- **WHEN** fetchStaticMap is called with lat 25.033 and lng 121.565 and zoom 16 and width 600 and height 400
-- **THEN** the function SHALL return a Uint8Array of PNG bytes with length greater than 1000
+- **GIVEN** any case (residential or land)
+- **WHEN** `DossierPage6Notices` is rendered
+- **THEN** all six notice items appear with `data-notice-index` attributes 1 through 6:
+  1. 平均地權條例第47條 — 買賣雙方須申報成交資訊，委任地政士代理申報
+  2. 房地合一稅 — 稅率依持有年限（≤2年45%、2-5年35%、5-10年20%、≥10年15%），過戶後30日內申報
+  3. 農地使用限制 — 農地承購須符合資格，由買方自行確認
+  4. 建物使用用途 — 須與登記用途相符，違規由買方負責
+  5. 重購退稅 — 符合條件可申請，不保證核准
+  6. 自用增值稅優惠稅率 — 須向稅捐稽徵處確認資格
 
-#### Scenario: Network error returns empty array
+#### Scenario: Component renders without case data
 
-- **WHEN** the HTTP request to tile.openstreetmap.org fails or times out after 30 seconds
-- **THEN** the function SHALL return an empty Uint8Array and log the error via console.warn
-
-#### Scenario: Invalid coordinates
-
-- **WHEN** lat is 999 or lng is 999
-- **THEN** the function SHALL return an empty Uint8Array and log a validation error via console.warn
-
----
-### Requirement: OSM attribution
-
-The generated map image SHALL include the text OpenStreetMap contributors rendered at the bottom-right corner of the image.
-
-#### Scenario: Attribution present in output
-
-- **WHEN** a map image is successfully generated
-- **THEN** the PNG image SHALL contain attribution text at the bottom-right corner
-
----
-### Requirement: location-map-api integrates Nominatim geocoding and Overpass facility queries
-
-The system SHALL provide `src/lib/map-api.ts` with two exported async functions: `geocodeAddress` (calls OSM Nominatim) and `fetchAmenities` (calls Overpass API), with structured error types and no API key required.
-
-#### Scenario: geocodeAddress returns coordinates for valid Taiwan address
-
-- **GIVEN** address = "台北市大安區和平東路一段100號"
-- **WHEN** `geocodeAddress` is called
-- **THEN** returns `{lat, lng}` where lat ≈ 25.02 (±0.5) and lng ≈ 121.54 (±0.5)
-
-#### Scenario: geocodeAddress throws MapGeocodingError for empty address
-
-- **GIVEN** address = "" (empty string)
-- **WHEN** `geocodeAddress` is called
-- **THEN** throws `MapGeocodingError` with a non-empty `message` field
-
-#### Scenario: fetchAmenities returns typed Amenity array
-
-- **GIVEN** lat=25.02, lng=121.54, radiusM=1000
-- **WHEN** `fetchAmenities` is called with mocked Overpass response
-- **THEN** returns an array of `Amenity` objects each with `{id, type, name, lat, lng}` fields where `type` is one of "school" | "hospital" | "transit" | "market" | "other"
-
-#### Scenario: fetchAmenities throws MapAmenitiesError on network failure
-
-- **GIVEN** fetch throws a network error
-- **WHEN** `fetchAmenities` is called
-- **THEN** throws `MapAmenitiesError` with a non-empty `message`
+- **WHEN** `DossierPage6Notices` is rendered with no props
+- **THEN** the component renders successfully without throwing errors and all six notices are visible
 
 <!-- @trace
 source: dossier-missing-pages

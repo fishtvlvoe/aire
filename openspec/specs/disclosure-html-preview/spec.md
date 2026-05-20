@@ -6,61 +6,300 @@ TBD - created by archiving change 'disclosure-preview'. Update Purpose after arc
 
 ## Requirements
 
-### Requirement: System renders disclosure document as HTML preview with template background
+### Requirement: HTML preview is embedded in the keyin split-page right panel
 
-The system SHALL render the disclosure document as an HTML page with the customer's template background image as the background layer and listing field data overlaid as positioned text elements. The preview page is accessible from the listing documents page via a preview button.
+The system SHALL render the HTML disclosure preview as a React component (`DisclosureHtmlPreview`) embedded in the right panel of the `/cases/[id]/keyin` page. The preview SHALL re-render reactively whenever the left panel form state changes, without navigating to a separate preview route.
 
-#### Scenario: User clicks preview button on listing documents page
+#### Scenario: Preview updates on field change
 
-- **WHEN** user clicks the "Preview" button for a disclosure document on /listings/[id]/documents
-- **THEN** the system navigates to /listings/[id]/documents/preview, which displays the disclosure document rendered over the template background
+- **WHEN** user edits a field in the left panel of the keyin page
+- **THEN** the `DisclosureHtmlPreview` component in the right panel re-renders within 100ms, displaying the updated value in the correct position within the disclosure document layout
 
-#### Scenario: Preview page renders with background image
+#### Scenario: Preview is not a standalone page
 
-- **WHEN** the preview page loads and a cover background image exists in feature_flags
-- **THEN** the cover page section displays the background image at full width within an A4-ratio container (794x1123px at 96dpi), and listing field values are positioned over the background using CSS absolute positioning based on the field layout definition
-
-**Example:**
-
-| Background exists | Render behavior |
-|-------------------|----------------|
-| doc_bg_cover has URL | Cover page shows background image with fields overlaid |
-| doc_bg_cover is empty | Cover page shows white background with fields overlaid |
-| doc_bg_content has URL | Content page shows background image with fields overlaid |
-
-#### Scenario: Preview page renders listing data in fields
-
-- **WHEN** the preview page loads for a listing with id=42
-- **THEN** the system fetches listing data via GET /api/documents/disclosure-preview?listingId=42 and populates each field position with the corresponding listing value (e.g., listing.title in the object-name field, listing.address in the address field)
-
-#### Scenario: Preview page is responsive
-
-- **WHEN** the preview page is viewed on a screen narrower than 794px
-- **THEN** the A4 container scales down using CSS transform: scale() to fit the viewport width while maintaining the A4 aspect ratio
-
-#### Scenario: Preview API returns field data and background URLs
-
-- **WHEN** GET /api/documents/disclosure-preview?listingId=42 is called
-- **THEN** the API returns JSON with fields array (each containing fieldKey, label, value, and position data) and backgrounds object (cover and content URLs from feature_flags)
+- **WHEN** the user is on the keyin page
+- **THEN** the disclosure HTML preview SHALL be a React component rendered within the keyin page layout, NOT accessible via a separate `/documents/preview` navigation route during the keyin session
 
 <!-- @trace
-source: disclosure-preview
-updated: 2026-05-09
+source: keyin-page-redesign
+updated: 2026-05-20
 code:
-  - src/app/api/documents/disclosure-preview/route.ts
-  - src/components/DisclosurePreview.tsx
-  - playwright.config.ts
-  - src/app/api/admin/templates/background/route.ts
-  - src/app/listings/[id]/documents/page.tsx
-  - src/app/admin/(dashboard)/templates/page.tsx
-  - src/lib/branding/field-layouts.ts
-  - src/app/api/documents/disclosure-preview/save/route.ts
-  - src/components/DisclosureFieldOverlay.tsx
-  - src/app/listings/[id]/documents/preview/page.tsx
-  - src/app/api/admin/templates/route.ts
-  - src/lib/db/schema.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_042土地遭棄置廢棄物資訊註記服務.html
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_001地籍土地標示部資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_012全國土地基本資料庫代碼資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_003地籍土地他項權利部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_018非都市土地使用管制註記查詢服務.html
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_004區段徵收範圍WFS.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_002地籍圖WFS_SHP檔_.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_033坡向分析服務.html
+  - src/lib/nlsc-aerial-map.ts
+  - src-tauri/src/db/mod.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_API_020土壤或地下水污染場址註記查詢服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_013地段資料服務.json
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_040分割合併前後地建號資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_027建物遭受放射性污染之虞註記查詢服務.json
+  - src/components/case-wizard/CaseWizard.tsx
+  - docs/cop-scrape/03-依類別分類_篩選/API/API_all.json
+  - src-tauri/src/commands/cases.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_016土地標示及權利範圍查詢服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_022公告徵收註記查詢服務.html
+  - src/lib/storage/MockStorageAdapter.ts
+  - src-tauri/migrations/009_floor_plan_sketches.sql
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_010國家公園區內之特別景觀區_生態保護區_史蹟保存區.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_003地籍土地他項權利部資料服務.json
+  - src/lib/mock-backend.ts
+  - docs/cop-scrape/03-依類別分類_篩選/API/MOI_API_001地籍土地標示部資料服務.json
+  - docs/map-api-reference.md
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_035縱橫斷面分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_004區段徵收範圍WFS.html
+  - src-tauri/src/db/drafts.rs
+  - docs/cop-scrape/05-服務說明文件/MOI_API_017土地權利種類及登記事項查詢服務.html
+  - docs/cop-scrape/02-服務列表/pricing.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_024地籍圖詮釋資料.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_003圖幅接合地籍圖WFS.html
+  - src/app/(dashboard)/cases/page.tsx
+  - src/lib/pdf-themes/registry.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_013公有土地開放資料WMS服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_007活動斷層圖.html
+  - src/lib/pdf-engine/html-renderer.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_001地籍圖WMS_SHP檔_.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_005公有土地開放資料WFS服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_019興建農舍註記資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_046三維地籍建號定位點資料服務.html
+  - src-tauri/src/commands/floor_plan_approval.rs
+  - src/app/(dashboard)/settings/sync-status/page.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_010國家公園區內之特別景觀區_生態保護區_史蹟保存區.html
+  - src/app/(dashboard)/layout.tsx
+  - src/lib/pdf-blocks/image-data-url.ts
+  - src/components/CaseListActions.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_033坡向分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_045三維地籍建物標示部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_023土地位置概圖服務.html
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_001地籍圖WFS.json
+  - src/app/api/street-view/route.ts
+  - src-tauri/migrations/008_land_lots.sql
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src/app/api/land-api/test-connection/route.ts
+  - src/components/RealtorLicenseField.tsx
+  - public/pdf-fonts/NotoSansTC-Regular.otf
+  - src/components/settings/LicenseSection.tsx
+  - src/lib/disclosure-schema-residential.ts
+  - src-tauri/src/commands/floor_plan.rs
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - src/lib/storage/StorageAdapter.ts
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_012以段為單位地籍圖.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_002地籍圖WMS.html
+  - src/components/PdfPreviewer.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_025罕用字查詢.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_028建物權利種類及其登記狀態查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_036門牌查建號服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_022公告徵收註記查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_001地籍土地標示部資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_009所有權人比對服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_009山坡地範圍.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_004地籍建物標示部資料服務.html
+  - src/app/api/aerial-photo/route.ts
+  - src/components/FloorPlanReviewPanel.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_003圖幅接合地籍圖WMS.html
+  - src/components/disclosure-form-land.tsx
+  - docs/cop-scrape/02-服務列表/usage_stats.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_036門牌查建號服務.json
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_037門牌模糊檢索建號服務.json
+  - src/components/OwnerAuthorizationDialog.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_006地籍建物他項權利部資料服務.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_008特定水土保持區範圍.json
+  - docs/cop-scrape/01-入口資訊/qa.json
+  - src-tauri/src/commands/floor_plan_rendering.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_040分割合併前後地建號資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_013地段資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_011新舊地建號轉換服務.html
+  - src/lib/map-api.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_031等高線分析服務.html
+  - src/lib/use-draft-autosave.ts
+  - src-tauri/migrations/007_case_status_keyin.sql
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_044宗地中心點坐標資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_005地籍建物所有權部資料服務.html
+  - src/lib/cases-api.ts
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_005都市計畫土地使用分區.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_006市地重劃與農村社區重劃範圍WFS.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_032坡度分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_035縱橫斷面分析服務.html
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_007活動斷層圖.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_009山坡地範圍.json
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_002地籍圖WFS_SHP檔_.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_030高程陰影分析服務.html
+  - src/lib/ipc-error.ts
+  - docs/cop-scrape/02-服務列表/service_list.json
+  - src-tauri/src/db/cases.rs
+  - src/components/DossierSurroundingMap.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_008土地標示部異動索引服務.json
+  - src/lib/pdf-engine/document.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_API_038車位查詢服務.html
+  - docs/cop-scrape/scrape_cop.py
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_004地籍建物標示部資料服務.json
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_003圖幅接合地籍圖WFS.json
+  - package.json
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_015建號資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_028建物權利種類及其登記狀態查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_042土地遭棄置廢棄物資訊註記服務.json
+  - docs/cop-scrape/01-入口資訊/portal.json
+  - src-tauri/Cargo.toml
+  - src/components/CaseLotInput.tsx
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_038車位查詢服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_016土地標示及權利範圍查詢服務.html
+  - src/lib/storage/index.ts
+  - docs/cop-scrape/06-服務說明文件Markdown/MOI_API_001地籍土地標示部資料服務.md
+  - src/components/DossierPage8TaxNotes.tsx
+  - docs/cop-scrape/04-技術文件連結/document_links_selected.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WFS_001地籍圖WFS.html
+  - src/app/login/page.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_034路線剖面分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_002地籍土地所有權部資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_026建物標示及權利範圍查詢服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_007地號資料服務.json
+  - src-tauri/src/lib.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_021地籍圖重測註記查詢服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_043新舊地段查詢服務.html
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_006市地重劃與農村社區重劃範圍WFS.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_005都市計畫土地使用分區.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_018非都市土地使用管制註記查詢服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_008土地標示部異動索引服務.html
+  - docs/cop-scrape/01-入口資訊/news.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_032坡度分析服務.html
+  - src/components/DossierPage7FeeTable.tsx
+  - src/components/StatusBadge.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_004自來水水質水量保護區.json
+  - docs/cop-scrape/.scrape_state.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_005地籍建物所有權部資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_017土地權利種類及登記事項查詢服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_006地籍建物他項權利部資料服務.json
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src/components/CaseSupplementDialog.tsx
+  - src/components/DossierPage6Notices.tsx
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_030高程陰影分析服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_004自來水水質水量保護區.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_014公告地價與公告土地現值資料服務.json
+  - src-tauri/src/rendering/floor_plan_renderer.rs
+  - src/lib/tax-calculator.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_043新舊地段查詢服務.json
+  - src-tauri/src/commands/floor_plan_extraction.rs
+  - docs/cop-scrape/00-網站架構圖解.md
+  - docs/cop-scrape/05-服務說明文件/MOI_API_007地號資料服務.html
+  - src/components/KeyinSplitPage.tsx
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_003圖幅接合地籍圖WMS.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_011新舊地建號轉換服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_002地籍土地所有權部資料服務.json
+  - src/hooks/useIpcErrorToast.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_025罕用字查詢.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_012全國土地基本資料庫代碼資料服務.html
+  - src-tauri/src/paths.rs
+  - src/components/DisclosureHtmlPreview.tsx
+  - bug-report.md
+  - src/app/api/v1/licenses/activate/route.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_044宗地中心點坐標資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_037門牌模糊檢索建號服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_010公有土地登記資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_014公告地價與公告土地現值資料服務.html
+  - src-tauri/src/rendering/mod.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_041帳務查詢API.json
+  - src/lib/pdf-blocks/logo-upload.ts
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_013公有土地開放資料WMS服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_009所有權人比對服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_046三維地籍建號定位點資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_034路線剖面分析服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_020土壤或地下水污染場址註記查詢服務.json
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_011飲用水水源水質保護區或飲用水取水口一定距離內之地區.json
+  - src/lib/pdf-blocks/location-map.tsx
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_001地籍圖WMS_SHP檔_.html
+  - src-tauri/src/db/floor_plan_sketches.rs
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_026建物標示及權利範圍查詢服務.json
+  - src/lib/pdf-blocks/field-sketch-floor-plan-page.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/MOI_WMS_002地籍圖WMS.json
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - docs/cop-scrape/05-服務說明文件/MOI_API_039公有土地開放資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/API_all.json
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - docs/cop-scrape/03-依類別分類/WFS/WFS_all.json
+  - docs/cop-scrape/03-依類別分類/WFS/MOI_WFS_005公有土地開放資料WFS服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_024地籍圖詮釋資料.html
+  - src/components/settings/LandApiSection.tsx
+  - src/app/api/location-map/route.ts
+  - src/components/FieldSketchFloorPlanPanel.tsx
+  - docs/cop-scrape/04-技術文件連結/document_links.json
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_008特定水土保持區範圍.html
+  - docs/cop-scrape/02-服務列表/merged_services.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_027建物遭受放射性污染之虞註記查詢服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_021地籍圖重測註記查詢服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_023土地位置概圖服務.json
+  - src-tauri/src/commands/mod.rs
+  - src/components/disclosure-form-residential.tsx
+  - docs/cop-scrape/03-依類別分類/WMS/WMS_all.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_015建號資料服務.html
+  - docs/cop-scrape/05-服務說明文件/MOI_API_019興建農舍註記資料服務.html
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_031等高線分析服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_045三維地籍建物標示部資料服務.json
+  - docs/cop-scrape/05-服務說明文件/MOI_API_041帳務查詢API.html
+  - docs/cop-scrape/05-服務說明文件/MOI_WMS_012以段為單位地籍圖.html
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_010公有土地登記資料服務.json
+  - docs/cop-scrape/03-依類別分類/API/MOI_API_039公有土地開放資料服務.json
+  - src/lib/export-pdf.ts
 tests:
-  - e2e/disclosure-preview-flow.spec.ts
-  - src/app/api/__tests__/disclosure-preview-save.test.ts
-  - src/app/api/__tests__/disclosure-preview.test.ts
+  - src/components/__tests__/FieldSketchFloorPlanPanel.test.tsx
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/components/__tests__/DossierPage7FeeTable.test.tsx
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/components/__tests__/PdfPreviewer.test.tsx
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/components/__tests__/PdfPreviewer.browser-compat.test.tsx
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/components/__tests__/StatusBadge.test.tsx
+  - src/components/__tests__/FieldSketchFloorPlanPanel.autosave.test.tsx
+  - src/components/__tests__/CaseSupplementDialog.disclosure.test.tsx
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure.test.tsx
+  - src/components/__tests__/CaseWizardStep4.test.tsx
+  - src/components/__tests__/KeyinSplitPage.markkeyin.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/components/__tests__/CaseLotInput.test.tsx
+  - src/components/__tests__/DossierPage8TaxNotes.test.tsx
+  - src/components/__tests__/DossierSurroundingMap.test.tsx
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/lib/pdf-blocks/__tests__/field-sketch-floor-plan-page.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/components/__tests__/DossierPage6Notices.test.tsx
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/lib/pdf-engine/__tests__/floor-plan-fallback.test.ts
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src-tauri/tests/e2e_smoke.rs
+  - src/components/__tests__/KeyinSplitPage.preview.test.tsx
+  - src/lib/__tests__/map-api.test.ts
+  - src/components/__tests__/CaseWizardStep1.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/components/__tests__/KeyinSplitPage.taxinputs.test.tsx
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/components/__tests__/CaseWizard.test.tsx
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/components/__tests__/DisclosureHtmlPreview.integration.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/lib/__tests__/ipc-error.test.ts
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/components/__tests__/FloorPlanReviewPanel.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
 -->

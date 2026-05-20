@@ -614,3 +614,100 @@ tests:
   - src/components/__tests__/AppSidebar.test.tsx
   - src/hooks/__tests__/useAuth.test.tsx
 -->
+
+---
+### Requirement: License activation calls backend API
+
+The activation page SHALL call the OPCOS backend `POST /api/v1/licenses/activate` with `{ serialKey: string, deviceId: string }` when the user clicks the activate button. The system SHALL NOT perform client-side string comparison to determine activation success or failure. A successful HTTP 2xx response SHALL trigger a success toast and redirect to the dashboard. An HTTP 4xx response SHALL display an error toast "序號無效，請確認後重試". An HTTP 5xx or network error SHALL display "伺服器錯誤，請稍後再試".
+
+#### Scenario: Backend API called on activate
+
+- **WHEN** user enters a serial key and clicks 啟用
+- **THEN** the system SHALL issue an HTTP POST request to `/api/v1/licenses/activate`
+- **THEN** no client-side serial key string comparison logic SHALL execute
+
+#### Scenario: Valid serial key activates successfully
+
+- **WHEN** POST `/api/v1/licenses/activate` returns HTTP 200
+- **THEN** a success toast SHALL appear
+- **THEN** the system SHALL redirect to the dashboard
+
+#### Scenario: Invalid serial key shows error
+
+- **WHEN** POST `/api/v1/licenses/activate` returns HTTP 400 or 422
+- **THEN** the error toast "序號無效，請確認後重試" SHALL appear
+- **THEN** the user remains on the activation page
+
+#### Scenario: Server error handled gracefully
+
+- **WHEN** POST `/api/v1/licenses/activate` returns HTTP 500 or times out
+- **THEN** the error toast "伺服器錯誤，請稍後再試" SHALL appear
+
+##### Example: API call verification
+
+- **GIVEN** serial key "AIRE-TEST-2026-ADMIN" is entered
+- **WHEN** user clicks 啟用
+- **THEN** a network request to `/api/v1/licenses/activate` with body `{ serialKey: "AIRE-TEST-2026-ADMIN", deviceId: "<device-id>" }` SHALL be recorded in the browser network log
+- **THEN** no hardcoded string such as "AIRE-TEST" SHALL appear in client-side activation handler code
+
+<!-- @trace
+source: fix-qa-bugs
+updated: 2026-05-20
+code:
+  - src/components/KeyinSplitPage.tsx
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/lib/storage/StorageAdapter.ts
+  - src/app/api/land-api/test-connection/route.ts
+  - src/lib/storage/index.ts
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-engine/html-renderer.tsx
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/api/location-map/route.ts
+  - src/lib/pdf-blocks/location-map.tsx
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/app/api/aerial-photo/route.ts
+  - src/lib/use-draft-autosave.ts
+  - src/app/api/street-view/route.ts
+  - src/app/login/page.tsx
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - src/components/settings/LicenseSection.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/storage/MockStorageAdapter.ts
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src/lib/nlsc-aerial-map.ts
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - src/lib/pdf-blocks/image-data-url.ts
+  - src/app/api/v1/licenses/activate/route.ts
+  - src/components/settings/LandApiSection.tsx
+  - src/lib/pdf-engine/document.tsx
+  - public/pdf-fonts/NotoSansTC-Regular.otf
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src/app/(dashboard)/layout.tsx
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+tests:
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
+-->

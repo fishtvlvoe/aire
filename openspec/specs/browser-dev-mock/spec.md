@@ -8,7 +8,7 @@ TBD - created by archiving change 'browser-dev-mock'. Update Purpose after archi
 
 ### Requirement: Mock Dispatch in Browser Development Environment
 
-safeInvoke SHALL dispatch to mockInvoke when isTauriEnv returns false AND process.env.NODE_ENV equals development. safeInvoke SHALL throw NotInTauriError when isTauriEnv returns false AND process.env.NODE_ENV does NOT equal development. safeInvoke SHALL call the real Tauri invoke when isTauriEnv returns true regardless of NODE_ENV. mockInvoke SHALL throw Error with message containing the command name for unrecognized commands.
+safeInvoke SHALL dispatch to mockInvoke when isTauriEnv returns false AND process.env.NODE_ENV equals development. safeInvoke SHALL throw NotInTauriError when isTauriEnv returns false AND process.env.NODE_ENV does NOT equal development. safeInvoke SHALL call the real Tauri invoke when isTauriEnv returns true regardless of NODE_ENV. mockInvoke SHALL throw Error with message containing the command name for unrecognized commands. mockInvoke SHALL NOT provide a handler for commands that proxy external HTTP connections (e.g., land API test connection); such operations SHALL bypass safeInvoke and call the relevant Next.js API route directly.
 
 #### Scenario: Dev browser dispatches to mock
 
@@ -56,30 +56,65 @@ safeInvoke SHALL dispatch to mockInvoke when isTauriEnv returns false AND proces
 
 
 <!-- @trace
-source: browser-dev-mock
-updated: 2026-05-15
+source: fix-qa-bugs
+updated: 2026-05-20
 code:
-  - src/hooks/useLicenseStatus.ts
-  - .artifacts/browser-dev-mock/01-activation-form.png
-  - .artifacts/browser-dev-mock/04-branding-loaded.png
-  - src/app/activation/page.tsx
+  - src/components/KeyinSplitPage.tsx
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/lib/storage/StorageAdapter.ts
+  - src/app/api/land-api/test-connection/route.ts
+  - src/lib/storage/index.ts
   - src/lib/mock-backend.ts
-  - src/lib/tauri-bridge.ts
-  - src/components/TauriRequired.tsx
-  - .artifacts/aire-mvp-bugfix/settings_logs.png
-  - .artifacts/browser-dev-mock/05-logs-loaded.png
-  - .artifacts/browser-dev-mock/02-cases-seed-list.png
-  - .artifacts/aire-mvp-bugfix/activation.png
+  - src/lib/pdf-engine/html-renderer.tsx
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/api/location-map/route.ts
+  - src/lib/pdf-blocks/location-map.tsx
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/app/api/aerial-photo/route.ts
+  - src/lib/use-draft-autosave.ts
+  - src/app/api/street-view/route.ts
+  - src/app/login/page.tsx
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - src/components/settings/LicenseSection.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/storage/MockStorageAdapter.ts
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src/lib/nlsc-aerial-map.ts
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - src/lib/pdf-blocks/image-data-url.ts
+  - src/app/api/v1/licenses/activate/route.ts
+  - src/components/settings/LandApiSection.tsx
+  - src/lib/pdf-engine/document.tsx
+  - public/pdf-fonts/NotoSansTC-Regular.otf
   - src/app/(dashboard)/settings/branding/branding-content.tsx
-  - .artifacts/browser-dev-mock/03-create-case-success.png
-  - .artifacts/aire-mvp-bugfix/settings_branding.png
-  - src/app/(dashboard)/settings/logs/page.tsx
-  - .artifacts/aire-mvp-bugfix/cases.png
+  - src/app/(dashboard)/layout.tsx
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - src/components/case-wizard/CaseWizard.tsx
 tests:
-  - src/components/__tests__/TauriRequired.test.tsx
-  - src/lib/__tests__/tauri-bridge.test.ts
-  - src/app/activation/__tests__/page.test.tsx
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
   - src/lib/__tests__/mock-backend.test.ts
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
 -->
 
 ---
@@ -1255,4 +1290,85 @@ tests:
   - src/app/(dashboard)/settings/logs/__tests__/page.test.tsx
   - src/components/__tests__/RealPricePanel.test.tsx
   - src/lib/pdf-engine/__tests__/render-with-legal.test.tsx
+-->
+
+---
+### Requirement: Mock store initializes all required data keys
+
+`MockStorageAdapter` SHALL initialize `localStorage['aire-mock-store']` with all required top-level keys on first access: `license`, `sessionUser`, `appSettings`, `featureFlags`, `cases`, `branding`, `disclosures`, `keyin_data`. Missing keys SHALL be initialized to their zero values: `branding: null`, `disclosures: {}`, `keyin_data: {}`. The absence of these keys SHALL NOT cause unhandled errors in any component that reads from the mock store.
+
+#### Scenario: Mock store has all required keys after initialization
+
+- **WHEN** MockStorageAdapter is instantiated for the first time (empty localStorage)
+- **THEN** `localStorage['aire-mock-store']` SHALL contain keys: `license`, `sessionUser`, `appSettings`, `featureFlags`, `cases`, `branding`, `disclosures`, `keyin_data`
+- **THEN** `branding` SHALL be null
+- **THEN** `disclosures` SHALL be an empty object `{}`
+- **THEN** `keyin_data` SHALL be an empty object `{}`
+
+#### Scenario: Existing mock store data preserved on re-initialization
+
+- **WHEN** MockStorageAdapter is instantiated and `localStorage['aire-mock-store']` already exists with some keys
+- **THEN** existing keys SHALL retain their values
+- **THEN** only missing keys SHALL be initialized to zero values
+
+<!-- @trace
+source: fix-qa-bugs
+updated: 2026-05-20
+code:
+  - src/components/KeyinSplitPage.tsx
+  - src/components/case-wizard/CaseWizardStep3Disclosure.tsx
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/lib/storage/StorageAdapter.ts
+  - src/app/api/land-api/test-connection/route.ts
+  - src/lib/storage/index.ts
+  - src/lib/mock-backend.ts
+  - src/lib/pdf-engine/html-renderer.tsx
+  - src/components/OwnerAuthorizationDialog.tsx
+  - src/app/api/location-map/route.ts
+  - src/lib/pdf-blocks/location-map.tsx
+  - src/lib/pdf-blocks/exterior-photo-page.tsx
+  - src/lib/pdf-engine/react-pdf-init.ts
+  - src/app/api/aerial-photo/route.ts
+  - src/lib/use-draft-autosave.ts
+  - src/app/api/street-view/route.ts
+  - src/app/login/page.tsx
+  - src/lib/pdf-engine/html-blocks/location-and-exterior.tsx
+  - src/components/settings/LicenseSection.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/storage/MockStorageAdapter.ts
+  - src/lib/pdf-blocks/aerial-photo-page.tsx
+  - src/lib/nlsc-aerial-map.ts
+  - src/components/case-wizard/CaseWizardStep5.tsx
+  - src/lib/pdf-blocks/image-data-url.ts
+  - src/app/api/v1/licenses/activate/route.ts
+  - src/components/settings/LandApiSection.tsx
+  - src/lib/pdf-engine/document.tsx
+  - public/pdf-fonts/NotoSansTC-Regular.otf
+  - src/app/(dashboard)/settings/branding/branding-content.tsx
+  - src/app/(dashboard)/layout.tsx
+  - src/lib/pdf-blocks/floor-plan-photo-page.tsx
+  - src/components/case-wizard/CaseWizard.tsx
+tests:
+  - src/components/case-wizard/__tests__/CaseWizardStep3Disclosure-storage.test.tsx
+  - src/components/__tests__/OwnerAuthorizationDialog-redborder.test.tsx
+  - src/components/__tests__/RealtorLicenseField.test.tsx
+  - src/components/settings/__tests__/LicenseSection-api.test.tsx
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/branding-storage.test.tsx
+  - src/lib/pdf-blocks/__tests__/floor-plan-photo-page.test.tsx
+  - src/components/__tests__/KeyinSplitPage.test.tsx
+  - src/lib/pdf-blocks/__tests__/uint8-to-data-url.test.ts
+  - src/lib/pdf-blocks/__tests__/dynamic-composition.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/app/(dashboard)/settings/sync-status/__tests__/page.test.tsx
+  - src/lib/__tests__/use-draft-autosave.test.ts
+  - src/lib/storage/__tests__/MockStorageAdapter.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/lib/pdf-blocks/__tests__/logo-anchors.test.tsx
+  - src/components/settings/__tests__/LicenseSection.test.tsx
+  - src/lib/pdf-engine/__tests__/html-renderer-floor-plan-photo.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/components/case-wizard/__tests__/step3-photo-upload.test.tsx
 -->
