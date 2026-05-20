@@ -17,7 +17,7 @@ import { BRANDING_CHANGED_EVENT } from "@/lib/pdf-themes/persistence";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { safeInvoke } from "@/lib/safe-invoke";
+import { isTauriEnv, safeInvoke } from "@/lib/safe-invoke";
 
 interface LoadedLogo {
   bytes: number[];
@@ -44,35 +44,55 @@ export default function CasePreviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  async function renderCurrentPdfBlob(dossier: CaseDossierData) {
+    const { initReactPdfEngine } = await import("@/lib/pdf-engine/react-pdf-init");
+    initReactPdfEngine();
+    const { pdf, Document } = await import("@react-pdf/renderer");
+    const element = React.createElement(PdfDocument, {
+      data: dossier,
+      themeId,
+    }) as React.ReactElement<React.ComponentProps<typeof Document>>;
+    return pdf(element).toBlob();
+  }
+
   async function handleExport() {
     setExporting(true);
     try {
-      if ((window as any).__TAURI__) {
-        const result = await safeInvoke<{ filePath: string }>("export_pdf", {
-          caseId: id,
-          html: htmlContent,
-        });
-        toast.success("PDF 已匯出", { description: result.filePath });
-      } else {
-        const dossier = caseDossierData;
-        if (!dossier) throw new Error("說明書資料尚未載入");
+      if (!id) throw new Error("案件 ID 不存在");
+      const dossier = caseDossierData;
+      if (!dossier) throw new Error("說明書資料尚未載入");
 
-        const { initReactPdfEngine } = await import("@/lib/pdf-engine/react-pdf-init");
-        initReactPdfEngine();
-        const { pdf, Document } = await import("@react-pdf/renderer");
-        const element = React.createElement(PdfDocument, {
-          data: dossier,
-          themeId,
-        }) as React.ReactElement<React.ComponentProps<typeof Document>>;
-        const blob = await pdf(element).toBlob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${dossier.caseNo ?? id}-說明書.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast.success("PDF 已下載");
+      const blob = await renderCurrentPdfBlob(dossier);
+      if (await isTauriEnv()) {
+        const { save } = await import("@tauri-apps/plugin-dialog");
+        const outputPath = await save({
+          defaultPath: `${dossier.caseNo ?? id}-說明書.pdf`,
+          filters: [{ name: "PDF", extensions: ["pdf"] }],
+          title: "選擇輸出位置",
+        });
+        if (!outputPath) {
+          toast.info("已取消匯出");
+          return;
+        }
+        const pdfBytes = new Uint8Array(await blob.arrayBuffer());
+        const writtenPath = await safeInvoke<string>("export_pdf", {
+          args: {
+            caseId: id,
+            pdfBytes: Array.from(pdfBytes),
+            outputPath,
+          },
+        });
+        toast.success("PDF 已匯出", { description: writtenPath });
+        return;
       }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${dossier.caseNo ?? id}-說明書.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF 已下載");
     } catch (e) {
       toast.error("匯出失敗", { description: String(e) });
     } finally {

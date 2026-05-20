@@ -1,4 +1,5 @@
 import React, { CSSProperties } from "react";
+import { uint8ToDataUrl } from "@/lib/pdf-blocks/image-data-url";
 import type { HtmlThemeTokens } from "../html-themes";
 
 // ─── 工具函式：Uint8Array → base64 data URL ───────────────────────────────
@@ -249,6 +250,83 @@ export function HtmlExteriorPhoto({
               }}
             >
               請於現場拍攝後上傳
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── HtmlFloorPlanPhoto ───────────────────────────────────────────────────
+
+export interface HtmlFloorPlanPhotoProps {
+  photo?: Uint8Array | null;
+  title: "格局圖" | "土地規劃圖";
+  tokens: HtmlThemeTokens;
+}
+
+function floorPlanPlaceholder(title: HtmlFloorPlanPhotoProps["title"]): string {
+  return title === "土地規劃圖" ? "請上傳規劃圖" : "請上傳格局圖";
+}
+
+export function HtmlFloorPlanPhoto({
+  photo,
+  title,
+  tokens,
+}: HtmlFloorPlanPhotoProps): React.ReactElement {
+  const resolvedSrc = photo && photo.length > 0 ? uint8ToDataUrl(photo) : null;
+
+  const containerStyle: CSSProperties = {
+    height: 430,
+    border: `1px solid ${tokens.border}`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F9FAFB",
+    overflow: "hidden",
+  };
+
+  const headingStyle: CSSProperties = {
+    fontSize: 20,
+    marginBottom: 16,
+    color: tokens.primary,
+    fontFamily: tokens.fontFamily,
+    fontWeight: 600,
+  };
+
+  return (
+    <div style={{ fontFamily: tokens.fontFamily }}>
+      <p style={headingStyle}>{title}</p>
+
+      <div style={containerStyle}>
+        {resolvedSrc ? (
+          <img
+            src={resolvedSrc}
+            alt={title}
+            style={{ width: "100%", height: 430, objectFit: "contain" }}
+          />
+        ) : (
+          <div style={{ textAlign: "center" }}>
+            <p
+              style={{
+                color: tokens.text,
+                fontSize: 14,
+                fontFamily: tokens.fontFamily,
+                marginBottom: 8,
+              }}
+            >
+              {title}
+            </p>
+            <p
+              style={{
+                color: "#9CA3AF",
+                fontSize: 10,
+                fontFamily: tokens.fontFamily,
+                margin: 0,
+              }}
+            >
+              {floorPlanPlaceholder(title)}
             </p>
           </div>
         )}

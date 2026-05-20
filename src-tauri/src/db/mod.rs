@@ -11,6 +11,7 @@ use rusqlite::Connection;
 use sha2::{Digest, Sha256};
 use std::path::Path;
 
+pub mod case_assets;
 pub mod cases;
 pub mod floor_plan_sketches;
 pub mod drafts;
@@ -40,6 +41,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/007_case_status_keyin.sql"),
     include_str!("../../migrations/008_land_lots.sql"),
     include_str!("../../migrations/009_floor_plan_sketches.sql"),
+    include_str!("../../migrations/010_case_assets.sql"),
 ];
 
 /// AIRE 資料庫統一錯誤型別。
@@ -358,6 +360,7 @@ pub(crate) mod tests {
         // 表存在性檢查
         for table in [
             "cases",
+            "case_assets",
             "disclosure_drafts",
             "settings",
             "operation_log",

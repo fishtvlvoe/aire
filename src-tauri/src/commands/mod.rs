@@ -7,6 +7,7 @@
 // - pdf：PDF 匯出（Group 8.4）
 // - log：operation_log 查詢（Group 9.2）
 
+pub mod case_assets;
 pub mod cases;
 pub mod drafts;
 pub mod floor_plan;

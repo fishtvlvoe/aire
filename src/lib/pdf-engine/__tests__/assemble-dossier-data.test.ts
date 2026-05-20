@@ -360,3 +360,95 @@ describe("assembleDossierData — 格局圖（現場手稿整理圖）", () => {
     expect(result.fieldSketchFloorPlan).toBeUndefined();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// assembleDossierData — 直接上傳格局圖 / 規劃圖
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("assembleDossierData — floorPlanPhoto", () => {
+  it("case_assets 成功時 floorPlanPhoto 為對應 Uint8Array", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_case_assets") {
+        return [{ id: "asset-1", is_primary: true, review_status: "approved" }];
+      }
+      if (cmd === "read_case_asset_bytes") return { bytes: [1, 2, 3], mime: "image/png" };
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      return {};
+    });
+
+    const result = await assembleDossierData(buildingCaseRow);
+
+    expect(result.floorPlanPhoto).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("IPC 失敗且 land_registry_data 有 base64 時 floorPlanPhoto 為解碼 Uint8Array", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_case_assets") throw new Error("not available");
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        floor_plan_photo: {
+          base64: "AQID",
+          mime: "image/png",
+        },
+      },
+    });
+
+    expect(result.floorPlanPhoto).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("IPC 失敗且無 fallback 時 floorPlanPhoto 為 null", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_case_assets") throw new Error("not available");
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      return {};
+    });
+
+    const result = await assembleDossierData(buildingCaseRow);
+
+    expect(result.floorPlanPhoto).toBeNull();
+  });
+
+  it("case_assets 讀檔失敗時 fallback 到 legacy base64", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_case_assets") {
+        return [{ id: "asset-missing", is_primary: true, review_status: "approved" }];
+      }
+      if (cmd === "read_case_asset_bytes") throw new Error("asset_file_missing");
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        floor_plan_photo: {
+          base64: "AQID",
+          mime: "image/png",
+        },
+      },
+    });
+
+    expect(result.floorPlanPhoto).toEqual(new Uint8Array([1, 2, 3]));
+  });
+});

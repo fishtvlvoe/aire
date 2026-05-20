@@ -281,6 +281,10 @@ pub fn run() {
             commands::floor_plan_approval::approve_floor_plan_conversion,
             commands::floor_plan_approval::revoke_floor_plan_conversion,
             commands::floor_plan_rendering::render_floor_plan_conversion,
+            commands::case_assets::import_case_asset,
+            commands::case_assets::list_case_assets,
+            commands::case_assets::read_case_asset_bytes,
+            commands::case_assets::delete_case_asset,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AIRE application");

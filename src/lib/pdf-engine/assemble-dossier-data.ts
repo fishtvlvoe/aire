@@ -104,6 +104,56 @@ function safeGet<T>(
 const isNumber = (v: unknown): v is number => typeof v === "number" && isFinite(v);
 const isString = (v: unknown): v is string => typeof v === "string";
 
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binary =
+    typeof atob === "function"
+      ? atob(base64)
+      : Buffer.from(base64, "base64").toString("binary");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function readPersistedFloorPlanPhoto(persisted: unknown): Uint8Array | null {
+  if (!persisted || typeof persisted !== "object" || Array.isArray(persisted)) return null;
+  const photo = (persisted as Record<string, unknown>)["floor_plan_photo"];
+  if (!photo || typeof photo !== "object" || Array.isArray(photo)) return null;
+  const base64 = (photo as Record<string, unknown>)["base64"];
+  if (typeof base64 !== "string" || base64.length === 0) return null;
+  try {
+    return base64ToUint8Array(base64);
+  } catch {
+    return null;
+  }
+}
+
+async function readCaseAssetFloorPlan(caseId: string): Promise<Uint8Array | null> {
+  try {
+    const assets = await safeInvoke<
+      Array<{ id: string; is_primary?: boolean; review_status?: string }>
+    >("list_case_assets", {
+      case_id: caseId,
+      kind: "floor_plan",
+    });
+    const asset = assets.find((item) => item.is_primary && item.review_status === "approved")
+      ?? assets.find((item) => item.review_status === "approved")
+      ?? assets[0];
+    if (!asset) return null;
+    const result = await safeInvoke<{ bytes?: number[] | Uint8Array; mime?: string }>(
+      "read_case_asset_bytes",
+      { asset_id: asset.id },
+    );
+    if (result?.bytes && result.bytes.length > 0) {
+      return new Uint8Array(result.bytes);
+    }
+  } catch {
+    // 舊版 IPC 或檔案遺失時交給 legacy fallback。
+  }
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // assembleDossierData
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,6 +225,12 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   }
 
   // ── 格局圖（現場手稿整理圖）───────────────────────────────────────────────
+
+  let floorPlanPhoto: Uint8Array | null = null;
+  floorPlanPhoto = await readCaseAssetFloorPlan(caseRow.id);
+  if (!floorPlanPhoto) {
+    floorPlanPhoto = readPersistedFloorPlanPhoto(caseRow.land_registry_data);
+  }
 
   let fieldSketchFloorPlan: CaseDossierData["fieldSketchFloorPlan"] = undefined;
   try {
@@ -352,6 +408,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
     base.exteriorPhoto = exteriorPhoto;
     base.aerialPhoto = aerialPhoto;
+    base.floorPlanPhoto = floorPlanPhoto;
 
     // ── 稅費試算（土地）──────────────────────────────────────────────────────
     const landAskingPrice = 0; // 使用者尚未輸入時預設 0
@@ -457,6 +514,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
     base.exteriorPhoto = exteriorPhoto;
     base.aerialPhoto = aerialPhoto;
+    base.floorPlanPhoto = floorPlanPhoto;
 
     // ── 稅費試算（建物）──────────────────────────────────────────────────────
     base.taxCalculation = null; // 建物版：askingPrice 未填前為 null

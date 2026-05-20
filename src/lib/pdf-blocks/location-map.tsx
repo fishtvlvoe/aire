@@ -3,18 +3,11 @@ import { Page, Text, View, Image } from "@react-pdf/renderer";
 import { useTheme } from "../pdf-themes/theme-provider";
 import { PageFooter } from "./page-footer";
 import { PdfHeaderWithLogo } from "./logo-anchors";
+import { uint8ToDataUrl } from "./image-data-url";
 
 export interface LocationMapPageProps {
   logo?: string;
   locationMapImage?: Uint8Array | null;
-}
-
-function uint8ToDataUrl(bytes: Uint8Array): string {
-  const isJpeg = bytes[0] === 0xFF && bytes[1] === 0xD8;
-  const mime = isJpeg ? "image/jpeg" : "image/png";
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return `data:${mime};base64,${btoa(binary)}`;
 }
 
 export function LocationMapPage({

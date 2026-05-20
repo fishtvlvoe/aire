@@ -43,6 +43,23 @@ interface FloorPlanSketchRow {
   updated_at: string;
 }
 
+interface CaseAssetRow {
+  id: string;
+  case_id: string;
+  kind: "floor_plan";
+  source: "manual_upload" | "legacy_floor_plan_photo";
+  trust_tier: "assistant_uploaded" | "legacy_import";
+  review_status: "approved";
+  is_primary: boolean;
+  file_name: string;
+  mime_type: "image/png" | "image/jpeg" | "image/webp";
+  size_bytes: number;
+  storage_path: string;
+  metadata_json: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface MockSessionUser {
   email: string;
   role: "admin" | "user";
@@ -81,6 +98,8 @@ interface PersistedMockState {
   appSettings?: AppSettingsState;
   featureFlags?: FeatureFlagState[];
   cases?: CaseRow[];
+  caseAssets?: CaseAssetRow[];
+  caseAssetBytes?: Record<string, number[]>;
 }
 
 const MOCK_STORAGE_KEY = "aire-mock-store";
@@ -390,11 +409,15 @@ export class MockStore {
   private consentedCases = new Set<string>();
   private floorPlanSketches: FloorPlanSketchRow[] = [];
   private floorPlanConversions: unknown[] = [];
+  private caseAssets: CaseAssetRow[] = [];
+  private caseAssetBytes = new Map<string, number[]>();
 
   constructor() {
     this.reset();
     this.floorPlanSketches = [];
     this.floorPlanConversions = [];
+    this.caseAssets = [];
+    this.caseAssetBytes = new Map<string, number[]>();
     this.restorePersistedState();
   }
 
@@ -548,6 +571,15 @@ export class MockStore {
           return this.landRegistryGetBalance() as T;
         case "land_registry_record_consent":
           return this.landRegistryRecordConsent(args) as T;
+
+        case "import_case_asset":
+          return this.importCaseAsset(args) as T;
+        case "list_case_assets":
+          return this.listCaseAssets(args) as T;
+        case "read_case_asset_bytes":
+          return this.readCaseAssetBytes(args) as T;
+        case "delete_case_asset":
+          return this.deleteCaseAsset(args) as T;
 
         case "upload_floor_plan_sketch":
           return this.uploadFloorPlanSketch(args) as T;
@@ -1321,6 +1353,76 @@ export class MockStore {
     return sketch;
   }
 
+  private importCaseAsset(args?: CommandArgs): CaseAssetRow {
+    const payload = toRecord(toRecord(args).payload);
+    const caseId = pickString(payload, ["case_id"]) ?? "";
+    const kind = pickString(payload, ["kind"]) ?? "floor_plan";
+    const source = pickString(payload, ["source"]) ?? "manual_upload";
+    const mime = pickString(payload, ["mime_type"]) ?? "";
+    const fileBytes = Array.isArray(payload.file_bytes)
+      ? (payload.file_bytes as number[]).filter((n) => typeof n === "number")
+      : [];
+
+    if (kind !== "floor_plan") throw new Error("unsupported_kind");
+    if (mime !== "image/png" && mime !== "image/jpeg" && mime !== "image/webp") {
+      throw new Error("unsupported_mime");
+    }
+    if (fileBytes.length === 0) throw new Error("empty_file");
+    if (fileBytes.length > 10 * 1024 * 1024) throw new Error("file_too_large");
+
+    const now = new Date().toISOString();
+    const id = `case-asset-${Date.now()}`;
+    this.caseAssets = this.caseAssets.map((asset) =>
+      asset.case_id === caseId && asset.kind === "floor_plan"
+        ? { ...asset, is_primary: false, updated_at: now }
+        : asset,
+    );
+    const asset: CaseAssetRow = {
+      id,
+      case_id: caseId,
+      kind: "floor_plan",
+      source: source === "legacy_floor_plan_photo" ? "legacy_floor_plan_photo" : "manual_upload",
+      trust_tier: source === "legacy_floor_plan_photo" ? "legacy_import" : "assistant_uploaded",
+      review_status: "approved",
+      is_primary: true,
+      file_name: pickString(payload, ["file_name"]) ?? "floor-plan.png",
+      mime_type: mime,
+      size_bytes: fileBytes.length,
+      storage_path: `/mock/case-assets/${caseId}/${id}`,
+      metadata_json: pickString(payload, ["metadata_json"]) ?? "{}",
+      created_at: now,
+      updated_at: now,
+    };
+    this.caseAssets.push(asset);
+    this.caseAssetBytes.set(id, fileBytes);
+    return { ...asset };
+  }
+
+  private listCaseAssets(args?: CommandArgs): CaseAssetRow[] {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["case_id"]) ?? "";
+    const kind = pickString(payload, ["kind"]);
+    return this.caseAssets
+      .filter((asset) => asset.case_id === caseId && (!kind || asset.kind === kind))
+      .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || b.updated_at.localeCompare(a.updated_at))
+      .map((asset) => ({ ...asset }));
+  }
+
+  private readCaseAssetBytes(args?: CommandArgs): { bytes: number[]; mime: string } {
+    const assetId = pickString(toRecord(args), ["asset_id"]) ?? "";
+    const asset = this.caseAssets.find((item) => item.id === assetId);
+    const bytes = this.caseAssetBytes.get(assetId);
+    if (!asset || !bytes) throw new Error("asset_file_missing");
+    return { bytes: [...bytes], mime: asset.mime_type };
+  }
+
+  private deleteCaseAsset(args?: CommandArgs): { ok: true } {
+    const assetId = pickString(toRecord(args), ["asset_id"]) ?? "";
+    this.caseAssets = this.caseAssets.filter((asset) => asset.id !== assetId);
+    this.caseAssetBytes.delete(assetId);
+    return { ok: true };
+  }
+
   private listFloorPlanConversionHistory(args?: CommandArgs): {
     sketches: FloorPlanSketchRow[];
     conversions: unknown[];
@@ -1412,6 +1514,19 @@ export class MockStore {
             .map((row) => [row.id, { ...row }]),
         );
       }
+      if (Array.isArray(parsed.caseAssets)) {
+        this.caseAssets = parsed.caseAssets
+          .filter((asset): asset is CaseAssetRow => Boolean(asset) && typeof asset.id === "string")
+          .map((asset) => ({ ...asset }));
+      }
+      if (parsed.caseAssetBytes && typeof parsed.caseAssetBytes === "object") {
+        this.caseAssetBytes = new Map(
+          Object.entries(parsed.caseAssetBytes).filter(
+            (entry): entry is [string, number[]] =>
+              typeof entry[0] === "string" && Array.isArray(entry[1]),
+          ),
+        );
+      }
     } catch {
       this.cases = new Map(SEED_CASES.map((row) => [row.id, { ...row }]));
       getBrowserLocalStorage()?.removeItem(MOCK_STORAGE_KEY);
@@ -1457,6 +1572,8 @@ export class MockStore {
       },
       featureFlags: this.featureFlags.map((flag) => ({ ...flag })),
       cases: [...this.cases.values()].map((row) => ({ ...row })),
+      caseAssets: this.caseAssets.map((asset) => ({ ...asset })),
+      caseAssetBytes: Object.fromEntries(this.caseAssetBytes.entries()),
     };
 
     try {

@@ -24,6 +24,7 @@ import { LocationMapPage } from "@/lib/pdf-blocks/location-map";
 import { AerialPhotoPage } from "@/lib/pdf-blocks/aerial-photo-page";
 import { ExteriorPhotoPage } from "@/lib/pdf-blocks/exterior-photo-page";
 import FieldSketchFloorPlanPage from "@/lib/pdf-blocks/field-sketch-floor-plan-page";
+import { FloorPlanPhotoPage } from "@/lib/pdf-blocks/floor-plan-photo-page";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -173,6 +174,7 @@ export interface CaseDossierData {
   exteriorPhoto?: Uint8Array | null;
   aerialPhoto?: Uint8Array | null;
   locationMapImage?: Uint8Array | null;
+  floorPlanPhoto?: Uint8Array | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -499,6 +501,8 @@ function LandPages({
       <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}
       <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
+      {/* 土地規劃圖 */}
+      <FloorPlanPhotoPage photo={data.floorPlanPhoto ?? null} title="土地規劃圖" />
       {/* 簽章欄（只出現一次，在最後） */}
       <SignatureBlock />
     </>
@@ -643,6 +647,8 @@ function BuildingPages({
       <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}
       <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
+      {/* 格局圖 */}
+      <FloorPlanPhotoPage photo={data.floorPlanPhoto ?? null} title="格局圖" />
       {data.fieldSketchFloorPlan && (
         <FieldSketchFloorPlanPage {...data.fieldSketchFloorPlan} />
       )}

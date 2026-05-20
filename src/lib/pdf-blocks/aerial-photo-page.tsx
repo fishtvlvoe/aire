@@ -3,14 +3,7 @@ import { Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { useTheme } from "../pdf-themes/theme-provider";
 import { PageFooter } from "./page-footer";
 import { PdfHeaderWithLogo } from "./logo-anchors";
-
-function uint8ToDataUrl(bytes: Uint8Array): string {
-  const isJpeg = bytes[0] === 0xFF && bytes[1] === 0xD8;
-  const mime = isJpeg ? "image/jpeg" : "image/png";
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return `data:${mime};base64,${btoa(binary)}`;
-}
+import { uint8ToDataUrl } from "./image-data-url";
 
 const styles = StyleSheet.create({
   placeholder: {

@@ -11,7 +11,12 @@ import {
 import { HtmlPropertyDataSheet } from "./html-blocks/property-data-sheet";
 import { HtmlTransactionHistory } from "./html-blocks/transaction-history";
 import { HtmlLifeAmenities } from "./html-blocks/life-amenities";
-import { HtmlLocationMap, HtmlAerialPhoto, HtmlExteriorPhoto } from "./html-blocks/location-and-exterior";
+import {
+  HtmlLocationMap,
+  HtmlAerialPhoto,
+  HtmlExteriorPhoto,
+  HtmlFloorPlanPhoto,
+} from "./html-blocks/location-and-exterior";
 import { HtmlTaxFee } from "./html-blocks/tax-fee";
 import { HtmlSignatureBlockFull } from "./html-blocks/signature-block";
 import { HtmlLandConditionSurvey } from "./html-blocks/land-condition-survey";
@@ -203,7 +208,24 @@ export function renderDisclosureHtml(
     );
   }
 
-  // Page 10: 現況調查表
+  // Page 10: 格局圖 / 土地規劃圖（無條件渲染，與 PDF 文件樹對齊）
+  {
+    const pn = ++pageNum;
+    const title = data.propertyType === "land" ? "土地規劃圖" : "格局圖";
+    pages.push(
+      <div className="page" key="floor-plan-photo">
+        <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pn} />
+        <HtmlFloorPlanPhoto
+          photo={data.floorPlanPhoto ?? null}
+          title={title}
+          tokens={tokens}
+        />
+        <HtmlPageFooter tokens={tokens} generatedAt={options.generatedAt} />
+      </div>
+    );
+  }
+
+  // Page 11: 現況調查表
   if (data.surveyData) {
     const pn = ++pageNum;
     pages.push(
