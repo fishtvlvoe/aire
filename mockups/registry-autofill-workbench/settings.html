@@ -369,7 +369,7 @@
             <h1>系統設定</h1>
             <p>一次性規則、授權、費用歸屬與升級功能集中在這裡管理</p>
           </div>
-          <span class="badge">Basic 方案</span>
+          <span class="badge">基本方案</span>
         </header>
 
         <section class="settings">
@@ -383,7 +383,7 @@
               <button type="button">地政資料規則</button>
               <button type="button">費用與帳務</button>
               <button type="button">PDF 圖資欄位</button>
-              <button type="button">API 金鑰</button>
+              <button type="button">地政授權</button>
             </div>
           </aside>
 
@@ -397,21 +397,21 @@
                 <div class="feature-row">
                   <div class="setting-copy">
                     <strong>Google 地圖</strong>
-                    <span>Pro 後新增進階圖資選單，不在 Basic 工作台常駐顯示</span>
+                    <span>進階方案後新增進階圖資選單，不在基本方案工作台常駐顯示</span>
                   </div>
                   <button class="toggle" type="button" disabled aria-label="Google 地圖未升級"></button>
                 </div>
                 <div class="feature-row">
                   <div class="setting-copy">
                     <strong>空拍圖 / 街景參考</strong>
-                    <span>Advanced 後輸出 PDF 圖頁與外部圖資參考</span>
+                    <span>專業方案後輸出 PDF 圖頁與外部圖資參考</span>
                   </div>
                   <button class="toggle" type="button" disabled aria-label="空拍街景未升級"></button>
                 </div>
                 <div class="feature-row">
                   <div class="setting-copy">
                     <strong>AI 格局圖整理</strong>
-                    <span>Basic 保留手動上傳 slot，Advanced 才開啟 AI 整理</span>
+                    <span>基本方案保留手動上傳位置，專業方案才開啟 AI 整理</span>
                   </div>
                   <button class="toggle" type="button" disabled aria-label="AI 格局圖未升級"></button>
                 </div>
@@ -431,8 +431,8 @@
                 </div>
                 <div class="kv"><span>可自動帶入</span><span>權利範圍、登記日期、登記原因、所有權登記次序</span></div>
                 <div class="kv"><span>不可反查</span><span>私人屋主姓名、身分證、私人地址</span></div>
-                <div class="kv"><span>可用來源</span><span>屋主提供、正式謄本 OCR、人工輸入</span></div>
-                <div class="kv"><span>比對服務</span><span>MOI_API_009 只能拿已知姓名驗證是否符合</span></div>
+                <div class="kv"><span>可用來源</span><span>屋主提供、正式謄本帶入、人工輸入</span></div>
+                <div class="kv"><span>比對服務</span><span>所有權人比對服務只能拿已知姓名驗證是否符合</span></div>
               </article>
 
               <article class="card">
@@ -440,21 +440,21 @@
                   <strong>費用歸屬</strong>
                   <span>費用明細仍在「地政資料 → 費用紀錄」查詢，這裡只管理規則</span>
                 </div>
-                <div class="kv"><span>地政 API</span><span>客戶自己的 MOI/COP 帳號負擔</span></div>
+                <div class="kv"><span>地政查詢</span><span>客戶自己的地政查詢帳號負擔</span></div>
                 <div class="kv"><span>Google / 空拍</span><span>AIRE 方案內含或另計</span></div>
                 <div class="kv"><span>AI 格局圖</span><span>AIRE 升級功能，案件資料不送 OPCOS</span></div>
-                <div class="kv"><span>失敗不計費</span><span>COP309 等 domain failure 在 ledger 標示 0 元</span></div>
+                <div class="kv"><span>失敗不計費</span><span>地政查詢失敗時在費用紀錄標示 0 元</span></div>
               </article>
 
               <article class="card">
                 <div class="setting-copy">
                   <strong>PDF 圖資欄位</strong>
-                  <span>文件 slot 先保留，功能是否可用由授權決定</span>
+                  <span>文件位置先保留，功能是否可用由授權決定</span>
                 </div>
-                <div class="kv"><span>地籍圖</span><span>Basic 可放地政資料；進階整理需升級</span></div>
-                <div class="kv"><span>地標圖</span><span>Pro/Advanced 由 AIRE 端口產生</span></div>
-                <div class="kv"><span>空拍圖</span><span>Advanced 啟用後自動放入 PDF</span></div>
-                <div class="kv"><span>格局圖</span><span>Basic 手動上傳；Advanced 可 AI 整理</span></div>
+                <div class="kv"><span>地籍圖</span><span>基本方案可放地政資料；進階整理需升級</span></div>
+                <div class="kv"><span>地標圖</span><span>進階或專業方案由 AIRE 產生</span></div>
+                <div class="kv"><span>空拍圖</span><span>專業方案啟用後自動放入 PDF</span></div>
+                <div class="kv"><span>格局圖</span><span>基本方案手動上傳；專業方案可 AI 整理</span></div>
               </article>
 
               <div class="callout">

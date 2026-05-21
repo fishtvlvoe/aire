@@ -25,13 +25,13 @@
 
 ## 5. UI, PDF, and property-type coverage
 
-- [ ] 5.1 覆蓋 Phase 6: UI/UX 審核工作台。新增 UI contract 測試或 Storybook/Playwright fixtures，驗證「Registry autofill review UX SHALL provide a review workspace for field status, source, gap, and cost」：三欄工作台、欄位狀態標籤、來源面板、費用摘要與補件清單都可見。
+- [ ] 5.1 覆蓋 Phase 6: UI/UX 審核工作台。新增 UI contract 測試或 Storybook/Playwright fixtures，驗證「Registry autofill review UX SHALL provide a review workspace for field status, source, gap, and cost」：案件工作台只保留案件/章節與欄位審核兩欄；欄位狀態標籤、客戶可讀來源、費用摘要與補件狀態都可見，但不常駐第三欄說明面板。
 - [ ] 5.2 更新土地與成屋 disclosure form 測試，驗證「Land disclosure form fields」與「Residential disclosure form fields」：欄位旁可顯示地政帶入、API 未串、需人工、不可查等狀態，且不阻擋使用者手動完成。
-- [ ] 5.3 更新土地與成屋表單 UI，滿足「Registry autofill review UX SHALL define accessible interaction states」：顯示欄位來源、缺口原因、費用提示、最後查詢狀態、loading、success、empty、error、partial 狀態，避免可查欄位默默空白。
+- [ ] 5.3 更新土地與成屋表單 UI，滿足「Registry autofill review UX SHALL define accessible interaction states」：顯示欄位來源、缺口原因、費用提示、最後查詢狀態、loading、success、empty、error、partial 狀態，避免可查欄位默默空白；客戶工作台不得顯示 `MOI_API_*`、`COP309`、backend enum、英文方案名或其他工程內部代碼，這些資訊只能在 admin/log/audit views 出現。
 - [ ] 5.4 新增 API 呼叫明細與費用稽核 UI，滿足「Registry autofill review UX SHALL provide an auditable MOI usage dashboard」：日期/服務/狀態/歷程編號篩選、統計卡、明細表、錯誤訊息抽屜、未付款金額與失敗不計費原因。
 - [ ] 5.5 執行視覺驗證，針對 1440px、1024px、768px 截圖確認工作台不重疊、文字不溢出、focus state 可見、input 有 label、主要操作目標至少 44px。
 - [ ] 5.6 覆蓋 Phase 5: 物件類型覆蓋順序。更新 property type registry，滿足「Property type registry defines 13 types」、「Property types SHALL expose registry coverage profiles」與「Coverage profile SHALL drive phased implementation priority」：為農地、農舍、透天別墅加入 registry coverage profile，並讓後續 13 類物件能逐步補齊。
-- [ ] 5.7 覆蓋 Phase 7: 升級功能 UI 與端口預留。新增 `PremiumFeatureGate` UI 測試，滿足「Premium feature entitlement ports SHALL expose locked and unlocked feature UI」、「Premium feature menus SHALL appear only after entitlement」與「Premium feature controls SHALL use disabled and enabled toggle states」：Basic 主選單只顯示原本地政 workflow；Google 地圖、進階圖資、Street View、AI 格局圖在未授權時只於系統設定或後台顯示灰色 disabled toggle 與升級入口，不常駐在案件工作台右欄；已授權後才新增主選單或可開關 toggle。
+- [ ] 5.7 覆蓋 Phase 7: 升級功能 UI 與端口預留。新增 `PremiumFeatureGate` UI 測試，滿足「Premium feature entitlement ports SHALL expose locked and unlocked feature UI」、「Premium feature menus SHALL appear only after entitlement」與「Premium feature controls SHALL use disabled and enabled toggle states」：基本方案主選單只顯示原本地政 workflow；Google 地圖、進階圖資、Street View、AI 格局圖在未授權時只於系統設定或後台顯示灰色 disabled toggle 與升級入口，不常駐在案件工作台右欄；已授權後才新增主選單或可開關 toggle。
 - [ ] 5.8 新增 entitlement adapter、費用責任與端口測試，滿足「Premium feature slots SHALL reserve document locations and cost ownership」、「Premium feature entitlement ports SHALL provide stable frontend and backend feature ports」與「Premium feature ports SHALL protect local case privacy」：空拍圖、地標圖、地籍圖、房子原有格局圖都有預留 slot；`customer_moi`、`aire_included`、`aire_metered`、`manual_upload` 分類清楚；`get_entitlements`、`request_feature_upgrade`、`open_opcos_upgrade`、`generate_google_map_preview`、`generate_ai_floor_plan_schematic` 等端口在未實作或未授權時回傳可辨識錯誤，不 silent fail；升級請求只傳 account/device/license/plan/feature metadata，不傳屋主、地址、地建號、registry payload、PDF 或案件圖片。
 
 ## 6. SR consolidation and verification

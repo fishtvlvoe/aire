@@ -165,8 +165,8 @@ UI 文案不得暗示「輸入地號即可查出私人屋主姓名」。若欄�
 
 | 畫面 | 目的 | 必要區塊 |
 | --- | --- | --- |
-| 欄位審核工作台 | 助理確認哪些資料已帶入、哪些要人工補 | 左側章節/欄位清單、中間表單、右側來源與缺口面板、底部費用摘要 |
-| API 呼叫明細 | 核對 MOI 成功/失敗、回傳筆數、費用 | 日期/服務/狀態/歷程編號篩選、統計卡、明細表、錯誤訊息抽屜 |
+| 欄位審核工作台 | 助理確認哪些資料已帶入、哪些要人工補 | 左側案件/章節，右側欄位審核；不得常駐第三欄說明面板 |
+| API 呼叫明細 | 後台或 admin 核對 MOI 成功/失敗、回傳筆數、費用 | 日期/服務/狀態/歷程編號篩選、統計卡、明細表、錯誤訊息抽屜 |
 | 欄位來源矩陣檢視 | 內部或 admin 檢查哪些欄位未串 | 物件類型 filter、source kind filter、coverage 狀態、service code、下一步 |
 | 補件清單 | 交給助理或業務員知道還缺什麼 | 人工必填、API 未串、查無資料、需現場確認分組 |
 
@@ -182,7 +182,9 @@ UI 文案不得暗示「輸入地號即可查出私人屋主姓名」。若欄�
 
 互動規則：
 
-- 使用者點擊欄位時，右側面板顯示來源服務、查詢時間、transaction id、回傳筆數、費用、缺口原因。
+- 客戶工作台只顯示案件/章節與欄位審核兩欄；點擊欄位時不得常駐打開第三欄說明面板。
+- 客戶工作台只顯示繁體中文業務名稱，不顯示 `MOI_API_*`、`COP309`、backend enum、`Basic`、`Pro`、`Advanced` 等內部或英文方案名稱；方案名稱顯示為「基本方案」、「進階方案」、「專業方案」。
+- 來源服務、查詢時間、transaction id、回傳筆數、內部費用政策、缺口 enum 等資訊只放在 admin、log、稽核或設定頁。
 - 手填欄位不可被自動覆蓋；若有 registry candidate，顯示「使用地政值」與「保留手填值」兩個明確動作。
 - API 查詢按鈕需要 loading、success、empty、error、partial 狀態，不得點擊後無回饋。
 - 批次查詢前顯示預估費用與可能免費項目；查詢後顯示實際費用與失敗不計費原因。
@@ -191,10 +193,10 @@ UI 文案不得暗示「輸入地號即可查出私人屋主姓名」。若欄�
 
 驗收畫面至少要截圖驗證：
 
-- 1440px：完整三欄工作台。
-- 1024px：表單與來源面板可讀。
-- 768px：來源面板可收合，主要表單不被遮住。
-- 錯誤狀態：COP309 顯示為 domain failure，費用為 0 或依政策顯示。
+- 1440px：完整兩欄工作台。
+- 1024px：案件/章節與欄位審核可讀。
+- 768px：主要表單不被遮住。
+- 錯誤狀態：客戶工作台顯示「查詢未成功」與不計費狀態；原始錯誤碼只在 admin/log/audit 顯示。
 - 空資料狀態：`RETURNROWS = 0` 顯示查無資料，不誤顯示系統錯誤。
 
 ### Phase 7: 升級功能 UI 與端口預留
@@ -205,24 +207,24 @@ UI 文案不得暗示「輸入地號即可查出私人屋主姓名」。若欄�
 
 | 功能 | UI 顯示 | 預留端口 | 預設方案 | 費用責任 |
 | --- | --- | --- | --- |
-| Google 地圖 / 地標圖 | 升級後新增「進階圖資 > 地標圖」選單；Basic 不出現在主工作區 | `feature = google_maps_location`，frontend port `requestGoogleMapPreview`，backend command `generate_google_map_preview` | Pro | AIRE 方案成本或 AIRE 另計，不走客戶 MOI 帳 |
-| Google Street View | 升級後新增「進階圖資 > 街景參考」選單 | `feature = google_street_view`，backend command `fetch_google_street_view_reference` | Advanced | AIRE 方案成本或 AIRE 另計 |
-| 空拍圖 | 升級後新增「進階圖資 > 空拍圖」選單；PDF 保留圖頁 slot | `feature = aerial_photo`，backend command `generate_aerial_photo_reference` | Advanced | AIRE 方案成本或 AIRE 另計；若使用免費公開圖資需標來源 |
-| 地籍圖 | Basic 保留地政資料與手動上傳；若地政 API 可取則屬客戶 MOI 費用；升級後可做自動圖層整理 | `feature = cadastral_map`，backend command `generate_cadastral_map_reference` | Basic or Pro by source | MOI 地政來源由客戶自付；AIRE 圖層整理由 AIRE 方案負擔 |
-| 房子原有格局圖 | Basic 保留上傳欄位；升級後新增「AI 格局 > 格局整理」 | `feature = ai_floor_plan_schematic`，backend command `generate_ai_floor_plan_schematic` | Advanced | AIRE 方案成本或 AIRE 另計，不走客戶 MOI 帳 |
-| 行銷素材 | 升級後新增「行銷工具」選單 | `feature = marketing_modules`，backend command `generate_marketing_assets` | Advanced | AIRE 方案成本或 AIRE 另計 |
+| Google 地圖 / 地標圖 | 升級後新增「進階圖資 > 地標圖」選單；基本方案不出現在主工作區 | `feature = google_maps_location`，frontend port `requestGoogleMapPreview`，backend command `generate_google_map_preview` | 進階方案 | AIRE 方案成本或 AIRE 另計，不走客戶 MOI 帳 |
+| Google Street View | 升級後新增「進階圖資 > 街景參考」選單 | `feature = google_street_view`，backend command `fetch_google_street_view_reference` | 專業方案 | AIRE 方案成本或 AIRE 另計 |
+| 空拍圖 | 升級後新增「進階圖資 > 空拍圖」選單；PDF 保留圖頁 slot | `feature = aerial_photo`，backend command `generate_aerial_photo_reference` | 專業方案 | AIRE 方案成本或 AIRE 另計；若使用免費公開圖資需標來源 |
+| 地籍圖 | 基本方案保留地政資料與手動上傳；若地政 API 可取則屬客戶 MOI 費用；升級後可做自動圖層整理 | `feature = cadastral_map`，backend command `generate_cadastral_map_reference` | 基本方案或進階方案，依來源決定 | MOI 地政來源由客戶自付；AIRE 圖層整理由 AIRE 方案負擔 |
+| 房子原有格局圖 | 基本方案保留上傳欄位；升級後新增「AI 格局 > 格局整理」 | `feature = ai_floor_plan_schematic`，backend command `generate_ai_floor_plan_schematic` | 專業方案 | AIRE 方案成本或 AIRE 另計，不走客戶 MOI 帳 |
+| 行銷素材 | 升級後新增「行銷工具」選單 | `feature = marketing_modules`，backend command `generate_marketing_assets` | 專業方案 | AIRE 方案成本或 AIRE 另計 |
 
 方案導覽規則：
 
 | 方案 | 主選單 | 後台功能開關 |
 | --- | --- | --- |
-| Basic | 案件管理、地政資料、產出文件、系統設定 | 顯示升級功能清單，但 toggle 為灰色 disabled，只能點升級 |
-| Pro | 額外顯示進階圖資資料夾，例如地標圖、地籍圖整理 | Pro 功能 toggle 可開關；Advanced 功能仍灰色 disabled |
-| Advanced | 額外顯示 AI 格局、街景/空拍、行銷工具 | Advanced 功能 toggle 可開關 |
+| 基本方案 | 案件管理、地政資料、產出文件、系統設定 | 顯示升級功能清單，但 toggle 為灰色 disabled，只能點升級 |
+| 進階方案 | 額外顯示進階圖資資料夾，例如地標圖、地籍圖整理 | 進階功能 toggle 可開關；專業功能仍灰色 disabled |
+| 專業方案 | 額外顯示 AI 格局、街景/空拍、行銷工具 | 專業功能 toggle 可開關 |
 
 預留輸出位置：
 
-| 說明書位置 | Basic 行為 | 升級行為 |
+| 說明書位置 | 基本方案行為 | 升級行為 |
 | --- | --- | --- |
 | 地標圖 / 生活機能 | 可手動上傳或使用免費公開資料 fallback | 自動產生 Google/進階地標圖，寫入來源與產生時間 |
 | 地籍圖 | 客戶 MOI API 或手動上傳 | 自動整理圖層與欄位來源，仍需標明資料來源 |
@@ -234,7 +236,7 @@ UI 文案不得暗示「輸入地號即可查出私人屋主姓名」。若欄�
 - AIRE 前端 SHALL 透過單一 entitlement adapter 讀取功能狀態，不得在每個元件自行硬編方案。
 - Tauri/Rust SHALL 提供 `get_entitlements`、`request_feature_upgrade`、`open_opcos_upgrade` 這類穩定命令；未實作功能端口也必須回傳 `FeatureNotAvailable` 或 `UpgradeRequired`，不得 silent fail。
 - OPCOS 後端 SHALL 保留 `/api/license/features` 或等效功能查詢端點，AIRE 只同步授權摘要，不上傳案件內容。
-- 未授權功能在系統設定或後台顯示為 locked control，按下升級申請，不進入失敗流程；未升級功能不應塞進 Basic 主工作區或案件右欄造成干擾。
+- 未授權功能在系統設定或後台顯示為 locked control，按下升級申請，不進入失敗流程；未升級功能不應塞進基本方案主工作區或案件右欄造成干擾。
 - 後台功能控制 SHALL 使用 iOS-style toggle：未升級為灰色 disabled；已升級後同一顆 toggle 可開啟或關閉本機功能。
 - 已授權但尚未實作的功能顯示「即將開放」而不是「錯誤」。
 - AI 格局圖屬於 AIRE 產品功能，保留在 AIRE SR `floor-plan-assets-and-ai-schematic` 的能力邊界內；OPCOS 只提供 entitlement，不處理案件資料。

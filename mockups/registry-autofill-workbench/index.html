@@ -276,7 +276,7 @@
       .workspace {
         min-width: 0;
         display: grid;
-        grid-template-columns: 284px minmax(420px, 1fr) 360px;
+        grid-template-columns: 284px minmax(0, 1fr);
         gap: 16px;
         padding: 16px;
         overflow: hidden;
@@ -612,10 +612,6 @@
           overflow: auto;
         }
 
-        .right-panel {
-          grid-column: 1 / -1;
-        }
-
         .scroll {
           max-height: none;
         }
@@ -689,11 +685,11 @@
           <details open>
             <summary class="nav-summary">
               <span class="folder"></span>
-              <span><strong>地政資料</strong><span>Basic 內建功能</span></span>
+              <span><strong>地政資料</strong><span>基本功能</span></span>
             </summary>
             <div class="nav-submenu">
-              <button class="nav-link" type="button">API 查詢</button>
-              <button class="nav-link" type="button">來源矩陣</button>
+              <button class="nav-link" type="button">地政查詢</button>
+              <button class="nav-link" type="button">資料來源</button>
               <button class="nav-link" type="button">費用紀錄</button>
             </div>
           </details>
@@ -715,7 +711,7 @@
               <span><strong>系統設定</strong><span>授權、金鑰、開關</span></span>
             </summary>
             <div class="nav-submenu">
-              <button class="nav-link" type="button">地政 API 金鑰</button>
+              <button class="nav-link" type="button">地政授權</button>
               <button class="nav-link" type="button">功能開關</button>
               <button class="nav-link" type="button">授權與升級</button>
             </div>
@@ -723,7 +719,7 @@
         </nav>
 
         <div class="nav-note">
-          Basic 方案主選單只顯示地政與基本文件產出。升級後才新增圖資、空拍、AI 格局等資料夾；未升級項目放在設定內的灰色開關。
+          基本方案主選單只顯示地政與基本文件產出。升級後才新增圖資、空拍、格局整理等資料夾；未升級項目放在設定內。
         </div>
       </aside>
 
@@ -731,7 +727,7 @@
         <header class="topbar">
           <div class="title">
             <h1>說明書工作台</h1>
-            <p>案號 A-2026-0521 · 農舍 · Basic 方案 · 地政費用由客戶 MOI/COP 帳號負擔</p>
+            <p>案號 A-2026-0521 · 農舍 · 基本方案 · 地政查詢費由客戶的地政帳號負擔</p>
           </div>
           <div class="actions">
             <button class="btn" type="button">重新查詢</button>
@@ -757,7 +753,7 @@
                 <div class="case-meta">
                   <div class="mini-card"><span>已帶入</span><strong>42</strong></div>
                   <div class="mini-card"><span>需補件</span><strong>13</strong></div>
-                  <div class="mini-card"><span>API 未串</span><strong>8</strong></div>
+                  <div class="mini-card"><span>待補資料</span><strong>8</strong></div>
                   <div class="mini-card"><span>本次費用</span><strong>27</strong></div>
                 </div>
               </article>
@@ -792,7 +788,7 @@
                 <div class="kv"><span>地政可填</span><strong>15 欄</strong></div>
                 <div class="kv"><span>需屋主提供</span><strong>3 欄</strong></div>
                 <div class="kv"><span>需現場確認</span><strong>4 欄</strong></div>
-                <div class="kv"><span>尚未串接</span><strong>5 欄</strong></div>
+                <div class="kv"><span>待補資料</span><strong>5 欄</strong></div>
               </article>
             </div>
           </aside>
@@ -801,13 +797,13 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">欄位審核</h2>
-                <p class="panel-subtitle">每個欄位都顯示值、來源、狀態與下一步</p>
+                <p class="panel-subtitle">確認資料是否已帶入，缺資料就加入補件</p>
               </div>
               <span class="badge warn">23 欄待確認</span>
             </div>
             <div class="tabs" aria-label="工作分頁">
               <button class="tab active" type="button">欄位</button>
-              <button class="tab" type="button">地政來源</button>
+              <button class="tab" type="button">資料來源</button>
               <button class="tab" type="button">補件</button>
               <button class="tab" type="button">費用</button>
               <button class="tab" type="button">PDF 檢查</button>
@@ -816,7 +812,7 @@
             <div class="metric-strip">
               <div class="metric"><span>地政已帶入</span><strong>42</strong></div>
               <div class="metric"><span>屋主提供</span><strong>3</strong></div>
-              <div class="metric"><span>失敗不計費</span><strong>2</strong></div>
+              <div class="metric"><span>查詢未成功</span><strong>2</strong></div>
               <div class="metric"><span>累計費用</span><strong>27 元</strong></div>
             </div>
 
@@ -824,16 +820,16 @@
               <article class="field-row selected">
                 <div class="field-label">
                   <strong>私人屋主姓名</strong>
-                  <span>個資欄位 · 不反查</span>
+                  <span>由屋主或正式文件提供</span>
                 </div>
-                <div class="value">屋主提供、正式謄本 OCR，或人工輸入</div>
+                <div class="value">待屋主提供或由謄本帶入</div>
                 <span class="badge warn">需人工提供</span>
               </article>
 
               <article class="field-row">
                 <div class="field-label">
                   <strong>建物權利範圍</strong>
-                  <span>MOI_API_005 · 建物所有權部</span>
+                  <span>建物所有權資料</span>
                 </div>
                 <div class="value">全部 1/1</div>
                 <span class="badge ok">地政已帶入</span>
@@ -842,7 +838,7 @@
               <article class="field-row">
                 <div class="field-label">
                   <strong>登記日期</strong>
-                  <span>MOI_API_005 · 建物所有權部</span>
+                  <span>建物所有權資料</span>
                 </div>
                 <div class="value">113/08/12</div>
                 <span class="badge ok">地政已帶入</span>
@@ -850,8 +846,8 @@
 
               <article class="field-row">
                 <div class="field-label">
-                  <strong>所有權人比對</strong>
-                  <span>MOI_API_009 · 只能驗證已知姓名</span>
+                  <strong>屋主姓名確認</strong>
+                  <span>用已提供姓名確認是否相符</span>
                 </div>
                 <div class="value">等待屋主姓名後再比對</div>
                 <span class="badge wait">待資料</span>
@@ -859,10 +855,10 @@
 
               <article class="field-row">
                 <div class="field-label">
-                  <strong>門牌模糊查建號</strong>
-                  <span>MOI_API_037 · 查詢失敗</span>
+                  <strong>門牌查詢建號</strong>
+                  <span>地政查詢未成功</span>
                 </div>
-                <div class="value">COP309 縣市範圍尚未開放查詢</div>
+                <div class="value">該縣市目前無法用門牌查建號</div>
                 <span class="badge fail">失敗不計費</span>
               </article>
 
@@ -876,63 +872,6 @@
               </article>
             </div>
           </section>
-
-          <aside class="panel right-panel">
-            <div class="panel-header">
-              <div>
-                <h2 class="panel-title">欄位原因與下一步</h2>
-                <p class="panel-subtitle">只顯示目前欄位需要處理的事情</p>
-              </div>
-            </div>
-            <div class="scroll stack">
-              <article class="source-card warning">
-                <div class="source-title">
-                  <strong>私人屋主姓名</strong>
-                  <span>狀態：需人工提供</span>
-                </div>
-                <div class="kv"><span>目前值</span><span>尚未取得</span></div>
-                <div class="kv"><span>原因</span><span>地政 API 不回傳私人自然人姓名</span></div>
-                <div class="kv"><span>可用來源</span><span>屋主提供、正式謄本 OCR、人工輸入</span></div>
-                <div class="kv"><span>下一步</span><span>加入補件清單，等取得姓名後再做 MOI_API_009 比對</span></div>
-              </article>
-
-              <article class="source-card">
-                <div class="source-title">
-                  <strong>對 PDF 的影響</strong>
-                  <span>這裡只顯示本欄位會不會阻擋產出</span>
-                </div>
-                <div class="kv"><span>是否阻擋</span><span>不阻擋草稿預覽，但正式交付前需補齊</span></div>
-                <div class="kv"><span>PDF 顯示</span><span>未補齊前顯示「待屋主提供」內部審核標記</span></div>
-                <div class="kv"><span>費用影響</span><span>此欄位不產生地政查詢費</span></div>
-              </article>
-
-              <article class="source-card">
-                <div class="source-title">
-                  <strong>可執行動作</strong>
-                  <span>操作以目前欄位為單位，不放全域設定</span>
-                </div>
-                <div class="stack">
-                  <button class="btn" type="button">加入補件清單</button>
-                  <button class="btn" type="button">上傳謄本 OCR</button>
-                  <button class="btn" type="button">手動輸入姓名</button>
-                </div>
-              </article>
-
-              <article class="source-card">
-                <div class="source-title">
-                  <strong>設定位置</strong>
-                  <span>一次性規則不放在每個工作頁</span>
-                </div>
-                <div class="kv"><span>升級功能</span><span>移到「系統設定 → 授權與升級」</span></div>
-                <div class="kv"><span>資料邊界</span><span>移到「系統設定 → 地政資料規則」</span></div>
-                <div class="kv"><span>費用規則</span><span>移到「地政資料 → 費用紀錄」與設定頁</span></div>
-              </article>
-
-              <div class="callout">
-                工作台右欄只處理目前選取欄位；升級、費用規則、資料邊界都移到設定或專用頁面，避免每次審欄位都看到同一段說明。
-              </div>
-            </div>
-          </aside>
         </section>
       </main>
     </div>

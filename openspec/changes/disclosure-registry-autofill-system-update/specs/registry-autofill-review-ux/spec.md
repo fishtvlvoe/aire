@@ -10,37 +10,47 @@ Defines the UI/UX contract for reviewing registry autofill results, field gaps, 
 
 The system SHALL provide a registry autofill review workspace for disclosure editors.
 
-The workspace SHALL prioritize dense operational work over marketing-style presentation. It SHALL include a field navigation area, editable disclosure form area, source/gap detail area, cost summary, and supplement checklist.
+The workspace SHALL prioritize dense operational work over marketing-style presentation. It SHALL use a two-column case workspace: a case/chapter navigation area and an editable disclosure field review area.
 
-Each matrix-backed field SHALL expose its value, status label, source service code when available, last lookup time when available, fee impact when available, and next action.
+Each matrix-backed field SHALL expose its value, customer-facing source label, status label, fee impact when available, and supplement action when needed.
+
+The customer-facing workspace SHALL NOT show internal service codes, raw upstream error codes, backend enum names, English plan names, or developer-only source matrix terminology. Internal values such as service code, transaction id, raw MOI code, cost policy, and gap enum SHALL be available only in admin, settings, logs, or audit views.
 
 The workspace SHALL NOT render account-level premium feature settings, static privacy-boundary explanations, or global cost policy panels as persistent side content on every case page.
 
-The source/gap detail area SHALL stay contextual to the currently selected field. Account-level upgrade toggles, data-boundary rules, feature entitlement controls, and cost ownership rules SHALL live in settings, admin, or dedicated audit surfaces.
+Account-level upgrade toggles, data-boundary rules, feature entitlement controls, and cost ownership rules SHALL live in settings, admin, or dedicated audit surfaces.
 
-#### Scenario: Desktop review workspace shows all core regions
+#### Scenario: Desktop review workspace shows two core regions
 
 - **GIVEN** a townhouse case has registry lookup results and manual-required fields
 - **WHEN** the user opens the review workspace at 1440px width
 - **THEN** the field navigation area SHALL be visible
 - **AND** the editable disclosure form area SHALL be visible
-- **AND** the source/gap detail area SHALL be visible
-- **AND** the cost summary and supplement checklist SHALL be visible without overlapping text
+- **AND** the workspace SHALL NOT require a persistent third column for explanations
+- **AND** the cost summary and supplement status SHALL be visible without overlapping text
 
-#### Scenario: Field selection updates source and gap details
+#### Scenario: Field row uses customer-facing labels
 
 - **GIVEN** a land restriction field has status `integration_gap`
 - **WHEN** the user selects that field in the review workspace
-- **THEN** the source/gap detail area SHALL show the missing service code
-- **AND** the next action SHALL indicate that API integration is required before autofill can complete
+- **THEN** the field row SHALL use a customer-facing label such as "待系統補齊" or "需人工提供"
+- **AND** the field row SHALL NOT show internal service codes or backend enum names
 
 #### Scenario: Workbench does not show global settings as persistent side content
 
 - **GIVEN** a basic-plan user opens the registry autofill review workspace
 - **WHEN** the user selects a disclosure field
-- **THEN** the side detail area SHALL describe only the selected field source, gap, fee impact, and next action
-- **AND** the side detail area SHALL NOT show global upgrade toggles, static privacy rules, or PDF asset slot configuration
+- **THEN** the workspace SHALL continue to show only case/chapter navigation and field review
+- **AND** the workspace SHALL NOT show global upgrade toggles, static privacy rules, or PDF asset slot configuration
 - **AND** those global settings SHALL be available from settings, admin, or dedicated audit pages
+
+#### Scenario: Customer-facing workspace hides MOI service codes
+
+- **GIVEN** a field is backed by an internal MOI service code
+- **WHEN** the customer opens the disclosure review workspace
+- **THEN** the field source SHALL be rendered as a Traditional Chinese business label such as "建物所有權資料" or "所有權人比對服務"
+- **AND** the raw MOI service code SHALL NOT be displayed in the customer workspace
+- **AND** the raw service code SHALL remain available in the admin usage audit view
 
 ### Requirement: Registry autofill review UX SHALL define accessible interaction states
 
@@ -56,8 +66,9 @@ The UI SHALL support desktop 1440px, compact desktop 1024px, and tablet 768px la
 - **WHEN** the lookup is in progress
 - **THEN** the action control SHALL show a loading state
 - **WHEN** the response is classified as `domain_failure`
-- **THEN** the UI SHALL show an error state with code `COP309`
+- **THEN** the customer-facing UI SHALL show a plain-language query failure state
 - **AND** the fee display SHALL show zero charge unless the cost policy marks the failure billable
+- **AND** the raw upstream code SHALL be available only in admin logs or usage audit details
 
 #### Scenario: Manual candidate comparison preserves user input
 
