@@ -28,4 +28,4 @@
 ## 5. Review 與部署
 
 - [x] 5.1 Review：針對 OPCOS schema/API/admin UI、AIRE desktop client/settings CTA 做多檔 review，確認沒有上傳案件資料、沒有跳過授權 gate、沒有付款假流程；以 review notes 或修正 commit 驗證。
-- [ ] 5.2 Deployment：分別提交並 push AIRE SR/desktop 變更與 OPCOS backend/admin 變更，部署 OPCOS production，使用 curl/Playwright smoke 驗證登入 gate、invalid license error、admin grant 後 activate/verify 成功。
+- [x] 5.2 Deployment：分別提交並 push AIRE SR/desktop 變更與 OPCOS backend/admin 變更，部署 OPCOS production，使用 curl/Playwright smoke 驗證登入 gate、invalid license error、admin grant 後 activate/verify 成功。
