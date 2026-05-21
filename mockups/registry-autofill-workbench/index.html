@@ -115,18 +115,69 @@
       }
 
       .nav {
-        padding: 14px 12px;
+        padding: 12px;
         display: grid;
-        gap: 16px;
+        gap: 6px;
         overflow: auto;
       }
 
-      .nav-group-title {
-        margin: 0 0 6px;
-        padding: 0 8px;
+      .nav-section {
+        border: 0;
+        border-radius: var(--radius);
+      }
+
+      .nav-section[open] {
+        background: transparent;
+      }
+
+      .nav-summary {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-radius: var(--radius);
+        padding: 8px 10px;
+        color: var(--muted);
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .nav-summary:hover {
+        background: #f3f5f6;
+        color: var(--text);
+      }
+
+      .nav-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .nav-summary::after {
+        content: "⌄";
+        margin-left: auto;
+        color: var(--quiet);
+        font-size: 16px;
+      }
+
+      .nav-section[open] .nav-summary::after {
+        transform: rotate(180deg);
+      }
+
+      .nav-summary strong {
+        display: block;
+        font-size: 14px;
+      }
+
+      .nav-summary span {
+        display: block;
         color: var(--quiet);
         font-size: 12px;
-        font-weight: 700;
+        margin-top: 1px;
+      }
+
+      .nav-submenu {
+        display: grid;
+        gap: 4px;
+        padding: 2px 0 8px 32px;
       }
 
       .nav-link {
@@ -144,6 +195,11 @@
         cursor: pointer;
       }
 
+      .nav-submenu .nav-link {
+        min-height: 36px;
+        padding: 6px 8px;
+      }
+
       .nav-link strong {
         display: block;
         color: inherit;
@@ -158,25 +214,35 @@
       }
 
       .nav-link.active {
-        background: var(--teal-soft);
-        color: var(--teal);
+        background: #f0f1f2;
+        color: var(--text);
       }
 
       .nav-icon {
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 16px;
         border: 1.5px solid currentColor;
-        border-radius: 6px;
-        display: grid;
-        place-items: center;
+        border-radius: 4px;
+        display: block;
         flex: 0 0 auto;
+        position: relative;
+      }
+
+      .nav-icon::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: -5px;
+        width: 9px;
+        height: 6px;
+        border: 1.5px solid currentColor;
+        border-bottom: 0;
+        border-radius: 4px 4px 0 0;
+        background: #fff;
       }
 
       .nav-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: currentColor;
+        display: none;
       }
 
       .main {
@@ -274,6 +340,68 @@
         gap: 8px;
         overflow: auto;
         max-height: calc(100vh - 160px);
+      }
+
+      .chapter-picker {
+        padding: 14px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .field-control {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field-control span {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .field-control select {
+        min-height: 42px;
+        width: 100%;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius);
+        background: #fff;
+        color: var(--text);
+        padding: 0 10px;
+      }
+
+      .chapter-summary {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+        padding: 12px;
+      }
+
+      .chapter-summary h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      .chapter-mini-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .chapter-mini-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 36px;
+        border-top: 1px solid #eef2f4;
+        padding-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .chapter-mini-item:first-child {
+        border-top: 0;
+        padding-top: 0;
       }
 
       .section-card {
@@ -437,18 +565,18 @@
       }
 
       .badge.green {
-        background: var(--green-soft);
-        color: var(--green);
+        background: #eef4f3;
+        color: var(--teal);
       }
 
       .badge.amber {
-        background: var(--amber-soft);
-        color: var(--amber);
+        background: #f1f4f6;
+        color: #52636d;
       }
 
       .badge.blue {
-        background: var(--blue-soft);
-        color: var(--blue);
+        background: #f1f4f6;
+        color: #52636d;
       }
 
       .badge.gray {
@@ -457,8 +585,8 @@
       }
 
       .badge.red {
-        background: var(--red-soft);
-        color: var(--red);
+        background: #f1f4f6;
+        color: #52636d;
       }
 
       .detail-scroll {
@@ -605,61 +733,51 @@
         </div>
 
         <nav class="nav">
-          <section>
-            <p class="nav-group-title">案件</p>
-            <button class="nav-link" type="button">
+          <details class="nav-section" open>
+            <summary class="nav-summary">
               <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>案件總覽</strong><span>新增、搜尋、進度</span></span>
-            </button>
-            <button class="nav-link active" type="button">
-              <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>說明書工作台</strong><span>欄位審核與補件</span></span>
-            </button>
-            <button class="nav-link" type="button">
-              <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>補件清單</strong><span>現場與秘書後補</span></span>
-            </button>
-          </section>
+              <span><strong>案件管理</strong><span>案件、說明書、補件</span></span>
+            </summary>
+            <div class="nav-submenu">
+              <button class="nav-link" type="button"><strong>案件總覽</strong></button>
+              <button class="nav-link active" type="button"><strong>說明書工作台</strong></button>
+              <button class="nav-link" type="button"><strong>補件清單</strong></button>
+            </div>
+          </details>
 
-          <section>
-            <p class="nav-group-title">地政資料</p>
-            <button class="nav-link" type="button">
+          <details class="nav-section">
+            <summary class="nav-summary">
               <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>API 查詢</strong><span>地號、建號、門牌</span></span>
-            </button>
-            <button class="nav-link" type="button">
-              <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>來源矩陣</strong><span>欄位對應與缺口</span></span>
-            </button>
-            <button class="nav-link" type="button">
-              <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>費用紀錄</strong><span>成功失敗與帳務</span></span>
-            </button>
-          </section>
+              <span><strong>地政資料</strong><span>查詢、來源、費用</span></span>
+            </summary>
+            <div class="nav-submenu">
+              <button class="nav-link" type="button"><strong>API 查詢</strong></button>
+              <button class="nav-link" type="button"><strong>來源矩陣</strong></button>
+              <button class="nav-link" type="button"><strong>費用紀錄</strong></button>
+            </div>
+          </details>
 
-          <section>
-            <p class="nav-group-title">產出</p>
-            <button class="nav-link" type="button">
+          <details class="nav-section">
+            <summary class="nav-summary">
               <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>PDF 預覽</strong><span>正式說明書檢查</span></span>
-            </button>
-            <button class="nav-link" type="button">
-              <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>列印與匯出</strong><span>加密 PDF、紙本</span></span>
-            </button>
-          </section>
+              <span><strong>產出文件</strong><span>預覽、列印、匯出</span></span>
+            </summary>
+            <div class="nav-submenu">
+              <button class="nav-link" type="button"><strong>PDF 預覽</strong></button>
+              <button class="nav-link" type="button"><strong>列印與匯出</strong></button>
+            </div>
+          </details>
 
-          <section>
-            <p class="nav-group-title">設定</p>
-            <button class="nav-link" type="button">
+          <details class="nav-section">
+            <summary class="nav-summary">
               <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>地政 API 金鑰</strong><span>帳號、餘額、測試</span></span>
-            </button>
-            <button class="nav-link" type="button">
-              <span class="nav-icon"><span class="nav-dot"></span></span>
-              <span><strong>授權與升級</strong><span>序號、方案、OPCOS</span></span>
-            </button>
-          </section>
+              <span><strong>系統設定</strong><span>API、授權、品牌</span></span>
+            </summary>
+            <div class="nav-submenu">
+              <button class="nav-link" type="button"><strong>地政 API 金鑰</strong></button>
+              <button class="nav-link" type="button"><strong>授權與升級</strong></button>
+            </div>
+          </details>
         </nav>
       </aside>
 
@@ -691,36 +809,52 @@
                 <p class="panel-subtitle">先用一級選單分區，再在這裡審欄位</p>
               </div>
             </div>
-            <div class="section-list">
-              <article class="section-card active">
-                <h3>一、基本資料</h3>
-                <div class="section-meta"><span>已帶入 9 / 12</span><span class="badge green">75%</span></div>
-                <div class="progress"><span style="width: 75%"></span></div>
-              </article>
-              <article class="section-card">
-                <h3>二、土地標示與權利</h3>
-                <div class="section-meta"><span>已帶入 18 / 24</span><span class="badge green">75%</span></div>
-                <div class="progress"><span style="width: 75%"></span></div>
-              </article>
-              <article class="section-card">
+            <div class="chapter-picker">
+              <label class="field-control">
+                <span>目前章節</span>
+                <select aria-label="目前章節">
+                  <option>一、基本資料</option>
+                  <option>二、土地標示與權利</option>
+                  <option selected>三、建物標示與權利</option>
+                  <option>四、使用限制與風險</option>
+                  <option>五、現場確認</option>
+                  <option>六、稅費與交易紀錄</option>
+                </select>
+              </label>
+
+              <label class="field-control">
+                <span>物件類型</span>
+                <select aria-label="物件類型">
+                  <option>農地</option>
+                  <option selected>農舍</option>
+                  <option>透天別墅</option>
+                  <option>公寓 / 大樓</option>
+                </select>
+              </label>
+
+              <article class="chapter-summary">
                 <h3>三、建物標示與權利</h3>
                 <div class="section-meta"><span>已帶入 15 / 27</span><span class="badge amber">56%</span></div>
                 <div class="progress"><span style="width: 56%"></span></div>
+                <div class="chapter-mini-list">
+                  <div class="chapter-mini-item"><span>地政已帶入</span><strong>15</strong></div>
+                  <div class="chapter-mini-item"><span>API 未串</span><strong>5</strong></div>
+                  <div class="chapter-mini-item"><span>需人工</span><strong>7</strong></div>
+                </div>
               </article>
-              <article class="section-card">
-                <h3>四、使用限制與風險</h3>
-                <div class="section-meta"><span>API 未串 6</span><span class="badge blue">待接</span></div>
-                <div class="progress"><span style="width: 32%"></span></div>
-              </article>
-              <article class="section-card">
-                <h3>五、現場確認</h3>
-                <div class="section-meta"><span>需人工 13</span><span class="badge gray">補件</span></div>
-                <div class="progress"><span style="width: 18%"></span></div>
-              </article>
-              <article class="section-card">
-                <h3>六、稅費與交易紀錄</h3>
-                <div class="section-meta"><span>費用 27 元</span><span class="badge green">可核對</span></div>
-                <div class="progress"><span style="width: 70%"></span></div>
+
+              <article class="chapter-summary">
+                <h3>篩選</h3>
+                <label class="field-control">
+                  <span>欄位狀態</span>
+                  <select aria-label="欄位狀態">
+                    <option selected>全部狀態</option>
+                    <option>地政已帶入</option>
+                    <option>API 未串</option>
+                    <option>需人工確認</option>
+                    <option>失敗不計費</option>
+                  </select>
+                </label>
               </article>
             </div>
           </aside>
