@@ -8,11 +8,11 @@ Defines stable UI gates and frontend/backend ports for future paid AIRE capabili
 
 ### Requirement: Premium feature entitlement ports SHALL expose locked and unlocked feature UI
 
-The system SHALL render future paid features in predictable UI locations even when the current user is not entitled to use them.
+The system SHALL render future paid features in predictable settings or admin UI locations even when the current user is not entitled to use them.
 
 Each premium feature gate SHALL include feature id, display label, required plan, current entitlement state, short user-facing description, and next action.
 
-Locked features SHALL show an upgrade action instead of failing silently. Unlocked but not-yet-implemented features SHALL show a "coming soon" or "reserved" state instead of an error.
+Locked features SHALL show an upgrade action in settings or admin surfaces instead of failing silently. Unlocked but not-yet-implemented features SHALL show a "coming soon" or "reserved" state instead of an error.
 
 The first reserved feature ids SHALL include `google_maps_location`, `google_street_view`, `advanced_gis_layers`, `ai_floor_plan_schematic`, and `marketing_modules`.
 
@@ -20,7 +20,7 @@ The first reserved feature ids SHALL include `google_maps_location`, `google_str
 
 - **GIVEN** the active plan is `basic`
 - **AND** feature `google_maps_location` requires `pro`
-- **WHEN** the user opens the registry autofill review workspace
+- **WHEN** the user opens the system settings or admin feature panel
 - **THEN** the Google Maps location card SHALL be visible in the upgrade feature area
 - **AND** the card SHALL show a locked state and an upgrade action
 - **AND** the system SHALL NOT attempt to call the Google Maps preview port
@@ -40,7 +40,7 @@ The main AIRE navigation SHALL keep Basic users focused on the original land-reg
 
 Basic users SHALL see only core folders such as case management, land registry data, output documents, and settings. Premium feature menus such as advanced maps, AI floor plan, Street View, aerial photo, and marketing modules SHALL NOT appear in the main workspace navigation until the license entitlement allows them.
 
-The settings or admin feature panel SHALL still list unavailable premium features as disabled controls so users can understand upgrade options.
+The settings or admin feature panel SHALL still list unavailable premium features as disabled controls so users can understand upgrade options without adding global upgrade controls to every case workspace.
 
 #### Scenario: Basic navigation hides premium menus
 

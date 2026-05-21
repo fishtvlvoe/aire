@@ -14,7 +14,9 @@ The workspace SHALL prioritize dense operational work over marketing-style prese
 
 Each matrix-backed field SHALL expose its value, status label, source service code when available, last lookup time when available, fee impact when available, and next action.
 
-The workspace SHALL reserve a compact upgrade feature area for locked or future capabilities, and SHALL keep those feature gates visually secondary to the active disclosure task.
+The workspace SHALL NOT render account-level premium feature settings, static privacy-boundary explanations, or global cost policy panels as persistent side content on every case page.
+
+The source/gap detail area SHALL stay contextual to the currently selected field. Account-level upgrade toggles, data-boundary rules, feature entitlement controls, and cost ownership rules SHALL live in settings, admin, or dedicated audit surfaces.
 
 #### Scenario: Desktop review workspace shows all core regions
 
@@ -31,6 +33,14 @@ The workspace SHALL reserve a compact upgrade feature area for locked or future 
 - **WHEN** the user selects that field in the review workspace
 - **THEN** the source/gap detail area SHALL show the missing service code
 - **AND** the next action SHALL indicate that API integration is required before autofill can complete
+
+#### Scenario: Workbench does not show global settings as persistent side content
+
+- **GIVEN** a basic-plan user opens the registry autofill review workspace
+- **WHEN** the user selects a disclosure field
+- **THEN** the side detail area SHALL describe only the selected field source, gap, fee impact, and next action
+- **AND** the side detail area SHALL NOT show global upgrade toggles, static privacy rules, or PDF asset slot configuration
+- **AND** those global settings SHALL be available from settings, admin, or dedicated audit pages
 
 ### Requirement: Registry autofill review UX SHALL define accessible interaction states
 

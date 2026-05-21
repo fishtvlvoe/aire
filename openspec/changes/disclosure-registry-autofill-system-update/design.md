@@ -199,7 +199,7 @@ UI 文案不得暗示「輸入地號即可查出私人屋主姓名」。若欄�
 
 ### Phase 7: 升級功能 UI 與端口預留
 
-未來升級功能不能等到真的開發時才臨時塞進介面。工作台 SHALL 先保留固定位置與端口，讓使用者知道哪些功能可升級，也讓後端授權串接有穩定契約。
+未來升級功能不能等到真的開發時才臨時塞進介面。系統設定與後台 SHALL 先保留固定位置與端口，讓使用者知道哪些功能可升級，也讓後端授權串接有穩定契約；案件工作台 SHALL 保持任務導向，不常駐顯示全域升級開關、靜態資料邊界或費用歸屬規則。
 
 升級功能分類：
 
@@ -234,7 +234,7 @@ UI 文案不得暗示「輸入地號即可查出私人屋主姓名」。若欄�
 - AIRE 前端 SHALL 透過單一 entitlement adapter 讀取功能狀態，不得在每個元件自行硬編方案。
 - Tauri/Rust SHALL 提供 `get_entitlements`、`request_feature_upgrade`、`open_opcos_upgrade` 這類穩定命令；未實作功能端口也必須回傳 `FeatureNotAvailable` 或 `UpgradeRequired`，不得 silent fail。
 - OPCOS 後端 SHALL 保留 `/api/license/features` 或等效功能查詢端點，AIRE 只同步授權摘要，不上傳案件內容。
-- 未授權功能在後台顯示為 locked control，按下升級申請，不進入失敗流程；未升級功能不應塞進 Basic 主工作區造成干擾。
+- 未授權功能在系統設定或後台顯示為 locked control，按下升級申請，不進入失敗流程；未升級功能不應塞進 Basic 主工作區或案件右欄造成干擾。
 - 後台功能控制 SHALL 使用 iOS-style toggle：未升級為灰色 disabled；已升級後同一顆 toggle 可開啟或關閉本機功能。
 - 已授權但尚未實作的功能顯示「即將開放」而不是「錯誤」。
 - AI 格局圖屬於 AIRE 產品功能，保留在 AIRE SR `floor-plan-assets-and-ai-schematic` 的能力邊界內；OPCOS 只提供 entitlement，不處理案件資料。

@@ -880,105 +880,56 @@
           <aside class="panel right-panel">
             <div class="panel-header">
               <div>
-                <h2 class="panel-title">資料邊界與升級</h2>
-                <p class="panel-subtitle">把不能自動化的原因講清楚</p>
+                <h2 class="panel-title">欄位原因與下一步</h2>
+                <p class="panel-subtitle">只顯示目前欄位需要處理的事情</p>
               </div>
             </div>
             <div class="scroll stack">
               <article class="source-card warning">
                 <div class="source-title">
-                  <strong>屋主姓名不能反查</strong>
-                  <span>私人自然人資料不從 API 回傳</span>
+                  <strong>私人屋主姓名</strong>
+                  <span>狀態：需人工提供</span>
                 </div>
-                <div class="kv"><span>可自動帶入</span><span>權利範圍、登記日期、登記原因、所有權登記次序</span></div>
-                <div class="kv"><span>不可反查</span><span>私人屋主姓名、身分證、私人地址</span></div>
+                <div class="kv"><span>目前值</span><span>尚未取得</span></div>
+                <div class="kv"><span>原因</span><span>地政 API 不回傳私人自然人姓名</span></div>
                 <div class="kv"><span>可用來源</span><span>屋主提供、正式謄本 OCR、人工輸入</span></div>
-                <div class="kv"><span>比對服務</span><span>MOI_API_009 只能拿已知姓名驗證是否符合</span></div>
+                <div class="kv"><span>下一步</span><span>加入補件清單，等取得姓名後再做 MOI_API_009 比對</span></div>
               </article>
 
               <article class="source-card">
                 <div class="source-title">
-                  <strong>費用與成功失敗紀錄</strong>
-                  <span>客戶要看得懂每一筆扣款原因</span>
+                  <strong>對 PDF 的影響</strong>
+                  <span>這裡只顯示本欄位會不會阻擋產出</span>
                 </div>
-                <table class="cost-table">
-                  <thead>
-                    <tr>
-                      <th>服務</th>
-                      <th>結果</th>
-                      <th>費用</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>MOI_API_005</td>
-                      <td><span class="badge ok">成功 27 筆</span></td>
-                      <td>27 元</td>
-                    </tr>
-                    <tr>
-                      <td>MOI_API_037</td>
-                      <td><span class="badge fail">COP309</span></td>
-                      <td>0 元</td>
-                    </tr>
-                    <tr>
-                      <td>MOI_API_041</td>
-                      <td><span class="badge wait">帳務核對</span></td>
-                      <td>免費</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div class="kv"><span>是否阻擋</span><span>不阻擋草稿預覽，但正式交付前需補齊</span></div>
+                <div class="kv"><span>PDF 顯示</span><span>未補齊前顯示「待屋主提供」內部審核標記</span></div>
+                <div class="kv"><span>費用影響</span><span>此欄位不產生地政查詢費</span></div>
               </article>
 
               <article class="source-card">
                 <div class="source-title">
-                  <strong>升級功能開關</strong>
-                  <span>未升級灰色鎖定；升級後可自行開關</span>
+                  <strong>可執行動作</strong>
+                  <span>操作以目前欄位為單位，不放全域設定</span>
                 </div>
                 <div class="stack">
-                  <div class="feature-row">
-                    <div class="feature-copy">
-                      <strong>Google 地圖</strong>
-                      <span>Pro 後新增進階圖資選單</span>
-                    </div>
-                    <button class="toggle" type="button" disabled aria-label="Google 地圖未升級"></button>
-                  </div>
-                  <div class="feature-row">
-                    <div class="feature-copy">
-                      <strong>空拍圖 / 街景參考</strong>
-                      <span>Advanced 後輸出 PDF 圖頁</span>
-                    </div>
-                    <button class="toggle" type="button" disabled aria-label="空拍街景未升級"></button>
-                  </div>
-                  <div class="feature-row">
-                    <div class="feature-copy">
-                      <strong>AI 格局圖整理</strong>
-                      <span>Basic 保留手動上傳 slot</span>
-                    </div>
-                    <button class="toggle" type="button" disabled aria-label="AI 格局圖未升級"></button>
-                  </div>
-                  <div class="feature-row">
-                    <div class="feature-copy">
-                      <strong>地籍圖整理</strong>
-                      <span>地政原始資料自付；整理功能走升級</span>
-                    </div>
-                    <button class="toggle on" type="button" aria-label="地籍圖整理已開啟"></button>
-                  </div>
+                  <button class="btn" type="button">加入補件清單</button>
+                  <button class="btn" type="button">上傳謄本 OCR</button>
+                  <button class="btn" type="button">手動輸入姓名</button>
                 </div>
               </article>
 
               <article class="source-card">
                 <div class="source-title">
-                  <strong>PDF 預留位置</strong>
-                  <span>先保留 slot，避免後面重改文件結構</span>
+                  <strong>設定位置</strong>
+                  <span>一次性規則不放在每個工作頁</span>
                 </div>
-                <div class="kv"><span>地籍圖</span><span>Basic 可放地政資料；進階整理需升級</span></div>
-                <div class="kv"><span>地標圖</span><span>Pro/Advanced 由 AIRE 端口產生</span></div>
-                <div class="kv"><span>空拍圖</span><span>Advanced 啟用後自動放入 PDF</span></div>
-                <div class="kv"><span>格局圖</span><span>Basic 手動上傳；Advanced 可 AI 整理</span></div>
+                <div class="kv"><span>升級功能</span><span>移到「系統設定 → 授權與升級」</span></div>
+                <div class="kv"><span>資料邊界</span><span>移到「系統設定 → 地政資料規則」</span></div>
+                <div class="kv"><span>費用規則</span><span>移到「地政資料 → 費用紀錄」與設定頁</span></div>
               </article>
 
               <div class="callout">
-                這版 demo 的核心規則：Basic 只做地政與說明書自動填寫；私人屋主資料不反查；升級功能先留 UI 與端口，再接後端授權。
+                工作台右欄只處理目前選取欄位；升級、費用規則、資料邊界都移到設定或專用頁面，避免每次審欄位都看到同一段說明。
               </div>
             </div>
           </aside>
