@@ -20,6 +20,8 @@ The workspace SHALL NOT render account-level premium feature settings, static pr
 
 Account-level upgrade toggles, data-boundary rules, feature entitlement controls, and cost ownership rules SHALL live in settings, admin, or dedicated audit surfaces.
 
+The primary navigation SHALL provide a visible collapse control and a persistent user profile entry. The primary navigation SHALL NOT use a bottom explanatory note or plan-description card for content that belongs in settings.
+
 #### Scenario: Desktop review workspace shows two core regions
 
 - **GIVEN** a townhouse case has registry lookup results and manual-required fields
@@ -28,6 +30,8 @@ Account-level upgrade toggles, data-boundary rules, feature entitlement controls
 - **AND** the editable disclosure form area SHALL be visible
 - **AND** the workspace SHALL NOT require a persistent third column for explanations
 - **AND** the cost summary and supplement status SHALL be visible without overlapping text
+- **AND** the primary navigation SHALL show a collapse control and a user profile entry
+- **AND** the primary navigation SHALL NOT show a bottom plan-description note
 
 #### Scenario: Field row uses customer-facing labels
 

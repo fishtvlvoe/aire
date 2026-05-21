@@ -66,6 +66,11 @@
         border-bottom: 1px solid var(--line);
       }
 
+      .brand-copy {
+        min-width: 0;
+        flex: 1;
+      }
+
       .brand-mark {
         width: 36px;
         height: 36px;
@@ -109,6 +114,19 @@
         color: var(--muted);
         font-size: 12px;
         margin-top: 2px;
+      }
+
+      .collapse-button {
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
       }
 
       .nav {
@@ -213,14 +231,54 @@
         cursor: default;
       }
 
-      .nav-note {
+      .profile-card {
         margin: auto 12px 12px;
         border: 1px solid var(--line);
         border-radius: var(--radius);
-        padding: 12px;
+        padding: 10px;
         color: var(--muted);
         font-size: 12px;
-        line-height: 1.45;
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+      }
+
+      .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--brand);
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+      }
+
+      .profile-card strong {
+        display: block;
+        color: var(--text);
+        font-size: 13px;
+      }
+
+      .profile-card span {
+        display: block;
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .profile-menu {
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
       }
 
       .main {
@@ -663,10 +721,11 @@
       <aside class="sidebar" aria-label="AIRE 主選單">
         <div class="brand">
           <div class="brand-mark" aria-hidden="true"></div>
-          <div>
+          <div class="brand-copy">
             <strong>AIRE</strong>
             <span>說明書自動填寫</span>
           </div>
+          <button class="collapse-button" type="button" aria-label="收合主選單">‹</button>
         </div>
 
         <nav class="nav">
@@ -718,8 +777,13 @@
           </details>
         </nav>
 
-        <div class="nav-note">
-          基本方案主選單只顯示地政與基本文件產出。升級後才新增圖資、空拍、格局整理等資料夾；未升級項目放在設定內。
+        <div class="profile-card" role="button" tabindex="0" aria-label="開啟個人設定">
+          <span class="avatar" aria-hidden="true">余</span>
+          <div>
+            <strong>余啟彰</strong>
+            <span>個人設定</span>
+          </div>
+          <button class="profile-menu" type="button" aria-label="個人選單">⋯</button>
         </div>
       </aside>
 

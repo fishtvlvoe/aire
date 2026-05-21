@@ -25,7 +25,7 @@
 
 ## 5. UI, PDF, and property-type coverage
 
-- [ ] 5.1 覆蓋 Phase 6: UI/UX 審核工作台。新增 UI contract 測試或 Storybook/Playwright fixtures，驗證「Registry autofill review UX SHALL provide a review workspace for field status, source, gap, and cost」：案件工作台只保留案件/章節與欄位審核兩欄；欄位狀態標籤、客戶可讀來源、費用摘要與補件狀態都可見，但不常駐第三欄說明面板。
+- [ ] 5.1 覆蓋 Phase 6: UI/UX 審核工作台。新增 UI contract 測試或 Storybook/Playwright fixtures，驗證「Registry autofill review UX SHALL provide a review workspace for field status, source, gap, and cost」：案件工作台只保留案件/章節與欄位審核兩欄；欄位狀態標籤、客戶可讀來源、費用摘要與補件狀態都可見，但不常駐第三欄說明面板；左側一級選單提供收合按鈕，底部顯示頭像與個人設定入口，不顯示方案說明提示卡。
 - [ ] 5.2 更新土地與成屋 disclosure form 測試，驗證「Land disclosure form fields」與「Residential disclosure form fields」：欄位旁可顯示地政帶入、API 未串、需人工、不可查等狀態，且不阻擋使用者手動完成。
 - [ ] 5.3 更新土地與成屋表單 UI，滿足「Registry autofill review UX SHALL define accessible interaction states」：顯示欄位來源、缺口原因、費用提示、最後查詢狀態、loading、success、empty、error、partial 狀態，避免可查欄位默默空白；客戶工作台不得顯示 `MOI_API_*`、`COP309`、backend enum、英文方案名或其他工程內部代碼，這些資訊只能在 admin/log/audit views 出現。
 - [ ] 5.4 新增 API 呼叫明細與費用稽核 UI，滿足「Registry autofill review UX SHALL provide an auditable MOI usage dashboard」：日期/服務/狀態/歷程編號篩選、統計卡、明細表、錯誤訊息抽屜、未付款金額與失敗不計費原因。
