@@ -851,7 +851,7 @@ export class MockStore {
   }
 
   private subscribePremium(): { redirect_url: string } {
-    return { redirect_url: "https://opcos.tw/checkout/mcp-hub" };
+    return { redirect_url: "https://opcos.me/products/aire?intent=request-access" };
   }
 
   private getFeatureFlags(): FeatureFlagState[] {

@@ -5,7 +5,7 @@ fn main() {
     if profile == "release" || force_release {
         // 允許 CI / 測試版 override（例如指向 workers.dev）
         let base_url = std::env::var("OPCOS_API_BASE_URL_OVERRIDE")
-            .unwrap_or_else(|_| "https://aire.opcos.me".to_string());
+            .unwrap_or_else(|_| "https://opcos.me".to_string());
         println!("cargo:rustc-env=OPCOS_API_BASE_URL={base_url}");
     }
     tauri_build::build()

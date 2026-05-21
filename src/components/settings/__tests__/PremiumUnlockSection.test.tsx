@@ -17,7 +17,7 @@ describe("PremiumUnlockSection", () => {
     vi.clearAllMocks();
   });
 
-  it("未訂閱時顯示說明和前往訂閱按鈕", async () => {
+  it("未訂閱時顯示說明和前往升級按鈕", async () => {
     mockInvokeFn.mockResolvedValueOnce({
       subscribed: false,
       plan: null,
@@ -30,27 +30,27 @@ describe("PremiumUnlockSection", () => {
       expect(screen.getByText("實價登錄 MCP Hub")).toBeInTheDocument();
     });
 
-    expect(screen.getByRole("button", { name: "前往訂閱" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "前往升級" })).toBeInTheDocument();
   });
 
-  it("點擊前往訂閱呼叫 subscribe_premium", async () => {
+  it("點擊前往升級呼叫 subscribe_premium 並開啟 OPCOS AIRE 申請入口", async () => {
     mockInvokeFn
       .mockResolvedValueOnce({ subscribed: false, plan: null, expires_at: null })
       .mockResolvedValueOnce({ authenticated: false })
-      .mockResolvedValueOnce({ redirect_url: "https://opcos.tw/checkout/mcp-hub" });
+      .mockResolvedValueOnce({ redirect_url: "https://opcos.me/products/aire?intent=request-access" });
 
     const windowOpenSpy = vi.spyOn(window, "open").mockImplementation(() => null);
 
     render(<PremiumUnlockSection />);
 
-    await waitFor(() => screen.getByRole("button", { name: "前往訂閱" }));
+    await waitFor(() => screen.getByRole("button", { name: "前往升級" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "前往訂閱" }));
+    fireEvent.click(screen.getByRole("button", { name: "前往升級" }));
 
     await waitFor(() => {
       expect(mockInvokeFn).toHaveBeenCalledWith("subscribe_premium");
       expect(windowOpenSpy).toHaveBeenCalledWith(
-        "https://opcos.tw/checkout/mcp-hub",
+        "https://opcos.me/products/aire?intent=request-access",
         "_blank",
         "noopener,noreferrer",
       );
@@ -90,7 +90,7 @@ describe("PremiumUnlockSection", () => {
       expect(screen.getByText("已啟用（管理員）")).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole("button", { name: "前往訂閱" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "前往升級" })).toBeNull();
     expect(mockInvokeFn).not.toHaveBeenCalledWith("subscribe_premium");
   });
 });

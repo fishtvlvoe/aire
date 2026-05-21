@@ -123,16 +123,16 @@ pub async fn activate_license(
     let resp = opcos::activate_license(&key, &device_id, &device_name, &os_ver)
         .await
         .map_err(|e| match (e.status, e.code.as_str()) {
+            (Some(422), "invalid_key") => {
+                ActivationError::new("INVALID_KEY", "序號無效，請確認輸入是否正確")
+            }
+            (Some(409), "quota_exhausted") => {
+                ActivationError::new("QUOTA_EXHAUSTED", "授權額度已用盡，請聯絡客服加購")
+            }
             (Some(409), _) => ActivationError::new(
                 "ALREADY_ACTIVATED_OTHER_DEVICE",
                 "此序號已綁定其他裝置，請聯絡客服解除原裝置綁定",
             ),
-            (Some(422), "invalid_key") => {
-                ActivationError::new("INVALID_KEY", "序號無效，請確認輸入是否正確")
-            }
-            (Some(422), "quota_exhausted") => {
-                ActivationError::new("QUOTA_EXHAUSTED", "授權額度已用盡，請聯絡客服加購")
-            }
             (Some(s), c) if s >= 500 => ActivationError::new(
                 "OPCOS_UNAVAILABLE",
                 format!("OPCOS 伺服器錯誤（{s} {c}），請稍後再試"),

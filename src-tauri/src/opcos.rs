@@ -7,7 +7,7 @@
 //   POST {base}/api/license/verify    { license_key, device_id }
 //   POST {base}/api/license/activate  { license_key, device_id, device_name, os_version }
 //
-// base URL 取 env OPCOS_API_BASE_URL，未設則用 https://opcos.example.com。
+// base URL 取 env OPCOS_API_BASE_URL，未設則用 https://opcos.me。
 // timeout 10 秒。
 
 use std::time::Duration;
@@ -15,7 +15,7 @@ use std::time::Duration;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-const DEFAULT_BASE_URL: &str = "https://opcos.example.com";
+const DEFAULT_BASE_URL: &str = "https://opcos.me";
 
 #[derive(Debug, Clone)]
 pub struct OpcosError {
@@ -85,10 +85,17 @@ struct ApiError {
 fn base_url() -> String {
     // build.rs 在 release profile 透過 cargo:rustc-env 注入 compile-time 值；
     // dev 模式退回 runtime env var，再退回預設值。
-    if let Some(url) = option_env!("OPCOS_API_BASE_URL") {
-        return url.to_string();
-    }
-    std::env::var("OPCOS_API_BASE_URL").unwrap_or_else(|_| DEFAULT_BASE_URL.to_string())
+    resolve_base_url(
+        option_env!("OPCOS_API_BASE_URL"),
+        std::env::var("OPCOS_API_BASE_URL").ok(),
+    )
+}
+
+fn resolve_base_url(compile_time_url: Option<&str>, runtime_url: Option<String>) -> String {
+    compile_time_url
+        .map(str::to_string)
+        .or(runtime_url)
+        .unwrap_or_else(|| DEFAULT_BASE_URL.to_string())
 }
 
 fn build_client() -> Result<Client, OpcosError> {
@@ -177,14 +184,25 @@ mod tests {
 
     #[test]
     fn base_url_uses_env_when_set() {
-        std::env::set_var("OPCOS_API_BASE_URL", "https://test.opcos.local");
-        assert_eq!(base_url(), "https://test.opcos.local");
-        std::env::remove_var("OPCOS_API_BASE_URL");
+        assert_eq!(
+            resolve_base_url(None, Some("https://test.opcos.local".to_string())),
+            "https://test.opcos.local"
+        );
     }
 
     #[test]
     fn base_url_falls_back_to_default() {
-        std::env::remove_var("OPCOS_API_BASE_URL");
-        assert_eq!(base_url(), DEFAULT_BASE_URL);
+        assert_eq!(resolve_base_url(None, None), DEFAULT_BASE_URL);
+    }
+
+    #[test]
+    fn base_url_prefers_compile_time_release_value() {
+        assert_eq!(
+            resolve_base_url(
+                Some("https://opcos.me"),
+                Some("https://test.opcos.local".to_string())
+            ),
+            "https://opcos.me"
+        );
     }
 }

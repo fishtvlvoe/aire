@@ -106,10 +106,10 @@ export function PremiumUnlockSection() {
         ) : (
           <div className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              實價登錄 MCP 整合，提供地政資料一鍵查詢
+              實價登錄 MCP 整合，提供地政資料一鍵查詢；目前先送出 OPCOS 後台升級申請。
             </div>
             <Button onClick={handleSubscribe} disabled={subscribing}>
-              前往訂閱
+              前往升級
             </Button>
           </div>
         )}

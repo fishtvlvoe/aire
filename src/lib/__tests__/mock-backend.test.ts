@@ -401,7 +401,7 @@ describe("MockStore", () => {
 
   it("returns premium subscribe redirect url", async () => {
     await expect(mockInvoke("subscribe_premium")).resolves.toEqual({
-      redirect_url: "https://opcos.tw/checkout/mcp-hub",
+      redirect_url: "https://opcos.me/products/aire?intent=request-access",
     });
   });
 
