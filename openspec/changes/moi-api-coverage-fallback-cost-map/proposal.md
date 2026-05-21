@@ -10,6 +10,7 @@ Fish 在 2026/05/21 對焦 MOI/COP 地政 API 後發現：`docs/cop-scrape` 已�
 
 - 建立 MOI API service catalog，從 `docs/cop-scrape/02-服務列表/pricing.json`、`merged_services.json`、`05-服務說明文件/` 讀取服務名稱、官方價格、免費/付費/政府限定、文件位置與單次查詢限制。
 - 建立 coverage matrix，對照「爬蟲已知服務」與「AIRE 已實作 endpoint」及「揭露書/案件流程必須資料」。
+- 反推不動產說明書 16 章、建物/土地欄位總表、農地/農舍/透天舊版清單，標出哪些空白欄位其實可由地政資料或圖資補齊。
 - 定義成功/失敗判斷層級：HTTP 成功、MOI `STATUS` 成功、`RETURNROWS` 有資料、業務上可使用資料、錯誤碼如 `COP309`。
 - 定義費用政策：回傳筆數計費、地段計費、時間計費、免費需驗證、政府限定、未知規則，以及失敗是否 billable。
 - 定義備援策略：主 API 失敗時，哪些免費或替代 API 可補資料，哪些情況要轉人工補件或提示不可查。
@@ -27,6 +28,7 @@ Fish 在 2026/05/21 對焦 MOI/COP 地政 API 後發現：`docs/cop-scrape` 已�
 
 - `moi-api-service-catalog`: Keeps a local audited catalog of scraped MOI services, pricing, eligibility, and documentation references.
 - `land-registry-api-coverage`: Maps AIRE disclosure data needs to MOI services and shows which are wired, missing, optional, or fallback-only.
+- `disclosure-field-source-coverage`: Classifies blank disclosure fields by source and identifies fields that should be auto-filled from land registry data.
 - `land-registry-cost-policy`: Defines billable amount rules per MOI service and outcome.
 - `land-registry-fallback-policy`: Defines fallback behavior when a primary MOI API fails or returns no usable data.
 
@@ -37,7 +39,7 @@ Fish 在 2026/05/21 對焦 MOI/COP 地政 API 後發現：`docs/cop-scrape` 已�
 
 ## Impact
 
-- Affected specs: `moi-api-service-catalog`, `land-registry-api-coverage`, `land-registry-cost-policy`, `land-registry-fallback-policy`
+- Affected specs: `moi-api-service-catalog`, `land-registry-api-coverage`, `disclosure-field-source-coverage`, `land-registry-cost-policy`, `land-registry-fallback-policy`
 - Affected future code:
   - `src-tauri/src/land_registry/apis`
   - `src-tauri/src/land_registry/pull.rs`
