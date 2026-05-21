@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AIRE 地政自動填寫工作台 Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f9fb;
+        --panel: #ffffff;
+        --panel-soft: #f2f6f8;
+        --line: #d9e2e7;
+        --line-strong: #b8c8d0;
+        --text: #162126;
+        --muted: #60717b;
+        --quiet: #8a9aa3;
+        --teal: #0f766e;
+        --teal-soft: #e6f4f1;
+        --blue: #0b65a3;
+        --blue-soft: #e7f1fb;
+        --amber: #9a5b00;
+        --amber-soft: #fff4dc;
+        --red: #b42318;
+        --red-soft: #ffe8e5;
+        --green: #16794c;
+        --green-soft: #e8f6ee;
+        --radius: 8px;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "Noto Sans TC", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      .app {
+        display: grid;
+        min-height: 100vh;
+        grid-template-columns: 248px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        border-right: 1px solid var(--line);
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .brand {
+        height: 72px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 2px solid #18362d;
+        background: #173f2f;
+        position: relative;
+      }
+
+      .brand-mark::before {
+        content: "";
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        height: 14px;
+        background: #fff;
+      }
+
+      .brand-mark::after {
+        content: "";
+        position: absolute;
+        left: 8px;
+        top: 8px;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        clip-path: polygon(50% 0, 100% 45%, 100% 100%, 0 100%, 0 45%);
+      }
+
+      .brand strong {
+        display: block;
+        font-size: 15px;
+      }
+
+      .brand span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .nav {
+        padding: 14px 12px;
+        display: grid;
+        gap: 16px;
+        overflow: auto;
+      }
+
+      .nav-group-title {
+        margin: 0 0 6px;
+        padding: 0 8px;
+        color: var(--quiet);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .nav-link {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        border: 0;
+        border-radius: var(--radius);
+        background: transparent;
+        color: var(--muted);
+        padding: 8px 10px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .nav-link strong {
+        display: block;
+        color: inherit;
+        font-size: 14px;
+      }
+
+      .nav-link span {
+        display: block;
+        color: var(--quiet);
+        font-size: 12px;
+        margin-top: 1px;
+      }
+
+      .nav-link.active {
+        background: var(--teal-soft);
+        color: var(--teal);
+      }
+
+      .nav-icon {
+        width: 22px;
+        height: 22px;
+        border: 1.5px solid currentColor;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+      }
+
+      .nav-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .main {
+        min-width: 0;
+        display: grid;
+        grid-template-rows: 72px minmax(0, 1fr);
+      }
+
+      .topbar {
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 0 24px;
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.25;
+      }
+
+      .title p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn {
+        min-height: 40px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius);
+        background: #fff;
+        color: var(--text);
+        padding: 0 14px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .btn.primary {
+        border-color: var(--teal);
+        background: var(--teal);
+        color: #fff;
+      }
+
+      .workspace {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: 260px minmax(420px, 1fr) 340px;
+        gap: 16px;
+        padding: 16px;
+        overflow: hidden;
+      }
+
+      .panel {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      .panel-header {
+        min-height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--line);
+        padding: 12px 14px;
+      }
+
+      .panel-title {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      .panel-subtitle {
+        margin: 2px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .section-list {
+        padding: 10px;
+        display: grid;
+        gap: 8px;
+        overflow: auto;
+        max-height: calc(100vh - 160px);
+      }
+
+      .section-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+        padding: 10px;
+      }
+
+      .section-card.active {
+        border-color: #8fc9c0;
+        background: #f2fbf8;
+      }
+
+      .section-card h3 {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      .section-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .progress {
+        height: 6px;
+        background: #e6edf1;
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 9px;
+      }
+
+      .progress span {
+        display: block;
+        height: 100%;
+        background: var(--teal);
+      }
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel-soft);
+      }
+
+      .tab {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        padding: 0 12px;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .tab.active {
+        border-color: var(--teal);
+        color: var(--teal);
+        background: var(--teal-soft);
+        font-weight: 700;
+      }
+
+      .form-scroll {
+        overflow: auto;
+        max-height: calc(100vh - 220px);
+      }
+
+      .summary-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 10px;
+        background: #fff;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 20px;
+      }
+
+      .field-list {
+        padding: 0 14px 18px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .field-row {
+        display: grid;
+        grid-template-columns: 180px minmax(160px, 1fr) 150px;
+        align-items: center;
+        gap: 12px;
+        min-height: 58px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 10px;
+        background: #fff;
+      }
+
+      .field-row.selected {
+        border-color: #7bbab2;
+        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.12);
+      }
+
+      .field-label {
+        min-width: 0;
+      }
+
+      .field-label strong {
+        display: block;
+        font-size: 14px;
+      }
+
+      .field-label span {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .field-value {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 10px;
+        background: #fbfdfe;
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .badge {
+        display: inline-flex;
+        min-height: 28px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .badge.green {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .badge.amber {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      .badge.blue {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .badge.gray {
+        background: #edf1f3;
+        color: #52636d;
+      }
+
+      .badge.red {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+
+      .detail-scroll {
+        padding: 14px;
+        overflow: auto;
+        max-height: calc(100vh - 160px);
+      }
+
+      .detail-block {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+
+      .detail-block h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 8px;
+        font-size: 13px;
+        padding: 6px 0;
+        border-top: 1px solid #eef2f4;
+      }
+
+      .kv:first-of-type {
+        border-top: 0;
+      }
+
+      .kv span {
+        color: var(--muted);
+      }
+
+      .cost-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .cost-table th,
+      .cost-table td {
+        border-bottom: 1px solid var(--line);
+        padding: 9px 6px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .cost-table th {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .callout {
+        border-radius: var(--radius);
+        background: var(--amber-soft);
+        color: #6f4300;
+        padding: 10px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .mobile-summary {
+        display: none;
+      }
+
+      @media (max-width: 1180px) {
+        .workspace {
+          grid-template-columns: 220px minmax(420px, 1fr);
+          overflow: auto;
+        }
+
+        .detail {
+          grid-column: 1 / -1;
+        }
+
+        .detail-scroll {
+          max-height: none;
+        }
+      }
+
+      @media (max-width: 820px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .topbar {
+          height: auto;
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 14px;
+        }
+
+        .workspace {
+          display: block;
+          padding: 12px;
+        }
+
+        .panel {
+          margin-bottom: 12px;
+        }
+
+        .section-list {
+          max-height: none;
+        }
+
+        .summary-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .field-row {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+
+        .mobile-summary {
+          display: flex;
+          gap: 8px;
+          overflow: auto;
+          padding: 10px 14px;
+          background: #fff;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" aria-label="AIRE 一級選單">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <strong>AIRE</strong>
+            <span>不動產說明書工作台</span>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <section>
+            <p class="nav-group-title">案件</p>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>案件總覽</strong><span>新增、搜尋、進度</span></span>
+            </button>
+            <button class="nav-link active" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>說明書工作台</strong><span>欄位審核與補件</span></span>
+            </button>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>補件清單</strong><span>現場與秘書後補</span></span>
+            </button>
+          </section>
+
+          <section>
+            <p class="nav-group-title">地政資料</p>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>API 查詢</strong><span>地號、建號、門牌</span></span>
+            </button>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>來源矩陣</strong><span>欄位對應與缺口</span></span>
+            </button>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>費用紀錄</strong><span>成功失敗與帳務</span></span>
+            </button>
+          </section>
+
+          <section>
+            <p class="nav-group-title">產出</p>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>PDF 預覽</strong><span>正式說明書檢查</span></span>
+            </button>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>列印與匯出</strong><span>加密 PDF、紙本</span></span>
+            </button>
+          </section>
+
+          <section>
+            <p class="nav-group-title">設定</p>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>地政 API 金鑰</strong><span>帳號、餘額、測試</span></span>
+            </button>
+            <button class="nav-link" type="button">
+              <span class="nav-icon"><span class="nav-dot"></span></span>
+              <span><strong>授權與升級</strong><span>序號、方案、OPCOS</span></span>
+            </button>
+          </section>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="title">
+            <h1>說明書工作台</h1>
+            <p>案號 A-2026-0521 · 農舍 · 台南市新化區 · 先審核地政帶入，再補人工欄位</p>
+          </div>
+          <div class="top-actions">
+            <button class="btn" type="button">重新查詢</button>
+            <button class="btn" type="button">產生補件清單</button>
+            <button class="btn primary" type="button">預覽 PDF</button>
+          </div>
+        </header>
+
+        <div class="mobile-summary" aria-label="手機版主功能">
+          <span class="badge green">已帶入 42</span>
+          <span class="badge amber">需人工 13</span>
+          <span class="badge blue">API 未串 8</span>
+          <span class="badge red">失敗 2</span>
+        </div>
+
+        <section class="workspace">
+          <aside class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">章節分類</h2>
+                <p class="panel-subtitle">先用一級選單分區，再在這裡審欄位</p>
+              </div>
+            </div>
+            <div class="section-list">
+              <article class="section-card active">
+                <h3>一、基本資料</h3>
+                <div class="section-meta"><span>已帶入 9 / 12</span><span class="badge green">75%</span></div>
+                <div class="progress"><span style="width: 75%"></span></div>
+              </article>
+              <article class="section-card">
+                <h3>二、土地標示與權利</h3>
+                <div class="section-meta"><span>已帶入 18 / 24</span><span class="badge green">75%</span></div>
+                <div class="progress"><span style="width: 75%"></span></div>
+              </article>
+              <article class="section-card">
+                <h3>三、建物標示與權利</h3>
+                <div class="section-meta"><span>已帶入 15 / 27</span><span class="badge amber">56%</span></div>
+                <div class="progress"><span style="width: 56%"></span></div>
+              </article>
+              <article class="section-card">
+                <h3>四、使用限制與風險</h3>
+                <div class="section-meta"><span>API 未串 6</span><span class="badge blue">待接</span></div>
+                <div class="progress"><span style="width: 32%"></span></div>
+              </article>
+              <article class="section-card">
+                <h3>五、現場確認</h3>
+                <div class="section-meta"><span>需人工 13</span><span class="badge gray">補件</span></div>
+                <div class="progress"><span style="width: 18%"></span></div>
+              </article>
+              <article class="section-card">
+                <h3>六、稅費與交易紀錄</h3>
+                <div class="section-meta"><span>費用 27 元</span><span class="badge green">可核對</span></div>
+                <div class="progress"><span style="width: 70%"></span></div>
+              </article>
+            </div>
+          </aside>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">欄位審核</h2>
+                <p class="panel-subtitle">同一頁看值、來源、缺口與下一步</p>
+              </div>
+              <span class="badge amber">尚有 23 欄待確認</span>
+            </div>
+
+            <div class="tabs" aria-label="工作區分頁">
+              <button class="tab active" type="button">欄位</button>
+              <button class="tab" type="button">地政來源</button>
+              <button class="tab" type="button">補件</button>
+              <button class="tab" type="button">費用</button>
+              <button class="tab" type="button">PDF 檢查</button>
+            </div>
+
+            <div class="form-scroll">
+              <div class="summary-strip">
+                <div class="metric"><span>地政已帶入</span><strong>42</strong></div>
+                <div class="metric"><span>需人工確認</span><strong>13</strong></div>
+                <div class="metric"><span>API 未串</span><strong>8</strong></div>
+                <div class="metric"><span>本次費用</span><strong>27 元</strong></div>
+              </div>
+
+              <div class="field-list">
+                <div class="field-row selected">
+                  <div class="field-label">
+                    <strong>建物所有權人類別</strong>
+                    <span>建物所有權部 · 必填</span>
+                  </div>
+                  <div class="field-value">自然人</div>
+                  <span class="badge green">地政已帶入</span>
+                </div>
+                <div class="field-row">
+                  <div class="field-label">
+                    <strong>建物權利範圍</strong>
+                    <span>建物所有權部 · 必填</span>
+                  </div>
+                  <div class="field-value">全部 1/1</div>
+                  <span class="badge green">地政已帶入</span>
+                </div>
+                <div class="field-row">
+                  <div class="field-label">
+                    <strong>合法農舍註記</strong>
+                    <span>農舍限制 · 高風險</span>
+                  </div>
+                  <div class="field-value">尚未帶入</div>
+                  <span class="badge blue">API 未串</span>
+                </div>
+                <div class="field-row">
+                  <div class="field-label">
+                    <strong>現況道路寬度</strong>
+                    <span>現場確認 · 必填</span>
+                  </div>
+                  <div class="field-value">尚未填寫</div>
+                  <span class="badge gray">需人工確認</span>
+                </div>
+                <div class="field-row">
+                  <div class="field-label">
+                    <strong>門牌模糊查建號</strong>
+                    <span>MOI_API_037 · 查詢失敗</span>
+                  </div>
+                  <div class="field-value">COP309 縣市範圍尚未開放查詢</div>
+                  <span class="badge red">失敗不計費</span>
+                </div>
+                <div class="field-row">
+                  <div class="field-label">
+                    <strong>公告土地現值</strong>
+                    <span>土地標示 · 稅費</span>
+                  </div>
+                  <div class="field-value">12,400 元 / 平方公尺</div>
+                  <span class="badge green">地政已帶入</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="panel detail">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">來源與費用</h2>
+                <p class="panel-subtitle">選到哪欄，這裡就解釋原因</p>
+              </div>
+            </div>
+            <div class="detail-scroll">
+              <div class="detail-block">
+                <h3>目前選取欄位</h3>
+                <div class="kv"><span>欄位</span><strong>建物所有權人類別</strong></div>
+                <div class="kv"><span>狀態</span><span class="badge green">地政已帶入</span></div>
+                <div class="kv"><span>來源</span><span>MOI_API_005 地籍建物所有權部資料服務</span></div>
+                <div class="kv"><span>查詢時間</span><span>2026/05/21 14:22:18</span></div>
+                <div class="kv"><span>歷程編號</span><span>08d28190-1640</span></div>
+              </div>
+
+              <div class="detail-block">
+                <h3>費用摘要</h3>
+                <table class="cost-table">
+                  <thead>
+                    <tr>
+                      <th>服務</th>
+                      <th>結果</th>
+                      <th>費用</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>MOI_API_005</td>
+                      <td><span class="badge green">成功 27 筆</span></td>
+                      <td>27 元</td>
+                    </tr>
+                    <tr>
+                      <td>MOI_API_037</td>
+                      <td><span class="badge red">COP309</span></td>
+                      <td>0 元</td>
+                    </tr>
+                    <tr>
+                      <td>MOI_API_041</td>
+                      <td><span class="badge blue">帳務核對</span></td>
+                      <td>免費</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="detail-block">
+                <h3>下一步</h3>
+                <div class="callout">
+                  本案目前不是資料全缺，而是 8 個欄位有 API 但尚未串接，13 個欄位需要現場人工確認。建議先產生補件清單，再接農舍限制相關 API。
+                </div>
+              </div>
+
+              <div class="detail-block">
+                <h3>介面分類原則</h3>
+                <div class="kv"><span>一級</span><span>案件、地政資料、產出、設定</span></div>
+                <div class="kv"><span>二級</span><span>工作台、API 查詢、來源矩陣、費用紀錄</span></div>
+                <div class="kv"><span>三級</span><span>欄位、地政來源、補件、費用、PDF 檢查</span></div>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
