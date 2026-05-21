@@ -114,10 +114,35 @@ describe("CaseWizardStep2", () => {
     );
 
     expect(screen.getByText("謄本資料預覽")).toBeInTheDocument();
+    expect(screen.getByText("地址與地政判斷")).toBeInTheDocument();
+    expect(screen.getByText("地政自動判斷")).toBeInTheDocument();
+    expect(screen.getByText("土地 + 建物")).toBeInTheDocument();
+    expect(screen.queryByText("物件類型")).toBeNull();
     expect(screen.getByText("建物標示部")).toBeInTheDocument();
     expect(screen.getByText("住家用")).toBeInTheDocument();
     expect(screen.getByText("鋼筋混凝土造")).toBeInTheDocument();
     expect(screen.getByText("建物標示/法定用途")).toBeInTheDocument();
+    expect(screen.queryByText(/MOI_API/)).toBeNull();
+  });
+
+  it("shows plain-language manual fallback when registry detection has not found a match", () => {
+    render(
+      <CaseWizardStep2
+        caseData={{
+          ...baseCase,
+          land_lot_no: "",
+          land_lots: [],
+          building_lot_no: null,
+          land_registry_data: null,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("地址與地政判斷")).toBeInTheDocument();
+    expect(screen.getByText("需人工確認")).toBeInTheDocument();
+    expect(screen.getByText("系統還沒有從地址讀到明確的地號或建號。")).toBeInTheDocument();
+    expect(screen.getByLabelText("地號")).toBeInTheDocument();
+    expect(screen.getByLabelText("建號")).toBeInTheDocument();
   });
 
   it("keeps the 38-question field survey out of the initial registry setup UI", () => {

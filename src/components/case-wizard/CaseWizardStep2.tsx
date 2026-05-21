@@ -75,10 +75,21 @@ export function CaseWizardStep2({ caseData }: CaseWizardStep2Props) {
     () => summarizeRegistryPreview(registryPreview),
     [registryPreview],
   );
+  const detectionState = useMemo(
+    () =>
+      buildRegistryDetectionState({
+        address: caseData.address,
+        landLotNo,
+        buildingLotNo,
+        sections: registryPreview,
+      }),
+    [buildingLotNo, caseData.address, landLotNo, registryPreview],
+  );
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(300px,360px)_1fr]">
       <div className="min-w-0 space-y-4 rounded-lg border bg-slate-50 p-4">
+        <AddressDetectionPanel state={detectionState} />
         <PullParcelDataButton
           caseId={caseData.id}
           parcelId={parcelId}
@@ -114,6 +125,104 @@ export function CaseWizardStep2({ caseData }: CaseWizardStep2Props) {
 
       <RegistryPreviewPanel sections={registryPreview} statusText={registrySummary.statusText} />
     </div>
+  );
+}
+
+interface RegistryDetectionState {
+  address: string;
+  statusLabel: string;
+  statusTone: "success" | "manual";
+  compositionLabel: string;
+  summary: string;
+  showManualFallback: boolean;
+}
+
+function buildRegistryDetectionState({
+  address,
+  landLotNo,
+  buildingLotNo,
+  sections,
+}: {
+  address: string | null;
+  landLotNo: string | null;
+  buildingLotNo: string | null;
+  sections: RegistryPreviewSection[];
+}): RegistryDetectionState {
+  const hasLand =
+    Boolean(landLotNo?.trim()) ||
+    sections.some((section) => section.id === "land_registry" && section.fields.length > 0);
+  const hasBuilding =
+    Boolean(buildingLotNo?.trim()) ||
+    sections.some((section) => section.id === "building_registry" && section.fields.length > 0);
+
+  if (hasLand && hasBuilding) {
+    return {
+      address: address ?? "",
+      statusLabel: "地政自動判斷",
+      statusTone: "success",
+      compositionLabel: "土地 + 建物",
+      summary: "已依地址與謄本資料判斷為含建物案件，系統會帶到土地與建物章節審核。",
+      showManualFallback: false,
+    };
+  }
+
+  if (hasLand) {
+    return {
+      address: address ?? "",
+      statusLabel: "地政自動判斷",
+      statusTone: "success",
+      compositionLabel: "土地",
+      summary: "目前讀到土地資料，建物資料若後續查到會自動加入審核章節。",
+      showManualFallback: false,
+    };
+  }
+
+  return {
+    address: address ?? "",
+    statusLabel: "需人工確認",
+    statusTone: "manual",
+    compositionLabel: "尚未判斷",
+    summary: "系統還沒有從地址讀到明確的地號或建號。",
+    showManualFallback: true,
+  };
+}
+
+function AddressDetectionPanel({ state }: { state: RegistryDetectionState }) {
+  return (
+    <section
+      className="space-y-3 rounded-md border bg-background p-3"
+      aria-labelledby="address-detection-heading"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 id="address-detection-heading" className="text-sm font-semibold">
+            地址與地政判斷
+          </h3>
+          <p className="mt-1 break-words text-xs text-muted-foreground">
+            {state.address || "尚未輸入地址"}
+          </p>
+        </div>
+        <span
+          className={
+            state.statusTone === "success"
+              ? "shrink-0 rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700"
+              : "shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
+          }
+        >
+          {state.statusLabel}
+        </span>
+      </div>
+      <div className="rounded-md border px-3 py-2">
+        <p className="text-xs text-muted-foreground">判斷結果</p>
+        <p className="mt-1 text-sm font-semibold">{state.compositionLabel}</p>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{state.summary}</p>
+      </div>
+      {state.showManualFallback ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          請先補上地號或建號；若地址回傳多筆候選，後續會在這裡顯示候選清單讓你選。
+        </p>
+      ) : null}
+    </section>
   );
 }
 

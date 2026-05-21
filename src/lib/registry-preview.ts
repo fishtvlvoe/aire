@@ -8,6 +8,7 @@ export interface RegistryPreviewSection {
   id: string;
   title: string;
   source: string;
+  internalSource?: string;
   fields: RegistryPreviewField[];
   missing: string[];
 }
@@ -104,10 +105,11 @@ function makeSection(
   title: string,
   source: string,
   fields: RegistryPreviewField[],
+  internalSource?: string,
 ): RegistryPreviewSection {
   const visible = fields.filter((item) => item.value);
   const missing = fields.filter((item) => !item.value).map((item) => item.label);
-  return { id, title, source, fields: visible, missing };
+  return { id, title, source, internalSource, fields: visible, missing };
 }
 
 export function buildRegistryPreviewSections(
@@ -134,74 +136,154 @@ export function buildRegistryPreviewSections(
   );
 
   return [
-    makeSection("land_registry", "土地標示部", "MOI_API_001 地籍土地標示部", [
-      field(land, "地段", ["SECTION", "section", "SUBSECTION", "subsection"], "土地標示/土地坐落"),
-      field(land, "地號", ["NO", "lot_number", "land_no", "lot"], "土地標示/地號"),
-      field(land, "登記日期", ["RDATE", "registration_date"], "土地標示/登記日期"),
-      field(land, "登記原因", ["REASON", "registration_reason"], "土地標示/土地登記原因"),
-      field(land, "土地面積", ["AREA", "area", "land_area"], "土地標示/總面積"),
-      field(land, "使用分區", ["ZONING", "zoning", "purpose", "land_purpose"], "土地標示/使用分區"),
-      field(land, "使用地類別", ["LCLASS", "usage_category"], "土地標示/使用編定"),
-      field(land, "公告土地現值", ["ALVALUE", "announced_value"], "稅費/公告現值"),
-      field(land, "公告地價", ["ALPRICE", "assessed_value"], "稅費/公告地價"),
-      field(land, "地上建物建號數量", ["BUILDINGCOUNT", "building_count"], "土地標示/地上建物"),
-    ]),
-    makeSection("land_ownership", "土地所有權部", "MOI_API_002 地籍土地所有權部", [
-      field(landOwnership, "所有權人", ["OWNER.LNAME", "LNAME", "owner_name", "name"], "土地標示/所有權人"),
-      field(landOwnership, "登記日期", ["RDATE", "registration_date"], "土地標示/登記日期"),
-      field(landOwnership, "登記原因", ["REASON", "registration_reason"], "土地標示/登記原因"),
-      field(landOwnership, "原因發生日期", ["REASONDATE", "reason_date"], "土地標示/取得日期"),
-      {
-        label: "權利範圍",
-        value: formatRatio(landOwnership),
-        target: "土地標示/權利範圍",
-      },
-      field(landOwnership, "申報地價", ["DLPRICE", "declared_land_price"], "稅費/申報地價"),
-      field(landOwnership, "前次移轉年月", ["LTDATE", "previous_transfer_date"], "增值稅/前次移轉"),
-      field(landOwnership, "前次移轉現值", ["LTVALUE", "previous_transfer_value"], "增值稅/前次移轉現值"),
-    ]),
-    makeSection("building_registry", "建物標示部", "MOI_API_004 地籍建物標示部", [
-      field(building, "建號", ["NO", "building_number", "building_no"], "建物標示/建號"),
-      field(building, "建物門牌", ["BNUMBER", "building_address", "address"], "建物標示/門牌地址"),
-      field(building, "坐落地號", ["LANDNO", "land_no", "land_number"], "建物標示/坐落地號"),
-      field(building, "主要用途", ["PURPOSE", "purpose", "building_purpose"], "建物標示/法定用途"),
-      field(building, "主要建材", ["MATERIAL", "material"], "建物標示/主要建材"),
-      field(building, "建物層數", ["BUILDINGFLOOR", "building_floor", "total_floors"], "建物標示/總樓層"),
-      field(building, "總面積", ["AREA", "area", "building_area"], "建物標示/登記坪數"),
-      {
-        label: "建築完成日期",
-        value: completion,
-        target: "建物標示/建築完成日",
-      },
-      {
-        label: "屋齡",
-        value: completion ? calculateBuildingAge(completion, now) : "",
-        target: "物件資料表/屋齡",
-      },
-      field(building, "主建物面積", ["MAINAREA", "main_building_area"], "建物標示/主建坪數"),
-      field(building, "附屬建物面積", ["ATTAREA", "auxiliary_area"], "建物標示/附屬建物"),
-      field(building, "共有部分面積", ["SHAREAREA", "common_area"], "建物標示/公共設施"),
-      field(building, "車位面積", ["PARKAREA", "parking_area"], "建物標示/車位坪數"),
-      field(building, "建設公司", ["CONBUILDNAME", "construction_company"], "基本資料/建設公司"),
-    ]),
-    makeSection("building_ownership", "建物所有權部", "MOI_API_005 地籍建物所有權部", [
-      field(buildingOwnership, "所有權人", ["OWNER.LNAME", "LNAME", "owner_name", "name"], "建物標示/所有權人"),
-      field(buildingOwnership, "登記日期", ["RDATE", "registration_date", "ownership_date"], "建物標示/取得日期"),
-      field(buildingOwnership, "登記原因", ["REASON", "registration_reason"], "建物標示/取得原因"),
-      {
-        label: "權利範圍",
-        value: formatRatio(buildingOwnership),
-        target: "建物標示/權利範圍",
-      },
-      field(buildingOwnership, "權狀字號", ["CERTIFICATENO", "certificate_no"], "建物標示/權狀字號"),
-    ]),
-    makeSection("rights", "他項權利/抵押", "MOI_API_003 土地他項權利 / MOI_API_006 建物他項權利", [
-      field({ ...landRights, ...buildingRights }, "權利種類", ["RIGHTTYPE", "right_type"], "產權注意事項/他項權利"),
-      field({ ...landRights, ...buildingRights }, "擔保債權總金額", ["CCP_RV", "amount"], "產權注意事項/抵押金額"),
-      field({ ...landRights, ...buildingRights }, "權利人", ["LNAME", "creditor"], "產權注意事項/權利人"),
-      field({ ...landRights, ...buildingRights }, "共同擔保地號", ["collateral_land_no", "collateral_land_numbers"], "土地標示/共同擔保地號"),
-      field({ ...landRights, ...buildingRights }, "共同擔保建號", ["collateral_building_no", "collateral_building_numbers"], "土地標示/共同擔保建號"),
-    ]),
+    makeSection(
+      "land_registry",
+      "土地標示部",
+      "土地標示資料",
+      [
+        field(land, "地段", ["SECTION", "section", "SUBSECTION", "subsection"], "土地標示/土地坐落"),
+        field(land, "地號", ["NO", "lot_number", "land_no", "lot"], "土地標示/地號"),
+        field(land, "登記日期", ["RDATE", "registration_date"], "土地標示/登記日期"),
+        field(land, "登記原因", ["REASON", "registration_reason"], "土地標示/土地登記原因"),
+        field(land, "土地面積", ["AREA", "area", "land_area"], "土地標示/總面積"),
+        field(land, "使用分區", ["ZONING", "zoning", "purpose", "land_purpose"], "土地標示/使用分區"),
+        field(land, "使用地類別", ["LCLASS", "usage_category"], "土地標示/使用編定"),
+        field(land, "公告土地現值", ["ALVALUE", "announced_value"], "稅費/公告現值"),
+        field(land, "公告地價", ["ALPRICE", "assessed_value"], "稅費/公告地價"),
+        field(land, "地上建物建號數量", ["BUILDINGCOUNT", "building_count"], "土地標示/地上建物"),
+      ],
+      "MOI_API_001 地籍土地標示部",
+    ),
+    makeSection(
+      "land_ownership",
+      "土地所有權部",
+      "土地所有權資料",
+      [
+        field(
+          landOwnership,
+          "所有權人",
+          ["OWNER.LNAME", "LNAME", "owner_name", "name"],
+          "土地標示/所有權人",
+        ),
+        field(landOwnership, "登記日期", ["RDATE", "registration_date"], "土地標示/登記日期"),
+        field(landOwnership, "登記原因", ["REASON", "registration_reason"], "土地標示/登記原因"),
+        field(landOwnership, "原因發生日期", ["REASONDATE", "reason_date"], "土地標示/取得日期"),
+        {
+          label: "權利範圍",
+          value: formatRatio(landOwnership),
+          target: "土地標示/權利範圍",
+        },
+        field(landOwnership, "申報地價", ["DLPRICE", "declared_land_price"], "稅費/申報地價"),
+        field(landOwnership, "前次移轉年月", ["LTDATE", "previous_transfer_date"], "增值稅/前次移轉"),
+        field(
+          landOwnership,
+          "前次移轉現值",
+          ["LTVALUE", "previous_transfer_value"],
+          "增值稅/前次移轉現值",
+        ),
+      ],
+      "MOI_API_002 地籍土地所有權部",
+    ),
+    makeSection(
+      "building_registry",
+      "建物標示部",
+      "建物標示資料",
+      [
+        field(building, "建號", ["NO", "building_number", "building_no"], "建物標示/建號"),
+        field(building, "建物門牌", ["BNUMBER", "building_address", "address"], "建物標示/門牌地址"),
+        field(building, "坐落地號", ["LANDNO", "land_no", "land_number"], "建物標示/坐落地號"),
+        field(building, "主要用途", ["PURPOSE", "purpose", "building_purpose"], "建物標示/法定用途"),
+        field(building, "主要建材", ["MATERIAL", "material"], "建物標示/主要建材"),
+        field(
+          building,
+          "建物層數",
+          ["BUILDINGFLOOR", "building_floor", "total_floors"],
+          "建物標示/總樓層",
+        ),
+        field(building, "總面積", ["AREA", "area", "building_area"], "建物標示/登記坪數"),
+        {
+          label: "建築完成日期",
+          value: completion,
+          target: "建物標示/建築完成日",
+        },
+        {
+          label: "屋齡",
+          value: completion ? calculateBuildingAge(completion, now) : "",
+          target: "物件資料表/屋齡",
+        },
+        field(building, "主建物面積", ["MAINAREA", "main_building_area"], "建物標示/主建坪數"),
+        field(building, "附屬建物面積", ["ATTAREA", "auxiliary_area"], "建物標示/附屬建物"),
+        field(building, "共有部分面積", ["SHAREAREA", "common_area"], "建物標示/公共設施"),
+        field(building, "車位面積", ["PARKAREA", "parking_area"], "建物標示/車位坪數"),
+        field(building, "建設公司", ["CONBUILDNAME", "construction_company"], "基本資料/建設公司"),
+      ],
+      "MOI_API_004 地籍建物標示部",
+    ),
+    makeSection(
+      "building_ownership",
+      "建物所有權部",
+      "建物所有權資料",
+      [
+        field(
+          buildingOwnership,
+          "所有權人",
+          ["OWNER.LNAME", "LNAME", "owner_name", "name"],
+          "建物標示/所有權人",
+        ),
+        field(
+          buildingOwnership,
+          "登記日期",
+          ["RDATE", "registration_date", "ownership_date"],
+          "建物標示/取得日期",
+        ),
+        field(buildingOwnership, "登記原因", ["REASON", "registration_reason"], "建物標示/取得原因"),
+        {
+          label: "權利範圍",
+          value: formatRatio(buildingOwnership),
+          target: "建物標示/權利範圍",
+        },
+        field(buildingOwnership, "權狀字號", ["CERTIFICATENO", "certificate_no"], "建物標示/權狀字號"),
+      ],
+      "MOI_API_005 地籍建物所有權部",
+    ),
+    makeSection(
+      "rights",
+      "他項權利/抵押",
+      "他項權利與抵押資料",
+      [
+        field(
+          { ...landRights, ...buildingRights },
+          "權利種類",
+          ["RIGHTTYPE", "right_type"],
+          "產權注意事項/他項權利",
+        ),
+        field(
+          { ...landRights, ...buildingRights },
+          "擔保債權總金額",
+          ["CCP_RV", "amount"],
+          "產權注意事項/抵押金額",
+        ),
+        field(
+          { ...landRights, ...buildingRights },
+          "權利人",
+          ["LNAME", "creditor"],
+          "產權注意事項/權利人",
+        ),
+        field(
+          { ...landRights, ...buildingRights },
+          "共同擔保地號",
+          ["collateral_land_no", "collateral_land_numbers"],
+          "土地標示/共同擔保地號",
+        ),
+        field(
+          { ...landRights, ...buildingRights },
+          "共同擔保建號",
+          ["collateral_building_no", "collateral_building_numbers"],
+          "土地標示/共同擔保建號",
+        ),
+      ],
+      "MOI_API_003 土地他項權利 / MOI_API_006 建物他項權利",
+    ),
   ];
 }
 

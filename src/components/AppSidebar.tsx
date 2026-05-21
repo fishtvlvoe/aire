@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  MoreHorizontal,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,19 +20,22 @@ interface AppSidebarProps {
   collapsed?: boolean;
   onToggle?: () => void;
   showCollapseToggle?: boolean;
+  userName?: string;
 }
 
 export function AppSidebar({
   collapsed = false,
   onToggle,
   showCollapseToggle = true,
+  userName = "余啟彰",
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const userInitial = userName.trim().slice(0, 1) || "個";
 
   return (
     <div className="flex h-full flex-col">
       {/* 導航列表 */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav aria-label="主要選單" className="flex-1 space-y-1 px-3 py-4">
         {navItems.map(({ label, href, icon: Icon }) => {
           const isActive =
             href === "/cases"
@@ -58,15 +62,34 @@ export function AppSidebar({
         })}
       </nav>
 
-      {/* 底部 App 資訊 */}
-      <div className={cn("border-t px-4 py-3", collapsed ? "space-y-3" : "space-y-1")}>
+      {/* 底部個人設定 */}
+      <div className={cn("border-t px-3 py-3", collapsed ? "space-y-3" : "space-y-2")}>
         {!collapsed ? (
-          <>
-            <p className="text-sm font-semibold text-foreground">AIRE</p>
-            <p className="text-xs text-muted-foreground">v0.1.0</p>
-          </>
+          <Link
+            href="/settings"
+            aria-label={`個人設定 ${userName}`}
+            className="flex min-h-11 items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-semibold text-white">
+              {userInitial}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-foreground">
+                {userName}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">個人設定</span>
+            </span>
+            <MoreHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </Link>
         ) : (
-          <p className="text-center text-xs font-semibold text-foreground">A</p>
+          <Link
+            href="/settings"
+            aria-label={`個人設定 ${userName}`}
+            title="個人設定"
+            className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-teal-700 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            {userInitial}
+          </Link>
         )}
 
         {showCollapseToggle ? (
