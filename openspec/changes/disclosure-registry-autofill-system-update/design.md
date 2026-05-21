@@ -124,6 +124,22 @@ Ledger 每筆至少記錄 service code、transaction id、request fingerprint、
 | `manual_required` | 必須現場或人工確認 |
 | `not_supported` | 目前無資料來源或不可用 |
 
+#### 屋主姓名與所有權人資料邊界
+
+私人屋主姓名不是可由 AIRE 反查的欄位。地政協作平台的所有權部 API 可提供所有權登記次序、權利範圍、登記日期、登記原因、所有權類別等資料，但私人自然人的權利人姓名、統一編號、地址通常不提供。
+
+系統設計 SHALL 如下：
+
+| 欄位 | 系統行為 |
+| --- | --- |
+| 私人屋主姓名 | `source_kind = manual_document`，`automation_state = manual_required`；來源為屋主提供、正式謄本/OCR 或人工輸入 |
+| 土地所有權部狀態 | 可由 `MOI_API_002` 帶入權利範圍、登記次序、登記日期、登記原因等非個資欄位 |
+| 建物所有權部狀態 | 可由 `MOI_API_005` 帶入權利範圍、登記次序、登記日期、登記原因等非個資欄位 |
+| 所有權人比對 | `MOI_API_009` 只可在已知姓名或統一編號時驗證是否吻合，不可用來反查姓名 |
+| 公有土地權利人 | 公有類別可依服務回傳顯示政府機關或管理機關 |
+
+UI 文案不得暗示「輸入地號即可查出私人屋主姓名」。若欄位需要私人屋主姓名，應顯示「請由屋主提供或由正式謄本/OCR 帶入」。
+
 ### Phase 5: 物件類型覆蓋順序
 
 第一批優先順序：
@@ -181,12 +197,56 @@ Ledger 每筆至少記錄 service code、transaction id、request fingerprint、
 - 錯誤狀態：COP309 顯示為 domain failure，費用為 0 或依政策顯示。
 - 空資料狀態：`RETURNROWS = 0` 顯示查無資料，不誤顯示系統錯誤。
 
+### Phase 7: 升級功能 UI 與端口預留
+
+未來升級功能不能等到真的開發時才臨時塞進介面。工作台 SHALL 先保留固定位置與端口，讓使用者知道哪些功能可升級，也讓後端授權串接有穩定契約。
+
+升級功能分類：
+
+| 功能 | UI 顯示 | 預留端口 | 預設方案 | 費用責任 |
+| --- | --- | --- | --- |
+| Google 地圖 / 地標圖 | 升級後新增「進階圖資 > 地標圖」選單；Basic 不出現在主工作區 | `feature = google_maps_location`，frontend port `requestGoogleMapPreview`，backend command `generate_google_map_preview` | Pro | AIRE 方案成本或 AIRE 另計，不走客戶 MOI 帳 |
+| Google Street View | 升級後新增「進階圖資 > 街景參考」選單 | `feature = google_street_view`，backend command `fetch_google_street_view_reference` | Advanced | AIRE 方案成本或 AIRE 另計 |
+| 空拍圖 | 升級後新增「進階圖資 > 空拍圖」選單；PDF 保留圖頁 slot | `feature = aerial_photo`，backend command `generate_aerial_photo_reference` | Advanced | AIRE 方案成本或 AIRE 另計；若使用免費公開圖資需標來源 |
+| 地籍圖 | Basic 保留地政資料與手動上傳；若地政 API 可取則屬客戶 MOI 費用；升級後可做自動圖層整理 | `feature = cadastral_map`，backend command `generate_cadastral_map_reference` | Basic or Pro by source | MOI 地政來源由客戶自付；AIRE 圖層整理由 AIRE 方案負擔 |
+| 房子原有格局圖 | Basic 保留上傳欄位；升級後新增「AI 格局 > 格局整理」 | `feature = ai_floor_plan_schematic`，backend command `generate_ai_floor_plan_schematic` | Advanced | AIRE 方案成本或 AIRE 另計，不走客戶 MOI 帳 |
+| 行銷素材 | 升級後新增「行銷工具」選單 | `feature = marketing_modules`，backend command `generate_marketing_assets` | Advanced | AIRE 方案成本或 AIRE 另計 |
+
+方案導覽規則：
+
+| 方案 | 主選單 | 後台功能開關 |
+| --- | --- | --- |
+| Basic | 案件管理、地政資料、產出文件、系統設定 | 顯示升級功能清單，但 toggle 為灰色 disabled，只能點升級 |
+| Pro | 額外顯示進階圖資資料夾，例如地標圖、地籍圖整理 | Pro 功能 toggle 可開關；Advanced 功能仍灰色 disabled |
+| Advanced | 額外顯示 AI 格局、街景/空拍、行銷工具 | Advanced 功能 toggle 可開關 |
+
+預留輸出位置：
+
+| 說明書位置 | Basic 行為 | 升級行為 |
+| --- | --- | --- |
+| 地標圖 / 生活機能 | 可手動上傳或使用免費公開資料 fallback | 自動產生 Google/進階地標圖，寫入來源與產生時間 |
+| 地籍圖 | 客戶 MOI API 或手動上傳 | 自動整理圖層與欄位來源，仍需標明資料來源 |
+| 空拍圖 | 顯示預留 slot，不阻擋產出 | 自動產生或拉取授權來源，寫入 PDF 圖頁 |
+| 原有格局圖 | 手動上傳原始格局圖 | AI 整理成示意圖，原圖與整理圖都保留 |
+
+端口規則：
+
+- AIRE 前端 SHALL 透過單一 entitlement adapter 讀取功能狀態，不得在每個元件自行硬編方案。
+- Tauri/Rust SHALL 提供 `get_entitlements`、`request_feature_upgrade`、`open_opcos_upgrade` 這類穩定命令；未實作功能端口也必須回傳 `FeatureNotAvailable` 或 `UpgradeRequired`，不得 silent fail。
+- OPCOS 後端 SHALL 保留 `/api/license/features` 或等效功能查詢端點，AIRE 只同步授權摘要，不上傳案件內容。
+- 未授權功能在後台顯示為 locked control，按下升級申請，不進入失敗流程；未升級功能不應塞進 Basic 主工作區造成干擾。
+- 後台功能控制 SHALL 使用 iOS-style toggle：未升級為灰色 disabled；已升級後同一顆 toggle 可開啟或關閉本機功能。
+- 已授權但尚未實作的功能顯示「即將開放」而不是「錯誤」。
+- AI 格局圖屬於 AIRE 產品功能，保留在 AIRE SR `floor-plan-assets-and-ai-schematic` 的能力邊界內；OPCOS 只提供 entitlement，不處理案件資料。
+
 ## Integration Notes
 
 - Rust backend 需要將 API response 與 ledger 寫入分離：無論成功或失敗都要記錄 ledger，但只有 `moi_success` 或 catalog 指定 billable 的 outcome 才計入費用。
 - 前端 disclosure draft 需要保存 field status metadata，不只保存欄位值。
 - PDF 產出需能追蹤欄位來源；正式 PDF 預設不顯示內部 debug 標籤，但預覽/審核模式必須能顯示來源與缺口。
 - OPCOS 只接授權與帳務摘要，不保存案件明細。
+- 地政 API 費用屬 `customer_moi`，由客戶自己的 MOI/COP 帳號負擔；Google、AI、進階圖資等升級功能屬 `aire_included` 或 `aire_metered`，由 AIRE 方案或另計方案管理。
+- Google、AI、進階圖資等升級功能只在 AIRE 本機端處理案件資料；外部服務端口必須經過使用者授權與本機 key/entitlement 檢查。
 
 ## Risks And Mitigations
 
@@ -196,6 +256,7 @@ Ledger 每筆至少記錄 service code、transaction id、request fingerprint、
 | API 成功但資料不可用 | outcome classifier 區分 `moi_success`、`empty_success`、`parse_failure` |
 | 使用者不清楚為何欄位空白 | UI 顯示 gap reason，不只顯示空 input |
 | 介面做完仍需大量重改 | 本 SR 先定義工作台版型、狀態文案、互動規則與截圖驗收 |
+| 未來升級功能破壞現有 UI | 先保留 locked card、資料夾選單、entitlement adapter 與後端端口 |
 | 接太多 API 造成範圍失控 | matrix 先分 `required`、`fallback`、`free_enrichment`、`defer` |
 | 費用與 MOI 帳務不同 | ledger 記錄 transaction id、return rows、cost policy，保留 reconciliation 查詢 |
 

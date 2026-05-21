@@ -52,3 +52,28 @@ Gap reasons SHALL distinguish at least: data already available but unmapped, req
 - **WHEN** the disclosure draft renders with no value for that field
 - **THEN** the field status SHALL be `manual_required`
 - **AND** the UI-facing reason SHALL instruct that the value must come from field confirmation
+
+### Requirement: Private owner identity SHALL be owner-provided and not reverse-looked-up
+
+The system SHALL NOT classify private owner name, private owner national id, private owner birth date, or private owner address as reverse-look-up fields.
+
+Private owner identity fields SHALL use `source_kind = manual_document` and `automation_state = manual_required` unless the value is extracted from a user-provided formal transcript, owner-provided document, OCR payload, or manual entry.
+
+MOI ownership APIs SHALL be used for non-personal ownership status fields such as registration order, right scope, registration date, registration reason, ownership category, and public-owner information when legally returned.
+
+MOI owner comparison APIs SHALL only verify a known owner name or id; they SHALL NOT be represented as a source for discovering an unknown private owner identity.
+
+#### Scenario: Private owner name is manual document source
+
+- **GIVEN** the residential disclosure workflow contains a private owner name field
+- **WHEN** the field-source matrix is generated
+- **THEN** the private owner name row SHALL use `source_kind = manual_document`
+- **AND** `automation_state = manual_required`
+- **AND** `review_note` SHALL state that the value must come from owner-provided data, a formal transcript/OCR, or manual entry
+
+#### Scenario: Owner comparison service is not a reverse lookup source
+
+- **GIVEN** a matrix row references owner verification by known name
+- **WHEN** the matrix is generated
+- **THEN** the row SHALL reference the owner comparison service only as a validation service when a known owner name or id is already available
+- **AND** the row SHALL NOT mark that service as a source for discovering unknown private owner name

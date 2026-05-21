@@ -14,6 +14,8 @@ The workspace SHALL prioritize dense operational work over marketing-style prese
 
 Each matrix-backed field SHALL expose its value, status label, source service code when available, last lookup time when available, fee impact when available, and next action.
 
+The workspace SHALL reserve a compact upgrade feature area for locked or future capabilities, and SHALL keep those feature gates visually secondary to the active disclosure task.
+
 #### Scenario: Desktop review workspace shows all core regions
 
 - **GIVEN** a townhouse case has registry lookup results and manual-required fields

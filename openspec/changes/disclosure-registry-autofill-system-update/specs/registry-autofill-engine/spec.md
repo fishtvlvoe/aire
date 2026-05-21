@@ -14,6 +14,8 @@ For each field, the engine SHALL output the final value, source metadata, confid
 
 If a user has manually edited a field, the engine SHALL NOT overwrite that value automatically.
 
+The engine SHALL NOT populate private owner identity fields from MOI ownership API responses unless the value came from a user-provided document/OCR or legally returned public-owner data.
+
 #### Scenario: Registry value fills an empty draft field
 
 - **GIVEN** a land area field is empty in the disclosure draft
@@ -30,6 +32,15 @@ If a user has manually edited a field, the engine SHALL NOT overwrite that value
 - **WHEN** the autofill engine runs
 - **THEN** the output field value SHALL remain the user-entered value
 - **AND** source metadata SHALL expose the registry candidate as a non-applied suggestion
+
+#### Scenario: Private owner name is not inferred from land registry lookup
+
+- **GIVEN** a private owner name field is empty
+- **AND** land registry lookup results contain ownership status but no legally returned private owner name
+- **WHEN** the autofill engine runs
+- **THEN** the owner name field SHALL remain empty
+- **AND** the field state SHALL be `manual_required`
+- **AND** the gap reason SHALL tell the user to obtain the value from owner-provided data or formal transcript/OCR
 
 ### Requirement: Autofill engine SHALL expose gap reasons for unfilled fields
 
