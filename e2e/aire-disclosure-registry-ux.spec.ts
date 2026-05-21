@@ -66,35 +66,20 @@ test.beforeEach(async ({ page }) => {
   }, CASE_ID);
 });
 
-test("registry preview, disclosure workbench, and export preview stay readable", async ({ page }) => {
+test("registry-aligned workbench stays readable", async ({ page }) => {
   await page.goto(`/cases/${CASE_ID}`);
 
-  await expect(page.getByText("謄本資料預覽")).toBeVisible();
-  await expect(page.getByText("建物標示部", { exact: true })).toBeVisible();
-  await expect(page.getByText("住家用")).toBeVisible();
-  await expect(page.getByText("鋼筋混凝土造")).toBeVisible();
-  await expect(page.getByText("31 年")).toBeVisible();
-
-  const stepLabels = await page.locator('[aria-current="step"]').locator("xpath=..").innerText();
-  expect(stepLabels).not.toMatch(/\b1\b|\b2\b|\b3\b|\b5\b/);
-
-  await page.getByRole("button", { name: "下一步" }).click();
-  await expect(page.getByTestId("house-mvp-workbench")).toBeVisible();
-  await expect(page.getByRole("button", { name: "位置圖與生活機能" })).toBeVisible();
-
-  await page.getByRole("button", { name: "位置圖與生活機能" }).click();
-  await expect(page.getByText("位置圖上傳")).toBeVisible();
-  await expect(page.getByText("周邊圖上傳")).toBeVisible();
-  await expect(page.getByTestId("house-mvp-preview").getByText("位置圖與生活機能")).toBeVisible();
-  await expect(page.getByText("格局圖上傳")).toHaveCount(0);
+  await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
+  await expect(page.getByRole("region", { name: "案件與章節" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
+  await expect(page.getByText("建物權利範圍")).toBeVisible();
+  await expect(page.getByText("費用成功與失敗紀錄")).toBeVisible();
+  await expect(page.getByText("MOI_API_")).toHaveCount(0);
+  await expect(page.getByText("COP309")).toHaveCount(0);
 
   const noHorizontalOverflow = await page.evaluate(() => {
     const root = document.documentElement;
     return root.scrollWidth <= root.clientWidth + 1;
   });
   expect(noHorizontalOverflow).toBe(true);
-
-  await page.getByRole("button", { name: "下一步" }).click();
-  await expect(page.getByTestId("dossier-preview-frame")).toBeVisible();
-  await expect(page.getByText("不動產說明書預覽")).toBeVisible();
 });

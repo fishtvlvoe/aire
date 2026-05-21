@@ -1,21 +1,18 @@
 "use client";
 
-// AIRE 新增案件頁（Task 5.3）
-//
-// - property_type 選擇器（成屋/土地 radio）
-// - 必填欄位：地址
-// - zod 驗證
-// - 提交成功後 router.push('/cases/<new-id>')
-
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
 import { casesApi } from "@/lib/cases-api";
 import { CaseLotInput } from "@/components/CaseLotInput";
 import { useIpcErrorToast } from "@/hooks/useIpcErrorToast";
+import {
+  getAddressFirstClassification,
+  type AddressFirstClassification,
+} from "@/lib/product-ui-demo-alignment";
 
 const schema = z.object({
-  property_type: z.enum(["residential", "land"]),
+  property_type: z.enum(["residential", "land"]).optional(),
   land_lot_no: z.string().optional(),
   address: z.string().min(1, "地址為必填"),
   owner_name: z.string().optional(),
@@ -29,7 +26,7 @@ export default function NewCasePage() {
   const router = useRouter();
   const { handleError } = useIpcErrorToast();
   const [values, setValues] = useState<FormValues>({
-    property_type: "residential",
+    property_type: undefined,
     land_lot_no: "",
     address: "",
     owner_name: "",
@@ -39,11 +36,20 @@ export default function NewCasePage() {
   const [landLots, setLandLots] = useState<string[]>([""]);
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [classification, setClassification] = useState<AddressFirstClassification | null>(null);
   const [loading, setLoading] = useState(false);
 
   function update<K extends keyof FormValues>(k: K, v: FormValues[K]) {
     setValues((s) => ({ ...s, [k]: v }));
     setErrors((e) => ({ ...e, [k]: undefined }));
+  }
+
+  function handleDetectRegistry() {
+    const result = getAddressFirstClassification(values.address);
+    setClassification(result);
+    if (!result.manualSelectionRequired) {
+      update("property_type", result.propertyType);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -61,10 +67,12 @@ export default function NewCasePage() {
     }
     setLoading(true);
     try {
+      const detected = classification ?? getAddressFirstClassification(parsed.data.address);
+      const propertyType = parsed.data.property_type ?? detected.propertyType;
       const filteredLots = landLots.filter((s) => s.trim() !== "");
       const lots = filteredLots.length > 0 ? filteredLots : [parsed.data.land_lot_no || ""];
       const created = await casesApi.create({
-        property_type: parsed.data.property_type,
+        property_type: propertyType,
         land_lot_no: lots[0],
         land_lots: lots,
         address: parsed.data.address,
@@ -81,159 +89,148 @@ export default function NewCasePage() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "8px 12px",
-    border: "1px solid #ccc",
-    borderRadius: 6,
-    fontSize: 14,
-    marginBottom: 4,
-  };
-
   return (
-    <main
-      style={{
-        maxWidth: 640,
-        margin: "32px auto",
-        padding: 24,
-        fontFamily: "system-ui, sans-serif",
-      }}
-    >
-      <h1 style={{ marginBottom: 24 }}>新增案件</h1>
-      <form onSubmit={handleSubmit}>
-        <section style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-            物件類型
-          </label>
-          <label style={{ marginRight: 24 }}>
-            <input
-              type="radio"
-              name="property_type"
-              value="residential"
-              checked={values.property_type === "residential"}
-              onChange={() => update("property_type", "residential")}
-            />{" "}
-            成屋
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="property_type"
-              value="land"
-              checked={values.property_type === "land"}
-              onChange={() => update("property_type", "land")}
-            />{" "}
-            土地
-          </label>
-        </section>
-
-        <section style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-            地號（可多筆）
-          </label>
-          <CaseLotInput value={landLots} onChange={setLandLots} />
-          {errors.land_lot_no ? (
-            <span style={{ color: "#b00020", fontSize: 12 }}>{errors.land_lot_no}</span>
-          ) : null}
-        </section>
-
-        <section style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+    <main className="mx-auto max-w-3xl px-4 py-8">
+      <h1 className="mb-2 text-2xl font-semibold tracking-normal">新增案件</h1>
+      <p className="mb-6 text-sm text-muted-foreground">
+        先輸入地址讓地政資料自動判斷土地、建物與說明書章節；只有查不到才人工選。
+      </p>
+      <form className="space-y-5 rounded-lg border bg-white p-5 shadow-sm" onSubmit={handleSubmit}>
+        <section>
+          <label className="mb-2 block text-sm font-semibold" htmlFor="case-address">
             地址 *
           </label>
-          <input
-            type="text"
-            value={values.address}
-            onChange={(e) => update("address", e.target.value)}
-            style={inputStyle}
-            placeholder="例：台北市信義區XX路 1 號"
-          />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              id="case-address"
+              type="text"
+              value={values.address}
+              onChange={(e) => {
+                update("address", e.target.value);
+                setClassification(null);
+              }}
+              className="min-h-11 flex-1 rounded-md border px-3 py-2 text-sm"
+              placeholder="例：宜蘭縣五結鄉協和村親河路二段 1 號"
+            />
+            <button
+              type="button"
+              className="min-h-11 rounded-md border px-4 py-2 text-sm font-medium"
+              onClick={handleDetectRegistry}
+            >
+              判斷地政資料
+            </button>
+          </div>
           {errors.address ? (
-            <span style={{ color: "#b00020", fontSize: 12 }}>{errors.address}</span>
+            <span className="mt-1 block text-xs text-destructive">{errors.address}</span>
           ) : null}
         </section>
 
-        <section style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+        {classification ? (
+          <section className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+            <strong className="block">地址與地政判斷</strong>
+            <p className="mt-1 text-sm text-muted-foreground">{classification.summary}</p>
+            <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+              <div className="rounded-md bg-white p-3">
+                <dt className="text-muted-foreground">判斷結果</dt>
+                <dd className="font-medium">{classification.displayType}</dd>
+              </div>
+              <div className="rounded-md bg-white p-3">
+                <dt className="text-muted-foreground">資料組成</dt>
+                <dd className="font-medium">
+                  土地 {classification.landCount} 筆 · 建物 {classification.buildingCount} 筆
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-sm text-muted-foreground">{classification.note}</p>
+          </section>
+        ) : null}
+
+        {classification?.manualSelectionRequired ? (
+          <section>
+            <label className="mb-2 block text-sm font-semibold" htmlFor="manual-property-type">
+              物件類型
+            </label>
+            <select
+              id="manual-property-type"
+              className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
+              value={values.property_type ?? "residential"}
+              onChange={(e) => update("property_type", e.target.value as FormValues["property_type"])}
+            >
+              <option value="residential">成屋 / 農舍 / 透天</option>
+              <option value="land">土地 / 農地</option>
+            </select>
+          </section>
+        ) : null}
+
+        <section>
+          <label className="mb-2 block text-sm font-semibold">地號或候選地號（可多筆）</label>
+          <CaseLotInput value={landLots} onChange={setLandLots} />
+          {errors.land_lot_no ? (
+            <span className="mt-1 block text-xs text-destructive">{errors.land_lot_no}</span>
+          ) : null}
+        </section>
+
+        <section>
+          <label className="mb-2 block text-sm font-semibold" htmlFor="owner-name">
             所有權人（選填）
           </label>
           <input
+            id="owner-name"
             type="text"
             value={values.owner_name}
             onChange={(e) => update("owner_name", e.target.value)}
-            style={inputStyle}
+            className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
           />
           {errors.owner_name ? (
-            <span style={{ color: "#b00020", fontSize: 12 }}>{errors.owner_name}</span>
+            <span className="mt-1 block text-xs text-destructive">{errors.owner_name}</span>
           ) : null}
         </section>
 
-        <section style={{ marginBottom: 24 }}>
-          <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+        <section>
+          <label className="mb-2 block text-sm font-semibold" htmlFor="case-name">
             案件名稱（選填）
           </label>
           <input
+            id="case-name"
             type="text"
             value={values.case_name ?? ""}
             onChange={(e) => update("case_name", e.target.value)}
-            style={inputStyle}
+            className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
           />
         </section>
 
-        <section style={{ marginBottom: 24 }}>
-          <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
+        <section>
+          <label className="mb-2 block text-sm font-semibold" htmlFor="case-no">
             案件編號（選填）
           </label>
           <input
+            id="case-no"
             type="text"
             value={values.case_no ?? ""}
             onChange={(e) => update("case_no", e.target.value)}
-            style={inputStyle}
+            className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
           />
         </section>
 
         {submitError ? (
-          <div
-            role="alert"
-            style={{
-              marginBottom: 16,
-              padding: 12,
-              background: "#fdecea",
-              color: "#b00020",
-              borderRadius: 6,
-            }}
-          >
+          <div role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             建立失敗：{submitError}
           </div>
         ) : null}
 
-        <div style={{ display: "flex", gap: 12 }}>
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={() => router.push("/cases")}
             disabled={loading}
-            style={{
-              padding: "8px 16px",
-              background: "white",
-              color: "#333",
-              border: "1px solid #ccc",
-              borderRadius: 6,
-              cursor: "pointer",
-            }}
+            className="rounded-md border px-4 py-2 text-sm"
           >
             取消
           </button>
           <button
             type="submit"
             disabled={loading}
-            style={{
-              padding: "8px 16px",
-              background: loading ? "#999" : "#111",
-              color: "white",
-              border: "none",
-              borderRadius: 6,
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
+            className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "建立中…" : "建立案件"}
           </button>

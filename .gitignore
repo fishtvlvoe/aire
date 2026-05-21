@@ -55,6 +55,7 @@ three-ai.db
 # 物件照片上傳（含個資）
 /public/uploads/
 test-results/
+e2e/results/demo-alignment/
 
 # Tauri build output
 /src-tauri/target/

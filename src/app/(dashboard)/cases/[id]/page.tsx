@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   casesApi,
   formatTpeDate,
@@ -11,7 +10,7 @@ import {
   statusLabel,
   type CaseRow,
 } from "@/lib/cases-api";
-import { CaseWizard } from "@/components/case-wizard/CaseWizard";
+import { DemoAlignedWorkbench } from "@/components/workbench/DemoAlignedWorkbench";
 import { useIpcErrorToast } from "@/hooks/useIpcErrorToast";
 
 export default function CaseDetailPage() {
@@ -77,14 +76,7 @@ export default function CaseDetailPage() {
         </p>
       </header>
 
-      <Tabs value={caseData.property_type}>
-        <TabsList>
-          <TabsTrigger value="residential">成屋</TabsTrigger>
-          <TabsTrigger value="land">土地</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <CaseWizard caseId={id} />
+      <DemoAlignedWorkbench caseData={caseData} />
     </main>
   );
 }

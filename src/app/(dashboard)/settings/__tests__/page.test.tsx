@@ -46,9 +46,9 @@ describe("Settings page（重組後）", () => {
     );
   });
 
-  it("顯示頁面標題「設定」", async () => {
+  it("顯示頁面標題「系統設定」", async () => {
     render(<SettingsPage />);
-    expect(screen.getByText("設定")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "系統設定" })).toBeInTheDocument();
   });
 
   it("渲染授權管理區塊", async () => {

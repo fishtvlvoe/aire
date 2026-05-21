@@ -5,16 +5,14 @@ import { usePathname } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
+  Database,
   FileText,
+  Folder,
   MoreHorizontal,
   Settings,
 } from "lucide-react";
+import { getDemoSidebarFolders } from "@/lib/product-ui-demo-alignment";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { label: "案件管理", href: "/cases", icon: FileText },
-  { label: "設定", href: "/settings", icon: Settings },
-];
 
 interface AppSidebarProps {
   collapsed?: boolean;
@@ -31,33 +29,62 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
   const userInitial = userName.trim().slice(0, 1) || "個";
+  const folders = getDemoSidebarFolders();
+  const folderIcons = [Folder, Database, FileText, Settings];
 
   return (
     <div className="flex h-full flex-col">
       {/* 導航列表 */}
-      <nav aria-label="主要選單" className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map(({ label, href, icon: Icon }) => {
-          const isActive =
-            href === "/cases"
-              ? pathname.startsWith("/cases")
-              : pathname.startsWith(href);
+      <nav aria-label="主要選單" className="flex-1 space-y-3 px-3 py-4">
+        {folders.map((folder, index) => {
+          const Icon = folderIcons[index] ?? Folder;
 
           return (
-            <Link
-              key={href}
-              href={href}
-              title={collapsed ? label : undefined}
-              className={cn(
-                "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                collapsed ? "justify-center" : "gap-3",
-                isActive
-                  ? "bg-blue-50 text-blue-600"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed ? label : null}
-            </Link>
+            <section key={folder.label} aria-label={folder.label}>
+              <div
+                className={cn(
+                  "flex items-center rounded-md px-3 py-2 text-sm font-semibold",
+                  collapsed ? "justify-center" : "gap-3",
+                )}
+                title={collapsed ? folder.label : undefined}
+              >
+                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                {!collapsed ? (
+                  <span className="min-w-0">
+                    <span className="block truncate">{folder.label}</span>
+                    <span className="block truncate text-xs font-normal text-muted-foreground">
+                      {folder.description}
+                    </span>
+                  </span>
+                ) : null}
+              </div>
+              {!collapsed ? (
+                <div className="ml-7 mt-1 space-y-1">
+                  {folder.items.map((item) => {
+                    const baseHref = item.href.split("?")[0];
+                    const isActive =
+                      baseHref === "/cases"
+                        ? pathname.startsWith("/cases") && folder.label === "案件管理"
+                        : pathname.startsWith(baseHref);
+
+                    return (
+                      <Link
+                        key={`${folder.label}-${item.label}`}
+                        href={item.href}
+                        className={cn(
+                          "block rounded-md px-3 py-2 text-sm transition-colors",
+                          isActive
+                            ? "bg-blue-50 text-blue-600"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </section>
           );
         })}
       </nav>
