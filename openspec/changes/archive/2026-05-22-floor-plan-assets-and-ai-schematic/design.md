@@ -24,6 +24,7 @@ AIRE 目前的 PDF engine 已經能組裝封面、地圖、空拍、外觀照、
 
 **Goals:**
 
+- 為 AIRE 產品保留 AI 格局圖擴充端口，讓未來 OpenAI/ChatGPT Image、外部格局工具與人工上傳能接進同一個 floor plan asset contract。
 - 建立案件層級 floor plan asset 儲存、匯入、審核、刪除與 PDF 輸出鏈。
 - 明確區分「外部工具匯入/屋主提供」與「OpenAI/ChatGPT 口述生成」的信任等級。
 - 讓 import-first MVP 不依賴任何雲端儲存與第三方帳號 API。
@@ -31,12 +32,23 @@ AIRE 目前的 PDF engine 已經能組裝封面、地圖、空拍、外觀照、
 
 **Non-Goals:**
 
+- 不把 AI 格局圖定義為 ST 平台功能；ST/OPCOS 僅辨識 AIRE 的 SaaS entitlement，不承擔 AIRE 內部生圖流程。
 - 不在本次實作完整 2D/3D 編輯器。
 - 不在本次把 supastarter-nextjs storage 套進桌面版。
 - 不在本次承諾任何 AI 生成圖的尺寸精準度。
 - 不在本次建立 vendor-specific OAuth、billing、webhook receiver 或背景同步 worker。
 
 ## Decisions
+
+### Decision: AIRE owns the AI floor plan extension port
+
+AI 格局圖是 AIRE 產品能力，不是 ST 平台能力。AIRE 內部保留 `floor-plan.ai-schematic`、`floor-plan.manual-upload`、`floor-plan.external-import` capability 與 floor plan asset contract；ST/OPCOS 只在 SaaS 權限與產品入口層知道 AIRE 有這些 entitlement，不保存或處理案件格局圖內容。
+
+Alternatives Considered:
+
+1. 把 AI 格局圖寫進 ST 的 SaaS MVP SR：否決，會讓平台層與 AIRE 產品層混淆，未來其他子服務也會誤以為要共用此功能。
+2. 完全不寫入任何 SR，等未來再說：否決，功能容易被忘記，且現在的 entitlement 與 asset contract 需要預留名稱。
+3. 今天直接實作完整 AI 生圖：否決，會偏離 AIRE SaaS MVP 的註冊、授權、下載、安裝與草稿產出主線。
 
 ### Decision: Local case asset store
 

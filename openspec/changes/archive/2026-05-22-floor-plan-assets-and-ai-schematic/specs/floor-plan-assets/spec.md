@@ -1,5 +1,20 @@
 ## ADDED Requirements
 
+### Requirement: AIRE AI floor plan extension port is reserved
+The system SHALL reserve an AIRE-owned extension port for future AI floor plan generation. The port SHALL define capability names, entitlement hooks, source metadata, review status, and asset contract boundaries for future manual upload, external import, and AI schematic generation. This capability SHALL belong to AIRE and SHALL NOT be implemented as a generic ST platform feature.
+
+#### Scenario: reserved capability names exist
+- **WHEN** the AIRE entitlement or feature catalog is reviewed
+- **THEN** it contains reserved capability identifiers `floor-plan.manual-upload`, `floor-plan.external-import`, and `floor-plan.ai-schematic`
+
+#### Scenario: reserved port does not block MVP output
+- **WHEN** AI schematic generation is not implemented in the current build
+- **THEN** the disclosure draft flow still completes with the AI floor plan entry hidden, locked, beta, or coming-soon according to entitlement state
+
+#### Scenario: future adapter uses AIRE asset contract
+- **WHEN** a future AI or external floor plan adapter is implemented
+- **THEN** it writes into the AIRE floor plan asset contract with source, trust tier, review status, and metadata instead of creating a separate isolated workflow
+
 ### Requirement: Case floor plan assets are stored locally
 The system SHALL store every case floor plan asset as local application data linked to a case record, with metadata that records asset kind, source, MIME type, file name, byte size, storage path, review status, and creation/update timestamps.
 

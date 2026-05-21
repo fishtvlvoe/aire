@@ -1,3 +1,7 @@
+## 0. AIRE 端口保留
+
+- [ ] 0.1 Decision: AIRE owns the AI floor plan extension port / AIRE AI floor plan extension port is reserved：在 AIRE 產品規格、feature/entitlement 命名或對應文件中保留 `floor-plan.manual-upload`、`floor-plan.external-import`、`floor-plan.ai-schematic`，並明確標記這是 AIRE 產品功能、不是 ST 平台功能；完成後以 `spectra analyze floor-plan-assets-and-ai-schematic --json` 無 Coverage/Consistency Warning 及內容審查確認。
+
 ## 1. 資料模型與本機儲存
 
 - [ ] 1.1 Decision: Local case asset store / Case floor plan assets are stored locally：新增 `case_assets` migration 與 indexes，完成後 `spectra validate floor-plan-assets-and-ai-schematic` 與 SQLite migration smoke test 可確認 table schema 正確。

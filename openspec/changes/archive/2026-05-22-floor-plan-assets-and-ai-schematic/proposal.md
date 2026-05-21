@@ -5,6 +5,7 @@ AIRE 目前的不動產說明書只有文字型格局欄位，缺少屋主與買
 ## What Changes
 
 - 新增案件層級的 floor plan asset 能力，支援本機匯入 PNG、JPEG、WebP 與已轉圖的 PDF 頁面。
+- 新增 AIRE 產品內的 AI 格局圖擴充端口，先保留 `floor-plan.ai-schematic`、`floor-plan.manual-upload`、`floor-plan.external-import` 能力名稱與資料契約，避免未來功能被遺漏。
 - 新增格局圖來源、審核狀態、信任等級與聲明文字，區分實測/外部工具匯入圖與 AI 口述生成示意圖。
 - 新增 PDF 說明書的格局圖頁面資料契約，只有已審核通過的格局圖會進入輸出。
 - 新增 OpenAI Image / ChatGPT Image Tool 的操作結構設計：以結構化問卷產生 schematic draft，不把口述生成圖標示為精準測量圖。
@@ -14,6 +15,7 @@ AIRE 目前的不動產說明書只有文字型格局欄位，缺少屋主與買
 
 - 不在本次直接重寫完整 2D/3D 格局編輯器。
 - 不把 AI 口述生成圖作為法律、權利範圍、建築測量或坪數認定依據。
+- 不把 AI 格局圖端口寫進 ST 平台功能；這是 AIRE 產品能力，ST/OPCOS 只在 SaaS 權限層辨識它。
 - 不把屋主個資、案件地址或未審核圖資上傳到雲端儲存。
 - 不在本次實作 Magicplan、Homestyler、CubiCasa 的完整雙向 API 帳號整合；本次以匯入外部工具輸出檔與保留 metadata 為主。
 - 不把 supastarter-nextjs 的 S3 storage 直接搬進 Tauri 桌面版；僅作為未來 OPCOS/SaaS 雲端資產儲存參考。
