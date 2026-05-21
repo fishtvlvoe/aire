@@ -22,6 +22,10 @@ Account-level upgrade toggles, data-boundary rules, feature entitlement controls
 
 The primary navigation SHALL provide a visible collapse control and a persistent user profile entry. The primary navigation SHALL NOT use a bottom explanatory note or plan-description card for content that belongs in settings.
 
+The case/chapter area SHALL use address-first registry detection. The workspace SHALL NOT require the customer to manually choose land/building/property type before attempting address, doorplate, parcel, or building-number detection.
+
+Manual property-type selection SHALL be shown only when registry detection fails, returns ambiguous candidates, or the case intentionally starts from a known parcel/building number instead of an address.
+
 #### Scenario: Desktop review workspace shows two core regions
 
 - **GIVEN** a townhouse case has registry lookup results and manual-required fields
@@ -55,6 +59,21 @@ The primary navigation SHALL provide a visible collapse control and a persistent
 - **THEN** the field source SHALL be rendered as a Traditional Chinese business label such as "建物所有權資料" or "所有權人比對服務"
 - **AND** the raw MOI service code SHALL NOT be displayed in the customer workspace
 - **AND** the raw service code SHALL remain available in the admin usage audit view
+
+#### Scenario: Address-first detection hides manual property type selector
+
+- **GIVEN** a customer enters a property address
+- **WHEN** the registry detection finds both land and building records
+- **THEN** the workspace SHALL show the detected property composition in Traditional Chinese
+- **AND** the workspace SHALL NOT show a manual property type dropdown
+- **AND** the workspace SHALL route the user to the most relevant disclosure sections automatically
+
+#### Scenario: Ambiguous address shows manual fallback
+
+- **GIVEN** a property address cannot be matched or returns ambiguous land/building candidates
+- **WHEN** the registry detection finishes
+- **THEN** the workspace SHALL show a plain-language ambiguity state
+- **AND** the workspace SHALL allow the user to choose from candidate parcels/buildings or manually select a property type
 
 ### Requirement: Registry autofill review UX SHALL define accessible interaction states
 

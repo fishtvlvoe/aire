@@ -441,6 +441,55 @@
         padding: 0 10px;
       }
 
+      .address-summary {
+        border: 1px solid #83b9ae;
+        border-radius: var(--radius);
+        background: #f3faf8;
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .address-line {
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        font-size: 13px;
+      }
+
+      .detect-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .chapter-pills {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .chapter-pill {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--muted);
+        padding: 0 10px;
+        cursor: pointer;
+      }
+
+      .chapter-pill.active {
+        border-color: var(--brand-2);
+        background: var(--brand-soft);
+        color: var(--brand);
+        font-weight: 700;
+      }
+
       .tabs {
         border-bottom: 1px solid var(--line);
         background: var(--panel-soft);
@@ -805,7 +854,7 @@
             <div class="panel-header">
               <div>
                 <h2 class="panel-title">案件與章節</h2>
-                <p class="panel-subtitle">先選物件，再審說明書欄位</p>
+                <p class="panel-subtitle">先用地址判斷，再審說明書欄位</p>
               </div>
             </div>
             <div class="scroll stack">
@@ -822,27 +871,34 @@
                 </div>
               </article>
 
-              <label class="field-control">
-                <span>說明書章節</span>
-                <select aria-label="說明書章節">
-                  <option>一、基本資料</option>
-                  <option>二、土地標示與權利</option>
-                  <option selected>三、建物標示與權利</option>
-                  <option>四、使用限制與風險</option>
-                  <option>五、現場確認</option>
-                  <option>六、稅費與交易紀錄</option>
-                </select>
-              </label>
+              <article class="address-summary">
+                <div class="source-title">
+                  <strong>地址與地政判斷</strong>
+                  <span>先由地址自動判斷土地與建物資料</span>
+                </div>
+                <div class="address-line">宜蘭縣五結鄉協和村親河路二段 1 號</div>
+                <div class="detect-grid">
+                  <div class="mini-card"><span>判斷結果</span><strong>農舍</strong></div>
+                  <div class="mini-card"><span>資料組成</span><strong>含建物</strong></div>
+                </div>
+                <div class="kv"><span>地政結果</span><span>已找到 2 筆土地、1 筆建物</span></div>
+                <div class="kv"><span>人工選擇</span><span>只有地址查不到或結果不明確時才顯示</span></div>
+              </article>
 
-              <label class="field-control">
-                <span>物件類型</span>
-                <select aria-label="物件類型">
-                  <option>農地</option>
-                  <option selected>農舍</option>
-                  <option>透天厝</option>
-                  <option>公寓 / 大樓</option>
-                </select>
-              </label>
+              <article class="source-card">
+                <div class="source-title">
+                  <strong>說明書章節</strong>
+                  <span>依地政判斷自動切到需要審核的章節</span>
+                </div>
+                <div class="chapter-pills" aria-label="說明書章節">
+                  <button class="chapter-pill" type="button">基本資料</button>
+                  <button class="chapter-pill" type="button">土地標示</button>
+                  <button class="chapter-pill active" type="button">建物權利</button>
+                  <button class="chapter-pill" type="button">限制風險</button>
+                  <button class="chapter-pill" type="button">現場確認</button>
+                  <button class="chapter-pill" type="button">稅費紀錄</button>
+                </div>
+              </article>
 
               <article class="source-card">
                 <div class="source-title">
