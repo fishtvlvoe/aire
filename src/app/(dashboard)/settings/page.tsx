@@ -23,6 +23,14 @@ type FeatureFlag = {
   enabled: boolean;
 };
 
+type ProfileSettingsResponse = {
+  name: string;
+  email: string;
+  brandColor: string;
+  logoName: string;
+  passwordUpdatedAt: string | null;
+};
+
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const features = getEntitlementFeatures();
@@ -94,6 +102,39 @@ function ProfileSettingsPanel() {
   const [logoName, setLogoName] = useState("");
   const [profileSaved, setProfileSaved] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [brandSaved, setBrandSaved] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const profile = await mockInvoke<ProfileSettingsResponse>("get_profile_settings");
+        if (cancelled) return;
+        setName(profile.name);
+        setEmail(profile.email);
+        setBrandColor(profile.brandColor);
+        setLogoName(profile.logoName);
+      } catch {
+        // Keep defaults when profile persistence is unavailable.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function saveProfileSettings(next?: Partial<ProfileSettingsResponse>) {
+    const payload = {
+      name: next?.name ?? name,
+      email: next?.email ?? email,
+      brandColor: next?.brandColor ?? brandColor,
+      logoName: next?.logoName ?? logoName,
+    };
+    await mockInvoke("save_profile_settings", payload);
+    return payload;
+  }
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
@@ -101,7 +142,10 @@ function ProfileSettingsPanel() {
         className="rounded-lg border p-4"
         onSubmit={(event) => {
           event.preventDefault();
-          setProfileSaved(true);
+          void (async () => {
+            await saveProfileSettings();
+            setProfileSaved(true);
+          })();
         }}
       >
         <h2 className="text-base font-semibold">個人名稱與 Email</h2>
@@ -129,14 +173,27 @@ function ProfileSettingsPanel() {
         <button className="mt-4 rounded-md bg-slate-950 px-3 py-2 text-sm text-white" type="submit">
           儲存個人資料
         </button>
-        {profileSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">個人資料已暫存</p> : null}
+        {profileSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">個人資料已儲存</p> : null}
       </form>
 
       <form
         className="rounded-lg border p-4"
         onSubmit={(event) => {
           event.preventDefault();
-          setPasswordSaved(true);
+          void (async () => {
+            const result = await mockInvoke<{ success: true; passwordUpdatedAt: string }>(
+              "update_profile_password",
+              {
+                currentPassword,
+                newPassword,
+              },
+            );
+            if (result.success) {
+              setCurrentPassword("");
+              setNewPassword("");
+              setPasswordSaved(true);
+            }
+          })();
         }}
       >
         <h2 className="text-base font-semibold">更新密碼</h2>
@@ -144,20 +201,38 @@ function ProfileSettingsPanel() {
         <div className="mt-3 grid gap-3 text-sm">
           <label>
             <span className="font-medium">目前密碼</span>
-            <input className="mt-1 min-h-10 w-full rounded-md border px-3 py-2" type="password" aria-label="目前密碼" />
+            <input
+              className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
+              type="password"
+              aria-label="目前密碼"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+            />
           </label>
           <label>
             <span className="font-medium">新密碼</span>
-            <input className="mt-1 min-h-10 w-full rounded-md border px-3 py-2" type="password" aria-label="新密碼" />
+            <input
+              className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
+              type="password"
+              aria-label="新密碼"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+            />
           </label>
         </div>
         <button className="mt-4 rounded-md border px-3 py-2 text-sm" type="submit">更新密碼</button>
-        {passwordSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">密碼設定已暫存</p> : null}
+        {passwordSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">密碼已更新</p> : null}
       </form>
 
       <form
         className="rounded-lg border p-4 xl:col-span-2"
-        onSubmit={(event) => event.preventDefault()}
+        onSubmit={(event) => {
+          event.preventDefault();
+          void (async () => {
+            await saveProfileSettings();
+            setBrandSaved(true);
+          })();
+        }}
       >
         <h2 className="text-base font-semibold">品牌色與 Logo</h2>
         <p className="mt-2 text-sm text-muted-foreground">會套用在 PDF 封面、頁首與系統識別。</p>
@@ -190,6 +265,7 @@ function ProfileSettingsPanel() {
           </label>
         </div>
         <button className="mt-4 rounded-md border px-3 py-2 text-sm" type="submit">儲存品牌設定</button>
+        {brandSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">品牌設定已儲存</p> : null}
       </form>
     </div>
   );

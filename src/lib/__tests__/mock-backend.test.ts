@@ -505,6 +505,69 @@ describe("MockStore", () => {
     );
   });
 
+  it("persists case supplement drafts via localStorage and restores after reload", async () => {
+    await expect(
+      mockInvoke("save_workbench_supplement", {
+        caseId: "case-1",
+        fieldVisitAnswers: [
+          {
+            topic: "建物現況",
+            answer: "屋主表示客廳牆角曾有滲水，已修繕。",
+            status: "已確認",
+          },
+        ],
+        uploads: [{ slot: "地籍圖", fileName: "cadastral-map.pdf" }],
+        supplementAdded: true,
+      }),
+    ).resolves.toEqual({ success: true });
+
+    const reloaded = new MockStore();
+    await expect(
+      reloaded.invoke("get_workbench_supplement", { caseId: "case-1" }),
+    ).resolves.toMatchObject({
+      caseId: "case-1",
+      fieldVisitAnswers: [
+        expect.objectContaining({
+          topic: "建物現況",
+          answer: "屋主表示客廳牆角曾有滲水，已修繕。",
+          status: "已確認",
+        }),
+      ],
+      uploads: [expect.objectContaining({ slot: "地籍圖", fileName: "cadastral-map.pdf" })],
+      supplementAdded: true,
+    });
+  });
+
+  it("persists profile settings and records password update state without saving raw password", async () => {
+    await expect(
+      mockInvoke("save_profile_settings", {
+        name: "王小明",
+        email: "wang@example.com",
+        brandColor: "#008577",
+        logoName: "logo.png",
+      }),
+    ).resolves.toEqual({ success: true });
+
+    await expect(
+      mockInvoke("update_profile_password", {
+        currentPassword: "old-password",
+        newPassword: "new-password",
+      }),
+    ).resolves.toMatchObject({ success: true, passwordUpdatedAt: expect.any(String) });
+
+    const reloaded = new MockStore();
+    await expect(reloaded.invoke("get_profile_settings")).resolves.toMatchObject({
+      name: "王小明",
+      email: "wang@example.com",
+      brandColor: "#008577",
+      logoName: "logo.png",
+      passwordUpdatedAt: expect.any(String),
+    });
+
+    expect(window.localStorage.getItem("aire-mock-store")).not.toContain("new-password");
+    expect(window.localStorage.getItem("aire-mock-store")).not.toContain("old-password");
+  });
+
   it("create_case allows empty land_lot_no", async () => {
     const created = await mockInvoke<{ land_lot_no: string; owner_name: string | null }>(
       "create_case",

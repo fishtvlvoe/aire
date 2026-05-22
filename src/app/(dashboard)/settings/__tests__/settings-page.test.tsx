@@ -31,6 +31,19 @@ vi.mock("@/lib/mock-backend", () => ({
       };
     }
     if (cmd === "get_feature_flags") return mockFeatureFlags;
+    if (cmd === "get_profile_settings") {
+      return {
+        name: "余啟彰",
+        email: "fish.myfb@gmail.com",
+        brandColor: "#174d36",
+        logoName: "",
+        passwordUpdatedAt: null,
+      };
+    }
+    if (cmd === "save_profile_settings") return { success: true };
+    if (cmd === "update_profile_password") {
+      return { success: true, passwordUpdatedAt: "2026-05-22T00:00:00.000Z" };
+    }
     if (cmd === "get_land_api_settings") return { clientId: "", secret: "" };
     if (cmd === "toggle_feature_flag") return { success: true, enabled: true };
     return { success: true };

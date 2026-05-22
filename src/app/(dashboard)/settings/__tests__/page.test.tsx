@@ -11,10 +11,17 @@ let mockFeatureFlags = [
   { id: "cadastral-map", name: "地籍圖整理", enabled: false },
   { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
 ];
+let mockProfileSettings = {
+  name: "余啟彰",
+  email: "fish.myfb@gmail.com",
+  brandColor: "#174d36",
+  logoName: "",
+  passwordUpdatedAt: null as string | null,
+};
 
 // Mock mockInvoke（所有子元件透過 mockInvoke 存取資料）
 vi.mock("@/lib/mock-backend", () => ({
-  mockInvoke: vi.fn(async (cmd: string, args?: { id?: string }) => {
+  mockInvoke: vi.fn(async (cmd: string, args?: { id?: string; name?: string; email?: string; brandColor?: string; logoName?: string }) => {
     if (cmd === "get_session") {
       return {
         authenticated: true,
@@ -38,6 +45,26 @@ vi.mock("@/lib/mock-backend", () => ({
         flag.id === args?.id ? { ...flag, enabled: !flag.enabled } : flag,
       );
       return { success: true, enabled: mockFeatureFlags.find((flag) => flag.id === args?.id)?.enabled ?? false };
+    }
+    if (cmd === "get_profile_settings") {
+      return mockProfileSettings;
+    }
+    if (cmd === "save_profile_settings") {
+      mockProfileSettings = {
+        ...mockProfileSettings,
+        name: args?.name ?? mockProfileSettings.name,
+        email: args?.email ?? mockProfileSettings.email,
+        brandColor: args?.brandColor ?? mockProfileSettings.brandColor,
+        logoName: args?.logoName ?? mockProfileSettings.logoName,
+      };
+      return { success: true };
+    }
+    if (cmd === "update_profile_password") {
+      mockProfileSettings = {
+        ...mockProfileSettings,
+        passwordUpdatedAt: "2026-05-22T00:00:00.000Z",
+      };
+      return { success: true, passwordUpdatedAt: mockProfileSettings.passwordUpdatedAt };
     }
     if (cmd === "land_registry_get_balance") {
       return { month_total_cost: 27, month_query_count: 2, low_balance_warning: false };
@@ -67,6 +94,7 @@ vi.mock("@/lib/mock-backend", () => ({
 }));
 
 import SettingsPage from "../page";
+import { mockInvoke } from "@/lib/mock-backend";
 
 let mockSection: string | null = null;
 
@@ -90,6 +118,13 @@ describe("Settings page（重組後）", () => {
       { id: "cadastral-map", name: "地籍圖整理", enabled: false },
       { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
     ];
+    mockProfileSettings = {
+      name: "余啟彰",
+      email: "fish.myfb@gmail.com",
+      brandColor: "#174d36",
+      logoName: "",
+      passwordUpdatedAt: null,
+    };
   });
 
   it("預設顯示個人設定", async () => {
@@ -106,6 +141,60 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByLabelText("品牌 Logo 上傳")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "帳號與授權管理" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "目前操作紀錄" })).not.toBeInTheDocument();
+  });
+
+  it("個人設定儲存到 mock backend 並可重新載入", async () => {
+    const mockedInvoke = vi.mocked(mockInvoke);
+    const { unmount } = render(<SettingsPage />);
+
+    const nameInput = await screen.findByLabelText("個人名稱");
+    fireEvent.change(nameInput, { target: { value: "王小明" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "wang@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "儲存個人資料" }));
+
+    await waitFor(() => {
+      expect(mockedInvoke).toHaveBeenCalledWith("save_profile_settings", expect.objectContaining({
+        name: "王小明",
+        email: "wang@example.com",
+      }));
+      expect(screen.getByText("個人資料已儲存")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("品牌色"), { target: { value: "#008577" } });
+    fireEvent.change(screen.getByLabelText("品牌 Logo 上傳"), {
+      target: { files: [new File(["logo"], "logo.png", { type: "image/png" })] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "儲存品牌設定" }));
+
+    await waitFor(() => {
+      expect(mockedInvoke).toHaveBeenCalledWith("save_profile_settings", expect.objectContaining({
+        brandColor: "#008577",
+        logoName: "logo.png",
+      }));
+      expect(screen.getByText("品牌設定已儲存")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("目前密碼"), { target: { value: "old-password" } });
+    fireEvent.change(screen.getByLabelText("新密碼"), { target: { value: "new-password" } });
+    fireEvent.click(screen.getByRole("button", { name: "更新密碼" }));
+
+    await waitFor(() => {
+      expect(mockedInvoke).toHaveBeenCalledWith("update_profile_password", {
+        currentPassword: "old-password",
+        newPassword: "new-password",
+      });
+      expect(screen.getByText("密碼已更新")).toBeInTheDocument();
+    });
+
+    unmount();
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("個人名稱")).toHaveValue("王小明");
+      expect(screen.getByLabelText("Email")).toHaveValue("wang@example.com");
+      expect(screen.getByLabelText("品牌色")).toHaveValue("#008577");
+      expect(screen.getByText("已選擇：logo.png")).toBeInTheDocument();
+    });
   });
 
   it("設定頁不重複顯示頁內分類選單", async () => {

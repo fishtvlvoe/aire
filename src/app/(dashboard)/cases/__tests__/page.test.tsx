@@ -142,6 +142,9 @@ describe("Cases page fallback", () => {
     fireEvent.click(screen.getByRole("button", { name: "預覽 PDF" }));
     expect(mockPush).toHaveBeenCalledWith("/cases/case-1/preview");
 
+    fireEvent.click(screen.getByRole("button", { name: "補件" }));
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1?tab=supplements");
+
     fireEvent.click(screen.getByRole("button", { name: "匯出 PDF" }));
     await waitFor(() => {
       expect(mockSafeInvoke).toHaveBeenCalledWith("export_pdf", { caseId: "case-1" });

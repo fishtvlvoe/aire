@@ -110,6 +110,35 @@ interface FeatureFlagState {
   enabled: boolean;
 }
 
+interface ProfileSettingsState {
+  name: string;
+  email: string;
+  brandColor: string;
+  logoName: string;
+  passwordUpdatedAt: string | null;
+}
+
+interface WorkbenchFieldVisitAnswer {
+  topic: string;
+  answer: string;
+  status: string;
+  updatedAt: string;
+}
+
+interface WorkbenchSupplementUpload {
+  slot: string;
+  fileName: string;
+  savedAt: string;
+}
+
+interface WorkbenchSupplementDraft {
+  caseId: string;
+  fieldVisitAnswers: WorkbenchFieldVisitAnswer[];
+  uploads: WorkbenchSupplementUpload[];
+  supplementAdded: boolean;
+  updatedAt: string | null;
+}
+
 interface OperationLogEntry {
   id: string;
   timestamp: string;
@@ -123,6 +152,8 @@ interface PersistedMockState {
   sessionUser?: MockSessionUser | null;
   appSettings?: AppSettingsState;
   featureFlags?: FeatureFlagState[];
+  profileSettings?: ProfileSettingsState;
+  workbenchSupplements?: Record<string, WorkbenchSupplementDraft>;
   cases?: CaseRow[];
   caseAssets?: CaseAssetRow[];
   caseAssetBytes?: Record<string, number[]>;
@@ -172,6 +203,14 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlagState[] = [
   { id: "cadastral-map", name: "地籍圖整理", enabled: false },
   { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
 ];
+
+const DEFAULT_PROFILE_SETTINGS: ProfileSettingsState = {
+  name: "余啟彰",
+  email: "fish.myfb@gmail.com",
+  brandColor: "#174d36",
+  logoName: "",
+  passwordUpdatedAt: null,
+};
 
 const DEFAULT_THEMES = [
   {
@@ -435,6 +474,8 @@ export class MockStore {
   private featureFlags: FeatureFlagState[] = DEFAULT_FEATURE_FLAGS.map((flag) => ({
     ...flag,
   }));
+  private profileSettings: ProfileSettingsState = { ...DEFAULT_PROFILE_SETTINGS };
+  private workbenchSupplements = new Map<string, WorkbenchSupplementDraft>();
   private consentedCases = new Set<string>();
   private floorPlanSketches: FloorPlanSketchRow[] = [];
   private floorPlanConversions: unknown[] = [];
@@ -479,6 +520,8 @@ export class MockStore {
       premiumUnlocked: DEFAULT_APP_SETTINGS.premiumUnlocked,
     };
     this.featureFlags = DEFAULT_FEATURE_FLAGS.map((flag) => ({ ...flag }));
+    this.profileSettings = { ...DEFAULT_PROFILE_SETTINGS };
+    this.workbenchSupplements = new Map<string, WorkbenchSupplementDraft>();
     this.floorPlanSketches = [];
     this.floorPlanConversions = [];
   }
@@ -519,6 +562,12 @@ export class MockStore {
           return this.getFeatureFlags() as T;
         case "toggle_feature_flag":
           return this.toggleFeatureFlag(args) as T;
+        case "get_profile_settings":
+          return this.getProfileSettings() as T;
+        case "save_profile_settings":
+          return this.saveProfileSettings(args) as T;
+        case "update_profile_password":
+          return this.updateProfilePassword(args) as T;
 
         case "list_cases":
           return this.listCases() as T;
@@ -532,6 +581,10 @@ export class MockStore {
           return this.deleteCase(args) as T;
         case "mark_completed":
           return this.markCompleted(args) as T;
+        case "get_workbench_supplement":
+          return this.getWorkbenchSupplement(args) as T;
+        case "save_workbench_supplement":
+          return this.saveWorkbenchSupplement(args) as T;
 
         case "export_pdf":
           return this.exportPdf(args) as T;
@@ -880,6 +933,54 @@ export class MockStore {
     return { success: true, enabled: target.enabled };
   }
 
+  private getProfileSettings(): ProfileSettingsState {
+    return { ...this.profileSettings };
+  }
+
+  private saveProfileSettings(args?: CommandArgs): { success: true } {
+    const payload = toRecord(args);
+    this.profileSettings = {
+      ...this.profileSettings,
+      name: typeof payload.name === "string" ? payload.name : this.profileSettings.name,
+      email: typeof payload.email === "string" ? payload.email : this.profileSettings.email,
+      brandColor:
+        typeof payload.brandColor === "string"
+          ? payload.brandColor
+          : typeof payload.brand_color === "string"
+            ? payload.brand_color
+            : this.profileSettings.brandColor,
+      logoName:
+        typeof payload.logoName === "string"
+          ? payload.logoName
+          : typeof payload.logo_name === "string"
+            ? payload.logo_name
+            : this.profileSettings.logoName,
+    };
+
+    return { success: true };
+  }
+
+  private updateProfilePassword(args?: CommandArgs): {
+    success: true;
+    passwordUpdatedAt: string;
+  } {
+    const payload = toRecord(args);
+    const currentPassword = readString(payload.currentPassword ?? payload.current_password);
+    const newPassword = readString(payload.newPassword ?? payload.new_password);
+
+    if (!currentPassword || !newPassword) {
+      throw new Error("update_profile_password requires currentPassword and newPassword");
+    }
+
+    const passwordUpdatedAt = new Date().toISOString();
+    this.profileSettings = {
+      ...this.profileSettings,
+      passwordUpdatedAt,
+    };
+
+    return { success: true, passwordUpdatedAt };
+  }
+
   private checkLicense(): { status: LicenseStatus; is_valid: boolean } {
     return {
       status: this.license.status,
@@ -1035,6 +1136,102 @@ export class MockStore {
 
     this.cases.set(caseId, updated);
     return { ...updated };
+  }
+
+  private getWorkbenchSupplement(args?: CommandArgs): WorkbenchSupplementDraft {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id", "id"]);
+
+    if (!caseId) {
+      throw new Error("get_workbench_supplement requires caseId");
+    }
+
+    return this.cloneWorkbenchSupplement(
+      this.workbenchSupplements.get(caseId) ?? this.makeEmptyWorkbenchSupplement(caseId),
+    );
+  }
+
+  private saveWorkbenchSupplement(args?: CommandArgs): { success: true } {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id", "id"]);
+
+    if (!caseId) {
+      throw new Error("save_workbench_supplement requires caseId");
+    }
+
+    const now = new Date().toISOString();
+    const existing =
+      this.workbenchSupplements.get(caseId) ?? this.makeEmptyWorkbenchSupplement(caseId);
+    const fieldVisitAnswers = Array.isArray(payload.fieldVisitAnswers)
+      ? payload.fieldVisitAnswers
+          .map((raw) => {
+            const row = toRecord(raw);
+            const topic = readString(row.topic);
+            if (!topic) return null;
+            return {
+              topic,
+              answer: typeof row.answer === "string" ? row.answer : "",
+              status: typeof row.status === "string" ? row.status : "待確認",
+              updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : now,
+            } satisfies WorkbenchFieldVisitAnswer;
+          })
+          .filter((row): row is WorkbenchFieldVisitAnswer => Boolean(row))
+      : existing.fieldVisitAnswers;
+
+    const uploads = Array.isArray(payload.uploads)
+      ? payload.uploads
+          .map((raw) => {
+            const row = toRecord(raw);
+            const slot = readString(row.slot);
+            if (!slot) return null;
+            const fileName = typeof row.fileName === "string"
+              ? row.fileName
+              : typeof row.file_name === "string"
+                ? row.file_name
+                : "";
+            return {
+              slot,
+              fileName,
+              savedAt: typeof row.savedAt === "string" ? row.savedAt : now,
+            } satisfies WorkbenchSupplementUpload;
+          })
+          .filter((row): row is WorkbenchSupplementUpload => Boolean(row))
+      : existing.uploads;
+
+    this.workbenchSupplements.set(caseId, {
+      caseId,
+      fieldVisitAnswers,
+      uploads,
+      supplementAdded:
+        typeof payload.supplementAdded === "boolean"
+          ? payload.supplementAdded
+          : typeof payload.supplement_added === "boolean"
+            ? payload.supplement_added
+            : existing.supplementAdded,
+      updatedAt: now,
+    });
+
+    return { success: true };
+  }
+
+  private makeEmptyWorkbenchSupplement(caseId: string): WorkbenchSupplementDraft {
+    return {
+      caseId,
+      fieldVisitAnswers: [],
+      uploads: [],
+      supplementAdded: false,
+      updatedAt: null,
+    };
+  }
+
+  private cloneWorkbenchSupplement(draft: WorkbenchSupplementDraft): WorkbenchSupplementDraft {
+    return {
+      caseId: draft.caseId,
+      fieldVisitAnswers: draft.fieldVisitAnswers.map((row) => ({ ...row })),
+      uploads: draft.uploads.map((row) => ({ ...row })),
+      supplementAdded: draft.supplementAdded,
+      updatedAt: draft.updatedAt,
+    };
   }
 
   private exportPdf(args?: CommandArgs): string {
@@ -1699,6 +1896,87 @@ export class MockStore {
           enabled: persistedById.get(defaultFlag.id)?.enabled ?? defaultFlag.enabled,
         }));
       }
+      if (parsed.profileSettings && typeof parsed.profileSettings === "object") {
+        const profile = toRecord(parsed.profileSettings);
+        this.profileSettings = {
+          ...DEFAULT_PROFILE_SETTINGS,
+          name:
+            typeof profile.name === "string"
+              ? profile.name
+              : DEFAULT_PROFILE_SETTINGS.name,
+          email:
+            typeof profile.email === "string"
+              ? profile.email
+              : DEFAULT_PROFILE_SETTINGS.email,
+          brandColor:
+            typeof profile.brandColor === "string"
+              ? profile.brandColor
+              : DEFAULT_PROFILE_SETTINGS.brandColor,
+          logoName:
+            typeof profile.logoName === "string"
+              ? profile.logoName
+              : DEFAULT_PROFILE_SETTINGS.logoName,
+          passwordUpdatedAt:
+            typeof profile.passwordUpdatedAt === "string"
+              ? profile.passwordUpdatedAt
+              : null,
+        };
+      }
+      if (parsed.workbenchSupplements && typeof parsed.workbenchSupplements === "object") {
+        this.workbenchSupplements = new Map(
+          Object.entries(parsed.workbenchSupplements)
+            .map(([caseId, raw]) => {
+              const row = toRecord(raw);
+              if (typeof caseId !== "string" || !caseId) return null;
+              const fieldVisitAnswers = Array.isArray(row.fieldVisitAnswers)
+                ? row.fieldVisitAnswers
+                    .map((answerRaw) => {
+                      const answer = toRecord(answerRaw);
+                      const topic = readString(answer.topic);
+                      if (!topic) return null;
+                      return {
+                        topic,
+                        answer: typeof answer.answer === "string" ? answer.answer : "",
+                        status: typeof answer.status === "string" ? answer.status : "待確認",
+                        updatedAt:
+                          typeof answer.updatedAt === "string"
+                            ? answer.updatedAt
+                            : new Date().toISOString(),
+                      } satisfies WorkbenchFieldVisitAnswer;
+                    })
+                    .filter((answer): answer is WorkbenchFieldVisitAnswer => Boolean(answer))
+                : [];
+              const uploads = Array.isArray(row.uploads)
+                ? row.uploads
+                    .map((uploadRaw) => {
+                      const upload = toRecord(uploadRaw);
+                      const slot = readString(upload.slot);
+                      if (!slot) return null;
+                      return {
+                        slot,
+                        fileName: typeof upload.fileName === "string" ? upload.fileName : "",
+                        savedAt:
+                          typeof upload.savedAt === "string"
+                            ? upload.savedAt
+                            : new Date().toISOString(),
+                      } satisfies WorkbenchSupplementUpload;
+                    })
+                    .filter((upload): upload is WorkbenchSupplementUpload => Boolean(upload))
+                : [];
+              return [
+                caseId,
+                {
+                  caseId,
+                  fieldVisitAnswers,
+                  uploads,
+                  supplementAdded: Boolean(row.supplementAdded),
+                  updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : null,
+                } satisfies WorkbenchSupplementDraft,
+              ] as const;
+            })
+            .filter((entry): entry is readonly [string, WorkbenchSupplementDraft] => Boolean(entry)),
+        );
+      }
       if (Array.isArray(persistedCases)) {
         this.cases = new Map(
           persistedCases
@@ -1763,6 +2041,13 @@ export class MockStore {
         premiumUnlocked: this.appSettings.premiumUnlocked,
       },
       featureFlags: this.featureFlags.map((flag) => ({ ...flag })),
+      profileSettings: { ...this.profileSettings },
+      workbenchSupplements: Object.fromEntries(
+        [...this.workbenchSupplements.entries()].map(([caseId, draft]) => [
+          caseId,
+          this.cloneWorkbenchSupplement(draft),
+        ]),
+      ),
       cases: [...this.cases.values()].map((row) => ({ ...row })),
       caseAssets: this.caseAssets.map((asset) => ({ ...asset })),
       caseAssetBytes: Object.fromEntries(this.caseAssetBytes.entries()),

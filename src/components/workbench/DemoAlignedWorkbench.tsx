@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CaseRow } from "@/lib/cases-api";
+import { mockInvoke } from "@/lib/mock-backend";
 import {
   getAddressFirstClassification,
   getDemoFieldReviewRows,
@@ -15,6 +16,24 @@ interface DemoAlignedWorkbenchProps {
 }
 
 type WorkbenchTab = "fields" | "sources" | "supplements" | "pdf";
+type FieldVisitDraftByTopic = Record<string, { answer: string; status: string }>;
+
+interface WorkbenchSupplementDraft {
+  caseId: string;
+  fieldVisitAnswers: Array<{
+    topic: string;
+    answer: string;
+    status: string;
+    updatedAt?: string;
+  }>;
+  uploads: Array<{
+    slot: string;
+    fileName: string;
+    savedAt?: string;
+  }>;
+  supplementAdded: boolean;
+  updatedAt: string | null;
+}
 
 function normalizeWorkbenchTab(value?: string | null): WorkbenchTab {
   if (value === "sources" || value === "supplements" || value === "pdf") return value;
@@ -58,6 +77,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const [activeTab, setActiveTab] = useState<WorkbenchTab>(() => normalizeWorkbenchTab(initialTab));
   const [supplementAdded, setSupplementAdded] = useState(false);
   const [assetUploads, setAssetUploads] = useState<Record<string, string>>({});
+  const [fieldVisitDrafts, setFieldVisitDrafts] = useState<FieldVisitDraftByTopic>({});
   const [editingField, setEditingField] = useState<string | null>(null);
   const classification = getAddressFirstClassification(caseData.address);
   const fields = getDemoFieldReviewRows(caseData);
@@ -89,6 +109,83 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   };
   const registryJson = JSON.stringify(registrySnapshot, null, 2);
   const registryJsonHref = `data:application/json;charset=utf-8,${encodeURIComponent(registryJson)}`;
+  const uploadedAssetCount = Object.values(assetUploads).filter(Boolean).length;
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const draft = await mockInvoke<WorkbenchSupplementDraft>("get_workbench_supplement", {
+          caseId: caseData.id,
+        });
+        if (cancelled) return;
+        if (draft.fieldVisitAnswers.length > 0) {
+          setFieldVisitDrafts(
+            Object.fromEntries(
+              draft.fieldVisitAnswers.map((row) => [
+                row.topic,
+                { answer: row.answer, status: row.status },
+              ]),
+            ),
+          );
+        }
+        if (draft.uploads.length > 0) {
+          setAssetUploads(
+            Object.fromEntries(draft.uploads.map((row) => [row.slot, row.fileName])),
+          );
+        }
+        if (draft.supplementAdded) {
+          setSupplementAdded(true);
+        }
+      } catch {
+        // Mock persistence is a browser-dev convenience; the workbench remains usable in memory-only mode.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [caseData.id]);
+
+  function persistSupplementDraft({
+    drafts = fieldVisitDrafts,
+    uploads = assetUploads,
+    added = supplementAdded,
+  }: {
+    drafts?: FieldVisitDraftByTopic;
+    uploads?: Record<string, string>;
+    added?: boolean;
+  } = {}) {
+    void mockInvoke("save_workbench_supplement", {
+      caseId: caseData.id,
+      fieldVisitAnswers: Object.entries(drafts).map(([topic, draft]) => ({
+        topic,
+        answer: draft.answer,
+        status: draft.status,
+      })),
+      uploads: Object.entries(uploads)
+        .filter(([, fileName]) => Boolean(fileName))
+        .map(([slot, fileName]) => ({ slot, fileName })),
+      supplementAdded: added,
+    }).catch(() => {
+      // Keep local UI usable if browser storage is blocked.
+    });
+  }
+
+  function updateFieldVisitDraft(
+    topic: string,
+    patch: Partial<{ answer: string; status: string }>,
+  ) {
+    const nextDrafts = {
+      ...fieldVisitDrafts,
+      [topic]: {
+        answer: fieldVisitDrafts[topic]?.answer ?? "",
+        status: fieldVisitDrafts[topic]?.status ?? "待確認",
+        ...patch,
+      },
+    };
+    setFieldVisitDrafts(nextDrafts);
+    persistSupplementDraft({ drafts: nextDrafts });
+  }
 
   return (
     <section
@@ -320,11 +417,18 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         aria-label={`${item.topic}回答`}
                         className="mt-2 min-h-20 w-full rounded-md border px-3 py-2"
                         placeholder="輸入客戶回覆、現場狀況或待補原因"
+                        value={fieldVisitDrafts[item.topic]?.answer ?? ""}
+                        onChange={(event) => updateFieldVisitDraft(item.topic, { answer: event.target.value })}
                       />
                     </label>
                     <label className="text-sm">
                       <span className="font-medium">狀態</span>
-                      <select aria-label={`${item.topic}狀態`} className="mt-2 min-h-10 w-full rounded-md border px-3 py-2">
+                      <select
+                        aria-label={`${item.topic}狀態`}
+                        className="mt-2 min-h-10 w-full rounded-md border px-3 py-2"
+                        value={fieldVisitDrafts[item.topic]?.status ?? "待確認"}
+                        onChange={(event) => updateFieldVisitDraft(item.topic, { status: event.target.value })}
+                      >
                         <option>待確認</option>
                         <option>已確認</option>
                         <option>加入補件</option>
@@ -345,7 +449,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       aria-label={`${slot}上傳`}
                       onChange={(event) => {
                         const file = event.currentTarget.files?.[0];
-                        if (file) setAssetUploads((prev) => ({ ...prev, [slot]: file.name }));
+                        if (file) {
+                          const nextUploads = { ...assetUploads, [slot]: file.name };
+                          setAssetUploads(nextUploads);
+                          persistSupplementDraft({ uploads: nextUploads });
+                        }
                       }}
                     />
                     <span className="mt-2 block text-xs text-muted-foreground">
@@ -355,7 +463,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 ))}
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                <button className="rounded-md border px-3 py-2 text-sm" type="button" onClick={() => setSupplementAdded(true)}>
+                <button
+                  className="rounded-md border px-3 py-2 text-sm"
+                  type="button"
+                  onClick={() => {
+                    setSupplementAdded(true);
+                    persistSupplementDraft({ added: true });
+                  }}
+                >
                   加入補件清單
                 </button>
               </div>
@@ -369,7 +484,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               <p className="mt-1 text-sm text-muted-foreground">預覽前先確認欄位與圖資是否已補齊。</p>
               <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
                 <div className="rounded-md bg-slate-50 p-3">待確認欄位：23 欄</div>
-                <div className="rounded-md bg-slate-50 p-3">已上傳圖資：{Object.keys(assetUploads).length} 項</div>
+                <div className="rounded-md bg-slate-50 p-3">已上傳圖資：{uploadedAssetCount} 項</div>
               </div>
               <Link className="mt-3 inline-flex rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseData.id}/preview`}>
                 開啟 PDF 預覽

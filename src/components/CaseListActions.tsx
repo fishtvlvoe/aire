@@ -38,7 +38,7 @@ export function CaseListActions({
 
   function handleSupplement(event: React.MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
-    router.push(`/cases/${caseId}/keyin`);
+    router.push(`/cases/${caseId}?tab=supplements`);
   }
 
   return (

@@ -1,10 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import { fireEvent } from "@testing-library/dom";
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { DemoAlignedWorkbench } from "../workbench/DemoAlignedWorkbench";
 import type { CaseRow } from "@/lib/cases-api";
+import { __resetMockStoreForTests } from "@/lib/mock-backend";
 
 const caseRow: CaseRow = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -24,6 +25,10 @@ const caseRow: CaseRow = {
 };
 
 describe("DemoAlignedWorkbench", () => {
+  beforeEach(() => {
+    __resetMockStoreForTests();
+  });
+
   it("renders the two-column case/chapter and field review workbench", () => {
     render(<DemoAlignedWorkbench caseData={caseRow} />);
 
@@ -120,5 +125,40 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "下載 JSON" })).toBeInTheDocument();
     expect(screen.getByText("JSON 預覽")).toBeInTheDocument();
+  });
+
+  it("persists supplement answers, statuses, upload names, and PDF upload count across remounts", async () => {
+    const { unmount } = render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
+
+    const supplementRegion = await screen.findByRole("region", { name: "補件與現場確認" });
+    fireEvent.change(within(supplementRegion).getByLabelText("建物現況回答"), {
+      target: { value: "屋主表示客廳牆角曾有滲水，已修繕。" },
+    });
+    fireEvent.change(within(supplementRegion).getByLabelText("建物現況狀態"), {
+      target: { value: "已確認" },
+    });
+    fireEvent.change(within(supplementRegion).getByLabelText("地籍圖上傳"), {
+      target: { files: [new File(["mock"], "cadastral-map.pdf", { type: "application/pdf" })] },
+    });
+    fireEvent.click(within(supplementRegion).getByRole("button", { name: "加入補件清單" }));
+
+    await waitFor(() => {
+      expect(within(supplementRegion).getByText("已加入補件清單")).toBeInTheDocument();
+      expect(within(supplementRegion).getByText("已選擇：cadastral-map.pdf")).toBeInTheDocument();
+    });
+
+    unmount();
+    render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
+
+    const restoredRegion = await screen.findByRole("region", { name: "補件與現場確認" });
+    await waitFor(() => {
+      expect(within(restoredRegion).getByLabelText("建物現況回答")).toHaveValue("屋主表示客廳牆角曾有滲水，已修繕。");
+      expect(within(restoredRegion).getByLabelText("建物現況狀態")).toHaveValue("已確認");
+      expect(within(restoredRegion).getByText("已選擇：cadastral-map.pdf")).toBeInTheDocument();
+      expect(within(restoredRegion).getByText("已加入補件清單")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "PDF 檢查" }));
+    expect(screen.getByText("已上傳圖資：1 項")).toBeInTheDocument();
   });
 });
