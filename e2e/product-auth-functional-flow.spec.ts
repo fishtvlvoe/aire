@@ -29,19 +29,22 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await expectNoHorizontalOverflow(page);
 
   await page.goto("/settings?section=billing");
-  await expect(page.getByRole("heading", { name: "系統設定" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "費用與帳務" })).toHaveClass(/bg-slate-950/);
-  await expect(page.getByLabel("Google 地圖未升級")).toBeDisabled();
-  await expect(page.getByLabel("地籍圖整理已開啟")).toBeEnabled();
-  await expect(page.getByText("授權管理")).toBeVisible();
-  await expect(page.getByText("地政 API 設定")).toBeVisible();
-  await expect(page.getByText("實價登錄 MCP Hub")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "費用紀錄" })).toBeVisible();
+  await expect(page.getByText("費用歸屬")).toBeVisible();
+  await expect(page.getByText("授權管理")).toHaveCount(0);
+  await expect(page.getByText("地政 API 設定")).toHaveCount(0);
+  await expect(page.getByText("實價登錄 MCP Hub")).toHaveCount(0);
+
+  await page.goto("/settings?section=plans");
+  await expect(page.getByRole("heading", { name: "方案與升級" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "基本款" })).toBeVisible();
+  await expect(page.getByLabel("Google 地圖已開啟")).toBeEnabled();
 
   await page.goto("/cases/new");
   await expect(page.getByLabel("地址 *")).toBeVisible();
   await expect(page.getByLabel("物件類型")).toHaveCount(0);
   await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 1 號");
-  await page.getByRole("button", { name: "判斷地政資料" }).click();
+  await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
   await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
 
   await page.getByRole("button", { name: "登出" }).click();
@@ -52,9 +55,10 @@ test("non-admin test account can login without receiving admin-only upgrade stat
   await login(page, "user@test.aire", "password");
 
   await page.goto("/settings");
-  await expect(page.getByRole("heading", { name: "系統設定" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "個人設定" })).toBeVisible();
   await expect(page.getByText("已啟用（管理員）")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "前往升級" })).toBeVisible();
+  await page.goto("/settings?section=plans");
+  await expect(page.getByRole("button", { name: "前往升級" })).toHaveCount(2);
 });
 
 test("login errors stay user-readable for invalid and expired test accounts", async ({ page }) => {

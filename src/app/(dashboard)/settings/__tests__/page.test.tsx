@@ -43,25 +43,14 @@ describe("Settings page（重組後）", () => {
     mockSection = null;
   });
 
-  it("顯示設定分頁 tabs", async () => {
+  it("預設顯示個人設定", async () => {
     render(<SettingsPage />);
-    expect(screen.getByRole("link", { name: "一般設定" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
-    expect(screen.getByRole("link", { name: "品牌設定" })).toHaveAttribute(
-      "href",
-      "/settings/branding",
-    );
-    expect(screen.getByRole("link", { name: "操作日誌" })).toHaveAttribute(
-      "href",
-      "/settings/logs",
-    );
-  });
-
-  it("顯示頁面標題「系統設定」", async () => {
-    render(<SettingsPage />);
-    expect(screen.getByRole("heading", { name: "系統設定" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "個人設定" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "帳號與授權管理" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "更新密碼" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "個人名稱與 Email" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "品牌色" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "目前操作紀錄" })).toBeInTheDocument();
   });
 
   it("設定頁不重複顯示頁內分類選單", async () => {
@@ -81,21 +70,21 @@ describe("Settings page（重組後）", () => {
     expect(await screen.findByText("地政 API 設定")).toBeInTheDocument();
   });
 
-  it("渲染實價登錄 MCP Hub 區塊", async () => {
-    mockSection = "entitlements";
-    render(<SettingsPage />);
-    expect(await screen.findByText("實價登錄 MCP Hub")).toBeInTheDocument();
-  });
-
-  it("功能開關頁只顯示一組功能 toggle，不混入授權卡與 Super Admin", async () => {
-    mockSection = "features";
+  it("方案與升級顯示三方案且不出現工程名詞", async () => {
+    mockSection = "plans";
     render(<SettingsPage />);
 
-    expect(screen.getByRole("heading", { name: "功能開關" })).toBeInTheDocument();
-    expect(screen.getAllByRole("heading", { name: "授權與升級" })).toHaveLength(1);
+    expect(screen.getByRole("heading", { name: "方案與升級" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "基本款" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "進階款" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "高級款" })).toBeInTheDocument();
+    expect(screen.getByText("目前方案")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "前往升級" })).toHaveLength(2);
+    expect(screen.getByLabelText("Google 地圖已開啟")).not.toBeDisabled();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
+    expect(screen.getByText("實價登錄")).toBeInTheDocument();
   });
 
   it("資料來源頁不混入授權、升級與 Super Admin", async () => {

@@ -80,13 +80,16 @@ export interface PdfAssetSlot {
   description: string;
 }
 
-const SETTINGS_CATEGORIES: SettingsCategory[] = [
-  { id: "entitlements", label: "授權與升級" },
-  { id: "registry-rules", label: "地政資料規則" },
-  { id: "billing", label: "費用與帳務" },
-  { id: "pdf-assets", label: "PDF 圖資欄位" },
-  { id: "registry-auth", label: "地政授權" },
-];
+export interface UpgradePlan {
+  id: "basic" | "advanced" | "premium";
+  name: string;
+  badge: string;
+  priceLabel: string;
+  description: string;
+  current: boolean;
+  ctaLabel: string;
+  features: string[];
+}
 
 const SERVICE_LABELS: Record<string, string> = {
   MOI_API_005: "建物所有權資料",
@@ -176,31 +179,64 @@ const USAGE_LEDGER_ROWS: UsageLedgerRow[] = [
 const ENTITLEMENT_FEATURES: EntitlementFeature[] = [
   {
     label: "Google 地圖",
-    description: "進階方案後新增進階圖資選單，不在基本方案工作台常駐顯示",
-    enabled: false,
-    upgraded: false,
-    ariaLabel: "Google 地圖未升級",
+    description: "測試版已開啟；正式版歸在進階圖資",
+    enabled: true,
+    upgraded: true,
+    ariaLabel: "Google 地圖已開啟",
   },
   {
     label: "空拍圖 / 街景參考",
-    description: "進階方案後輸出 PDF 圖頁與外部圖資參考",
-    enabled: false,
-    upgraded: false,
-    ariaLabel: "空拍街景未升級",
+    description: "測試版已開啟；正式版歸在高級款",
+    enabled: true,
+    upgraded: true,
+    ariaLabel: "空拍街景已開啟",
   },
   {
     label: "AI 格局圖整理",
-    description: "基本方案保留手動上傳位置，進階方案才開啟 AI 整理",
-    enabled: false,
-    upgraded: false,
-    ariaLabel: "AI 格局圖未升級",
+    description: "測試版已開啟；正式版歸在高級款",
+    enabled: true,
+    upgraded: true,
+    ariaLabel: "AI 格局圖已開啟",
   },
   {
     label: "地籍圖整理",
-    description: "地政原始資料客戶自付，AIRE 整理功能走升級",
+    description: "測試版已開啟；地政原始查詢費仍由客戶帳號負擔",
     enabled: true,
     upgraded: true,
     ariaLabel: "地籍圖整理已開啟",
+  },
+];
+
+const UPGRADE_PLANS: UpgradePlan[] = [
+  {
+    id: "basic",
+    name: "基本款",
+    badge: "目前方案",
+    priceLabel: "已啟用",
+    description: "適合先完成不動產說明書、地政資料查詢與 PDF 產出的基本流程。",
+    current: true,
+    ctaLabel: "目前使用中",
+    features: ["案件管理", "地政資料查詢", "不動產說明書工作台", "PDF 預覽與匯出"],
+  },
+  {
+    id: "advanced",
+    name: "進階款",
+    badge: "升級",
+    priceLabel: "洽 OPCOS",
+    description: "加入進階圖資與實價登錄，協助助理更快補齊物件周邊資料。",
+    current: false,
+    ctaLabel: "前往升級",
+    features: ["Google 地圖", "地籍圖整理", "實價登錄", "地標圖與生活機能"],
+  },
+  {
+    id: "premium",
+    name: "高級款",
+    badge: "高階功能",
+    priceLabel: "洽 OPCOS",
+    description: "提供空拍、街景、AI 格局圖與高階輸出，支援完整銷售素材準備。",
+    current: false,
+    ctaLabel: "前往升級",
+    features: ["空拍圖 / 街景參考", "AI 格局圖整理", "進階 PDF 圖頁", "行銷素材預留"],
   },
 ];
 
@@ -223,7 +259,15 @@ export function getDemoSidebarFolders(): DemoSidebarFolder[] {
 }
 
 export function getSettingsCategories(): SettingsCategory[] {
-  return SETTINGS_CATEGORIES;
+  return [
+    { id: "profile", label: "個人設定" },
+    { id: "registry-auth", label: "地政授權" },
+    { id: "plans", label: "方案與升級" },
+  ];
+}
+
+export function getUpgradePlans(): UpgradePlan[] {
+  return UPGRADE_PLANS;
 }
 
 export function getCustomerServiceLabel(serviceCode: string): string {

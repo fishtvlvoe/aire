@@ -9,6 +9,7 @@ import {
   getCustomerServiceLabel,
   getDemoSidebarFolders,
   getSettingsCategories,
+  getUpgradePlans,
   getUsageLedgerRows,
   isFrontstageTextClean,
 } from "../product-ui-demo-alignment";
@@ -52,12 +53,23 @@ describe("product-ui-demo-alignment contract", () => {
       "費用紀錄",
     ]);
     expect(getSettingsCategories().map((category) => category.label)).toEqual([
-      "授權與升級",
-      "地政資料規則",
-      "費用與帳務",
-      "PDF 圖資欄位",
+      "個人設定",
       "地政授權",
+      "方案與升級",
     ]);
+    expect(getDemoSidebarFolders()[3].items.map((item) => item.label)).toEqual([
+      "個人設定",
+      "地政授權",
+      "方案與升級",
+    ]);
+  });
+
+  it("defines three customer-facing upgrade plans without engineering labels", () => {
+    const plans = getUpgradePlans();
+    expect(plans.map((plan) => plan.name)).toEqual(["基本款", "進階款", "高級款"]);
+    expect(plans[0].current).toBe(true);
+    expect(plans.map((plan) => plan.features.join(" ")).join(" ")).toContain("實價登錄");
+    expect(plans.map((plan) => plan.features.join(" ")).join(" ")).not.toContain("MCP Hub");
   });
 
   it("classifies case creation from address first and only falls back when ambiguous", () => {

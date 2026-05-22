@@ -65,24 +65,38 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page.getByRole("main").getByRole("heading", { name: "列印與匯出" })).toBeVisible();
 
   await sidebar.getByRole("button", { name: "展開系統設定選單" }).click();
+  await expect(sidebar.getByRole("link", { name: "個人設定" })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "方案與升級" })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "功能開關" })).toHaveCount(0);
+  await expect(sidebar.getByRole("link", { name: "授權與升級" })).toHaveCount(0);
+
+  await sidebar.getByRole("link", { name: "個人設定" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.getByRole("main").getByRole("heading", { name: "個人設定" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "帳號與授權管理" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "更新密碼" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "個人名稱與 Email" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "品牌色" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "目前操作紀錄" })).toBeVisible();
+
   await sidebar.getByRole("link", { name: "地政授權" }).click();
   await expect(page).toHaveURL(/\/settings\?section=registry-auth$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "地政授權" })).toBeVisible();
   await expect(page.getByText("地政 API 設定")).toBeVisible();
 
-  await sidebar.getByRole("link", { name: "功能開關" }).click();
-  await expect(page).toHaveURL(/\/settings\?section=features$/);
-  await expect(page.getByRole("main").getByRole("heading", { name: "功能開關" })).toBeVisible();
-  await expect(page.getByRole("main").getByRole("heading", { name: "授權與升級" })).toHaveCount(1);
+  await sidebar.getByRole("link", { name: "方案與升級" }).click();
+  await expect(page).toHaveURL(/\/settings\?section=plans$/);
+  await expect(page.getByRole("main").getByRole("heading", { name: "方案與升級" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "基本款" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "進階款" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "高級款" })).toBeVisible();
+  await expect(page.getByText("目前方案", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "前往升級" })).toHaveCount(2);
   await expect(page.getByText("授權管理")).toHaveCount(0);
   await expect(page.getByText("實價登錄 MCP Hub")).toHaveCount(0);
+  await expect(page.getByText("實價登錄", { exact: true })).toBeVisible();
   await expect(page.getByText("Super Admin")).toHaveCount(0);
-
-  await sidebar.getByRole("link", { name: "授權與升級" }).click();
-  await expect(page).toHaveURL(/\/settings\?section=entitlements$/);
-  await expect(page.getByRole("main").getByRole("heading", { name: "系統設定" })).toBeVisible();
-  await expect(page.getByText("授權管理")).toBeVisible();
-  await expect(page.getByText("實價登錄 MCP Hub")).toBeVisible();
+  await expect(page.getByLabel("Google 地圖已開啟")).toBeEnabled();
 
   await page.goto(`/cases/${CASE_ID}`);
   await expect(page.getByRole("heading", { name: "說明書工作台" })).toBeVisible();

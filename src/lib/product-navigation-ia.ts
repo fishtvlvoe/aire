@@ -52,7 +52,7 @@ const PRIMARY_NAVIGATION: ProductNavigationItem[] = [
     label: "系統設定",
     href: "/settings",
     scope: "global",
-    description: "授權、金鑰、開關",
+    description: "帳號、授權、升級",
   },
 ];
 
@@ -65,9 +65,9 @@ const SECONDARY_NAVIGATION: ProductNavigationItem[] = [
   { level: "secondary", label: "費用紀錄", href: "/settings?section=billing", scope: "module", parentLabel: "地政資料" },
   { level: "secondary", label: "PDF 預覽", href: "/cases?view=pdf", scope: "module", parentLabel: "產出文件" },
   { level: "secondary", label: "列印與匯出", href: "/cases?view=export", scope: "module", parentLabel: "產出文件" },
+  { level: "secondary", label: "個人設定", href: "/settings", scope: "module", parentLabel: "系統設定" },
   { level: "secondary", label: "地政授權", href: "/settings?section=registry-auth", scope: "module", parentLabel: "系統設定" },
-  { level: "secondary", label: "功能開關", href: "/settings?section=features", scope: "module", parentLabel: "系統設定" },
-  { level: "secondary", label: "授權與升級", href: "/settings?section=entitlements", scope: "module", parentLabel: "系統設定" },
+  { level: "secondary", label: "方案與升級", href: "/settings?section=plans", scope: "module", parentLabel: "系統設定" },
 ];
 
 const CASE_WORKBENCH_NAVIGATION: ProductNavigationItem[] = [

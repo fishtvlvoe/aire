@@ -31,6 +31,7 @@ describe("AppSidebar", () => {
     expect(within(navigation).getByRole("link", { name: "說明書工作台" })).toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "費用紀錄" })).not.toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "授權與升級" })).not.toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "功能開關" })).not.toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "地政查詢" })).not.toBeInTheDocument();
   });
 
@@ -45,11 +46,24 @@ describe("AppSidebar", () => {
     expect(within(navigation).getByRole("link", { name: "費用紀錄" })).toBeInTheDocument();
   });
 
+  it("系統設定只顯示個人設定、地政授權、方案與升級", () => {
+    mockPathname = "/settings";
+
+    render(<AppSidebar collapsed={false} onToggle={vi.fn()} />);
+
+    const navigation = screen.getByRole("navigation", { name: "主要選單" });
+    expect(within(navigation).getByRole("link", { name: "個人設定" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "地政授權" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "方案與升級" })).toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "功能開關" })).not.toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "授權與升級" })).not.toBeInTheDocument();
+  });
+
   it("shows a persistent profile settings entry instead of the old app version card", () => {
     render(<AppSidebar collapsed={false} onToggle={vi.fn()} userName="余啟彰" />);
 
     expect(screen.getByRole("link", { name: "個人設定 余啟彰" })).toBeInTheDocument();
-    expect(screen.getByText("個人設定")).toBeInTheDocument();
+    expect(screen.getAllByText("個人設定").length).toBeGreaterThan(0);
     expect(screen.queryByText("v0.1.0")).not.toBeInTheDocument();
   });
 

@@ -51,10 +51,10 @@ for (const viewport of viewports) {
 
     await page.goto("/settings");
     const settingsMain = page.getByRole("main");
-    await expect(settingsMain.getByRole("heading", { name: "系統設定" })).toBeVisible();
+    await expect(settingsMain.getByRole("heading", { name: "個人設定" })).toBeVisible();
     await expect(settingsMain.getByRole("heading", { name: "設定分類" })).toHaveCount(0);
-    await expect(page.getByLabel("Google 地圖未升級")).toBeDisabled();
-    await expect(page.getByLabel("地籍圖整理已開啟")).toBeEnabled();
+    await expect(settingsMain.getByRole("heading", { name: "帳號與授權管理" })).toBeVisible();
+    await expect(settingsMain.getByRole("heading", { name: "品牌色" })).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: `e2e/results/demo-alignment/product-settings-${viewport.width}.png`,
@@ -71,6 +71,15 @@ for (const viewport of viewports) {
     await expect(page.getByRole("main").getByRole("heading", { name: "費用紀錄", exact: true })).toBeVisible();
     await expect(page.getByText("本月使用量")).toBeVisible();
     await expect(page.getByText("授權管理")).toHaveCount(0);
+
+    await page.goto("/settings?section=plans");
+    await expect(page.getByRole("main").getByRole("heading", { name: "方案與升級" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "基本款" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "進階款" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "高級款" })).toBeVisible();
+    await expect(page.getByText("實價登錄 MCP Hub")).toHaveCount(0);
+    await expect(page.getByText("實價登錄", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Google 地圖已開啟")).toBeEnabled();
   });
 }
 
