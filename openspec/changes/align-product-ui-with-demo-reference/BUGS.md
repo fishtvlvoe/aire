@@ -4,3 +4,4 @@
 |---|---|---|---|---|
 | BUG-001 | Fixed | 登入成功後導向不存在的 `/dashboard`，真登入 E2E 會到錯誤路由，無法驗收到案件後台。 | `src/app/login/page.tsx` 原本 `router.push("/dashboard")`，但 app route 沒有 `/dashboard`，主流程是 `/cases`。 | 改為 `router.push("/cases")`，更新 unit test，新增 Playwright 真登入 E2E。 |
 | BUG-002 | Partially Fixed | UI 與後端資料來源落差過大，部分畫面看似完成但仍由 demo/static rows 驅動。 | `src/lib/product-ui-demo-alignment.ts` 有固定 address classification、usage ledger rows、entitlement feature rows；Rust 後端已有 `land_registry_address_lookup`、`BillingLog`、`land_registry_get_balance` 等能力。 | 本次先將新增案件接 `addressLookup()`，設定頁接 `BalanceMonitor`；完整 matrix、usage ledger 明細、entitlement ports 記入 `BACKEND-GAPS.md` 與資料 SR。 |
+| BUG-003 | Fixed | `/cases` 仍顯示舊版案件表格，側欄也把所有資料夾一次展開，與 demo reference 和使用者截圖驗收不一致。 | 使用者 2026-05-22 截圖顯示主選單全部展開、案件列表仍是舊表格與 icon 操作列；`AppSidebar` 舊實作沒有資料夾開合狀態，`cases/page.tsx` 仍渲染 table。 | 新增失敗測試後修正：側欄只展開目前資料夾並支援下拉；`/cases` 改成 demo-aligned 案件管理與工作台入口，不再渲染舊表格。 |

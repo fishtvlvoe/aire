@@ -2,8 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 
+let mockPathname = "/settings";
+
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/settings",
+  usePathname: () => mockPathname,
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 import { AppSidebar } from "@/components/AppSidebar";
@@ -11,9 +14,12 @@ import { AppSidebar } from "@/components/AppSidebar";
 describe("AppSidebar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPathname = "/settings";
   });
 
-  it("renders demo-aligned folder navigation with submenus", () => {
+  it("renders demo-aligned folder navigation with only the active folder expanded", () => {
+    mockPathname = "/cases";
+
     render(<AppSidebar collapsed={false} onToggle={vi.fn()} />);
 
     const navigation = screen.getByRole("navigation", { name: "主要選單" });
@@ -22,8 +28,19 @@ describe("AppSidebar", () => {
     expect(within(navigation).getByText("產出文件")).toBeInTheDocument();
     expect(within(navigation).getByText("系統設定")).toBeInTheDocument();
     expect(within(navigation).getByRole("link", { name: "說明書工作台" })).toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "費用紀錄" })).not.toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "授權與升級" })).not.toBeInTheDocument();
+  });
+
+  it("expands a folder submenu when the user opens it", () => {
+    mockPathname = "/cases";
+
+    render(<AppSidebar collapsed={false} onToggle={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "展開地政資料選單" }));
+
+    const navigation = screen.getByRole("navigation", { name: "主要選單" });
     expect(within(navigation).getByRole("link", { name: "費用紀錄" })).toBeInTheDocument();
-    expect(within(navigation).getByRole("link", { name: "授權與升級" })).toBeInTheDocument();
   });
 
   it("shows a persistent profile settings entry instead of the old app version card", () => {

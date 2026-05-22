@@ -10,8 +10,9 @@ AIRE 正式產品的前台案件工作台、後台系統設定、demo reference�
 |---|---|---|
 | Demo reference | 工作台與設定 demo 可開啟，並包含本 SR 指定的標題、分類、欄位區塊 | `UI-UX-DEMO-REFERENCE/registry-autofill-workbench.html`、`UI-UX-DEMO-REFERENCE/registry-autofill-settings.html` |
 | 前台工作台 | 案件主路由是「說明書工作台」，左欄為案件與章節，右欄為欄位審核、資料來源、補件、費用、PDF 檢查 | `/cases/[id]` |
+| 案件總覽 | `/cases` 必須是 demo-aligned 案件管理入口，提供案件總覽、說明書工作台、補件清單與開啟工作台動作，不得回到舊版 plain table | `/cases` |
 | 前台新增案件 | 先輸入地址，再由地政判斷土地、建物、農舍；查不到或多筆候選才顯示人工物件類型 | `/cases/new` |
-| 主導覽 | 側欄為資料夾式一級選單與子選單，保留收合與個人設定入口 | `src/components/AppSidebar.tsx` |
+| 主導覽 | 側欄為資料夾式一級選單與子選單，只展開目前資料夾，其他資料夾以按鈕下拉；保留收合與個人設定入口 | `src/components/AppSidebar.tsx` |
 | 後台設定 | 授權與升級、地政資料規則、費用與帳務、PDF 圖資欄位、地政授權集中在設定，不常駐工作台 | `/settings` |
 | 後台端口 | 保留授權、地政 API key、升級、dev-only feature flags，不因 UI 改版消失 | `LicenseSection`、`LandApiSection`、`PremiumUnlockSection`、`DevSuperAdmin` |
 | 後端差異 | UI 若仍由 demo/static contract 驅動，必須列入 gap，不得當成已完成後端串接 | `BACKEND-GAPS.md` |
@@ -23,7 +24,7 @@ AIRE 正式產品的前台案件工作台、後台系統設定、demo reference�
 ## 必跑驗收命令
 
 ```bash
-pnpm test src/lib/__tests__/product-ui-demo-alignment.test.ts src/components/__tests__/AppSidebar.test.tsx src/components/__tests__/DemoAlignedWorkbench.test.tsx 'src/app/(dashboard)/settings/__tests__/settings-page.test.tsx' 'src/app/(dashboard)/settings/__tests__/page.test.tsx' 'src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx' src/components/__tests__/SettingsTabs.test.tsx src/components/settings/__tests__/LandApiSection.test.tsx src/components/settings/__tests__/LandApiSection-toast.test.tsx
+pnpm test src/lib/__tests__/product-ui-demo-alignment.test.ts src/components/__tests__/AppSidebar.test.tsx src/components/__tests__/DemoAlignedWorkbench.test.tsx 'src/app/(dashboard)/cases/__tests__/page.test.tsx' 'src/app/(dashboard)/settings/__tests__/settings-page.test.tsx' 'src/app/(dashboard)/settings/__tests__/page.test.tsx' 'src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx' src/components/__tests__/SettingsTabs.test.tsx src/components/settings/__tests__/LandApiSection.test.tsx src/components/settings/__tests__/LandApiSection-toast.test.tsx
 pnpm type-check
 E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/product-ui-demo-alignment.spec.ts e2e/aire-disclosure-registry-ux.spec.ts --project=chromium-tauri
 E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/product-auth-functional-flow.spec.ts --project=chromium-tauri
@@ -39,6 +40,8 @@ spectra validate align-product-ui-with-demo-reference
 - Playwright 必須產出 demo/product 對照截圖。
 - `/cases/[id]` 不得回到舊 wizard；舊流程只允許在 `/cases/[id]/legacy`。
 - `/settings` 必須同時看到 demo 分類與既有後台設定端口。
+- `/cases` 必須顯示案件管理工作入口，且不得出現舊版 table role。
+- 側欄不得一次展開所有資料夾；使用者需能用資料夾列下拉子選單。
 - `/login` 必須能用 `admin@test.aire / password` 與 `user@test.aire / password` 走表單登入；錯誤與過期帳號必須顯示中文錯誤。
 - 前台工作台與設定頁不得出現工程代碼或英文方案 enum。
 - `/cases/new` 的地址判斷必須先走 `land_registry_address_lookup` adapter；只有 API 失敗、查無或多候選才 fallback。

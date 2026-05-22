@@ -29,6 +29,8 @@ AIRE 正式產品的地政自動填寫工作台與系統設定 SHALL 以 `UI-UX-
 
 主選單 SHALL 有明確收合按鈕與客戶頭像個人設定入口。
 
+主選單 SHALL 只展開目前所在資料夾；其他一級資料夾 SHALL 以可開合按鈕呈現，避免所有子選單同時攤開造成畫面雜訊。
+
 系統規則、方案說明、屋主資料邊界、費用歸屬、PDF 圖資欄位 SHALL NOT 以底部提示卡常駐在主選單或案件工作台。
 
 #### Scenario: Sidebar exposes the expected folders
@@ -40,6 +42,15 @@ AIRE 正式產品的地政自動填寫工作台與系統設定 SHALL 以 `UI-UX-
 - **AND** 「產出文件」SHALL 包含「PDF 預覽、列印與匯出」
 - **AND** 「系統設定」SHALL 包含「地政授權、功能開關、授權與升級」
 - **AND** 使用者 SHALL 可以從側欄底部開啟個人設定
+
+#### Scenario: Sidebar folders avoid always-expanded clutter
+
+- **GIVEN** 使用者位於「案件管理」路由
+- **WHEN** 側欄展開
+- **THEN** 系統 SHALL 顯示「案件管理」子選單
+- **AND** 系統 SHALL NOT 同時顯示其他資料夾的所有子選單
+- **WHEN** 使用者點擊「地政資料」資料夾
+- **THEN** 系統 SHALL 展開「地政資料」子選單
 
 ### Requirement: New case flow SHALL be address-first with registry fallback
 

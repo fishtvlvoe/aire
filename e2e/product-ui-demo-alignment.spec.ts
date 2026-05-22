@@ -77,6 +77,28 @@ test("new case flow is address-first and only falls back to manual type selectio
   await expect(page.getByLabel("物件類型")).toBeVisible();
 });
 
+test("cases overview uses folder dropdown navigation and workbench entry", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/cases");
+
+  const sidebar = page.getByRole("navigation", { name: "主要選單" });
+  await expect(page.getByRole("main").getByRole("heading", { name: "案件管理" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "新增案件" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "開啟宜蘭五結農舍工作台" })).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
+
+  await expect(sidebar.getByRole("link", { name: "說明書工作台" })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "費用紀錄" })).toHaveCount(0);
+  await sidebar.getByRole("button", { name: "展開地政資料選單" }).click();
+  await expect(sidebar.getByRole("link", { name: "費用紀錄" })).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: "e2e/results/demo-alignment/product-cases-overview-1440.png",
+    fullPage: true,
+  });
+});
+
 async function seedCase(page: Page) {
   await page.addInitScript((caseId) => {
     window.localStorage.setItem(

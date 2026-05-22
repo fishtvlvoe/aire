@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Database,
@@ -28,9 +30,62 @@ export function AppSidebar({
   userName = "余啟彰",
 }: AppSidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+  const currentHref = search ? `${pathname}?${search}` : pathname;
   const userInitial = userName.trim().slice(0, 1) || "個";
   const folders = getDemoSidebarFolders();
   const folderIcons = [Folder, Database, FileText, Settings];
+  const activeFolderLabel = useMemo(() => {
+    if (pathname === "/settings" && !search) {
+      return "系統設定";
+    }
+
+    let bestMatch: { label: string; score: number } | null = null;
+
+    for (const folder of folders) {
+      for (const item of folder.items) {
+        const baseHref = item.href.split("?")[0];
+        const score =
+          currentHref === item.href
+            ? 1000 + item.href.length
+            : pathname === baseHref || pathname.startsWith(`${baseHref}/`)
+              ? baseHref.length
+              : 0;
+
+        if (score > (bestMatch?.score ?? 0)) {
+          bestMatch = { label: folder.label, score };
+        }
+      }
+    }
+
+    return bestMatch?.label ?? folders[0]?.label;
+  }, [currentHref, folders, pathname]);
+  const [openFolders, setOpenFolders] = useState<Set<string>>(
+    () => new Set(activeFolderLabel ? [activeFolderLabel] : []),
+  );
+
+  useEffect(() => {
+    if (!activeFolderLabel) return;
+    setOpenFolders((current) => {
+      if (current.has(activeFolderLabel)) return current;
+      const next = new Set(current);
+      next.add(activeFolderLabel);
+      return next;
+    });
+  }, [activeFolderLabel]);
+
+  function toggleFolder(folderLabel: string) {
+    setOpenFolders((current) => {
+      const next = new Set(current);
+      if (next.has(folderLabel)) {
+        next.delete(folderLabel);
+      } else {
+        next.add(folderLabel);
+      }
+      return next;
+    });
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -38,34 +93,49 @@ export function AppSidebar({
       <nav aria-label="主要選單" className="flex-1 space-y-3 px-3 py-4">
         {folders.map((folder, index) => {
           const Icon = folderIcons[index] ?? Folder;
+          const isOpen = openFolders.has(folder.label);
+          const submenuId = `sidebar-folder-${folder.label}`;
 
           return (
             <section key={folder.label} aria-label={folder.label}>
-              <div
-                className={cn(
-                  "flex items-center rounded-md px-3 py-2 text-sm font-semibold",
-                  collapsed ? "justify-center" : "gap-3",
-                )}
-                title={collapsed ? folder.label : undefined}
-              >
-                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                {!collapsed ? (
-                  <span className="min-w-0">
+              {collapsed ? (
+                <div
+                  className="flex items-center justify-center rounded-md px-3 py-2 text-sm font-semibold"
+                  title={folder.label}
+                >
+                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  aria-controls={submenuId}
+                  aria-expanded={isOpen}
+                  aria-label={`${isOpen ? "收合" : "展開"}${folder.label}選單`}
+                  onClick={() => toggleFolder(folder.label)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-muted",
+                    activeFolderLabel === folder.label && "bg-muted/70",
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate">{folder.label}</span>
                     <span className="block truncate text-xs font-normal text-muted-foreground">
                       {folder.description}
                     </span>
                   </span>
-                ) : null}
-              </div>
-              {!collapsed ? (
-                <div className="ml-7 mt-1 space-y-1">
+                  {isOpen ? (
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
+                </button>
+              )}
+              {!collapsed && isOpen ? (
+                <div id={submenuId} className="ml-7 mt-1 space-y-1">
                   {folder.items.map((item) => {
                     const baseHref = item.href.split("?")[0];
-                    const isActive =
-                      baseHref === "/cases"
-                        ? pathname.startsWith("/cases") && folder.label === "案件管理"
-                        : pathname.startsWith(baseHref);
+                    const isActive = currentHref === item.href || (!item.href.includes("?") && pathname === baseHref);
 
                     return (
                       <Link

@@ -4,6 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/settings",
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({
     replace: vi.fn(),
     push: vi.fn(),

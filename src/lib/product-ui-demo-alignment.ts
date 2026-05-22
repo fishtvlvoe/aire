@@ -85,7 +85,7 @@ const SIDEBAR_FOLDERS: DemoSidebarFolder[] = [
     description: "案件、說明書、補件",
     items: [
       { label: "案件總覽", href: "/cases" },
-      { label: "說明書工作台", href: "/cases" },
+      { label: "說明書工作台", href: "/cases?view=workbench" },
       { label: "補件清單", href: "/cases?view=supplements" },
     ],
   },
