@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  type EntitlementFeature,
   getEntitlementFeatures,
   getPdfAssetSlots,
   getUpgradePlans,
@@ -10,6 +11,17 @@ import {
 import { LandApiSection } from "@/components/settings/LandApiSection";
 import { BalanceMonitor } from "@/components/BalanceMonitor";
 import { listBillingEntries, type BillingLineItem } from "@/lib/land-registry-api";
+import { mockInvoke } from "@/lib/mock-backend";
+
+type SessionResponse =
+  | { authenticated: true; user: { email: string; role: "admin" | "user" } }
+  | { authenticated: false; user: null };
+
+type FeatureFlag = {
+  id: string;
+  name: string;
+  enabled: boolean;
+};
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
@@ -124,6 +136,42 @@ function PlansAndUpgradePanel({
   features: ReturnType<typeof getEntitlementFeatures>;
   plans: ReturnType<typeof getUpgradePlans>;
 }) {
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [featureStates, setFeatureStates] = useState(() => getFeatureStates(features, []));
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [session, flags] = await Promise.all([
+          mockInvoke<SessionResponse>("get_session"),
+          mockInvoke<FeatureFlag[]>("get_feature_flags"),
+        ]);
+        if (cancelled) return;
+        const canToggle = Boolean(session.authenticated && session.user.role === "admin");
+        setIsSuperAdmin(canToggle);
+        setFeatureStates(getFeatureStates(features, canToggle ? flags : []));
+      } catch {
+        if (cancelled) return;
+        setIsSuperAdmin(false);
+        setFeatureStates(getFeatureStates(features, []));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [features]);
+
+  async function toggleFeature(feature: EntitlementFeature) {
+    if (!isSuperAdmin) return;
+    const res = await mockInvoke<{ success: true; enabled: boolean }>("toggle_feature_flag", {
+      id: feature.id,
+    });
+    setFeatureStates((prev) =>
+      prev.map((row) => (row.id === feature.id ? { ...row, enabled: res.enabled } : row)),
+    );
+  }
+
   return (
     <div className="space-y-5">
       <section className="grid gap-4 xl:grid-cols-3" aria-label="方案卡片">
@@ -164,35 +212,50 @@ function PlansAndUpgradePanel({
       </section>
 
       <section>
-        <h2 className="text-base font-semibold">測試版可用功能</h2>
-        <p className="text-sm text-muted-foreground">測試版本先開啟可驗收功能；正式版會依方案控管。</p>
+        <h2 className="text-base font-semibold">預留功能</h2>
+        <p className="text-sm text-muted-foreground">各項預留功能目前皆為開發中。</p>
         <div className="mt-4 divide-y rounded-lg border">
-        {features.map((feature) => (
-          <div key={feature.label} className="flex items-center justify-between gap-4 p-4">
-            <div>
-              <strong>{feature.label}</strong>
-              <span className="mt-1 block text-sm text-muted-foreground">{feature.description}</span>
+          {featureStates.map((feature) => (
+            <div key={feature.label} className="flex items-center justify-between gap-4 p-4">
+              <div>
+                <strong>{feature.label}</strong>
+                <span className="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {feature.description}
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-label={feature.ariaLabel}
+                aria-checked={feature.enabled}
+                disabled={!isSuperAdmin}
+                onClick={() => {
+                  void toggleFeature(feature);
+                }}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                  feature.enabled ? "bg-teal-700" : "bg-slate-300"
+                } disabled:cursor-not-allowed disabled:bg-slate-300`}
+              >
+                <span
+                  className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    feature.enabled ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label={feature.ariaLabel}
-              disabled={!feature.upgraded}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-                feature.enabled ? "bg-teal-700" : "bg-slate-300"
-              } disabled:bg-slate-300`}
-            >
-              <span
-                className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                  feature.enabled ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
-        ))}
+          ))}
         </div>
       </section>
     </div>
   );
+}
+
+function getFeatureStates(features: EntitlementFeature[], flags: FeatureFlag[]) {
+  const flagMap = new Map(flags.map((flag) => [flag.id, flag.enabled]));
+  return features.map((feature) => ({
+    ...feature,
+    enabled: flagMap.get(feature.id) ?? false,
+  }));
 }
 
 function LandDataSection({ section, slots }: { section: string; slots: ReturnType<typeof getPdfAssetSlots> }) {

@@ -103,7 +103,20 @@ export function LandApiSection() {
           </div>
         ) : (
           <div className="space-y-4">
-            <ComingSoonCard title="申請說明" />
+            <div className="rounded-lg bg-slate-50 p-4 text-sm">
+              <h3 className="font-semibold">申請說明</h3>
+              <p className="mt-2 text-muted-foreground">
+                請使用自然人憑證或是工商憑證註冊帳號，即可開始使用。
+              </p>
+              <a
+                className="mt-3 inline-flex rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+                href="https://cop.moi.gov.tw/Register"
+                rel="noreferrer"
+                target="_blank"
+              >
+                前往地政註冊
+              </a>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="land-api-client-id">Client ID</Label>

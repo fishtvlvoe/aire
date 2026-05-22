@@ -165,9 +165,12 @@ const DEFAULT_APP_SETTINGS: AppSettingsState = {
 };
 
 const DEFAULT_FEATURE_FLAGS: FeatureFlagState[] = [
-  { id: "premium-unlock", name: "進階功能解鎖", enabled: false },
-  { id: "mcp-hub", name: "MCP Hub", enabled: false },
-  { id: "land-registry-api", name: "地政 API", enabled: true },
+  { id: "google-map", name: "Google 地圖", enabled: false },
+  { id: "aerial-photo", name: "空拍圖", enabled: false },
+  { id: "street-view-reference", name: "街景參考", enabled: false },
+  { id: "ai-floor-plan", name: "AI 格局圖整理", enabled: false },
+  { id: "cadastral-map", name: "地籍圖整理", enabled: false },
+  { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
 ];
 
 const DEFAULT_THEMES = [
@@ -1652,7 +1655,7 @@ export class MockStore {
       }
 
       if (Array.isArray(parsed.featureFlags)) {
-        this.featureFlags = parsed.featureFlags
+        const persistedFeatureFlags = parsed.featureFlags
           .filter(
             (flag): flag is FeatureFlagState =>
               Boolean(flag) &&
@@ -1661,6 +1664,11 @@ export class MockStore {
               typeof flag.enabled === "boolean",
           )
           .map((flag) => ({ ...flag }));
+        const persistedById = new Map(persistedFeatureFlags.map((flag) => [flag.id, flag]));
+        this.featureFlags = DEFAULT_FEATURE_FLAGS.map((defaultFlag) => ({
+          ...defaultFlag,
+          enabled: persistedById.get(defaultFlag.id)?.enabled ?? defaultFlag.enabled,
+        }));
       }
       if (Array.isArray(persistedCases)) {
         this.cases = new Map(

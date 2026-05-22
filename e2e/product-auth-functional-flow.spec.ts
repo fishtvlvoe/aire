@@ -11,6 +11,7 @@ test.beforeEach(async ({ page }) => {
 test("admin test account can login and use the aligned frontstage and backoffice flows", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page, "admin@test.aire", "password");
+  await preserveSessionForFutureNavigations(page, "admin");
 
   await expect(page).toHaveURL(/\/cases$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "案件總覽" })).toBeVisible();
@@ -40,7 +41,11 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await page.goto("/settings?section=plans");
   await expect(page.getByRole("heading", { name: "方案與升級" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "基本款" })).toBeVisible();
-  await expect(page.getByLabel("Google 地圖已開啟")).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "預留功能" })).toBeVisible();
+  await expect(page.getByText("測試版已開啟")).toHaveCount(0);
+  await expect(page.getByText(/正式版歸在/)).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: "Google 地圖開發中" })).toBeEnabled();
+  await expect(page.getByRole("switch", { name: "實價登錄開發中" })).toBeEnabled();
 
   await page.goto("/cases/new");
   await expect(page.getByLabel("地址 *")).toBeVisible();
@@ -61,6 +66,12 @@ test("non-admin test account can login without receiving admin-only upgrade stat
   await expect(page.getByText("已啟用（管理員）")).toHaveCount(0);
   await page.goto("/settings?section=plans");
   await expect(page.getByRole("button", { name: "前往升級" })).toHaveCount(2);
+  const switches = page.getByRole("switch");
+  await expect(switches).toHaveCount(6);
+  for (let index = 0; index < 6; index += 1) {
+    await expect(switches.nth(index)).toBeDisabled();
+    await expect(switches.nth(index)).toHaveAttribute("aria-checked", "false");
+  }
 });
 
 test("login errors stay user-readable for invalid and expired test accounts", async ({ page }) => {
@@ -81,6 +92,15 @@ async function login(page: Page, email: string, password: string) {
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("密碼").fill(password);
   await page.getByRole("button", { name: "登入" }).click();
+}
+
+async function preserveSessionForFutureNavigations(page: Page, role: "admin" | "user") {
+  await page.addInitScript((nextRole) => {
+    const raw = window.localStorage.getItem("aire-mock-store");
+    const state = raw ? JSON.parse(raw) : {};
+    state.sessionUser = { email: `${nextRole}@test.aire`, role: nextRole };
+    window.localStorage.setItem("aire-mock-store", JSON.stringify(state));
+  }, role);
 }
 
 async function seedProductData(page: Page) {

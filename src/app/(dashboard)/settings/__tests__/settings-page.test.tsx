@@ -1,10 +1,19 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import SettingsPage from "../page";
 
 let mockSection: string | null = "profile";
+
+const mockFeatureFlags = [
+  { id: "google-map", name: "Google 地圖", enabled: false },
+  { id: "aerial-photo", name: "空拍圖", enabled: false },
+  { id: "street-view-reference", name: "街景參考", enabled: false },
+  { id: "ai-floor-plan", name: "AI 格局圖整理", enabled: false },
+  { id: "cadastral-map", name: "地籍圖整理", enabled: false },
+  { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
+];
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/settings",
@@ -13,7 +22,26 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("@/lib/mock-backend", () => ({
+  mockInvoke: vi.fn(async (cmd: string) => {
+    if (cmd === "get_session") {
+      return {
+        authenticated: true,
+        user: { email: "admin@test.aire", role: "admin" },
+      };
+    }
+    if (cmd === "get_feature_flags") return mockFeatureFlags;
+    if (cmd === "get_land_api_settings") return { clientId: "", secret: "" };
+    if (cmd === "toggle_feature_flag") return { success: true, enabled: true };
+    return { success: true };
+  }),
+}));
+
 describe("SettingsPage demo alignment", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("renders personal settings as the default landing page", () => {
     mockSection = "profile";
     render(<SettingsPage />);
@@ -27,7 +55,7 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.getByRole("heading", { name: "目前操作紀錄" })).toBeInTheDocument();
   });
 
-  it("renders plan cards and usable test-build feature controls", () => {
+  it("renders plan cards and usable test-build feature controls", async () => {
     mockSection = "plans";
     render(<SettingsPage />);
 
@@ -38,12 +66,19 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.getByRole("heading", { name: "高級款" })).toBeInTheDocument();
     expect(screen.getByText("目前方案")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "前往升級" })).toHaveLength(2);
-    expect(screen.getByLabelText("Google 地圖已開啟")).not.toBeDisabled();
-    expect(screen.getByLabelText("地籍圖整理已開啟")).not.toBeDisabled();
+    expect(screen.getByRole("heading", { name: "預留功能" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("switch", { name: "Google 地圖開發中" })).not.toBeDisabled();
+    });
+    expect(screen.getByRole("switch", { name: "地籍圖整理開發中" })).not.toBeDisabled();
+    expect(screen.getByRole("switch", { name: "實價登錄開發中" })).not.toBeDisabled();
+    expect(screen.getAllByText("開發中")).toHaveLength(6);
+    expect(screen.queryByText("測試版已開啟")).not.toBeInTheDocument();
+    expect(screen.queryByText(/正式版歸在/)).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
-    expect(screen.getByText("實價登錄")).toBeInTheDocument();
+    expect(screen.getAllByText("實價登錄").length).toBeGreaterThan(0);
   });
 
   it("marks route-ready settings sections from query params", () => {

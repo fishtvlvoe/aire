@@ -1,10 +1,26 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+
+let mockSessionRole: "admin" | "user" = "admin";
+let mockFeatureFlags = [
+  { id: "google-map", name: "Google 地圖", enabled: false },
+  { id: "aerial-photo", name: "空拍圖", enabled: false },
+  { id: "street-view-reference", name: "街景參考", enabled: false },
+  { id: "ai-floor-plan", name: "AI 格局圖整理", enabled: false },
+  { id: "cadastral-map", name: "地籍圖整理", enabled: false },
+  { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
+];
 
 // Mock mockInvoke（所有子元件透過 mockInvoke 存取資料）
 vi.mock("@/lib/mock-backend", () => ({
-  mockInvoke: vi.fn(async (cmd: string) => {
+  mockInvoke: vi.fn(async (cmd: string, args?: { id?: string }) => {
+    if (cmd === "get_session") {
+      return {
+        authenticated: true,
+        user: { email: `${mockSessionRole}@test.aire`, role: mockSessionRole },
+      };
+    }
     if (cmd === "get_license_status") {
       return { status: "none", serial_key: null };
     }
@@ -15,9 +31,13 @@ vi.mock("@/lib/mock-backend", () => ({
       return { subscribed: false, plan: null, expires_at: null };
     }
     if (cmd === "get_feature_flags") {
-      return [
-        { id: "premium-unlock", name: "Premium Unlock", enabled: false },
-      ];
+      return mockFeatureFlags;
+    }
+    if (cmd === "toggle_feature_flag") {
+      mockFeatureFlags = mockFeatureFlags.map((flag) =>
+        flag.id === args?.id ? { ...flag, enabled: !flag.enabled } : flag,
+      );
+      return { success: true, enabled: mockFeatureFlags.find((flag) => flag.id === args?.id)?.enabled ?? false };
     }
     if (cmd === "land_registry_get_balance") {
       return { month_total_cost: 27, month_query_count: 2, low_balance_warning: false };
@@ -61,6 +81,15 @@ describe("Settings page（重組後）", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSection = null;
+    mockSessionRole = "admin";
+    mockFeatureFlags = [
+      { id: "google-map", name: "Google 地圖", enabled: false },
+      { id: "aerial-photo", name: "空拍圖", enabled: false },
+      { id: "street-view-reference", name: "街景參考", enabled: false },
+      { id: "ai-floor-plan", name: "AI 格局圖整理", enabled: false },
+      { id: "cadastral-map", name: "地籍圖整理", enabled: false },
+      { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
+    ];
   });
 
   it("預設顯示個人設定", async () => {
@@ -82,6 +111,12 @@ describe("Settings page（重組後）", () => {
     mockSection = "registry-auth";
     render(<SettingsPage />);
     expect(await screen.findByText("地政 API 設定")).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "前往地政註冊" })).toHaveAttribute(
+      "href",
+      "https://cop.moi.gov.tw/Register",
+    );
+    expect(screen.getByText("請使用自然人憑證或是工商憑證註冊帳號，即可開始使用。")).toBeInTheDocument();
+    expect(screen.getByText("教學影片")).toBeInTheDocument();
   });
 
   it("渲染地政 API 設定區塊", async () => {
@@ -100,11 +135,33 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByRole("heading", { name: "高級款" })).toBeInTheDocument();
     expect(screen.getByText("目前方案")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "前往升級" })).toHaveLength(2);
-    expect(screen.getByLabelText("Google 地圖已開啟")).not.toBeDisabled();
+    expect(screen.getByRole("heading", { name: "預留功能" })).toBeInTheDocument();
+    expect(screen.getAllByText("開發中")).toHaveLength(6);
+    expect(screen.queryByText("測試版已開啟")).not.toBeInTheDocument();
+    expect(screen.queryByText(/正式版歸在/)).not.toBeInTheDocument();
+    const googleSwitch = await screen.findByRole("switch", { name: "Google 地圖開發中" });
+    expect(googleSwitch).not.toBeDisabled();
+    expect(googleSwitch).toHaveAttribute("aria-checked", "false");
+    const realPriceSwitch = screen.getByRole("switch", { name: "實價登錄開發中" });
+    fireEvent.click(realPriceSwitch);
+    await waitFor(() => expect(realPriceSwitch).toHaveAttribute("aria-checked", "true"));
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
-    expect(screen.getByText("實價登錄")).toBeInTheDocument();
+    expect(screen.getAllByText("實價登錄").length).toBeGreaterThan(0);
+  });
+
+  it("非管理員看到預留功能全部關閉且不可切換", async () => {
+    mockSection = "plans";
+    mockSessionRole = "user";
+    render(<SettingsPage />);
+
+    const switches = await screen.findAllByRole("switch");
+    expect(switches).toHaveLength(6);
+    for (const switchControl of switches) {
+      expect(switchControl).toBeDisabled();
+      expect(switchControl).toHaveAttribute("aria-checked", "false");
+    }
   });
 
   it("資料來源頁不混入授權、升級與 Super Admin", async () => {

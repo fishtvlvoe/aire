@@ -84,8 +84,11 @@ for (const viewport of viewports) {
     await expect(page.getByRole("heading", { name: "進階款" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "高級款" })).toBeVisible();
     await expect(page.getByText("實價登錄 MCP Hub")).toHaveCount(0);
-    await expect(page.getByText("實價登錄", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("Google 地圖已開啟")).toBeEnabled();
+    await expect(page.getByText("實價登錄", { exact: true })).toHaveCount(2);
+    await expect(page.getByText("測試版已開啟")).toHaveCount(0);
+    await expect(page.getByText(/正式版歸在/)).toHaveCount(0);
+    await expect(page.getByRole("switch", { name: "Google 地圖開發中" })).toBeEnabled();
+    await expect(page.getByRole("switch", { name: "實價登錄開發中" })).toBeEnabled();
   });
 }
 

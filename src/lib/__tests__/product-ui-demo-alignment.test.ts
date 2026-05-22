@@ -8,6 +8,7 @@ import {
   classifyAddressLookupResult,
   getCustomerServiceLabel,
   getDemoSidebarFolders,
+  getEntitlementFeatures,
   getSettingsCategories,
   getUpgradePlans,
   getUsageLedgerRows,
@@ -70,6 +71,23 @@ describe("product-ui-demo-alignment contract", () => {
     expect(plans[0].current).toBe(true);
     expect(plans.map((plan) => plan.features.join(" ")).join(" ")).toContain("實價登錄");
     expect(plans.map((plan) => plan.features.join(" ")).join(" ")).not.toContain("MCP Hub");
+  });
+
+  it("defines development feature switches as off by default", () => {
+    const features = getEntitlementFeatures();
+
+    expect(features.map((feature) => feature.label)).toEqual([
+      "Google 地圖",
+      "空拍圖",
+      "街景參考",
+      "AI 格局圖整理",
+      "地籍圖整理",
+      "實價登錄",
+    ]);
+    expect(features.every((feature) => feature.description === "開發中")).toBe(true);
+    expect(features.every((feature) => feature.enabled === false)).toBe(true);
+    expect(features.map((feature) => feature.description).join(" ")).not.toContain("測試版已開啟");
+    expect(features.map((feature) => feature.description).join(" ")).not.toContain("正式版歸在");
   });
 
   it("classifies case creation from address first and only falls back when ambiguous", () => {

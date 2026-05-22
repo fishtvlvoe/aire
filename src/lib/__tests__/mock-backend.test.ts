@@ -407,23 +407,26 @@ describe("MockStore", () => {
 
   it("returns default feature flags", async () => {
     await expect(mockInvoke("get_feature_flags")).resolves.toEqual([
-      { id: "premium-unlock", name: "進階功能解鎖", enabled: false },
-      { id: "mcp-hub", name: "MCP Hub", enabled: false },
-      { id: "land-registry-api", name: "地政 API", enabled: true },
+      { id: "google-map", name: "Google 地圖", enabled: false },
+      { id: "aerial-photo", name: "空拍圖", enabled: false },
+      { id: "street-view-reference", name: "街景參考", enabled: false },
+      { id: "ai-floor-plan", name: "AI 格局圖整理", enabled: false },
+      { id: "cadastral-map", name: "地籍圖整理", enabled: false },
+      { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
     ]);
   });
 
   it("toggles feature flag enabled state", async () => {
     await expect(
       mockInvoke("toggle_feature_flag", {
-        id: "mcp-hub",
+        id: "premium_real_price_enabled",
       }),
     ).resolves.toEqual({ success: true, enabled: true });
 
     await expect(
       mockInvoke<Array<{ id: string; enabled: boolean }>>("get_feature_flags"),
     ).resolves.toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: "mcp-hub", enabled: true })]),
+      expect.arrayContaining([expect.objectContaining({ id: "premium_real_price_enabled", enabled: true })]),
     );
   });
 

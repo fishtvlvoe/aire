@@ -94,6 +94,11 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page).toHaveURL(/\/settings\?section=registry-auth$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "地政授權" })).toBeVisible();
   await expect(page.getByText("地政 API 設定")).toBeVisible();
+  await expect(page.getByRole("link", { name: "前往地政註冊" })).toHaveAttribute(
+    "href",
+    "https://cop.moi.gov.tw/Register",
+  );
+  await expect(page.getByText("請使用自然人憑證或是工商憑證註冊帳號，即可開始使用。")).toBeVisible();
 
   await sidebar.getByRole("link", { name: "方案與升級" }).click();
   await expect(page).toHaveURL(/\/settings\?section=plans$/);
@@ -105,9 +110,12 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page.getByRole("button", { name: "前往升級" })).toHaveCount(2);
   await expect(page.getByText("授權管理")).toHaveCount(0);
   await expect(page.getByText("實價登錄 MCP Hub")).toHaveCount(0);
-  await expect(page.getByText("實價登錄", { exact: true })).toBeVisible();
+  await expect(page.getByText("實價登錄", { exact: true })).toHaveCount(2);
   await expect(page.getByText("Super Admin")).toHaveCount(0);
-  await expect(page.getByLabel("Google 地圖已開啟")).toBeEnabled();
+  await expect(page.getByText("測試版已開啟")).toHaveCount(0);
+  await expect(page.getByText(/正式版歸在/)).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: "Google 地圖開發中" })).toBeEnabled();
+  await expect(page.getByRole("switch", { name: "實價登錄開發中" })).toBeEnabled();
 
   await page.goto(`/cases/${CASE_ID}`);
   await expect(page.getByRole("heading", { name: "說明書工作台" })).toBeVisible();

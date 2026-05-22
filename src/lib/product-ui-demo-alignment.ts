@@ -68,6 +68,7 @@ export interface UsageLedgerRow {
 }
 
 export interface EntitlementFeature {
+  id: string;
   label: string;
   description: string;
   enabled: boolean;
@@ -180,32 +181,52 @@ const USAGE_LEDGER_ROWS: UsageLedgerRow[] = [
 
 const ENTITLEMENT_FEATURES: EntitlementFeature[] = [
   {
+    id: "google-map",
     label: "Google 地圖",
-    description: "測試版已開啟；正式版歸在進階圖資",
-    enabled: true,
-    upgraded: true,
-    ariaLabel: "Google 地圖已開啟",
+    description: "開發中",
+    enabled: false,
+    upgraded: false,
+    ariaLabel: "Google 地圖開發中",
   },
   {
-    label: "空拍圖 / 街景參考",
-    description: "測試版已開啟；正式版歸在高級款",
-    enabled: true,
-    upgraded: true,
-    ariaLabel: "空拍街景已開啟",
+    id: "aerial-photo",
+    label: "空拍圖",
+    description: "開發中",
+    enabled: false,
+    upgraded: false,
+    ariaLabel: "空拍圖開發中",
   },
   {
+    id: "street-view-reference",
+    label: "街景參考",
+    description: "開發中",
+    enabled: false,
+    upgraded: false,
+    ariaLabel: "街景參考開發中",
+  },
+  {
+    id: "ai-floor-plan",
     label: "AI 格局圖整理",
-    description: "測試版已開啟；正式版歸在高級款",
-    enabled: true,
-    upgraded: true,
-    ariaLabel: "AI 格局圖已開啟",
+    description: "開發中",
+    enabled: false,
+    upgraded: false,
+    ariaLabel: "AI 格局圖整理開發中",
   },
   {
+    id: "cadastral-map",
     label: "地籍圖整理",
-    description: "測試版已開啟；地政原始查詢費仍由客戶帳號負擔",
-    enabled: true,
-    upgraded: true,
-    ariaLabel: "地籍圖整理已開啟",
+    description: "開發中",
+    enabled: false,
+    upgraded: false,
+    ariaLabel: "地籍圖整理開發中",
+  },
+  {
+    id: "premium_real_price_enabled",
+    label: "實價登錄",
+    description: "開發中",
+    enabled: false,
+    upgraded: false,
+    ariaLabel: "實價登錄開發中",
   },
 ];
 
@@ -238,7 +259,7 @@ const UPGRADE_PLANS: UpgradePlan[] = [
     description: "提供空拍、街景、AI 格局圖與高階輸出，支援完整銷售素材準備。",
     current: false,
     ctaLabel: "前往升級",
-    features: ["空拍圖 / 街景參考", "AI 格局圖整理", "進階 PDF 圖頁", "行銷素材預留"],
+    features: ["空拍圖", "街景參考", "AI 格局圖整理", "進階 PDF 圖頁"],
   },
 ];
 
