@@ -14,6 +14,7 @@ AIRE 正式產品的前台案件工作台、後台系統設定、demo reference�
 | 主導覽 | 側欄為資料夾式一級選單與子選單，保留收合與個人設定入口 | `src/components/AppSidebar.tsx` |
 | 後台設定 | 授權與升級、地政資料規則、費用與帳務、PDF 圖資欄位、地政授權集中在設定，不常駐工作台 | `/settings` |
 | 後台端口 | 保留授權、地政 API key、升級、dev-only feature flags，不因 UI 改版消失 | `LicenseSection`、`LandApiSection`、`PremiumUnlockSection`、`DevSuperAdmin` |
+| 後端差異 | UI 若仍由 demo/static contract 驅動，必須列入 gap，不得當成已完成後端串接 | `BACKEND-GAPS.md` |
 | 登入驗收 | 使用測試帳號走 `/login` 表單，不只直接塞 session；admin 與 non-admin 都要能進產品後台 | `e2e/product-auth-functional-flow.spec.ts` |
 | Bug 記錄 | E2E 或功能測試發現的 bug 必須記錄狀態、證據與修正 | `openspec/changes/align-product-ui-with-demo-reference/BUGS.md` |
 | 前台文案 | 客戶畫面不得顯示 `MOI_API_`、`COP309`、`BASIC`、`pro`、`advanced`、backend enum | unit tests + Playwright text checks |
@@ -40,3 +41,4 @@ spectra validate align-product-ui-with-demo-reference
 - `/settings` 必須同時看到 demo 分類與既有後台設定端口。
 - `/login` 必須能用 `admin@test.aire / password` 與 `user@test.aire / password` 走表單登入；錯誤與過期帳號必須顯示中文錯誤。
 - 前台工作台與設定頁不得出現工程代碼或英文方案 enum。
+- `/cases/new` 的地址判斷必須先走 `land_registry_address_lookup` adapter；只有 API 失敗、查無或多候選才 fallback。

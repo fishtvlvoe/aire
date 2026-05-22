@@ -29,6 +29,7 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.getByLabelText("地籍圖整理已開啟")).not.toBeDisabled();
     expect(screen.getByText("屋主資料邊界")).toBeInTheDocument();
     expect(screen.getByText("費用歸屬")).toBeInTheDocument();
+    expect(screen.getByText("本月使用量")).toBeInTheDocument();
     expect(screen.getByText("地政 API 設定")).toBeInTheDocument();
     expect(screen.getByText("實價登錄 MCP Hub")).toBeInTheDocument();
   });

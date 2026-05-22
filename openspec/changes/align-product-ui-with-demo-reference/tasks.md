@@ -71,3 +71,4 @@
 - [x] 9.3 跑相關 frontend tests、browser screenshots、文字 audit。
 - [x] 9.4 commit 並 push 本 SR 與後續實作變更。
 - [x] 9.5 新增測試帳號登入 E2E，覆蓋 admin、一般 user、錯誤帳密、過期帳號，並將發現的 bug 記錄到 `BUGS.md`。
+- [x] 9.6 新增 UI/後端差異盤點，修正新增案件先走 `land_registry_address_lookup`，設定頁顯示後端本月用量，並將剩餘 backend gaps 明確移交資料 SR。

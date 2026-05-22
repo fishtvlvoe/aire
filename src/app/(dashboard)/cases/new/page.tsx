@@ -7,9 +7,11 @@ import { casesApi } from "@/lib/cases-api";
 import { CaseLotInput } from "@/components/CaseLotInput";
 import { useIpcErrorToast } from "@/hooks/useIpcErrorToast";
 import {
+  classifyAddressLookupResult,
   getAddressFirstClassification,
   type AddressFirstClassification,
 } from "@/lib/product-ui-demo-alignment";
+import { addressLookup } from "@/lib/land-registry-api";
 
 const schema = z.object({
   property_type: z.enum(["residential", "land"]).optional(),
@@ -37,6 +39,8 @@ export default function NewCasePage() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [classification, setClassification] = useState<AddressFirstClassification | null>(null);
+  const [detectingRegistry, setDetectingRegistry] = useState(false);
+  const [registryDetectMessage, setRegistryDetectMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   function update<K extends keyof FormValues>(k: K, v: FormValues[K]) {
@@ -44,11 +48,29 @@ export default function NewCasePage() {
     setErrors((e) => ({ ...e, [k]: undefined }));
   }
 
-  function handleDetectRegistry() {
-    const result = getAddressFirstClassification(values.address);
-    setClassification(result);
-    if (!result.manualSelectionRequired) {
-      update("property_type", result.propertyType);
+  async function handleDetectRegistry() {
+    setDetectingRegistry(true);
+    setRegistryDetectMessage(null);
+    try {
+      const parcels = values.address.trim() ? await addressLookup(values.address) : [];
+      const result = classifyAddressLookupResult(values.address, parcels);
+      setClassification(result);
+      if (!result.manualSelectionRequired) {
+        update("property_type", result.propertyType);
+      }
+    } catch (error) {
+      const result = getAddressFirstClassification(values.address);
+      setClassification(result);
+      setRegistryDetectMessage(
+        error instanceof Error
+          ? `地政查詢暫時無法使用，已改用本機判斷：${error.message}`
+          : "地政查詢暫時無法使用，已改用本機判斷。",
+      );
+      if (!result.manualSelectionRequired) {
+        update("property_type", result.propertyType);
+      }
+    } finally {
+      setDetectingRegistry(false);
     }
   }
 
@@ -115,13 +137,17 @@ export default function NewCasePage() {
             <button
               type="button"
               className="min-h-11 rounded-md border px-4 py-2 text-sm font-medium"
-              onClick={handleDetectRegistry}
+              onClick={() => void handleDetectRegistry()}
+              disabled={detectingRegistry}
             >
-              判斷地政資料
+              {detectingRegistry ? "判斷中..." : "判斷地政資料"}
             </button>
           </div>
           {errors.address ? (
             <span className="mt-1 block text-xs text-destructive">{errors.address}</span>
+          ) : null}
+          {registryDetectMessage ? (
+            <span className="mt-2 block text-xs text-muted-foreground">{registryDetectMessage}</span>
           ) : null}
         </section>
 

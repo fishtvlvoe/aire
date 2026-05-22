@@ -69,7 +69,7 @@ test("new case flow is address-first and only falls back to manual type selectio
 
   await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 1 號");
   await page.getByRole("button", { name: "判斷地政資料" }).click();
-  await expect(page.getByText("已找到 2 筆土地、1 筆建物")).toBeVisible();
+  await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
   await expect(page.getByLabel("物件類型")).toHaveCount(0);
 
   await page.getByLabel("地址 *").fill("");

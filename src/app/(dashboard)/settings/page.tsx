@@ -11,6 +11,7 @@ import { LandApiSection } from "@/components/settings/LandApiSection";
 import { LicenseSection } from "@/components/settings/LicenseSection";
 import { PremiumUnlockSection } from "@/components/settings/PremiumUnlockSection";
 import { DevSuperAdmin } from "@/components/settings/DevSuperAdmin";
+import { BalanceMonitor } from "@/components/BalanceMonitor";
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
@@ -105,6 +106,8 @@ export default function SettingsPage() {
                 <SettingKv label="失敗不計費" value="地政查詢失敗時在費用紀錄標示 0 元" />
               </dl>
             </article>
+
+            <BalanceMonitor />
 
             <article className="rounded-lg border p-4 xl:col-span-2">
               <h3 className="font-semibold">PDF 圖資欄位</h3>

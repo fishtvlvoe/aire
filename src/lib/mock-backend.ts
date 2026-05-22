@@ -1230,8 +1230,19 @@ export class MockStore {
     args?: CommandArgs,
   ): Array<{ parcel_id: string; address: string; lot_number: string; building_number: string }> {
     const addr = (args?.address as string) || "未知地址";
+    if (!addr.trim() || /查無|不存在/.test(addr)) {
+      return [];
+    }
+    if (/候選|多筆|結果不明確/.test(addr)) {
+      return [
+        { parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "0000" },
+        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
+      ];
+    }
+    if (/農地|土地|地號/.test(addr)) {
+      return [{ parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "" }];
+    }
     return [
-      { parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "0000" },
       { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
     ];
   }

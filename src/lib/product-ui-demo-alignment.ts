@@ -37,6 +37,13 @@ export interface AddressFirstClassification {
   note: string;
 }
 
+export interface AddressLookupParcel {
+  parcel_id: string;
+  address: string;
+  lot_number: string;
+  building_number?: string;
+}
+
 export interface DemoFieldReviewRow {
   fieldName: string;
   helper: string;
@@ -290,6 +297,52 @@ export function getAddressFirstClassification(address: string): AddressFirstClas
     landCount: 2,
     buildingCount: isLandOnly ? 0 : 1,
     note: "只有地址查不到或結果不明確時才需要人工選擇。",
+  };
+}
+
+export function classifyAddressLookupResult(
+  address: string,
+  parcels: AddressLookupParcel[],
+): AddressFirstClassification {
+  if (!address.trim()) return getAddressFirstClassification(address);
+
+  if (parcels.length === 0) {
+    return {
+      status: "manual_required",
+      propertyType: "residential",
+      displayType: "需要人工確認",
+      summary: "地政查無可判斷資料，請人工確認土地或建物",
+      manualSelectionRequired: true,
+      landCount: 0,
+      buildingCount: 0,
+      note: "查不到地政候選資料時才需要人工選擇。",
+    };
+  }
+
+  if (parcels.length > 1) {
+    return {
+      status: "manual_required",
+      propertyType: "residential",
+      displayType: "需要人工確認",
+      summary: "找到多筆候選地政資料，請人工確認土地或建物",
+      manualSelectionRequired: true,
+      landCount: parcels.length,
+      buildingCount: parcels.filter((parcel) => Boolean(parcel.building_number?.trim())).length,
+      note: "多筆候選時先顯示候選資料，再由使用者選擇正確類型。",
+    };
+  }
+
+  const [parcel] = parcels;
+  const hasBuilding = Boolean(parcel.building_number?.trim());
+  return {
+    status: "classified",
+    propertyType: hasBuilding ? "residential" : "land",
+    displayType: hasBuilding ? "農舍" : "土地",
+    summary: hasBuilding ? "已找到 1 筆土地、1 筆建物" : "已找到 1 筆土地",
+    manualSelectionRequired: false,
+    landCount: 1,
+    buildingCount: hasBuilding ? 1 : 0,
+    note: "由地政地址查詢結果自動判斷。",
   };
 }
 

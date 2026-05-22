@@ -19,6 +19,9 @@ vi.mock("@/lib/mock-backend", () => ({
         { id: "premium-unlock", name: "Premium Unlock", enabled: false },
       ];
     }
+    if (cmd === "land_registry_get_balance") {
+      return { month_total_cost: 500, month_query_count: 50, low_balance_warning: false };
+    }
     return { success: true };
   }),
 }));

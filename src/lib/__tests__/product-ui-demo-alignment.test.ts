@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   FRONTSTAGE_FORBIDDEN_PATTERNS,
   getAddressFirstClassification,
+  classifyAddressLookupResult,
   getCustomerServiceLabel,
   getDemoSidebarFolders,
   getSettingsCategories,
@@ -68,6 +69,29 @@ describe("product-ui-demo-alignment contract", () => {
     const multipleCandidates = getAddressFirstClassification("宜蘭縣五結鄉協和村親河路二段 候選多筆");
     expect(multipleCandidates.status).toBe("manual_required");
     expect(multipleCandidates.manualSelectionRequired).toBe(true);
+    expect(multipleCandidates.summary).toContain("多筆候選");
+  });
+
+  it("classifies case creation from backend address lookup results", () => {
+    const classified = classifyAddressLookupResult("宜蘭縣五結鄉協和村親河路二段 1 號", [
+      {
+        parcel_id: "0001-0001",
+        address: "宜蘭縣五結鄉協和村親河路二段 1 號",
+        lot_number: "0001",
+        building_number: "0001",
+      },
+    ]);
+
+    expect(classified.status).toBe("classified");
+    expect(classified.summary).toBe("已找到 1 筆土地、1 筆建物");
+    expect(classified.manualSelectionRequired).toBe(false);
+
+    const multipleCandidates = classifyAddressLookupResult("宜蘭縣五結鄉協和村親河路二段 1 號", [
+      { parcel_id: "0001-0000", address: "A", lot_number: "0001", building_number: "" },
+      { parcel_id: "0001-0001", address: "A", lot_number: "0001", building_number: "0001" },
+    ]);
+
+    expect(multipleCandidates.status).toBe("manual_required");
     expect(multipleCandidates.summary).toContain("多筆候選");
   });
 
