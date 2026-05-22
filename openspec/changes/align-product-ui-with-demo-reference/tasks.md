@@ -70,3 +70,4 @@
 - [x] 9.2 跑 `spectra validate align-product-ui-with-demo-reference`。
 - [x] 9.3 跑相關 frontend tests、browser screenshots、文字 audit。
 - [x] 9.4 commit 並 push 本 SR 與後續實作變更。
+- [x] 9.5 新增測試帳號登入 E2E，覆蓋 admin、一般 user、錯誤帳密、過期帳號，並將發現的 bug 記錄到 `BUGS.md`。

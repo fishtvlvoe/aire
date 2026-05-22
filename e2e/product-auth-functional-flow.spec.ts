@@ -1,0 +1,127 @@
+import { expect, test, type Page } from "@playwright/test";
+
+const CASE_ID = "22222222-2222-4222-8222-222222222222";
+
+test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000" });
+
+test.beforeEach(async ({ page }) => {
+  await seedProductData(page);
+});
+
+test("admin test account can login and use the aligned frontstage and backoffice flows", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page, "admin@test.aire", "password");
+
+  await expect(page).toHaveURL(/\/cases$/);
+  await expect(page.getByRole("heading", { name: "案件列表" })).toBeVisible();
+  await expect(page.getByText("宜蘭五結農舍")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "主要選單" })).toBeVisible();
+
+  await page.getByText("宜蘭五結農舍").click();
+  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
+  await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
+  await expect(page.getByRole("region", { name: "案件與章節" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "補件與現場確認" })).toBeVisible();
+  await expect(page.getByText("MOI_API_")).toHaveCount(0);
+  await expect(page.getByText("COP309")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto("/settings?section=billing");
+  await expect(page.getByRole("heading", { name: "系統設定" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "費用與帳務" })).toHaveClass(/bg-slate-950/);
+  await expect(page.getByLabel("Google 地圖未升級")).toBeDisabled();
+  await expect(page.getByLabel("地籍圖整理已開啟")).toBeEnabled();
+  await expect(page.getByText("授權管理")).toBeVisible();
+  await expect(page.getByText("地政 API 設定")).toBeVisible();
+  await expect(page.getByText("實價登錄 MCP Hub")).toBeVisible();
+
+  await page.goto("/cases/new");
+  await expect(page.getByLabel("地址 *")).toBeVisible();
+  await expect(page.getByLabel("物件類型")).toHaveCount(0);
+  await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 1 號");
+  await page.getByRole("button", { name: "判斷地政資料" }).click();
+  await expect(page.getByText("已找到 2 筆土地、1 筆建物")).toBeVisible();
+
+  await page.getByRole("button", { name: "登出" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test("non-admin test account can login without receiving admin-only upgrade state", async ({ page }) => {
+  await login(page, "user@test.aire", "password");
+
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "系統設定" })).toBeVisible();
+  await expect(page.getByText("已啟用（管理員）")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "前往升級" })).toBeVisible();
+});
+
+test("login errors stay user-readable for invalid and expired test accounts", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByPlaceholder("Email").fill("wrong@example.com");
+  await page.getByPlaceholder("密碼").fill("wrong");
+  await page.getByRole("button", { name: "登入" }).click();
+  await expect(page.getByText("帳號或密碼錯誤")).toBeVisible();
+
+  await page.getByPlaceholder("Email").fill("expired@test.aire");
+  await page.getByPlaceholder("密碼").fill("password");
+  await page.getByRole("button", { name: "登入" }).click();
+  await expect(page.getByText("帳號已過期")).toBeVisible();
+});
+
+async function login(page: Page, email: string, password: string) {
+  await page.goto("/login");
+  await page.getByPlaceholder("Email").fill(email);
+  await page.getByPlaceholder("密碼").fill(password);
+  await page.getByRole("button", { name: "登入" }).click();
+}
+
+async function seedProductData(page: Page) {
+  await page.addInitScript((caseId) => {
+    window.localStorage.setItem(
+      "aire-mock-store",
+      JSON.stringify({
+        sessionUser: null,
+        featureFlags: [
+          { id: "land-registry-api", name: "地政 API", enabled: true },
+          { id: "premium_real_price_enabled", name: "實價登錄", enabled: false },
+        ],
+        appSettings: {
+          landApi: { clientId: "", secret: "" },
+          premium: { subscribed: false, plan: null, expiresAt: null },
+          premiumUnlocked: false,
+        },
+        cases: [
+          {
+            id: caseId,
+            case_no: "AIRE-2026-LOGIN",
+            case_name: "宜蘭五結農舍",
+            property_type: "residential",
+            land_lot_no: "五結段 123-1",
+            land_lots: ["五結段 123-1", "五結段 123-2"],
+            building_lot_no: "建號 88-1",
+            address: "宜蘭縣五結鄉協和村親河路二段 1 號",
+            owner_name: "陳小美",
+            land_registry_data: {
+              building_registry: { data: { construction_date: "083/10/18" } },
+              building_ownership: { data: { numerator: 1, denominator: 1 } },
+            },
+            current_step: 1,
+            status: "draft",
+            asking_price: null,
+            created_at: 1763200000,
+            updated_at: 1763200000,
+          },
+        ],
+      }),
+    );
+  }, CASE_ID);
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const hasNoOverflow = await page.evaluate(() => {
+    const root = document.documentElement;
+    return root.scrollWidth <= root.clientWidth + 1;
+  });
+  expect(hasNoOverflow).toBe(true);
+}

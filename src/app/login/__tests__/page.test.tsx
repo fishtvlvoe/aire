@@ -50,7 +50,7 @@ describe("Login page", () => {
     expect(screen.queryByText(/license/i)).not.toBeInTheDocument();
   });
 
-  it("successful login — calls mockInvoke and redirects to /dashboard", async () => {
+  it("successful login — calls mockInvoke and redirects to /cases", async () => {
     mockInvokeFn.mockResolvedValue({
       success: true,
       user: { email: "admin@test.aire", role: "admin" },
@@ -73,7 +73,7 @@ describe("Login page", () => {
         email: "admin@test.aire",
         password: "password",
       });
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/cases");
     });
   });
 
