@@ -21,9 +21,11 @@ vi.mock("@/lib/land-registry-api", () => ({
 }));
 
 import NewCasePage from "../page";
+import { casesApi } from "@/lib/cases-api";
 import { addressLookup } from "@/lib/land-registry-api";
 
 const mockAddressLookup = vi.mocked(addressLookup);
+const mockCreateCase = vi.mocked(casesApi.create);
 
 describe("NewCasePage address-first flow", () => {
   beforeEach(() => {
@@ -67,6 +69,18 @@ describe("NewCasePage address-first flow", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("物件類型")).toBeInTheDocument();
     });
+  });
+
+  it("blocks case creation until registry detection has been completed", async () => {
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號1樓" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "先判斷地政資料" }));
+
+    expect(mockCreateCase).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("請先按「判斷地政資料」");
   });
 
   it("shows manual fallback when registry returns multiple candidates", async () => {

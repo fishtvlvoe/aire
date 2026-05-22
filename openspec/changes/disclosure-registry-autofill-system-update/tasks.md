@@ -42,5 +42,6 @@
 ## 6. SR consolidation and verification
 
 - [x] 6.1 將 `moi-api-coverage-fallback-cost-map` 與 `moi-api-usage-ledger-and-cost-audit` 標記為由本 SR 取代並移除 stale parked marker，確保後續只從 `disclosure-registry-autofill-system-update` 追蹤。
-- [ ] 6.2 執行 `spectra analyze disclosure-registry-autofill-system-update --json` 與 `spectra validate disclosure-registry-autofill-system-update`，修到沒有 Critical 或 Warning。
+- [x] 6.1a 記錄 2026-05-22 使用者回報的 UI/後端閉環問題到 `BUGS.md`，並先修正可立即落地的新增案件防呆、建物/農舍標籤、地政資料頁 scope、PDF/export scope、案件列表欄位擠壓。
+- [x] 6.2 執行 `spectra analyze disclosure-registry-autofill-system-update --json` 與 `spectra validate disclosure-registry-autofill-system-update`，修到沒有 Critical 或 Warning。
 - [ ] 6.3 實作完成後執行相關單元測試、Rust 測試、前端表單測試與後台查詢測試，確認欄位覆蓋、費用計算、ledger 統計、UI 狀態都符合本 SR。

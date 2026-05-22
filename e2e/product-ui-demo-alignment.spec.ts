@@ -50,8 +50,9 @@ for (const viewport of viewports) {
     });
 
     await page.goto("/settings");
-    await expect(page.getByRole("button", { name: "授權與升級" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "費用與帳務" })).toBeVisible();
+    const settingsMain = page.getByRole("main");
+    await expect(settingsMain.getByRole("link", { name: "授權與升級" })).toBeVisible();
+    await expect(settingsMain.getByRole("link", { name: "費用與帳務" })).toBeVisible();
     await expect(page.getByLabel("Google 地圖未升級")).toBeDisabled();
     await expect(page.getByLabel("地籍圖整理已開啟")).toBeEnabled();
     await expectNoHorizontalOverflow(page);
@@ -59,6 +60,17 @@ for (const viewport of viewports) {
       path: `e2e/results/demo-alignment/product-settings-${viewport.width}.png`,
       fullPage: true,
     });
+
+    await page.goto("/settings?section=registry-rules");
+    await expect(page.getByRole("main").getByRole("heading", { name: "資料來源", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "品牌設定" })).toHaveCount(0);
+    await expect(page.getByText("授權管理")).toHaveCount(0);
+    await expect(page.getByText("地政 API 設定")).toHaveCount(0);
+
+    await page.goto("/settings?section=billing");
+    await expect(page.getByRole("main").getByRole("heading", { name: "費用紀錄", exact: true })).toBeVisible();
+    await expect(page.getByText("本月使用量")).toBeVisible();
+    await expect(page.getByText("授權管理")).toHaveCount(0);
   });
 }
 
@@ -68,12 +80,12 @@ test("new case flow is address-first and only falls back to manual type selectio
   await expect(page.getByLabel("物件類型")).toHaveCount(0);
 
   await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 1 號");
-  await page.getByRole("button", { name: "判斷地政資料" }).click();
+  await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
   await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
   await expect(page.getByLabel("物件類型")).toHaveCount(0);
 
   await page.getByLabel("地址 *").fill("");
-  await page.getByRole("button", { name: "判斷地政資料" }).click();
+  await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
   await expect(page.getByLabel("物件類型")).toBeVisible();
 });
 
@@ -104,6 +116,17 @@ test("cases overview uses sidebar scope navigation without duplicating page tabs
   await expect(page.getByRole("main").getByRole("heading", { name: "補件清單" })).toBeVisible();
   await expect(page.getByText("只顯示目前需要補資料的案件")).toBeVisible();
   await expect(page.getByText("全部案件")).toHaveCount(0);
+
+  await sidebar.getByRole("button", { name: "展開產出文件選單" }).click();
+  await sidebar.getByRole("link", { name: "PDF 預覽" }).click();
+  await expect(page).toHaveURL(/\/cases\?view=pdf$/);
+  await expect(page.getByRole("main").getByRole("heading", { name: "PDF 預覽" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "產出文件提示" })).toContainText("請先選擇案件產生 PDF 預覽。");
+
+  await sidebar.getByRole("link", { name: "列印與匯出" }).click();
+  await expect(page).toHaveURL(/\/cases\?view=export$/);
+  await expect(page.getByRole("main").getByRole("heading", { name: "列印與匯出" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "產出文件提示" })).toContainText("請先選擇案件列印或匯出文件。");
 
   await page.getByText("宜蘭五結農舍").click();
   await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));

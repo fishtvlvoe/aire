@@ -49,6 +49,7 @@ export default function NewCasePage() {
   }
 
   async function handleDetectRegistry() {
+    setSubmitError(null);
     setDetectingRegistry(true);
     setRegistryDetectMessage(null);
     try {
@@ -89,7 +90,11 @@ export default function NewCasePage() {
     }
     setLoading(true);
     try {
-      const detected = classification ?? getAddressFirstClassification(parsed.data.address);
+      if (!classification) {
+        setSubmitError("請先按「判斷地政資料」確認土地或建物資料，再建立案件。");
+        return;
+      }
+      const detected = classification;
       const propertyType = parsed.data.property_type ?? detected.propertyType;
       const filteredLots = landLots.filter((s) => s.trim() !== "");
       const lots = filteredLots.length > 0 ? filteredLots : [parsed.data.land_lot_no || ""];
@@ -130,13 +135,14 @@ export default function NewCasePage() {
               onChange={(e) => {
                 update("address", e.target.value);
                 setClassification(null);
+                setSubmitError(null);
               }}
               className="min-h-11 flex-1 rounded-md border px-3 py-2 text-sm"
               placeholder="例：宜蘭縣五結鄉協和村親河路二段 1 號"
             />
             <button
               type="button"
-              className="min-h-11 rounded-md border px-4 py-2 text-sm font-medium"
+              className="min-h-11 rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
               onClick={() => void handleDetectRegistry()}
               disabled={detectingRegistry}
             >
@@ -256,9 +262,9 @@ export default function NewCasePage() {
           <button
             type="submit"
             disabled={loading}
-            className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "建立中…" : "建立案件"}
+            {loading ? "建立中…" : classification ? "建立案件" : "先判斷地政資料"}
           </button>
         </div>
       </form>

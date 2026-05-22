@@ -59,6 +59,7 @@ describe("product-ui-demo-alignment contract", () => {
     const classified = getAddressFirstClassification("宜蘭縣五結鄉協和村親河路二段 1 號");
     expect(classified.status).toBe("classified");
     expect(classified.propertyType).toBe("residential");
+    expect(classified.displayType).toBe("建物");
     expect(classified.manualSelectionRequired).toBe(false);
     expect(classified.summary).toContain("已找到 2 筆土地、1 筆建物");
 
@@ -83,6 +84,7 @@ describe("product-ui-demo-alignment contract", () => {
     ]);
 
     expect(classified.status).toBe("classified");
+    expect(classified.displayType).toBe("建物");
     expect(classified.summary).toBe("已找到 1 筆土地、1 筆建物");
     expect(classified.manualSelectionRequired).toBe(false);
 

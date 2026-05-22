@@ -258,10 +258,11 @@ export function getAddressFirstClassification(address: string): AddressFirstClas
   }
 
   const isLandOnly = /農地|土地|地號/.test(address);
+  const isFarmhouse = /農舍/.test(address);
   return {
     status: "classified",
     propertyType: isLandOnly ? "land" : "residential",
-    displayType: isLandOnly ? "土地" : "農舍",
+    displayType: isLandOnly ? "土地" : isFarmhouse ? "農舍" : "建物",
     summary: isLandOnly ? "已找到 2 筆土地" : "已找到 2 筆土地、1 筆建物",
     manualSelectionRequired: false,
     landCount: 2,
@@ -304,10 +305,11 @@ export function classifyAddressLookupResult(
 
   const [parcel] = parcels;
   const hasBuilding = Boolean(parcel.building_number?.trim());
+  const isFarmhouse = /農舍/.test(parcel.address ?? address);
   return {
     status: "classified",
     propertyType: hasBuilding ? "residential" : "land",
-    displayType: hasBuilding ? "農舍" : "土地",
+    displayType: hasBuilding ? (isFarmhouse ? "農舍" : "建物") : "土地",
     summary: hasBuilding ? "已找到 1 筆土地、1 筆建物" : "已找到 1 筆土地",
     manualSelectionRequired: false,
     landCount: 1,

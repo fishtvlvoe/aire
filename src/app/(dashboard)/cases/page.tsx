@@ -169,6 +169,13 @@ export default function CasesPage() {
         </section>
       )}
 
+      {scope.documentPrompt && !error && !requiresTauri && cases !== null && cases.length > 0 && (
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-label="產出文件提示">
+          <h2 className="text-base font-semibold">請先選擇案件</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{scope.documentPrompt}</p>
+        </section>
+      )}
+
       {/* 案件工作入口 */}
       {!error && !requiresTauri && cases !== null && cases.length > 0 && (
         <section className="space-y-4" aria-label="案件工作入口">
@@ -184,7 +191,7 @@ export default function CasesPage() {
           ) : null}
 
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="grid grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_120px_120px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-muted-foreground max-xl:hidden">
+            <div className="grid grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_100px_180px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-muted-foreground max-xl:hidden">
               <div>案件名稱</div>
               <div>地址與所有權人</div>
               <div>案件類型</div>
@@ -199,7 +206,7 @@ export default function CasesPage() {
             {scopedCases.map((c) => (
               <article
                 key={c.id}
-                className="grid cursor-pointer gap-4 border-b border-slate-100 px-4 py-4 transition-colors last:border-b-0 hover:bg-slate-50/70 xl:grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_120px_120px] xl:items-center"
+                className="grid cursor-pointer gap-4 border-b border-slate-100 px-4 py-4 transition-colors last:border-b-0 hover:bg-slate-50/70 xl:grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_100px_180px] xl:items-center"
                 onClick={() => router.push(`/cases/${c.id}`)}
                 role="link"
                 tabIndex={0}

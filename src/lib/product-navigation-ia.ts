@@ -1,6 +1,6 @@
 export type ProductNavigationLevel = "primary" | "secondary" | "case-workbench";
 export type ProductNavigationScope = "global" | "module" | "case";
-export type CaseManagementViewId = "overview" | "workbench" | "supplements";
+export type CaseManagementViewId = "overview" | "workbench" | "supplements" | "pdf" | "export";
 
 export interface ProductNavigationItem {
   level: ProductNavigationLevel;
@@ -22,6 +22,7 @@ export interface CaseManagementView {
   showsCaseOverview: boolean;
   showsWorkbenchPrompt: boolean;
   showsSupplementTasks: boolean;
+  documentPrompt?: string;
 }
 
 const PRIMARY_NAVIGATION: ProductNavigationItem[] = [
@@ -112,6 +113,30 @@ const CASE_MANAGEMENT_VIEWS: CaseManagementView[] = [
     showsWorkbenchPrompt: false,
     showsSupplementTasks: true,
   },
+  {
+    id: "pdf",
+    label: "PDF 預覽",
+    href: "/cases?view=pdf",
+    heading: "PDF 預覽",
+    eyebrow: "產出文件",
+    description: "請先選擇案件產生 PDF 預覽。",
+    showsCaseOverview: false,
+    showsWorkbenchPrompt: false,
+    showsSupplementTasks: false,
+    documentPrompt: "請先選擇案件產生 PDF 預覽。",
+  },
+  {
+    id: "export",
+    label: "列印與匯出",
+    href: "/cases?view=export",
+    heading: "列印與匯出",
+    eyebrow: "產出文件",
+    description: "請先選擇案件列印或匯出文件。",
+    showsCaseOverview: false,
+    showsWorkbenchPrompt: false,
+    showsSupplementTasks: false,
+    documentPrompt: "請先選擇案件列印或匯出文件。",
+  },
 ];
 
 export function getProductNavigationModel(): ProductNavigationItem[] {
@@ -135,7 +160,7 @@ export function getCaseManagementViews(): CaseManagementView[] {
 }
 
 export function normalizeCaseManagementView(value: string | null): CaseManagementViewId {
-  if (value === "workbench" || value === "supplements") return value;
+  if (value === "workbench" || value === "supplements" || value === "pdf" || value === "export") return value;
   return "overview";
 }
 

@@ -25,6 +25,8 @@ describe("product navigation IA", () => {
       "overview",
       "workbench",
       "supplements",
+      "pdf",
+      "export",
     ]);
 
     expect(getVisibleCaseManagementScope("overview")).toMatchObject({
@@ -44,6 +46,16 @@ describe("product navigation IA", () => {
       showsCaseOverview: false,
       showsWorkbenchPrompt: false,
       showsSupplementTasks: true,
+    });
+    expect(getVisibleCaseManagementScope("pdf")).toMatchObject({
+      heading: "PDF 預覽",
+      showsCaseOverview: false,
+      documentPrompt: "請先選擇案件產生 PDF 預覽。",
+    });
+    expect(getVisibleCaseManagementScope("export")).toMatchObject({
+      heading: "列印與匯出",
+      showsCaseOverview: false,
+      documentPrompt: "請先選擇案件列印或匯出文件。",
     });
   });
 });

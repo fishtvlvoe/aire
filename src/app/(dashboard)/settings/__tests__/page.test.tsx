@@ -28,9 +28,19 @@ vi.mock("@/lib/mock-backend", () => ({
 
 import SettingsPage from "../page";
 
+let mockSection: string | null = null;
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/settings",
+  useSearchParams: () => ({
+    get: (key: string) => (key === "section" ? mockSection : null),
+  }),
+}));
+
 describe("Settings page（重組後）", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSection = null;
   });
 
   it("顯示設定分頁 tabs", async () => {
@@ -55,18 +65,32 @@ describe("Settings page（重組後）", () => {
   });
 
   it("渲染授權管理區塊", async () => {
+    mockSection = "registry-auth";
     render(<SettingsPage />);
-    expect(await screen.findByText("授權管理")).toBeInTheDocument();
+    expect(await screen.findByText("地政 API 設定")).toBeInTheDocument();
   });
 
   it("渲染地政 API 設定區塊", async () => {
+    mockSection = "registry-auth";
     render(<SettingsPage />);
     expect(await screen.findByText("地政 API 設定")).toBeInTheDocument();
   });
 
   it("渲染實價登錄 MCP Hub 區塊", async () => {
+    mockSection = "entitlements";
     render(<SettingsPage />);
     expect(await screen.findByText("實價登錄 MCP Hub")).toBeInTheDocument();
+  });
+
+  it("資料來源頁不混入授權、升級與 Super Admin", async () => {
+    mockSection = "registry-rules";
+    render(<SettingsPage />);
+
+    expect(screen.getByRole("heading", { name: "資料來源" })).toBeInTheDocument();
+    expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
+    expect(screen.queryByText("地政 API 設定")).not.toBeInTheDocument();
+    expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
+    expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
   });
 
   it("DevSuperAdmin 在 test 環境不渲染（僅 development 環境可見）", () => {
