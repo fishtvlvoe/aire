@@ -27,9 +27,11 @@ describe("AppSidebar", () => {
     expect(within(navigation).getByText("地政資料")).toBeInTheDocument();
     expect(within(navigation).getByText("產出文件")).toBeInTheDocument();
     expect(within(navigation).getByText("系統設定")).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "新增案件" })).toBeInTheDocument();
     expect(within(navigation).getByRole("link", { name: "說明書工作台" })).toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "費用紀錄" })).not.toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "授權與升級" })).not.toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "地政查詢" })).not.toBeInTheDocument();
   });
 
   it("expands a folder submenu when the user opens it", () => {

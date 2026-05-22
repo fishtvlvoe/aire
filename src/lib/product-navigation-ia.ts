@@ -58,9 +58,9 @@ const PRIMARY_NAVIGATION: ProductNavigationItem[] = [
 
 const SECONDARY_NAVIGATION: ProductNavigationItem[] = [
   { level: "secondary", label: "案件總覽", href: "/cases", scope: "module", parentLabel: "案件管理" },
+  { level: "secondary", label: "新增案件", href: "/cases/new", scope: "module", parentLabel: "案件管理" },
   { level: "secondary", label: "說明書工作台", href: "/cases?view=workbench", scope: "module", parentLabel: "案件管理" },
   { level: "secondary", label: "補件清單", href: "/cases?view=supplements", scope: "module", parentLabel: "案件管理" },
-  { level: "secondary", label: "地政查詢", href: "/cases/new", scope: "module", parentLabel: "地政資料" },
   { level: "secondary", label: "資料來源", href: "/settings?section=registry-rules", scope: "module", parentLabel: "地政資料" },
   { level: "secondary", label: "費用紀錄", href: "/settings?section=billing", scope: "module", parentLabel: "地政資料" },
   { level: "secondary", label: "PDF 預覽", href: "/cases?view=pdf", scope: "module", parentLabel: "產出文件" },

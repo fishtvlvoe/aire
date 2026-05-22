@@ -16,7 +16,9 @@ describe("product navigation IA", () => {
     const secondaryLabels = model
       .filter((item) => item.level === "secondary")
       .map((item) => item.label);
+    expect(secondaryLabels).toContain("新增案件");
     expect(secondaryLabels).toContain("補件清單");
+    expect(secondaryLabels).not.toContain("地政查詢");
     expect(secondaryLabels).not.toContain("現場必問");
   });
 

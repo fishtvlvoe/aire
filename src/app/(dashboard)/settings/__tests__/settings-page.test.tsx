@@ -19,11 +19,7 @@ describe("SettingsPage demo alignment", () => {
     render(<SettingsPage />);
 
     expect(screen.getByRole("heading", { name: "系統設定" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "授權與升級" })).toHaveAttribute("href", "/settings?section=entitlements");
-    expect(screen.getByRole("link", { name: "地政資料規則" })).toHaveAttribute("href", "/settings?section=registry-rules");
-    expect(screen.getByRole("link", { name: "費用與帳務" })).toHaveAttribute("href", "/settings?section=billing");
-    expect(screen.getByRole("link", { name: "PDF 圖資欄位" })).toHaveAttribute("href", "/settings?section=pdf-assets");
-    expect(screen.getByRole("link", { name: "地政授權" })).toHaveAttribute("href", "/settings?section=registry-auth");
+    expect(screen.queryByRole("heading", { name: "設定分類" })).not.toBeInTheDocument();
 
     expect(screen.getByLabelText("Google 地圖未升級")).toBeDisabled();
     expect(screen.getByLabelText("地籍圖整理已開啟")).not.toBeDisabled();
@@ -32,6 +28,18 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.queryByText("本月使用量")).not.toBeInTheDocument();
     expect(screen.queryByText("地政 API 設定")).not.toBeInTheDocument();
     expect(screen.getByText("實價登錄 MCP Hub")).toBeInTheDocument();
+  });
+
+  it("renders feature toggles once without customer-facing debug controls", () => {
+    mockSection = "features";
+    render(<SettingsPage />);
+
+    expect(screen.getByRole("heading", { name: "功能開關" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "設定分類" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "授權與升級" })).toHaveLength(1);
+    expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
+    expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
+    expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
   });
 
   it("marks route-ready settings sections from query params", () => {

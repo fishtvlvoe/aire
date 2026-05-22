@@ -34,13 +34,13 @@ export function DemoAlignedWorkbench({ caseData }: DemoAlignedWorkbenchProps) {
             地政查詢費由客戶的地政帳號負擔
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button className="rounded-md border px-3 py-2 text-sm" type="button">
-            重新查詢
-          </button>
-          <button className="rounded-md border px-3 py-2 text-sm" type="button">
-            產生補件清單
-          </button>
+        <div className="flex flex-wrap gap-2" aria-label="工作台狀態">
+          <span className="rounded-md border bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
+            地政重查待後端串接
+          </span>
+          <span className="rounded-md border bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
+            補件產生待後端串接
+          </span>
           <button className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white" type="button">
             預覽 PDF
           </button>

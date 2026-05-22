@@ -31,6 +31,10 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByRole("region", { name: "欄位審核" })).toBeInTheDocument();
     expect(screen.getByText("地址與地政判斷")).toBeInTheDocument();
     expect(screen.getByText("已找到 2 筆土地、1 筆建物")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "重新查詢" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "產生補件清單" })).not.toBeInTheDocument();
+    expect(screen.getByText("地政重查待後端串接")).toBeInTheDocument();
+    expect(screen.getByText("補件產生待後端串接")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "現場必問" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("tab", { name: "費用" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "PDF 檢查" })).toBeInTheDocument();

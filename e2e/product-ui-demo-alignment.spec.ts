@@ -51,8 +51,8 @@ for (const viewport of viewports) {
 
     await page.goto("/settings");
     const settingsMain = page.getByRole("main");
-    await expect(settingsMain.getByRole("link", { name: "授權與升級" })).toBeVisible();
-    await expect(settingsMain.getByRole("link", { name: "費用與帳務" })).toBeVisible();
+    await expect(settingsMain.getByRole("heading", { name: "系統設定" })).toBeVisible();
+    await expect(settingsMain.getByRole("heading", { name: "設定分類" })).toHaveCount(0);
     await expect(page.getByLabel("Google 地圖未升級")).toBeDisabled();
     await expect(page.getByLabel("地籍圖整理已開啟")).toBeEnabled();
     await expectNoHorizontalOverflow(page);
@@ -95,12 +95,15 @@ test("cases overview uses sidebar scope navigation without duplicating page tabs
 
   const sidebar = page.getByRole("navigation", { name: "主要選單" });
   await expect(page.getByRole("main").getByRole("heading", { name: "案件總覽" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "新增案件" })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "新增案件" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "新增案件" })).toBeVisible();
   await expect(page.getByRole("button", { name: "開啟宜蘭五結農舍工作台" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "案件分類" })).toHaveCount(0);
   await expect(page.getByRole("table")).toHaveCount(0);
 
   await expect(sidebar.getByRole("link", { name: "說明書工作台" })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "新增案件" })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "地政查詢" })).toHaveCount(0);
   await expect(sidebar.getByRole("link", { name: "費用紀錄" })).toHaveCount(0);
   await sidebar.getByRole("button", { name: "展開地政資料選單" }).click();
   await expect(sidebar.getByRole("link", { name: "費用紀錄" })).toBeVisible();

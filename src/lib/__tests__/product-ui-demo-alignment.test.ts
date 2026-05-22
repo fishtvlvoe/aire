@@ -43,8 +43,13 @@ describe("product-ui-demo-alignment contract", () => {
     ]);
     expect(getDemoSidebarFolders()[0].items.map((item) => item.label)).toEqual([
       "案件總覽",
+      "新增案件",
       "說明書工作台",
       "補件清單",
+    ]);
+    expect(getDemoSidebarFolders()[1].items.map((item) => item.label)).toEqual([
+      "資料來源",
+      "費用紀錄",
     ]);
     expect(getSettingsCategories().map((category) => category.label)).toEqual([
       "授權與升級",
@@ -71,6 +76,14 @@ describe("product-ui-demo-alignment contract", () => {
     expect(multipleCandidates.status).toBe("manual_required");
     expect(multipleCandidates.manualSelectionRequired).toBe(true);
     expect(multipleCandidates.summary).toContain("多筆候選");
+
+    const normalBuilding = getAddressFirstClassification("台南市永康區勝利街58巷4號1樓");
+    expect(normalBuilding.displayType).toBe("建物");
+    expect(normalBuilding.displayType).not.toBe("農地");
+    expect(normalBuilding.displayType).not.toBe("農舍");
+
+    const land = getAddressFirstClassification("台南市永康區勝利段 123 地號");
+    expect(land.displayType).toBe("土地");
   });
 
   it("classifies case creation from backend address lookup results", () => {

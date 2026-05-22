@@ -64,6 +64,11 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByRole("heading", { name: "系統設定" })).toBeInTheDocument();
   });
 
+  it("設定頁不重複顯示頁內分類選單", async () => {
+    render(<SettingsPage />);
+    expect(screen.queryByRole("heading", { name: "設定分類" })).not.toBeInTheDocument();
+  });
+
   it("渲染授權管理區塊", async () => {
     mockSection = "registry-auth";
     render(<SettingsPage />);
@@ -80,6 +85,17 @@ describe("Settings page（重組後）", () => {
     mockSection = "entitlements";
     render(<SettingsPage />);
     expect(await screen.findByText("實價登錄 MCP Hub")).toBeInTheDocument();
+  });
+
+  it("功能開關頁只顯示一組功能 toggle，不混入授權卡與 Super Admin", async () => {
+    mockSection = "features";
+    render(<SettingsPage />);
+
+    expect(screen.getByRole("heading", { name: "功能開關" })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "授權與升級" })).toHaveLength(1);
+    expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
+    expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
+    expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
   });
 
   it("資料來源頁不混入授權、升級與 Super Admin", async () => {

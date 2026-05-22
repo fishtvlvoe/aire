@@ -1,26 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   getEntitlementFeatures,
   getPdfAssetSlots,
-  getSettingsCategories,
 } from "@/lib/product-ui-demo-alignment";
 import { SettingsTabs } from "@/components/SettingsTabs";
 import { LandApiSection } from "@/components/settings/LandApiSection";
 import { LicenseSection } from "@/components/settings/LicenseSection";
 import { PremiumUnlockSection } from "@/components/settings/PremiumUnlockSection";
-import { DevSuperAdmin } from "@/components/settings/DevSuperAdmin";
 import { BalanceMonitor } from "@/components/BalanceMonitor";
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
-  const categories = getSettingsCategories();
   const features = getEntitlementFeatures();
   const slots = getPdfAssetSlots();
   const selectedSection = searchParams?.get("section") ?? "entitlements";
-  const selectedCategory = categories.find((category) => category.id === selectedSection);
   const isLandDataPage = selectedSection === "registry-rules" || selectedSection === "billing";
   const pageTitle = selectedSection === "registry-rules"
     ? "資料來源"
@@ -55,50 +50,34 @@ export default function SettingsPage() {
       {isLandDataPage ? (
         <LandDataSection section={selectedSection} slots={slots} />
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="rounded-lg border bg-white p-4 shadow-sm">
-            <h2 className="text-base font-semibold">設定分類</h2>
-            <p className="text-sm text-muted-foreground">只顯示目前設定項目</p>
-            <div className="mt-4 grid gap-2">
-              {categories.map((category) => (
-                <Link
-                  key={category.id}
-                  className={`rounded-md px-3 py-2 text-left text-sm ${
-                    category.id === selectedSection ? "bg-slate-950 text-white" : "border"
-                  }`}
-                  href={`/settings?section=${category.id}`}
-                >
-                  {category.label}
-                </Link>
-              ))}
+        <section className="rounded-lg border bg-white p-4 shadow-sm" aria-label={pageTitle}>
+          {selectedSection === "registry-auth" ? <LandApiSection /> : null}
+          {selectedSection === "features" ? <FeatureTogglePanel features={features} /> : null}
+          {selectedSection === "pdf-assets" ? <PdfAssetPanel slots={slots} /> : null}
+          {selectedSection === "entitlements" || !isKnownSettingsSection(selectedSection) ? (
+            <div className="space-y-5">
+              <FeatureTogglePanel features={features} />
+              <section className="grid gap-4 xl:grid-cols-2" aria-label="授權與升級管理">
+                <LicenseSection />
+                <PremiumUnlockSection />
+              </section>
             </div>
-          </aside>
-
-          <section className="rounded-lg border bg-white p-4 shadow-sm" aria-label={selectedCategory?.label ?? "設定內容"}>
-            {selectedSection === "registry-auth" ? <LandApiSection /> : null}
-            {selectedSection === "features" ? (
-              <div className="space-y-4">
-                <FeatureTogglePanel features={features} />
-                <DevSuperAdmin />
-              </div>
-            ) : null}
-            {selectedSection === "pdf-assets" ? <PdfAssetPanel slots={slots} /> : null}
-            {selectedSection === "billing" ? <BillingPanel /> : null}
-            {selectedSection === "registry-rules" ? <RegistryRulesPanel /> : null}
-            {selectedSection === "entitlements" || !selectedCategory ? (
-              <div className="space-y-5">
-                <FeatureTogglePanel features={features} />
-                <section className="grid gap-4 xl:grid-cols-2" aria-label="授權與升級管理">
-                  <LicenseSection />
-                  <PremiumUnlockSection />
-                </section>
-              </div>
-            ) : null}
-          </section>
-        </div>
+          ) : null}
+        </section>
       )}
     </div>
   );
+}
+
+function isKnownSettingsSection(section: string) {
+  return [
+    "entitlements",
+    "registry-rules",
+    "billing",
+    "pdf-assets",
+    "registry-auth",
+    "features",
+  ].includes(section);
 }
 
 function FeatureTogglePanel({ features }: { features: ReturnType<typeof getEntitlementFeatures> }) {
