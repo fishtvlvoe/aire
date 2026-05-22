@@ -9,6 +9,7 @@ import {
   getDemoFieldReviewRows,
   getUsageLedgerRows,
 } from "@/lib/product-ui-demo-alignment";
+import { isRegistryProvenancePayload } from "@/lib/registry-provenance";
 
 interface DemoAlignedWorkbenchProps {
   caseData: CaseRow;
@@ -82,6 +83,15 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const classification = getAddressFirstClassification(caseData.address);
   const fields = getDemoFieldReviewRows(caseData);
   const usageRows = getUsageLedgerRows();
+  const lookupCost =
+    isRegistryProvenancePayload(caseData.land_registry_data) &&
+    typeof caseData.land_registry_data.totalCost === "number"
+      ? caseData.land_registry_data.totalCost
+      : 27;
+  const lookupCostNote =
+    lookupCost === 0
+      ? "本次只取得候選或待確認資料；查詢失敗與帳務同步不計費。"
+      : "已完成建物所有權資料調閱；查詢失敗與帳務同步不計費。";
   const importedCount = fields.filter((field) => field.statusLabel === "地政已帶入").length + 40;
   const supplementCount = fields.filter((field) => field.statusLabel.includes("人工")).length + 12;
   const activeTabIndex = WORKBENCH_TABS.findIndex((tab) => tab.id === activeTab);
@@ -252,7 +262,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               </div>
               <div className="rounded-md bg-white p-2">
                 <span className="block text-muted-foreground">本次費用</span>
-                <strong>27 元</strong>
+                <strong>{lookupCost.toLocaleString("zh-TW")} 元</strong>
               </div>
             </div>
           </article>
@@ -293,9 +303,9 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4" aria-label="本次調閱費用">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold">本次調閱費用：27 元</h3>
+                    <h3 className="text-sm font-semibold">本次調閱費用：{lookupCost.toLocaleString("zh-TW")} 元</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      已完成建物所有權資料調閱；查詢失敗與帳務同步不計費。
+                      {lookupCostNote}
                     </p>
                   </div>
                   <button className="w-fit rounded-md border bg-white px-3 py-2 text-sm" type="button" onClick={() => setActiveTab("sources")}>

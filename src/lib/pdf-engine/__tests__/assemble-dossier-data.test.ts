@@ -50,15 +50,19 @@ const buildingCaseRow: CaseRow = {
 const mockPullResultLand = {
   results: {
     land_registry: {
+      source: "api",
       data: { area: 250.5, purpose: "田" },
     },
     zoning: {
+      source: "api",
       data: { zoning_type: "農業區", usage_category: "農牧用地" },
     },
     land_value: {
+      source: "api",
       data: { announced_value: 50000, assessed_value: 45000 },
     },
     mortgages: {
+      source: "api",
       data: [
         { creditor: "台灣銀行", amount: 5000000 },
         { creditor: "合作金庫", amount: 2000000 },
@@ -90,6 +94,25 @@ const mockRealPriceRecordsWithDate = [
     date: "2024-02-18",
   },
 ];
+
+function trustedRegistryPayload(entries: Record<string, Record<string, unknown>>) {
+  return {
+    schema: "aire.registry-provenance.v1",
+    generatedAt: "2026-05-22T00:00:00.000Z",
+    entries: Object.fromEntries(
+      Object.entries(entries).map(([apiId, data]) => [
+        apiId,
+        {
+          apiId,
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data,
+        },
+      ]),
+    ),
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Setup
@@ -292,6 +315,36 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.propertySheet?.owner).toBe("余啟彰");
   });
 
+  it("舊版未標記來源的地政 payload 不進正式 PDF 欄位", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        building_registry: {
+          building_area: 999,
+          building_purpose: "不可直接採用",
+        },
+        building_ownership: {
+          owner_name: "候選屋主",
+          numerator: "1",
+          denominator: "1",
+        },
+      },
+    });
+
+    expect(result.buildingArea).toBeUndefined();
+    expect(result.buildingPurpose).toBeUndefined();
+    expect(result.propertySheet?.owner).toBe("王建國");
+    expect(result.propertySheet?.ownershipScope).toBe("");
+  });
+
   it("使用本機保存的 API payload 帶入建物面積、用途、完成日、屋齡與權利範圍", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};
@@ -303,7 +356,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
 
     const result = await assembleDossierData({
       ...buildingCaseRow,
-      land_registry_data: {
+      land_registry_data: trustedRegistryPayload({
         land_registry: {
           area: 1223,
           ZONING: "住宅區",
@@ -329,7 +382,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
           numerator: "1",
           denominator: "1",
         },
-      },
+      }),
     });
 
     expect(result.propertySheet?.registeredArea).toBe(25.45);
@@ -356,17 +409,94 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
 
     const result = await assembleDossierData({
       ...buildingCaseRow,
-      land_registry_data: {
+      land_registry_data: trustedRegistryPayload({
         building_registry: { area: 84.13 },
         building_ownership: {
           owner_name: "陳小美",
           numerator: 1,
           denominator: 1,
         },
-      },
+      }),
     });
 
     expect(result.propertySheet?.ownershipScope).toBe("1/1");
+  });
+
+  it("candidate 與 raw probe provenance 不進正式 PDF 欄位", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "public_candidate",
+            status: "candidate",
+            trustedForPdf: false,
+            data: { area: 84.13, building_purpose: "住家用" },
+          },
+          building_ownership: {
+            apiId: "building_ownership",
+            source: "raw_probe",
+            status: "probe",
+            trustedForPdf: false,
+            data: { owner_name: "不可信來源" },
+          },
+        },
+      },
+    });
+
+    expect(result.buildingArea).toBeUndefined();
+    expect(result.buildingPurpose).toBeUndefined();
+    expect(result.propertySheet?.owner).toBe("王建國");
+  });
+
+  it("物調表 PDF assembly 保留本次費用與查詢失敗原因", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        totalCost: 0,
+        entries: {
+          building_ownership: {
+            apiId: "building_ownership",
+            source: "moi_api",
+            status: "failed",
+            trustedForPdf: false,
+            error: "授權不足，請補授權或改由屋主提供謄本",
+          },
+        },
+      },
+    });
+
+    expect(result.preSurvey).toEqual({
+      lookupCost: 0,
+      failureReasons: [
+        {
+          apiId: "building_ownership",
+          status: "failed",
+          reason: "授權不足，請補授權或改由屋主提供謄本",
+        },
+      ],
+    });
   });
 });
 
@@ -418,7 +548,7 @@ describe("assembleDossierData — zoningType 映射", () => {
       ...mockPullResultLand,
       results: {
         ...mockPullResultLand.results,
-        zoning: { data: { zoning_type: "住宅區", usage_category: "乙種住宅用地" } },
+        zoning: { source: "api", data: { zoning_type: "住宅區", usage_category: "乙種住宅用地" } },
       },
     };
 
@@ -440,7 +570,7 @@ describe("assembleDossierData — zoningType 映射", () => {
       ...mockPullResultLand,
       results: {
         ...mockPullResultLand.results,
-        zoning: { data: { zoning_type: "未知特殊分區X", usage_category: "" } },
+        zoning: { source: "api", data: { zoning_type: "未知特殊分區X", usage_category: "" } },
       },
     };
 

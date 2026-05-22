@@ -89,6 +89,55 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByRole("button", { name: "建立案件" })).toBeInTheDocument();
   });
 
+  it("persists address lookup provenance when creating the case", async () => {
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市東區裕農路288巷17號8樓之1" },
+    });
+    fireEvent.change(screen.getByLabelText("案件名稱（選填）"), {
+      target: { value: "裕農路物調驗收" },
+    });
+    fireEvent.change(screen.getByLabelText("案件編號（選填）"), {
+      target: { value: "AIRE-YUNONG-20260523" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "判斷地政資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "建立案件" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
+
+    await waitFor(() => {
+      expect(mockCreateCase).toHaveBeenCalled();
+    });
+    expect(mockCreateCase).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: "台南市東區裕農路288巷17號8樓之1",
+        case_name: "裕農路物調驗收",
+        case_no: "AIRE-YUNONG-20260523",
+        land_lot_no: "0001",
+        land_registry_data: expect.objectContaining({
+          schema: "aire.registry-provenance.v1",
+          parcelId: "0001-0001",
+          totalCost: 0,
+          entries: expect.objectContaining({
+            building_registry: expect.objectContaining({
+              source: "public_candidate",
+              status: "candidate",
+              trustedForPdf: false,
+            }),
+            building_ownership: expect.objectContaining({
+              status: "failed",
+              trustedForPdf: false,
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it("shows manual fallback when registry returns multiple candidates", async () => {
     mockAddressLookup.mockResolvedValue([
       {

@@ -52,6 +52,29 @@ export function PropertyDataSheetPage({
       <Row label="所有權人" value={val(ps?.owner)} />
       <Row label="取得日期" value={val(ps?.acquisitionDate)} />
 
+      {data.preSurvey ? (
+        <>
+          <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 14, marginBottom: 8, color: "#111827" }}>
+            物調表資料狀態
+          </Text>
+          <Row
+            label="本次地政費用"
+            value={data.preSurvey.lookupCost === undefined ? "待確認" : `${data.preSurvey.lookupCost.toLocaleString("zh-TW")} 元`}
+          />
+          {data.preSurvey.failureReasons.length > 0 ? (
+            data.preSurvey.failureReasons.map((failure) => (
+              <Row
+                key={failure.apiId}
+                label="查詢未成功"
+                value={failure.reason}
+              />
+            ))
+          ) : (
+            <Row label="查詢狀態" value="無查詢失敗項目" />
+          )}
+        </>
+      ) : null}
+
       {propertyType === "building" && (
         <>
           <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 14, marginBottom: 8, color: "#111827" }}>建物面積（坪）</Text>

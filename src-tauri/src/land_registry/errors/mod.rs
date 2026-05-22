@@ -24,6 +24,9 @@ pub enum LandRegistryError {
     #[error("consent required")]
     ConsentRequired,
 
+    #[error("nlsc permission denied: {message}")]
+    NlscPermissionDenied { message: String },
+
     #[error("disk full: available_bytes={available_bytes} required_bytes={required_bytes}")]
     DiskFull {
         available_bytes: u64,
@@ -101,6 +104,9 @@ impl LandRegistryError {
             },
             LandRegistryError::ApiKeyNotConfigured,
             LandRegistryError::ConsentRequired,
+            LandRegistryError::NlscPermissionDenied {
+                message: "PERMISSION DENIED".to_string(),
+            },
             LandRegistryError::DiskFull {
                 available_bytes: 1,
                 required_bytes: 2,

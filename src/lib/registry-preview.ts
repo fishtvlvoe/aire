@@ -1,3 +1,5 @@
+import { normalizeRegistryPayloadForPreview } from "@/lib/registry-provenance";
+
 export interface RegistryPreviewField {
   label: string;
   value: string;
@@ -116,20 +118,21 @@ export function buildRegistryPreviewSections(
   payload: RegistryRecord | null | undefined,
   now = new Date(),
 ): RegistryPreviewSection[] {
-  if (!payload) return [];
+  const normalizedPayload = normalizeRegistryPayloadForPreview(payload);
+  if (!normalizedPayload) return [];
 
-  const land = unwrapApiData(payload, "land_registry");
+  const land = unwrapApiData(normalizedPayload, "land_registry");
   const landOwnership = {
-    ...unwrapApiData(payload, "land_ownership"),
-    ...unwrapApiData(payload, "co_owners"),
+    ...unwrapApiData(normalizedPayload, "land_ownership"),
+    ...unwrapApiData(normalizedPayload, "co_owners"),
   };
   const landRights = {
-    ...unwrapApiData(payload, "land_other_rights"),
-    ...unwrapApiData(payload, "mortgages"),
+    ...unwrapApiData(normalizedPayload, "land_other_rights"),
+    ...unwrapApiData(normalizedPayload, "mortgages"),
   };
-  const building = unwrapApiData(payload, "building_registry");
-  const buildingOwnership = unwrapApiData(payload, "building_ownership");
-  const buildingRights = unwrapApiData(payload, "building_other_rights");
+  const building = unwrapApiData(normalizedPayload, "building_registry");
+  const buildingOwnership = unwrapApiData(normalizedPayload, "building_ownership");
+  const buildingRights = unwrapApiData(normalizedPayload, "building_other_rights");
 
   const completion = formatValue(
     firstValue(building, ["COMPLETEDATE", "construction_date", "completion_date"]),

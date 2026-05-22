@@ -134,18 +134,34 @@ describe("PullParcelDataButton", () => {
     await userEvent.click(screen.getByRole("button", { name: "確認儲存" }));
 
     await waitFor(() => {
+      const savedPayload = expect.objectContaining({
+        schema: "aire.registry-provenance.v1",
+        totalCost: 90,
+        entries: expect.objectContaining({
+          land_registry: expect.objectContaining({
+            source: "moi_api",
+            status: "success",
+            trustedForPdf: true,
+            data: registryResult.results.land_registry.data,
+          }),
+          building_registry: expect.objectContaining({
+            source: "moi_api",
+            status: "success",
+            trustedForPdf: true,
+            data: registryResult.results.building_registry.data,
+          }),
+          building_ownership: expect.objectContaining({
+            source: "moi_api",
+            status: "success",
+            trustedForPdf: true,
+            data: registryResult.results.building_ownership.data,
+          }),
+        }),
+      });
       expect(mocks.updateCase).toHaveBeenCalledWith("case-001", {
-        land_registry_data: {
-          land_registry: registryResult.results.land_registry.data,
-          building_registry: registryResult.results.building_registry.data,
-          building_ownership: registryResult.results.building_ownership.data,
-        },
+        land_registry_data: savedPayload,
       });
-      expect(onSaved).toHaveBeenCalledWith({
-        land_registry: registryResult.results.land_registry.data,
-        building_registry: registryResult.results.building_registry.data,
-        building_ownership: registryResult.results.building_ownership.data,
-      });
+      expect(onSaved).toHaveBeenCalledWith(savedPayload);
     });
   });
 

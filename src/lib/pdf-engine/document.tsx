@@ -179,6 +179,14 @@ export interface CaseDossierData {
   aerialPhoto?: Uint8Array | null;
   locationMapImage?: Uint8Array | null;
   floorPlanPhoto?: Uint8Array | null;
+  preSurvey?: {
+    lookupCost?: number;
+    failureReasons: Array<{
+      apiId: string;
+      status: "failed" | "unauthorized";
+      reason: string;
+    }>;
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

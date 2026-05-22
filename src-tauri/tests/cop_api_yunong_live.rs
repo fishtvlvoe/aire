@@ -1,19 +1,20 @@
 use aire_lib::land_registry::{
     apis::{
-        address_to_parcel::AddressToParcelApi,
-        post_json_with_key, require_api_key, StaticApiKeyProvider,
+        StaticApiKeyProvider, address_to_parcel::AddressToParcelApi, post_json_with_key,
+        require_api_key,
     },
     billing_log::BillingLog,
     cache::LandRegistryCache,
     pull::land_registry_pull_data_core,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
 const ADDRESS: &str = "台南市東區裕農路288巷17號8樓之1";
 const OUTPUT_PATH: &str = "/tmp/aire-yunong-live-api.json";
 const DOWNLOAD_OUTPUT_PATH: &str = "/Users/fishtv/Downloads/裕農路-live-api.json";
+const KNOWN_OWNER_NAME: &str = "田耀中";
 const OFFICE_UNIT: &str = "DC";
 const SECTION: &str = "1556";
 const LAND_NO: &str = "00700000";
@@ -42,7 +43,8 @@ fn parcel_parts(parcel_id: &str) -> (&str, &str, &str) {
 }
 
 fn str_field<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a str> {
-    keys.iter().find_map(|key| value.get(*key).and_then(Value::as_str))
+    keys.iter()
+        .find_map(|key| value.get(*key).and_then(Value::as_str))
 }
 
 fn land_ids_from_building_registry(result: &Value) -> Vec<String> {
@@ -78,14 +80,8 @@ async fn raw_post(
     payload: Value,
     input_source: &str,
 ) -> Value {
-    let result = post_json_with_key(
-        http_client,
-        base_url,
-        endpoint_path,
-        credentials,
-        &payload,
-    )
-    .await;
+    let result =
+        post_json_with_key(http_client, base_url, endpoint_path, credentials, &payload).await;
 
     match result {
         Ok((http_status, response)) => json!({
@@ -187,11 +183,7 @@ async fn yunong_address_all_supported_moi_api_live_dump() {
         "co_owners".to_string(),
         "mortgages".to_string(),
     ];
-    let all_api_ids = [
-        building_api_ids.clone(),
-        land_api_ids.clone(),
-    ]
-    .concat();
+    let all_api_ids = [building_api_ids.clone(), land_api_ids.clone()].concat();
 
     let billing_log = BillingLog::new_in_memory();
     let mut parcel_runs = vec![];
@@ -223,7 +215,10 @@ async fn yunong_address_all_supported_moi_api_live_dump() {
     }
 
     for parcel_id in &public_building_ids {
-        if building_parcels.iter().any(|parcel| &parcel.parcel_id == parcel_id) {
+        if building_parcels
+            .iter()
+            .any(|parcel| &parcel.parcel_id == parcel_id)
+        {
             continue;
         }
 
@@ -329,6 +324,39 @@ async fn yunong_address_all_supported_moi_api_live_dump() {
             "/LandNo/1.0/QueryByXY",
             raw_xy_payload,
             "twzipcode coordinate",
+        )
+        .await,
+        raw_post(
+            &http_client,
+            &base_url,
+            &credentials,
+            "MOI_API_009",
+            "所有權人比對服務-已知姓名比對",
+            "/OwnerCompare/1.0/CompareName",
+            json!([{"UNIT": land_unit, "SEC": land_sec, "NO": land_no, "NAME": KNOWN_OWNER_NAME}]),
+            "known owner name provided by case source",
+        )
+        .await,
+        raw_post(
+            &http_client,
+            &base_url,
+            &credentials,
+            "MOI_API_009",
+            "所有權人比對服務-已知姓名比對",
+            "/LandOwnerCompare/1.0/CompareName",
+            json!([{"UNIT": land_unit, "SEC": land_sec, "NO": land_no, "NAME": KNOWN_OWNER_NAME}]),
+            "known owner name provided by case source",
+        )
+        .await,
+        raw_post(
+            &http_client,
+            &base_url,
+            &credentials,
+            "MOI_API_009",
+            "所有權人比對服務-已知姓名比對",
+            "/LandOwnership/1.0/CompareName",
+            json!([{"UNIT": land_unit, "SEC": land_sec, "NO": land_no, "NAME": KNOWN_OWNER_NAME}]),
+            "known owner name provided by case source",
         )
         .await,
         raw_post(
@@ -467,18 +495,11 @@ async fn yunong_address_all_supported_moi_api_live_dump() {
         );
     }
 
-    let skipped_moi_endpoints = vec![
-        json!({
-            "service_id": "MOI_API_009",
-            "service_name": "所有權人比對服務",
-            "reason": "本案沒有屋主姓名或身分證字號；系統不應猜測私人資料，只能待屋主或正式文件提供後比對。",
-        }),
-        json!({
-            "service_id": "MOI_API_012",
-            "service_name": "全國土地基本資料庫代碼資料服務",
-            "reason": "此 SR 使用已爬取文件與臺南市開放資料取得代碼；AIRE 尚未有此 API client，未在本次 live runner 產品化。",
-        }),
-    ];
+    let skipped_moi_endpoints = vec![json!({
+        "service_id": "MOI_API_012",
+        "service_name": "全國土地基本資料庫代碼資料服務",
+        "reason": "此 SR 使用已爬取文件與臺南市開放資料取得代碼；AIRE 尚未有此 API client，未在本次 live runner 產品化。",
+    })];
 
     let billing_entries: Vec<Value> = billing_log
         .entries()
@@ -498,12 +519,67 @@ async fn yunong_address_all_supported_moi_api_live_dump() {
         .iter()
         .filter_map(|entry| entry.get("cost").and_then(Value::as_f64))
         .sum();
+    let address_unauthorized_count = raw_address_attempts
+        .iter()
+        .filter(|attempt| {
+            attempt
+                .get("response")
+                .and_then(|response| response.get("CODE"))
+                .and_then(Value::as_str)
+                == Some("COP317")
+        })
+        .count();
+    let raw_probe_success_count = raw_moi_endpoint_attempts
+        .iter()
+        .filter(|attempt| attempt.get("success").and_then(Value::as_bool) == Some(true))
+        .count();
+    let structured_api_success_count = parcel_runs
+        .iter()
+        .flat_map(|run| {
+            run.get("results")
+                .and_then(Value::as_object)
+                .into_iter()
+                .flat_map(|results| results.values())
+        })
+        .filter(|result| result.get("success").and_then(Value::as_bool) == Some(true))
+        .count();
+    let trusted_for_pdf_api_success_count = parcel_runs
+        .iter()
+        .filter(|run| {
+            run.get("parcel_kind")
+                .and_then(Value::as_str)
+                .map(|kind| !kind.contains("fallback"))
+                .unwrap_or(false)
+        })
+        .flat_map(|run| {
+            run.get("results")
+                .and_then(Value::as_object)
+                .into_iter()
+                .flat_map(|results| results.values())
+        })
+        .filter(|result| result.get("success").and_then(Value::as_bool) == Some(true))
+        .count();
+    let untrusted_candidate_count = public_building_ids.len() + 1;
     let summary = json!({
         "address": ADDRESS,
         "base_url": base_url,
+        "provenance_summary": {
+            "official_address_lookup_success_count": building_parcels.len(),
+            "trusted_for_pdf_api_success_count": trusted_for_pdf_api_success_count,
+            "structured_api_success_count": structured_api_success_count,
+            "untrusted_candidate_count": untrusted_candidate_count,
+            "unauthorized_count": address_unauthorized_count,
+            "raw_probe_success_count": raw_probe_success_count,
+            "notes": [
+                "候選地號與建號只用來驗證 downstream API，不可視為地址 API 正式判斷結果。",
+                "trusted_for_pdf_api_success_count 只計算由正式地址查詢或正式鏈路發現的資料；本案目前因 MOI_API_037 未授權而為 0。",
+                "已知屋主姓名只用於 MOI_API_009 比對，不可用來反查私人個資。"
+            ],
+        },
         "external_reference_inputs": {
             "twzipcode_url": "https://twzipcode.com/zipcode-8063287-%E5%8F%B0%E5%8D%97%E5%B8%82%E6%9D%B1%E5%8D%80%E5%AF%8C%E5%BC%B7%E9%87%8C%E8%A3%95%E8%BE%B2%E8%B7%AF288%E5%B7%B717%E8%99%9F.html",
             "address_from_reference": "台南市東區富強里裕農路288巷17號",
+            "known_owner_name_for_comparison_only": KNOWN_OWNER_NAME,
             "coordinate": {"longitude": LNG, "latitude": LAT, "srs": "EPSG:4326"},
             "land_office": "東南地政事務所",
             "land_section": "富強段",
@@ -529,6 +605,10 @@ async fn yunong_address_all_supported_moi_api_live_dump() {
     });
 
     std::fs::write(OUTPUT_PATH, serde_json::to_string_pretty(&summary).unwrap()).unwrap();
-    std::fs::write(DOWNLOAD_OUTPUT_PATH, serde_json::to_string_pretty(&summary).unwrap()).unwrap();
+    std::fs::write(
+        DOWNLOAD_OUTPUT_PATH,
+        serde_json::to_string_pretty(&summary).unwrap(),
+    )
+    .unwrap();
     println!("wrote {OUTPUT_PATH}");
 }

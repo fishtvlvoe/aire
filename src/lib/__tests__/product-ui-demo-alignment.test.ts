@@ -7,6 +7,7 @@ import {
   getAddressFirstClassification,
   classifyAddressLookupResult,
   getCustomerServiceLabel,
+  getDemoFieldReviewRows,
   getDemoSidebarFolders,
   getEntitlementFeatures,
   getSettingsCategories,
@@ -163,5 +164,114 @@ describe("product-ui-demo-alignment contract", () => {
     }
 
     expect(rows.some((row) => row.admin.serviceCode === "MOI_API_005")).toBe(true);
+  });
+
+  it("maps provenance candidate and failed lookup states into customer-facing field review rows", () => {
+    const rows = getDemoFieldReviewRows({
+      id: "yunong-case",
+      case_no: "AIRE-YUNONG",
+      case_name: "裕農路物調",
+      property_type: "residential",
+      land_lot_no: "裕農段候選地號",
+      land_lots: ["裕農段候選地號"],
+      building_lot_no: "00165000",
+      address: "台南市東區裕農路288巷17號8樓之1",
+      owner_name: null,
+      status: "draft",
+      created_at: 1763200000,
+      updated_at: 1763200000,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "public_candidate",
+            status: "candidate",
+            trustedForPdf: false,
+            data: {
+              building_number: "00165000",
+              construction_date: "083/10/18",
+            },
+          },
+          building_ownership: {
+            apiId: "building_ownership",
+            source: "moi_api",
+            status: "failed",
+            trustedForPdf: false,
+            error: "授權不足，請補授權或改由屋主提供謄本",
+          },
+        },
+      },
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fieldName: "登記日期",
+          value: "083/10/18",
+          statusLabel: "待確認",
+          serviceName: "建物標示資料",
+        }),
+        expect.objectContaining({
+          fieldName: "建物權利範圍",
+          value: "授權不足，請補授權或改由屋主提供謄本",
+          statusLabel: "查詢未成功",
+          serviceName: "建物所有權資料",
+        }),
+      ]),
+    );
+    expect(isFrontstageTextClean(rows.map((row) => `${row.serviceName}${row.statusLabel}${row.value}`).join(" "))).toBe(true);
+  });
+
+  it("does not keep demo registry values when provenance only has address candidates", () => {
+    const rows = getDemoFieldReviewRows({
+      id: "yunong-case",
+      case_no: "AIRE-YUNONG",
+      case_name: "裕農路物調",
+      property_type: "residential",
+      land_lot_no: "0001",
+      land_lots: ["0001"],
+      address: "台南市東區裕農路288巷17號8樓之1",
+      owner_name: null,
+      status: "draft",
+      created_at: 1763200000,
+      updated_at: 1763200000,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "public_candidate",
+            status: "candidate",
+            trustedForPdf: false,
+            data: {
+              building_number: "0001",
+              lot_number: "0001",
+            },
+          },
+          building_ownership: {
+            apiId: "building_ownership",
+            source: "moi_api",
+            status: "failed",
+            trustedForPdf: false,
+            error: "尚未取得正式建物所有權資料，請補謄本或屋主授權後確認權利範圍",
+          },
+        },
+      },
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fieldName: "登記日期",
+          value: "待確認",
+          statusLabel: "待確認",
+          serviceName: "建物標示資料",
+        }),
+      ]),
+    );
+    expect(rows.map((row) => row.value)).not.toContain("113/08/12");
   });
 });

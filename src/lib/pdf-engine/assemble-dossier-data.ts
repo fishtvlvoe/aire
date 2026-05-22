@@ -4,6 +4,11 @@ import type { CaseDossierData } from "./document";
 import { calculateTaxFees } from "@/lib/tax-calculator";
 import { queryNearbyAmenities, summarizeNearbyAmenities } from "@/lib/overpass-client";
 import { calculateBuildingAge } from "@/lib/registry-preview";
+import {
+  extractRegistryFailureReasons,
+  extractTrustedRegistryData,
+  isRegistryProvenancePayload,
+} from "@/lib/registry-provenance";
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
@@ -236,6 +241,12 @@ async function readCaseAssetFloorPlan(caseId: string): Promise<Uint8Array | null
 export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossierData> {
   let transactionHistory: CaseDossierData["transactionHistory"] = [];
   const isLand = caseRow.property_type === "land";
+  const persisted = caseRow.land_registry_data;
+  const registryFailureReasons = extractRegistryFailureReasons(persisted);
+  const lookupCost =
+    isRegistryProvenancePayload(persisted) && typeof persisted.totalCost === "number"
+      ? persisted.totalCost
+      : undefined;
 
   let brandText: Record<string, string> = {};
   try {
@@ -250,6 +261,13 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     ownerName: caseRow.owner_name ?? "",
     companyName: brandText.company_name ?? "",
     generatedAt: new Date().toLocaleDateString("zh-TW"),
+    preSurvey:
+      lookupCost !== undefined || registryFailureReasons.length > 0
+        ? {
+            lookupCost,
+            failureReasons: registryFailureReasons,
+          }
+        : undefined,
   };
 
   // ── 地政 API ──────────────────────────────────────────────────────────────
@@ -259,16 +277,15 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     : ["building_registry", "building_ownership", "mortgages"];
 
   type PullResult = {
-    results: Record<string, { data: unknown }>;
+    results: Record<string, { data: unknown; source?: string }>;
     total_cost: number;
   };
 
-  const persisted = caseRow.land_registry_data;
   let apiData: Record<string, { data: unknown }> = {};
   if (persisted && typeof persisted === "object" && !Array.isArray(persisted)) {
-    // 兼容兩種格式：{ apiId: { data } } 與 { apiId: rawData }
+    const trustedPersisted = extractTrustedRegistryData(persisted);
     apiData = Object.fromEntries(
-      Object.entries(persisted).map(([apiId, value]) => {
+      Object.entries(trustedPersisted).map(([apiId, value]) => {
         const wrapped =
           value && typeof value === "object" && "data" in (value as Record<string, unknown>)
             ? (value as { data: unknown })
@@ -289,6 +306,13 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     apiData = pullResult?.results ?? {};
     if (isMockRegistryPullData(apiData)) {
       apiData = {};
+    } else {
+      apiData = Object.fromEntries(
+        Object.entries(apiData).filter(([, value]) => {
+          const source = (value as { source?: unknown }).source;
+          return source === "api" || source === "cache";
+        }),
+      );
     }
   }
 

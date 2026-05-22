@@ -12,6 +12,7 @@ pub mod co_owners;
 pub mod land_registry;
 pub mod land_value;
 pub mod mortgages;
+pub mod nlsc_cadastral;
 pub mod zoning;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

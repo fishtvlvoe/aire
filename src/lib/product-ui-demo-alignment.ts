@@ -1,5 +1,10 @@
 import type { CaseRow } from "@/lib/cases-api";
 import { getPrimaryNavigation, getSecondaryNavigation } from "@/lib/product-navigation-ia";
+import {
+  extractPreSurveyRegistryData,
+  extractRegistryFailureReasons,
+  isRegistryProvenancePayload,
+} from "@/lib/registry-provenance";
 
 export const FRONTSTAGE_FORBIDDEN_PATTERNS = [
   /MOI_API_/,
@@ -412,6 +417,10 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
 
   const ownership = getRegistryData(registry, "building_ownership");
   const building = getRegistryData(registry, "building_registry");
+  const failures = isRegistryProvenancePayload(registry)
+    ? extractRegistryFailureReasons(registry)
+    : [];
+  const hasProvenance = isRegistryProvenancePayload(registry);
 
   const numerator = ownership?.numerator;
   const denominator = ownership?.denominator;
@@ -426,7 +435,24 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
   if (typeof constructionDate === "string" && constructionDate.trim()) {
     updateFieldRow(rows, "登記日期", {
       value: constructionDate,
-      statusLabel: "地政已帶入",
+      serviceName: hasProvenance ? "建物標示資料" : "建物所有權資料",
+      statusLabel: hasProvenance ? "待確認" : "地政已帶入",
+    });
+  } else if (hasProvenance && building) {
+    updateFieldRow(rows, "登記日期", {
+      value: "待確認",
+      serviceName: "建物標示資料",
+      statusLabel: "待確認",
+    });
+  }
+
+  const ownershipFailure = failures.find((failure) => failure.apiId === "building_ownership");
+  if (ownershipFailure) {
+    updateFieldRow(rows, "建物權利範圍", {
+      value: ownershipFailure.reason,
+      serviceName: "建物所有權資料",
+      statusLabel: "查詢未成功",
+      amountLabel: "0 元",
     });
   }
 
@@ -457,6 +483,13 @@ export function isFrontstageTextClean(text: string): boolean {
 }
 
 function getRegistryData(registry: Record<string, unknown>, key: string): Record<string, unknown> | null {
+  if (isRegistryProvenancePayload(registry)) {
+    const preSurvey = extractPreSurveyRegistryData(registry);
+    const section = preSurvey[key];
+    return section && typeof section === "object" && !Array.isArray(section)
+      ? (section as Record<string, unknown>)
+      : null;
+  }
   const section = registry[key];
   if (!section || typeof section !== "object") return null;
   const data = (section as Record<string, unknown>).data;

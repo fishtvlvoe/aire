@@ -11,7 +11,8 @@ import {
   getAddressFirstClassification,
   type AddressFirstClassification,
 } from "@/lib/product-ui-demo-alignment";
-import { addressLookup } from "@/lib/land-registry-api";
+import { addressLookup, type ParcelInfo } from "@/lib/land-registry-api";
+import { createRegistryProvenancePayload } from "@/lib/registry-provenance";
 
 const schema = z.object({
   property_type: z.enum(["residential", "land"]).optional(),
@@ -39,6 +40,7 @@ export default function NewCasePage() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [classification, setClassification] = useState<AddressFirstClassification | null>(null);
+  const [detectedParcels, setDetectedParcels] = useState<ParcelInfo[]>([]);
   const [detectingRegistry, setDetectingRegistry] = useState(false);
   const [registryDetectMessage, setRegistryDetectMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,13 +57,17 @@ export default function NewCasePage() {
     try {
       const parcels = values.address.trim() ? await addressLookup(values.address) : [];
       const result = classifyAddressLookupResult(values.address, parcels);
+      setDetectedParcels(parcels);
       setClassification(result);
       if (!result.manualSelectionRequired) {
         update("property_type", result.propertyType);
+        const primaryLot = parcels[0]?.lot_number?.trim();
+        if (primaryLot) setLandLots([primaryLot]);
       }
       return result;
     } catch (error) {
       const result = getAddressFirstClassification(values.address);
+      setDetectedParcels([]);
       setClassification(result);
       setRegistryDetectMessage(
         error instanceof Error
@@ -108,6 +114,7 @@ export default function NewCasePage() {
         owner_name: parsed.data.owner_name || null,
         case_no: parsed.data.case_no || null,
         case_name: parsed.data.case_name || null,
+        land_registry_data: buildAddressLookupProvenance(detected, detectedParcels),
       });
       router.push(`/cases/${created.id}`);
     } catch (err) {
@@ -137,6 +144,7 @@ export default function NewCasePage() {
               onChange={(e) => {
                 update("address", e.target.value);
                 setClassification(null);
+                setDetectedParcels([]);
                 setSubmitError(null);
               }}
               className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
@@ -264,4 +272,57 @@ export default function NewCasePage() {
       </form>
     </main>
   );
+}
+
+function buildAddressLookupProvenance(
+  classification: AddressFirstClassification,
+  parcels: ParcelInfo[],
+) {
+  const [primaryParcel] = parcels;
+  const results: Parameters<typeof createRegistryProvenancePayload>[0]["results"] = {};
+
+  if (primaryParcel) {
+    results.land_registry = {
+      success: true,
+      source: "public_candidate",
+      data: {
+        address: primaryParcel.address,
+        lot_number: primaryParcel.lot_number,
+        parcel_id: primaryParcel.parcel_id,
+      },
+    };
+
+    if (primaryParcel.building_number?.trim()) {
+      results.building_registry = {
+        success: true,
+        source: "public_candidate",
+        data: {
+          address: primaryParcel.address,
+          lot_number: primaryParcel.lot_number,
+          building_number: primaryParcel.building_number,
+        },
+      };
+      results.building_ownership = {
+        success: false,
+        source: "moi_api",
+        error: "尚未取得正式建物所有權資料，請補謄本或屋主授權後確認權利範圍",
+      };
+    }
+  }
+
+  if (classification.manualSelectionRequired) {
+    results.address_lookup = {
+      success: false,
+      source: "moi_api",
+      error: "地址查詢未取得單一候選，請人工確認地號或建號",
+    };
+  }
+
+  if (Object.keys(results).length === 0) return null;
+
+  return createRegistryProvenancePayload({
+    parcelId: primaryParcel?.parcel_id,
+    totalCost: 0,
+    results,
+  });
 }

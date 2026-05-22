@@ -100,6 +100,33 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(supplementRegion).getByText("已加入補件清單")).toBeInTheDocument();
   });
 
+  it("uses case provenance cost instead of demo billing when available", () => {
+    render(
+      <DemoAlignedWorkbench
+        caseData={{
+          ...caseRow,
+          land_registry_data: {
+            schema: "aire.registry-provenance.v1",
+            generatedAt: "2026-05-22T00:00:00.000Z",
+            totalCost: 0,
+            entries: {
+              building_ownership: {
+                apiId: "building_ownership",
+                source: "moi_api",
+                status: "failed",
+                trustedForPdf: false,
+                error: "尚未取得正式建物所有權資料",
+              },
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("region", { name: "本次調閱費用" })).toHaveTextContent("本次調閱費用：0 元");
+    expect(screen.getByText("本次只取得候選或待確認資料；查詢失敗與帳務同步不計費。")).toBeInTheDocument();
+  });
+
   it("switches workbench tabs instead of showing every panel at once", () => {
     render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
 

@@ -85,4 +85,32 @@ describe("registry-preview", () => {
     expect(calculateBuildingAge("083/10/18", now)).toBe("31 年");
     expect(calculateBuildingAge("2015-06-15", now)).toBe("10 年");
   });
+
+  it("reads trusted provenance envelope and ignores untrusted entries in preview", () => {
+    const sections = buildRegistryPreviewSections({
+      schema: "aire.registry-provenance.v1",
+      generatedAt: "2026-05-22T00:00:00.000Z",
+      entries: {
+        building_registry: {
+          apiId: "building_registry",
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data: { building_number: "建號 778-2", purpose: "住家用" },
+        },
+        raw_probe: {
+          apiId: "raw_probe",
+          source: "raw_probe",
+          status: "probe",
+          trustedForPdf: false,
+          data: { purpose: "不可顯示" },
+        },
+      },
+    });
+
+    const text = JSON.stringify(sections);
+    expect(text).toContain("建號 778-2");
+    expect(text).toContain("住家用");
+    expect(text).not.toContain("不可顯示");
+  });
 });

@@ -17,6 +17,8 @@ export interface ParcelInfo {
   address: string;
   lot_number: string;
   building_number: string;
+  source?: "cop_moi" | "nlsc_cad" | "mock";
+  trusted_for_pdf?: boolean;
 }
 
 export interface ApiResult {
@@ -93,6 +95,9 @@ export function mapErrorToMessage(error: unknown): string {
   if (msg.includes("ApiKeyNotConfigured")) return "請先在設定頁設定地政 API 金鑰";
   if (msg.includes("AuthenticationFailed")) return "API 認證失敗，請確認金鑰設定";
   if (msg.includes("ConsentRequired")) return "請先取得所有權人授權同意";
+  if (msg.includes("NlscPermissionDenied")) {
+    return "國土測繪 CAD 查詢尚未開通，請申請 CAD_009/CAD_011 或改走補件／人工確認";
+  }
   if (msg.includes("InsufficientBalance")) return "餘額不足，請聯繫平台補值";
   return `查詢失敗：${msg}`;
 }

@@ -1,6 +1,6 @@
 use crate::land_registry::apis::{
-    address_cache_parcel_id, normalize_address, post_json_with_key, require_api_key,
-    ApiKeyProvider, FieldMapping, LandRegistryEndpoint,
+    ApiKeyProvider, FieldMapping, LandRegistryEndpoint, address_cache_parcel_id, normalize_address,
+    post_json_with_key, require_api_key,
 };
 use crate::land_registry::cache::LandRegistryCache;
 use crate::land_registry::errors::LandRegistryError;
@@ -16,6 +16,8 @@ pub struct ParcelInfo {
     pub address: String,
     pub lot_number: String,
     pub building_number: String,
+    pub source: String,
+    pub trusted_for_pdf: bool,
 }
 
 pub struct AddressToParcelEndpoint;
@@ -33,9 +35,7 @@ impl LandRegistryEndpoint<Vec<ParcelInfo>> for AddressToParcelEndpoint {
         }
 
         // 取 RESPONSE[0]
-        let response_arr = json
-            .get("RESPONSE")
-            .and_then(|r| r.as_array());
+        let response_arr = json.get("RESPONSE").and_then(|r| r.as_array());
 
         let first_entry = match response_arr.and_then(|arr| arr.first()) {
             Some(e) => e,
@@ -60,6 +60,8 @@ impl LandRegistryEndpoint<Vec<ParcelInfo>> for AddressToParcelEndpoint {
                     address,
                     lot_number: sec.to_string(),
                     building_number: no.to_string(),
+                    source: "cop_moi".to_string(),
+                    trusted_for_pdf: true,
                 }])
             }
         }

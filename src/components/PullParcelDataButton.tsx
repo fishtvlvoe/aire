@@ -12,6 +12,7 @@ import {
   buildRegistryPreviewSections,
   summarizeRegistryPreview,
 } from "@/lib/registry-preview";
+import { createRegistryProvenancePayload } from "@/lib/registry-provenance";
 import { isTauriEnv, safeInvoke } from "@/lib/tauri-bridge";
 
 /**
@@ -130,18 +131,13 @@ export function PullParcelDataButton({
     sourceManualEntries: ManualEntry[],
   ) {
     if (!sourceResults) return null;
-    const preview: Record<string, unknown> = {};
-    for (const [apiId, result] of Object.entries(sourceResults)) {
-      if (result.success && result.data) {
-        preview[apiId] = result.data;
-      }
-    }
-    for (const entry of sourceManualEntries) {
-      if (entry.data) {
-        preview[entry.apiId] = entry.data;
-      }
-    }
-    return Object.keys(preview).length > 0 ? preview : null;
+    const payload = createRegistryProvenancePayload({
+      parcelId,
+      totalCost,
+      results: sourceResults,
+      manualEntries: sourceManualEntries,
+    });
+    return Object.keys(payload.entries).length > 0 ? payload : null;
   }
 
   const previewData = React.useMemo(

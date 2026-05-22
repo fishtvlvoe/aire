@@ -1,5 +1,6 @@
 use crate::commands::cases::IpcError;
 use crate::land_registry::api_key_storage::ApiKeyStorage;
+use crate::land_registry::apis::StaticApiKeyProvider;
 use crate::land_registry::apis::address_to_parcel::{AddressToParcelApi, ParcelInfo};
 use crate::land_registry::apis::building_other_rights::BuildingOtherRightsApi;
 use crate::land_registry::apis::building_ownership::BuildingOwnershipApi;
@@ -8,8 +9,8 @@ use crate::land_registry::apis::co_owners::CoOwnersApi;
 use crate::land_registry::apis::land_registry::LandRegistryApi;
 use crate::land_registry::apis::land_value::LandValueApi;
 use crate::land_registry::apis::mortgages::MortgagesApi;
+use crate::land_registry::apis::nlsc_cadastral::{NlscCadastralClient, NlscLandCandidate};
 use crate::land_registry::apis::zoning::ZoningApi;
-use crate::land_registry::apis::StaticApiKeyProvider;
 use crate::land_registry::consent::check_consent;
 use crate::land_registry::errors::LandRegistryError;
 use crate::{AsyncIpcState, KeyringState, LandRegistryBillingState, LandRegistryCacheState};
@@ -27,6 +28,7 @@ pub struct ApiResult {
     pub success: bool,
     pub data: Option<Value>,
     pub error: Option<IpcError>,
+    pub source: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -39,6 +41,7 @@ fn to_ipc_error(error: LandRegistryError) -> IpcError {
     let code = match error {
         LandRegistryError::ApiKeyNotConfigured => "ApiKeyNotConfigured",
         LandRegistryError::ConsentRequired => "ConsentRequired",
+        LandRegistryError::NlscPermissionDenied { .. } => "NlscPermissionDenied",
         LandRegistryError::InsufficientBalance { .. } => "InsufficientBalance",
         _ => "InternalError",
     };
@@ -47,6 +50,77 @@ fn to_ipc_error(error: LandRegistryError) -> IpcError {
         code: code.to_string(),
         message: error.to_string(),
     }
+}
+
+fn nlsc_land_to_parcel(address: &str, candidate: &NlscLandCandidate) -> ParcelInfo {
+    ParcelInfo {
+        parcel_id: format!("{}-{}-{}", candidate.office, candidate.section, candidate.land_no),
+        address: candidate.content.clone().if_empty_then(address),
+        lot_number: candidate.section.clone(),
+        building_number: String::new(),
+        source: "nlsc_cad".to_string(),
+        trusted_for_pdf: false,
+    }
+}
+
+trait EmptyFallback {
+    fn if_empty_then(self, fallback: &str) -> String;
+}
+
+impl EmptyFallback for String {
+    fn if_empty_then(self, fallback: &str) -> String {
+        if self.trim().is_empty() {
+            fallback.to_string()
+        } else {
+            self
+        }
+    }
+}
+
+pub async fn land_registry_address_lookup_core(
+    address: &str,
+    cop_base_url: &str,
+    nlsc_base_url: &str,
+    cache: crate::land_registry::cache::LandRegistryCache,
+    key_provider: Arc<StaticApiKeyProvider>,
+    enable_nlsc_fallback: bool,
+) -> Result<Vec<ParcelInfo>, LandRegistryError> {
+    let cache_ref = cache.clone();
+    let query_date_provider = Arc::new(move || cache_ref.current_query_date());
+    let cop_results =
+        AddressToParcelApi::new(cop_base_url, cache.clone(), key_provider, query_date_provider)
+            .lookup(address)
+            .await?;
+
+    if !cop_results.is_empty() || !enable_nlsc_fallback {
+        return Ok(cop_results);
+    }
+
+    let city_code = crate::land_registry::client::city_code_from_address(address);
+    let nlsc = NlscCadastralClient::new(nlsc_base_url);
+    let land_candidates = nlsc.address_query_land(address, 10).await?;
+    let mut parcels = Vec::new();
+
+    for candidate in land_candidates {
+        parcels.push(nlsc_land_to_parcel(address, &candidate));
+        let building_info = nlsc
+            .cadas_land_info(&city_code, &candidate.section, &candidate.land_no)
+            .await?;
+        for building_no in building_info.build_list {
+            parcels.push(ParcelInfo {
+                parcel_id: format!("{}-{}-{}", city_code, candidate.section, building_no),
+                address: candidate.content.clone().if_empty_then(address),
+                lot_number: candidate.section.clone(),
+                building_number: building_no,
+                source: "nlsc_cad".to_string(),
+                trusted_for_pdf: false,
+            });
+        }
+    }
+
+    parcels.sort_by(|a, b| a.parcel_id.cmp(&b.parcel_id));
+    parcels.dedup_by(|a, b| a.parcel_id == b.parcel_id);
+    Ok(parcels)
 }
 
 fn unsupported_api_error(api_id: &str) -> LandRegistryError {
@@ -161,6 +235,7 @@ pub async fn land_registry_pull_data_core(
                             success: true,
                             data: Some(data),
                             error: None,
+                            source: "api".to_string(),
                         },
                     );
                 }
@@ -171,6 +246,7 @@ pub async fn land_registry_pull_data_core(
                             success: false,
                             data: None,
                             error: Some(to_ipc_error(error)),
+                            source: "api".to_string(),
                         },
                     );
                 }
@@ -201,16 +277,15 @@ pub async fn land_registry_address_lookup(
         credentials.client_id,
         credentials.client_secret,
     ));
-    let cache_ref = cache.0.clone();
-    let query_date_provider = Arc::new(move || cache_ref.current_query_date());
 
-    AddressToParcelApi::new(
-        ipc.opcos_base_url.clone(),
+    land_registry_address_lookup_core(
+        &address,
+        &ipc.opcos_base_url,
+        "https://api.nlsc.gov.tw",
         cache.0.clone(),
         key_provider,
-        query_date_provider,
+        true,
     )
-    .lookup(&address)
     .await
     .map_err(to_ipc_error)
 }
@@ -259,7 +334,7 @@ pub async fn land_registry_pull_data(
 
 #[cfg(test)]
 mod tests {
-    use super::land_registry_pull_data_core;
+    use super::{land_registry_address_lookup_core, land_registry_pull_data_core};
     use crate::land_registry::apis::StaticApiKeyProvider;
     use crate::land_registry::billing_log::BillingLog;
     use crate::land_registry::consent::{check_consent, record_consent};
@@ -267,6 +342,116 @@ mod tests {
     use std::sync::Arc;
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[tokio::test]
+    async fn land_registry_address_lookup_returns_cop_result_before_nlsc_fallback() {
+        let cop_server = MockServer::start().await;
+        let nlsc_server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/BuildingNo/1.0/QueryByAddress"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "STATUS": 1,
+                "RESPONSE": [{
+                    "ADDRESS": "addr",
+                    "BLDGREG": {"UNIT": "A", "SEC": "0301", "NO": "00010000"}
+                }]
+            })))
+            .mount(&cop_server)
+            .await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(404).set_body_string("PERMISSION DENIED"))
+            .mount(&nlsc_server)
+            .await;
+
+        let result = land_registry_address_lookup_core(
+            "addr",
+            &cop_server.uri(),
+            &nlsc_server.uri(),
+            crate::land_registry::cache::LandRegistryCache::new_in_memory(),
+            Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
+            true,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].source, "cop_moi");
+        assert!(result[0].trusted_for_pdf);
+    }
+
+    #[tokio::test]
+    async fn land_registry_address_lookup_reports_nlsc_permission_denied() {
+        let cop_server = MockServer::start().await;
+        let nlsc_server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/BuildingNo/1.0/QueryByAddress"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "STATUS": 1,
+                "RESPONSE": [{"ADDRESS": "addr", "BLDGREG": null}]
+            })))
+            .mount(&cop_server)
+            .await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(404).set_body_string("PERMISSION DENIED"))
+            .mount(&nlsc_server)
+            .await;
+
+        let error = land_registry_address_lookup_core(
+            "addr",
+            &cop_server.uri(),
+            &nlsc_server.uri(),
+            crate::land_registry::cache::LandRegistryCache::new_in_memory(),
+            Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
+            true,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(error, LandRegistryError::NlscPermissionDenied { .. }));
+    }
+
+    #[tokio::test]
+    async fn land_registry_address_lookup_returns_untrusted_nlsc_candidates() {
+        let cop_server = MockServer::start().await;
+        let nlsc_server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/BuildingNo/1.0/QueryByAddress"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "STATUS": 1,
+                "RESPONSE": [{"ADDRESS": "addr", "BLDGREG": null}]
+            })))
+            .mount(&cop_server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/idc/AddressQueryLand/addr/10"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"<addressItems><addressItem><content>addr</content><location>120,24</location><office>A</office><sect>2013</sect><landno>03420000</landno></addressItem></addressItems>"#,
+            ))
+            .mount(&nlsc_server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/dmaps/CadasLandInfo/A/2013/03420000"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(
+                r#"{"buildList":["02906000"],"ownerType":{"本國人":"100%"}}"#,
+            ))
+            .mount(&nlsc_server)
+            .await;
+
+        let result = land_registry_address_lookup_core(
+            "addr",
+            &cop_server.uri(),
+            &nlsc_server.uri(),
+            crate::land_registry::cache::LandRegistryCache::new_in_memory(),
+            Arc::new(StaticApiKeyProvider::configured("cid", "secret")),
+            true,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert!(result.iter().all(|parcel| parcel.source == "nlsc_cad"));
+        assert!(result.iter().all(|parcel| !parcel.trusted_for_pdf));
+    }
 
     #[test]
     fn pull_without_consent_returns_error() {
