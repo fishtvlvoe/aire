@@ -10,16 +10,6 @@ use std::sync::Arc;
 
 const API_ID: &str = "address_to_parcel";
 
-fn strip_city_prefix(address: &str) -> &str {
-    for prefix in &["台北市", "台中市", "台南市", "高雄市", "新北市", "桃園市",
-                    "臺北市", "臺中市", "臺南市"] {
-        if let Some(stripped) = address.strip_prefix(prefix) {
-            return stripped;
-        }
-    }
-    address
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParcelInfo {
     pub parcel_id: String,
@@ -133,9 +123,8 @@ impl<P: ApiKeyProvider> AddressToParcelApi<P> {
         }
 
         let city_code = crate::land_registry::client::city_code_from_address(&normalized);
-        // COP API: ADDRESS 不含縣市名稱，只含區以下地址
-        let address_without_city = strip_city_prefix(&normalized);
-        let payload = serde_json::json!([{"CITY": city_code, "ADDRESS": address_without_city}]);
+        // MOI_API_037 文件要求 ADDRESS 包含縣市名稱、路名、門牌號。
+        let payload = serde_json::json!([{"CITY": city_code, "ADDRESS": normalized}]);
         let (_, json) = post_json_with_key(
             &self.http_client,
             &self.base_url,
@@ -195,6 +184,12 @@ mod tests {
         let result = api.lookup("台北市大安區和平東路一段100號").await.unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].parcel_id, "A-0301-0001");
+
+        let requests = server.received_requests().await.unwrap();
+        let request_body: serde_json::Value =
+            serde_json::from_slice(&requests[0].body).expect("request body should be JSON");
+        assert_eq!(request_body[0]["CITY"], "A");
+        assert_eq!(request_body[0]["ADDRESS"], "台北市大安區和平東路一段100號");
     }
 
     #[tokio::test]
