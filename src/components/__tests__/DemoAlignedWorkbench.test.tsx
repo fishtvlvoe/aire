@@ -30,8 +30,14 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByRole("heading", { name: "物件審核" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "物件摘要" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "欄位審核" })).toBeInTheDocument();
-    expect(screen.getByText("地政資料")).toBeInTheDocument();
-    expect(screen.getByText("土地 2 筆 · 建物 1 筆")).toBeInTheDocument();
+    expect(screen.getByText("地政")).toBeInTheDocument();
+    expect(screen.getByText("土地 2 筆")).toBeInTheDocument();
+    expect(screen.getByText("建物 1 筆")).toBeInTheDocument();
+    expect(screen.getByText("42 件")).toBeInTheDocument();
+    expect(screen.getByText("13 件")).toBeInTheDocument();
+    expect(screen.getByText("8 件")).toBeInTheDocument();
+    expect(screen.getAllByText("27 元").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("欄位審核表")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "重新查詢" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "產生補件清單" })).not.toBeInTheDocument();
     expect(screen.queryByText("地政重查：後端串接中")).not.toBeInTheDocument();

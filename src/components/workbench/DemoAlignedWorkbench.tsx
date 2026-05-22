@@ -128,33 +128,34 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               {caseData.address}
             </span>
             <dl className="mt-3 grid gap-2 text-sm">
-              <div className="flex justify-between gap-3 rounded-md bg-white/80 px-3 py-2">
-                <dt className="text-muted-foreground">地政資料</dt>
-                <dd className="font-medium">
-                  土地 {classification.landCount} 筆 · 建物 {classification.buildingCount} 筆
+              <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-md bg-white/80 px-3 py-2">
+                <dt className="text-muted-foreground">地政</dt>
+                <dd className="text-right font-medium leading-snug">
+                  <span className="block">土地 {classification.landCount} 筆</span>
+                  <span className="block">建物 {classification.buildingCount} 筆</span>
                 </dd>
               </div>
-              <div className="flex justify-between gap-3 rounded-md bg-white/80 px-3 py-2">
+              <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-md bg-white/80 px-3 py-2">
                 <dt className="text-muted-foreground">需確認</dt>
-                <dd className="font-medium">門牌、屋主姓名</dd>
+                <dd className="text-right font-medium leading-snug">門牌、屋主姓名</dd>
               </div>
             </dl>
             <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
               <div className="rounded-md bg-white p-2">
                 <span className="block text-muted-foreground">已帶入</span>
-                <strong>{importedCount}</strong>
+                <strong>{importedCount} 件</strong>
               </div>
               <div className="rounded-md bg-white p-2">
                 <span className="block text-muted-foreground">需補件</span>
-                <strong>{supplementCount}</strong>
+                <strong>{supplementCount} 件</strong>
               </div>
               <div className="rounded-md bg-white p-2">
                 <span className="block text-muted-foreground">待補資料</span>
-                <strong>8</strong>
+                <strong>8 件</strong>
               </div>
               <div className="rounded-md bg-white p-2">
                 <span className="block text-muted-foreground">本次費用</span>
-                <strong>27</strong>
+                <strong>27 元</strong>
               </div>
             </div>
           </article>
@@ -206,14 +207,17 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 </div>
               </section>
 
-              <div className="mt-4 divide-y rounded-lg border">
+              <div className="mt-4 overflow-hidden rounded-lg border" aria-label="欄位審核表">
                 {fields.map((field) => (
-                  <article key={field.fieldName} className="grid gap-3 p-4 md:grid-cols-[1.2fr_1fr_auto_auto] md:items-center">
-                    <div>
+                  <article
+                    key={field.fieldName}
+                    className="grid border-b text-sm last:border-b-0 lg:grid-cols-[minmax(170px,1fr)_minmax(260px,1.35fr)_120px_76px]"
+                  >
+                    <div className="p-4">
                       <strong>{field.fieldName}</strong>
                       <span className="mt-1 block text-sm text-muted-foreground">{field.helper}</span>
                     </div>
-                    <div className="text-sm">
+                    <div className="border-t p-4 lg:border-l lg:border-t-0">
                       {editingField === field.fieldName ? (
                         <input
                           aria-label={`${field.fieldName}修改值`}
@@ -225,16 +229,20 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       )}
                       <span className="mt-1 block text-muted-foreground">{field.serviceName}</span>
                     </div>
-                    <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
-                      {field.statusLabel}
-                    </span>
-                    <button
-                      className="w-fit rounded-md border px-3 py-2 text-sm"
-                      type="button"
-                      onClick={() => setEditingField((current) => (current === field.fieldName ? null : field.fieldName))}
-                    >
-                      {editingField === field.fieldName ? "完成" : "修改"}
-                    </button>
+                    <div className="flex items-start border-t p-4 lg:items-center lg:justify-center lg:border-l lg:border-t-0">
+                      <span className="w-fit whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                        {field.statusLabel}
+                      </span>
+                    </div>
+                    <div className="flex items-start border-t p-4 lg:items-center lg:justify-center lg:border-l lg:border-t-0">
+                      <button
+                        className="w-fit rounded-md border px-3 py-2 text-sm"
+                        type="button"
+                        onClick={() => setEditingField((current) => (current === field.fieldName ? null : field.fieldName))}
+                      >
+                        {editingField === field.fieldName ? "完成" : "修改"}
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>

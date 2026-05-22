@@ -39,11 +39,11 @@ vi.mock("@/lib/tauri-bridge", () => ({
 // 輔助：模擬輸入 + 推進 debounce + flush Promise microtasks
 // ─────────────────────────────────────────────────────────────────────────────
 async function typeAndFlush(input: HTMLElement, value: string): Promise<void> {
-  fireEvent.change(input, { target: { value } });
-  // 推進 fake timer（觸發 debounce callback）並 flush microtasks（invoke Promise 解析）
-  await vi.advanceTimersByTimeAsync(600);
-  // 再 flush 一輪 microtasks 確保 React state update 已完成
   await act(async () => {
+    fireEvent.change(input, { target: { value } });
+    // 推進 fake timer（觸發 debounce callback）並 flush microtasks（invoke Promise 解析）
+    await vi.advanceTimersByTimeAsync(600);
+    // 再 flush 一輪 microtasks 確保 React state update 已完成
     await Promise.resolve();
   });
 }

@@ -124,12 +124,17 @@ describe("LandApiSection", () => {
     });
   });
 
-  it("申請說明與教學影片區塊顯示敬請期待元件", async () => {
+  it("申請說明顯示地政註冊連結，教學影片仍為敬請期待", async () => {
     render(<LandApiSection />);
 
     await waitFor(() => screen.getByLabelText(/Client ID/));
 
-    expect(screen.getAllByText("敬請期待")).toHaveLength(2);
+    expect(screen.getByText("請使用自然人憑證或是工商憑證註冊帳號，即可開始使用。")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "前往地政註冊" })).toHaveAttribute(
+      "href",
+      "https://cop.moi.gov.tw/Register",
+    );
+    expect(screen.getAllByText("敬請期待")).toHaveLength(1);
     expect(screen.queryByText("教學影片即將上線")).not.toBeInTheDocument();
   });
 });
