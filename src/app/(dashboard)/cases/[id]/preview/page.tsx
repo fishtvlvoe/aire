@@ -241,17 +241,35 @@ export default function CasePreviewPage() {
         ) : null}
       </header>
 
-      <iframe
-        title="PDF 預覽"
-        style={{
-          width: "100%",
-          height: "78vh",
-          border: "1px solid #d1d5db",
-          borderRadius: 8,
-          background: "#f1f5f9",
-        }}
-        src={previewPdfUrl}
-      />
+      {previewPdfUrl ? (
+        <iframe
+          title="PDF 預覽"
+          style={{
+            width: "100%",
+            height: "78vh",
+            border: "1px solid #d1d5db",
+            borderRadius: 8,
+            background: "#f1f5f9",
+          }}
+          src={previewPdfUrl}
+        />
+      ) : (
+        <div
+          aria-label="PDF 預覽載入中"
+          style={{
+            alignItems: "center",
+            background: "#f8fafc",
+            border: "1px solid #d1d5db",
+            borderRadius: 8,
+            color: "#475569",
+            display: "flex",
+            height: "78vh",
+            justifyContent: "center",
+          }}
+        >
+          PDF 預覽產生中…
+        </div>
+      )}
     </main>
   );
 }

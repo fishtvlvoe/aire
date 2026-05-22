@@ -150,6 +150,35 @@ function ratioText(obj: unknown): string {
   return direct ?? "";
 }
 
+const KNOWN_PLACEHOLDER_CERTIFICATE_NUMBERS = new Set(["北松字第012345號"]);
+const KNOWN_PLACEHOLDER_BUILDING_FLOORS = new Set(["013層"]);
+
+function cleanKnownPlaceholderText(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (KNOWN_PLACEHOLDER_CERTIFICATE_NUMBERS.has(trimmed)) return undefined;
+  return trimmed;
+}
+
+function extractFloorFromAddress(address?: string): string | undefined {
+  const match = address?.match(/(\d+樓(?:之\d+)?)/);
+  return match?.[1];
+}
+
+function resolveBuildingFloor(registryFloor?: string, address?: string): string | undefined {
+  const floor = registryFloor?.trim();
+  if (!floor) return extractFloorFromAddress(address);
+  if (KNOWN_PLACEHOLDER_BUILDING_FLOORS.has(floor)) {
+    return extractFloorFromAddress(address) ?? floor;
+  }
+  return floor;
+}
+
+function isMockRegistryPullData(results: Record<string, { data: unknown }>): boolean {
+  const entries = Object.values(results) as Array<{ data: unknown; source?: unknown }>;
+  return entries.length > 0 && entries.every((entry) => entry.source === "mock");
+}
+
 function base64ToUint8Array(base64: string): Uint8Array {
   const binary =
     typeof atob === "function"
@@ -258,6 +287,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       // 組裝層捕捉錯誤，API 欄位降級為 undefined
     }
     apiData = pullResult?.results ?? {};
+    if (isMockRegistryPullData(apiData)) {
+      apiData = {};
+    }
   }
 
   // ── 法規條文 ──────────────────────────────────────────────────────────────
@@ -499,7 +531,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       legalClauses,
       fieldSketchFloorPlan,
       cover: {
-        propertyName: caseRow.address ?? "",
+        propertyName: caseRow.case_name ?? caseRow.address ?? "",
         caseNumber: caseRow.case_no ?? caseRow.id.slice(0, 8),
         handlingAgent: brandText.agent_name ?? "",
         licensedAgentName: brandText.realtor_name ?? "",
@@ -579,7 +611,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       buildingArea: firstNumber(buildingReg, ["area", "building_area", "AREA"]),
       buildingPurpose: firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]),
       constructionDate: firstString(buildingReg, ["construction_date", "COMPLETEDATE"]),
-      buildingCertificateNo: safeGet(buildingOwnership, "certificate_no", isString),
+      buildingCertificateNo: cleanKnownPlaceholderText(
+        firstString(buildingOwnership, ["certificate_no", "CERTIFICATENO"]),
+      ),
       buildingOwnershipDate: firstString(buildingOwnership, ["ownership_date", "RDATE"]),
       mortgages,
       recentSalePricePerSqm,
@@ -589,7 +623,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       legalClauses,
       fieldSketchFloorPlan,
       cover: {
-        propertyName: caseRow.address ?? "",
+        propertyName: caseRow.case_name ?? caseRow.address ?? "",
         caseNumber: caseRow.case_no ?? caseRow.id.slice(0, 8),
         handlingAgent: brandText.agent_name ?? "",
         licensedAgentName: brandText.realtor_name ?? "",
@@ -620,7 +654,10 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         auxiliaryArea: m2ToPing(firstNumber(buildingReg, ["auxiliary_area", "ATTAREA"])),
         commonArea: m2ToPing(firstNumber(buildingReg, ["common_area", "SHAREAREA"])),
         parkingArea: m2ToPing(firstNumber(buildingReg, ["parking_area", "PARKAREA"])),
-        floor: firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"]),
+        floor: resolveBuildingFloor(
+          firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"]),
+          caseRow.address,
+        ),
         legalUse: firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]),
         material: firstString(buildingReg, ["material", "MATERIAL"]),
         constructionDate: firstString(buildingReg, ["construction_date", "COMPLETEDATE"]),

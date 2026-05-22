@@ -203,6 +203,95 @@ describe("assembleDossierData — 土地版成功路徑", () => {
 });
 
 describe("assembleDossierData — 建物謄本自動帶入", () => {
+  it("真實地址 PDF 使用案件名稱，且不把 mock 權狀字號與樓層當成真實資料", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      case_name: "裕農路測試案",
+      case_no: "AIRE-REAL-TEST-001",
+      address: "台南市東區裕農路288巷17號8樓之1",
+      owner_name: "余啟彰",
+      land_registry_data: {
+        building_registry: {
+          building_area: 85.5,
+          building_floor: "013層",
+        },
+        building_ownership: {
+          certificate_no: "北松字第012345號",
+          numerator: "1",
+          denominator: "1",
+        },
+      },
+    });
+
+    expect(result.cover?.propertyName).toBe("裕農路測試案");
+    expect(result.address).toBe("台南市東區裕農路288巷17號8樓之1");
+    expect(result.buildingCertificateNo).toBeUndefined();
+    expect(result.propertySheet?.floor).toBe("8樓之1");
+  });
+
+  it("未保存正式地政資料時，不把 browser-dev mock pull payload 輸出成官方 PDF 欄位", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "land_registry_pull_data") {
+        return {
+          total_cost: 30,
+          results: {
+            building_registry: {
+              success: true,
+              source: "mock",
+              data: {
+                building_area: 85.5,
+                building_purpose: "住家用",
+                construction_date: "2015-06-15",
+              },
+            },
+            building_ownership: {
+              success: true,
+              source: "mock",
+              data: {
+                certificate_no: "北松字第012345號",
+                ownership_date: "2015-08-20",
+              },
+            },
+            mortgages: {
+              success: true,
+              source: "mock",
+              data: [{ creditor: "台灣銀行", amount: 3000000 }],
+            },
+          },
+        };
+      }
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      case_name: "裕農路測試案",
+      address: "台南市東區裕農路288巷17號8樓之1",
+      owner_name: "余啟彰",
+      land_registry_data: null,
+    });
+
+    expect(result.buildingArea).toBeUndefined();
+    expect(result.constructionDate).toBeUndefined();
+    expect(result.buildingCertificateNo).toBeUndefined();
+    expect(result.mortgages).toBeUndefined();
+    expect(result.propertySheet?.registeredArea).toBeUndefined();
+    expect(result.propertySheet?.constructionDate).toBeUndefined();
+    expect(result.propertySheet?.owner).toBe("余啟彰");
+  });
+
   it("使用本機保存的 API payload 帶入建物面積、用途、完成日、屋齡與權利範圍", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};

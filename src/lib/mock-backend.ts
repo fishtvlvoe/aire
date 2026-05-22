@@ -1507,7 +1507,7 @@ export class MockStore {
       results[apiId] = {
         success: true,
         data: mockDataMap[apiId] ?? { source_api: apiId },
-        source: "api",
+        source: "mock",
       };
       totalCost += 10;
     }
