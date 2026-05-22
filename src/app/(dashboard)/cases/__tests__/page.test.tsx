@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+
+let mockSearchParams = new URLSearchParams();
 
 vi.mock("@/lib/cases-api", () => ({
   casesApi: {
@@ -18,7 +20,7 @@ vi.mock("@/lib/tauri-bridge", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
   usePathname: () => "/cases",
 }));
 
@@ -31,6 +33,7 @@ const mockList = vi.mocked(casesApi.list);
 describe("Cases page fallback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParams = new URLSearchParams();
   });
 
   it("renders tauri-required message on NotInTauriError", async () => {
@@ -43,7 +46,7 @@ describe("Cases page fallback", () => {
     });
   });
 
-  it("renders a demo-aligned case management surface with workbench entry", async () => {
+  it("renders case overview without duplicating sidebar navigation or primary actions", async () => {
     mockList.mockResolvedValue([
       {
         id: "case-1",
@@ -63,12 +66,53 @@ describe("Cases page fallback", () => {
 
     render(<CasesPage />);
 
-    expect(await screen.findByRole("heading", { name: "案件管理" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "案件總覽" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "新增案件" })).toHaveAttribute("href", "/cases/new");
-    expect(screen.getByText("案件總覽")).toBeInTheDocument();
-    expect(screen.getByText("說明書工作台")).toBeInTheDocument();
-    expect(screen.getByText("補件清單")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "開啟和平東路案工作台" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "案件分類" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "開啟和平東路案工作台" })).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("changes main content scope for workbench and supplements views", async () => {
+    mockList.mockResolvedValue([
+      {
+        id: "case-1",
+        case_no: "AIRE-2026-001",
+        case_name: "和平東路案",
+        property_type: "residential",
+        land_lot_no: "大安段 100",
+        land_lots: ["大安段 100"],
+        building_lot_no: "建號 8",
+        address: "台北市大安區和平東路一段 100 號",
+        owner_name: null,
+        status: "draft",
+        created_at: 1763200000,
+        updated_at: 1763200000,
+      },
+    ]);
+
+    mockSearchParams = new URLSearchParams("view=workbench");
+    const { rerender } = render(<CasesPage />);
+
+    expect(await screen.findByRole("heading", { name: "說明書工作台" })).toBeInTheDocument();
+    expect(screen.getByText("請先選擇案件")).toBeInTheDocument();
+    expect(screen.queryByText("全部案件")).not.toBeInTheDocument();
+
+    mockSearchParams = new URLSearchParams("view=supplements");
+    rerender(<CasesPage />);
+
+    expect(await screen.findByRole("heading", { name: "補件清單" })).toBeInTheDocument();
+    expect(screen.getByText(/只顯示目前需要補資料的案件/)).toBeInTheDocument();
+    expect(screen.queryByText("全部案件")).not.toBeInTheDocument();
+  });
+
+  it("does not expose case-scoped or implementation labels on the cases page", async () => {
+    mockList.mockResolvedValue([]);
+
+    render(<CasesPage />);
+
+    const main = await screen.findByRole("region", { name: "案件管理內容" });
+    expect(within(main).queryByText("現場必問工作台")).not.toBeInTheDocument();
+    expect(main.textContent).not.toMatch(/BASIC|pro|advanced|MOI_API_/);
   });
 });

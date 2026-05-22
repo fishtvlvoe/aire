@@ -1,4 +1,5 @@
 import type { CaseRow } from "@/lib/cases-api";
+import { getPrimaryNavigation, getSecondaryNavigation } from "@/lib/product-navigation-ia";
 
 export const FRONTSTAGE_FORBIDDEN_PATTERNS = [
   /MOI_API_/,
@@ -78,44 +79,6 @@ export interface PdfAssetSlot {
   label: string;
   description: string;
 }
-
-const SIDEBAR_FOLDERS: DemoSidebarFolder[] = [
-  {
-    label: "案件管理",
-    description: "案件、說明書、補件",
-    items: [
-      { label: "案件總覽", href: "/cases" },
-      { label: "說明書工作台", href: "/cases?view=workbench" },
-      { label: "補件清單", href: "/cases?view=supplements" },
-    ],
-  },
-  {
-    label: "地政資料",
-    description: "基本功能",
-    items: [
-      { label: "地政查詢", href: "/cases/new" },
-      { label: "資料來源", href: "/settings?section=registry-rules" },
-      { label: "費用紀錄", href: "/settings?section=billing" },
-    ],
-  },
-  {
-    label: "產出文件",
-    description: "預覽、匯出、列印",
-    items: [
-      { label: "PDF 預覽", href: "/cases?view=pdf" },
-      { label: "列印與匯出", href: "/cases?view=export" },
-    ],
-  },
-  {
-    label: "系統設定",
-    description: "授權、金鑰、開關",
-    items: [
-      { label: "地政授權", href: "/settings?section=registry-auth" },
-      { label: "功能開關", href: "/settings?section=features" },
-      { label: "授權與升級", href: "/settings?section=entitlements" },
-    ],
-  },
-];
 
 const SETTINGS_CATEGORIES: SettingsCategory[] = [
   { id: "entitlements", label: "授權與升級" },
@@ -249,7 +212,14 @@ const PDF_ASSET_SLOTS: PdfAssetSlot[] = [
 ];
 
 export function getDemoSidebarFolders(): DemoSidebarFolder[] {
-  return SIDEBAR_FOLDERS;
+  return getPrimaryNavigation().map((folder) => ({
+    label: folder.label,
+    description: folder.description ?? "",
+    items: getSecondaryNavigation(folder.label).map((item) => ({
+      label: item.label,
+      href: item.href,
+    })),
+  }));
 }
 
 export function getSettingsCategories(): SettingsCategory[] {

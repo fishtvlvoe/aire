@@ -6,17 +6,17 @@ import {
   getDemoFieldReviewRows,
   getUsageLedgerRows,
 } from "@/lib/product-ui-demo-alignment";
+import { getCaseWorkbenchNavigation } from "@/lib/product-navigation-ia";
 
 interface DemoAlignedWorkbenchProps {
   caseData: CaseRow;
 }
 
-const chapterLabels = ["基本資料", "土地標示", "建物權利", "限制風險", "現場確認", "稅費紀錄"];
-
 export function DemoAlignedWorkbench({ caseData }: DemoAlignedWorkbenchProps) {
   const classification = getAddressFirstClassification(caseData.address);
   const fields = getDemoFieldReviewRows(caseData);
   const usageRows = getUsageLedgerRows();
+  const caseTasks = getCaseWorkbenchNavigation();
   const importedCount = fields.filter((field) => field.statusLabel === "地政已帶入").length + 40;
   const supplementCount = fields.filter((field) => field.statusLabel.includes("人工")).length + 12;
 
@@ -108,15 +108,15 @@ export function DemoAlignedWorkbench({ caseData }: DemoAlignedWorkbenchProps) {
             <strong className="block">說明書章節</strong>
             <span className="text-sm text-muted-foreground">依地政判斷自動切到需要審核的章節</span>
             <div className="mt-3 flex flex-wrap gap-2">
-              {chapterLabels.map((label) => (
+              {caseTasks.map((item) => (
                 <button
-                  key={label}
+                  key={item.label}
                   className={`rounded-full border px-3 py-1 text-sm ${
-                    label === "建物權利" ? "border-emerald-300 bg-emerald-50 text-emerald-800" : ""
+                    item.label === "地政資料" ? "border-emerald-300 bg-emerald-50 text-emerald-800" : ""
                   }`}
                   type="button"
                 >
-                  {label}
+                  {item.label}
                 </button>
               ))}
             </div>
@@ -199,7 +199,7 @@ export function DemoAlignedWorkbench({ caseData }: DemoAlignedWorkbenchProps) {
                 加入補件清單
               </button>
               <button className="rounded-md border px-3 py-2 text-sm" type="button">
-                現場確認
+                現場必問
               </button>
               <button className="rounded-md border px-3 py-2 text-sm" type="button">
                 手動上傳覆蓋

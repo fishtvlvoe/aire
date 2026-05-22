@@ -16,6 +16,8 @@ AIRE 產品導覽 SHALL 分為三層：
 
 同一個畫面 SHALL NOT 同時重複顯示相同名稱的一級或二級導覽。
 
+當使用者點擊一級或二級選單時，主內容區 SHALL 切換到該選單對應的工作情境。系統 SHALL NOT 把所有一級、二級、三級內容全部塞在同一個頁面中。
+
 #### Scenario: Cases route stays at the second level
 
 - **GIVEN** 使用者開啟 `/cases`
@@ -23,6 +25,16 @@ AIRE 產品導覽 SHALL 分為三層：
 - **THEN** 畫面 SHALL 顯示案件總覽與案件選擇
 - **AND** 畫面 SHALL NOT 顯示與側欄重複的「案件總覽、說明書工作台、補件清單」頁內 tabs
 - **AND** 畫面 SHALL NOT 顯示案件內三級模組內容
+
+#### Scenario: Secondary navigation changes main content scope
+
+- **GIVEN** 使用者在側欄點擊「案件總覽」
+- **WHEN** 主內容完成載入
+- **THEN** 主內容 SHALL 只顯示案件總覽、案件狀態與案件選擇
+- **WHEN** 使用者在側欄點擊「說明書工作台」
+- **THEN** 主內容 SHALL 顯示「請先選擇案件」或可進入工作台的案件選擇，不得同時攤開案件內所有工具
+- **WHEN** 使用者在側欄點擊「補件清單」
+- **THEN** 主內容 SHALL 切換為補件任務清單，不得顯示完整案件總覽與工作台內容
 
 #### Scenario: Case detail route owns the third level
 

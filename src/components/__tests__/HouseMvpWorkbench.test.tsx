@@ -105,7 +105,7 @@ describe("HouseMvpWorkbench", () => {
     expect((screen.getByLabelText("建號") as HTMLInputElement).value).toBe("建號 778-2");
   });
 
-  it("gates automation controls by Basic/Pro/Advanced entitlement", () => {
+  it("gates automation controls with customer-facing plan labels", () => {
     const state = createDefaultHouseMvpWorkbenchState({ caseNo: "A-008", caseName: "權限測試" });
     const { rerender } = render(
       <HouseMvpWorkbench entitlement={getPlanEntitlements("basic")} value={state} onChange={vi.fn()} />,
@@ -113,8 +113,8 @@ describe("HouseMvpWorkbench", () => {
 
     expect(screen.getByRole("button", { name: /自動抓取實價登錄/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /自動產生空拍圖/ })).toBeDisabled();
-    expect(screen.getAllByText("升級 pro").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("升級 advanced").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("需升級至進階方案").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("house-mvp-workbench").textContent).not.toMatch(/BASIC|pro|advanced/);
 
     rerender(<HouseMvpWorkbench entitlement={getPlanEntitlements("pro")} value={state} onChange={vi.fn()} />);
 

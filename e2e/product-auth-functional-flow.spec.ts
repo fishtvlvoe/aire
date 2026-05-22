@@ -13,9 +13,9 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await login(page, "admin@test.aire", "password");
 
   await expect(page).toHaveURL(/\/cases$/);
-  await expect(page.getByRole("main").getByRole("heading", { name: "案件管理" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("heading", { name: "案件總覽" })).toBeVisible();
   await expect(page.getByText("宜蘭五結農舍")).toBeVisible();
-  await expect(page.getByRole("button", { name: "開啟宜蘭五結農舍工作台" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "開啟宜蘭五結農舍工作台" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "主要選單" })).toBeVisible();
 
   await page.getByText("宜蘭五結農舍").click();

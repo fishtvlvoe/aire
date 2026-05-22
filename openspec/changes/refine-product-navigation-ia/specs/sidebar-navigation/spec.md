@@ -17,6 +17,8 @@ The sidebar SHALL no longer render exactly two top-level navigation items. The s
 
 Each group SHALL expose second-level destinations, but the currently rendered page SHALL NOT duplicate those same destinations as page-level tabs unless the page is a settings-style category panel whose primary purpose is category switching.
 
+Clicking a second-level destination SHALL change the main content scope to that destination. The page SHALL NOT render unrelated sibling destinations as if they are part of the same work surface.
+
 The sidebar SHALL support collapse and a profile settings entry.
 
 #### Scenario: Sidebar renders product modules
@@ -31,6 +33,13 @@ The sidebar SHALL support collapse and a profile settings entry.
 - **WHEN** the user opens `/cases`
 - **THEN** the page content SHALL NOT render another same-level navigation set with those same labels
 - **AND** the page content SHALL focus on cases and their status
+
+#### Scenario: Sidebar destination changes the visible task
+
+- **GIVEN** the user is in the `案件管理` sidebar branch
+- **WHEN** the user clicks `補件清單`
+- **THEN** the main content SHALL show supplement-related tasks
+- **AND** the main content SHALL NOT show a full case overview, field visit workbench, and PDF tools all at once
 
 #### Scenario: Direct links that require a case ask for case selection
 

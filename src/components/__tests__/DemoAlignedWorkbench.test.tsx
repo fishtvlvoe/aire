@@ -31,6 +31,7 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByRole("region", { name: "欄位審核" })).toBeInTheDocument();
     expect(screen.getByText("地址與地政判斷")).toBeInTheDocument();
     expect(screen.getByText("已找到 2 筆土地、1 筆建物")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "現場必問" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("tab", { name: "費用" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "PDF 檢查" })).toBeInTheDocument();
   });
@@ -65,6 +66,6 @@ describe("DemoAlignedWorkbench", () => {
     const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
     expect(supplementRegion).toBeInTheDocument();
     expect(within(supplementRegion).getByRole("button", { name: "加入補件清單" })).toBeInTheDocument();
-    expect(within(supplementRegion).getByRole("button", { name: "現場確認" })).toBeInTheDocument();
+    expect(within(supplementRegion).getByRole("button", { name: "現場必問" })).toBeInTheDocument();
   });
 });

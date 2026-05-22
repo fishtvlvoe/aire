@@ -77,20 +77,36 @@ test("new case flow is address-first and only falls back to manual type selectio
   await expect(page.getByLabel("物件類型")).toBeVisible();
 });
 
-test("cases overview uses folder dropdown navigation and workbench entry", async ({ page }) => {
+test("cases overview uses sidebar scope navigation without duplicating page tabs", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/cases");
 
   const sidebar = page.getByRole("navigation", { name: "主要選單" });
-  await expect(page.getByRole("main").getByRole("heading", { name: "案件管理" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("heading", { name: "案件總覽" })).toBeVisible();
   await expect(page.getByRole("link", { name: "新增案件" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "開啟宜蘭五結農舍工作台" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "開啟宜蘭五結農舍工作台" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "案件分類" })).toHaveCount(0);
   await expect(page.getByRole("table")).toHaveCount(0);
 
   await expect(sidebar.getByRole("link", { name: "說明書工作台" })).toBeVisible();
   await expect(sidebar.getByRole("link", { name: "費用紀錄" })).toHaveCount(0);
   await sidebar.getByRole("button", { name: "展開地政資料選單" }).click();
   await expect(sidebar.getByRole("link", { name: "費用紀錄" })).toBeVisible();
+
+  await sidebar.getByRole("link", { name: "說明書工作台" }).click();
+  await expect(page).toHaveURL(/\/cases\?view=workbench$/);
+  await expect(page.getByRole("main").getByRole("heading", { name: "說明書工作台" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "請先選擇案件" })).toBeVisible();
+  await expect(page.getByText("全部案件")).toHaveCount(0);
+
+  await sidebar.getByRole("link", { name: "補件清單" }).click();
+  await expect(page).toHaveURL(/\/cases\?view=supplements$/);
+  await expect(page.getByRole("main").getByRole("heading", { name: "補件清單" })).toBeVisible();
+  await expect(page.getByText("只顯示目前需要補資料的案件")).toBeVisible();
+  await expect(page.getByText("全部案件")).toHaveCount(0);
+
+  await page.getByText("宜蘭五結農舍").click();
+  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
 
   await expectNoHorizontalOverflow(page);
   await page.screenshot({

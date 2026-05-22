@@ -26,12 +26,12 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
-import { cn } from "@/lib/utils";
+import { getVisibleCaseManagementScope } from "@/lib/product-navigation-ia";
 
 export default function CasesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const view = searchParams.get("view") ?? "overview";
+  const scope = getVisibleCaseManagementScope(searchParams.get("view"));
   const [cases, setCases] = useState<CaseRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requiresTauri, setRequiresTauri] = useState(false);
@@ -103,45 +103,24 @@ export default function CasesPage() {
     { label: "待補件", value: supplementCount },
     { label: "已完成", value: completedCount },
   ];
-  const shortcuts = [
-    { label: "案件總覽", href: "/cases", active: view === "overview" },
-    { label: "說明書工作台", href: "/cases?view=workbench", active: view === "workbench" },
-    { label: "補件清單", href: "/cases?view=supplements", active: view === "supplements" },
-  ];
+  const scopedCases = scope.showsSupplementTasks
+    ? caseRows.filter((item) => item.status === "keyin" || !item.owner_name)
+    : caseRows;
 
   return (
-    <div className="space-y-6">
+    <section aria-label="案件管理內容" className="space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">案件、說明書、補件</p>
-          <h1 className="text-2xl font-semibold tracking-normal">案件管理</h1>
+          <p className="text-sm text-muted-foreground">{scope.eyebrow}</p>
+          <h1 className="text-2xl font-semibold tracking-normal">{scope.heading}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{scope.description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href="/settings?section=billing">費用紀錄</Link>
-          </Button>
           <Button asChild>
             <Link href="/cases/new">新增案件</Link>
           </Button>
         </div>
       </header>
-
-      <nav aria-label="案件分類" className="flex flex-wrap gap-2">
-        {shortcuts.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={cn(
-              "rounded-md border px-3 py-2 text-sm font-medium transition-colors",
-              item.active
-                ? "border-foreground bg-foreground text-background"
-                : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
 
       {/* 錯誤 */}
       {requiresTauri && <TauriRequired />}
@@ -172,31 +151,64 @@ export default function CasesPage() {
         </Card>
       )}
 
+      {scope.showsWorkbenchPrompt && !error && !requiresTauri && cases !== null && cases.length > 0 && (
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-label="選擇案件進入工作台">
+          <h2 className="text-base font-semibold">請先選擇案件</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            工作台是單一案件內的操作區。請從下方選擇案件後，再處理基本資料、地政資料、揭露資料、現場必問、補件與 PDF 檢查。
+          </p>
+        </section>
+      )}
+
+      {scope.showsSupplementTasks && !error && !requiresTauri && cases !== null && cases.length > 0 && (
+        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-label="補件任務說明">
+          <h2 className="text-base font-semibold">待補資料</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            這裡只列出目前缺少屋主、現場或正式文件資料的案件。選擇案件後再進入案件內補件。
+          </p>
+        </section>
+      )}
+
       {/* 案件工作入口 */}
       {!error && !requiresTauri && cases !== null && cases.length > 0 && (
         <section className="space-y-4" aria-label="案件工作入口">
-          <div className="grid gap-3 md:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-                <div className="mt-2 text-2xl font-semibold">{stat.value}</div>
-              </div>
-            ))}
-          </div>
+          {scope.showsCaseOverview ? (
+            <div className="grid gap-3 md:grid-cols-4">
+              {stats.map((stat) => (
+                <div key={stat.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  <div className="mt-2 text-2xl font-semibold">{stat.value}</div>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="grid grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_120px_180px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-muted-foreground max-xl:hidden">
+            <div className="grid grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_120px_120px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-muted-foreground max-xl:hidden">
               <div>案件名稱</div>
               <div>地址與所有權人</div>
               <div>案件類型</div>
               <div>狀態</div>
-              <div className="text-right">下一步</div>
+              <div className="text-right">操作</div>
             </div>
-            {cases.map((c) => (
+            {scopedCases.length === 0 ? (
+              <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+                目前沒有符合條件的案件
+              </div>
+            ) : null}
+            {scopedCases.map((c) => (
               <article
                 key={c.id}
-                className="grid cursor-pointer gap-4 border-b border-slate-100 px-4 py-4 transition-colors last:border-b-0 hover:bg-slate-50/70 xl:grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_120px_180px] xl:items-center"
+                className="grid cursor-pointer gap-4 border-b border-slate-100 px-4 py-4 transition-colors last:border-b-0 hover:bg-slate-50/70 xl:grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_120px_120px] xl:items-center"
                 onClick={() => router.push(`/cases/${c.id}`)}
+                role="link"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    router.push(`/cases/${c.id}`);
+                  }
+                }}
               >
                 <div className="min-w-0">
                   <div className="font-medium">{c.case_name ?? c.case_no ?? c.id.slice(0, 8)}</div>
@@ -217,17 +229,7 @@ export default function CasesPage() {
                   <span className="sr-only">{statusLabel(c.status)}</span>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
-                  <Button
-                    type="button"
-                    aria-label={`開啟${c.case_name ?? c.case_no ?? c.id.slice(0, 8)}工作台`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      router.push(`/cases/${c.id}`);
-                    }}
-                  >
-                    開啟工作台
-                  </Button>
+                <div className="flex flex-wrap items-center justify-start gap-1 xl:justify-end">
                   <CaseListActions
                     caseId={c.id}
                     onView={() => router.push(`/cases/${c.id}`)}
@@ -248,6 +250,6 @@ export default function CasesPage() {
         onConfirm={handleDeleteConfirm}
         isLoading={deleting}
       />
-    </div>
+    </section>
   );
 }

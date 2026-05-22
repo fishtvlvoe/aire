@@ -265,13 +265,19 @@ const automationFeatures: Array<{ feature: EntitlementFeature; label: string }> 
   { feature: "floor_plan_processing", label: "自動處理格局圖" },
 ];
 
+const planLabels: Record<EntitlementPayload["plan"], string> = {
+  basic: "基本方案",
+  pro: "進階方案",
+  advanced: "進階方案",
+};
+
 function AutomationEntitlementPanel({ entitlement }: { entitlement: EntitlementPayload }) {
   return (
     <section className="rounded-md border border-slate-200 bg-white p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-slate-950">自動化功能</h2>
-        <span className="rounded-full border border-slate-200 px-2.5 py-1 text-xs uppercase text-slate-500">
-          {entitlement.plan}
+        <span className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-500">
+          {planLabels[entitlement.plan]}
         </span>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
@@ -290,7 +296,7 @@ function AutomationEntitlementPanel({ entitlement }: { entitlement: EntitlementP
             >
               <span className="block">{label}</span>
               {!state.enabled && state.upgradeRequired ? (
-                <span className="block text-xs">升級 {state.upgradeRequired}</span>
+                <span className="block text-xs">需升級至{planLabels[state.upgradeRequired]}</span>
               ) : null}
             </button>
           );
