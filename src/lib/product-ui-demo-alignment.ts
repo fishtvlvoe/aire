@@ -78,6 +78,8 @@ export interface EntitlementFeature {
 export interface PdfAssetSlot {
   label: string;
   description: string;
+  basicFallback: string;
+  upgradeAutomation: string;
 }
 
 export interface UpgradePlan {
@@ -241,10 +243,30 @@ const UPGRADE_PLANS: UpgradePlan[] = [
 ];
 
 const PDF_ASSET_SLOTS: PdfAssetSlot[] = [
-  { label: "地籍圖", description: "基本方案可放地政資料；進階整理需升級" },
-  { label: "地標圖", description: "進階方案由 AIRE 產生" },
-  { label: "空拍圖", description: "進階方案啟用後自動放入 PDF" },
-  { label: "格局圖", description: "基本方案手動上傳；進階方案可 AI 整理" },
+  {
+    label: "地籍圖",
+    description: "放入不動產說明書的地籍圖頁面",
+    basicFallback: "基本款可手動上傳地籍圖檔",
+    upgradeAutomation: "進階款可由地政圖資整理帶入",
+  },
+  {
+    label: "空拍圖",
+    description: "放入 PDF 圖頁或外部圖資參考",
+    basicFallback: "基本款可手動上傳空拍圖",
+    upgradeAutomation: "高級款可自動取得或整理空拍圖",
+  },
+  {
+    label: "格局圖",
+    description: "放入建物格局與室內配置頁面",
+    basicFallback: "基本款可手動上傳原有格局圖",
+    upgradeAutomation: "高級款可啟用 AI 格局圖整理",
+  },
+  {
+    label: "地標圖",
+    description: "放入位置圖、地標與生活機能參考",
+    basicFallback: "基本款可手動上傳地標圖",
+    upgradeAutomation: "進階款可由地圖資料產生",
+  },
 ];
 
 export function getDemoSidebarFolders(): DemoSidebarFolder[] {

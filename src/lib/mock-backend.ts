@@ -595,6 +595,8 @@ export class MockStore {
           return (await this.landRegistryTestConnection()) as T;
         case "land_registry_get_balance":
           return this.landRegistryGetBalance() as T;
+        case "land_registry_list_billing_entries":
+          return this.landRegistryListBillingEntries() as T;
         case "land_registry_record_consent":
           return this.landRegistryRecordConsent(args) as T;
 
@@ -1420,7 +1422,48 @@ export class MockStore {
     month_query_count: number;
     low_balance_warning: boolean;
   } {
-    return { month_total_cost: 500, month_query_count: 50, low_balance_warning: false };
+    const entries = this.landRegistryListBillingEntries();
+    return {
+      month_total_cost: entries.reduce((sum, entry) => sum + entry.cost, 0),
+      month_query_count: entries.length,
+      low_balance_warning: false,
+    };
+  }
+
+  private landRegistryListBillingEntries(): Array<{
+    service_name: string;
+    target: string;
+    status_label: string;
+    transaction_id: string;
+    cost: number;
+    charged_at: string;
+  }> {
+    return [
+      {
+        service_name: "建物所有權資料",
+        target: "AIRE-2026-001 / 建號 88-1",
+        status_label: "查詢成功",
+        transaction_id: "08d28190-1640-4673-9371-f8691d48c5bb",
+        cost: 27,
+        charged_at: "2026-05-18T22:52:20+08:00",
+      },
+      {
+        service_name: "門牌建號查詢",
+        target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
+        status_label: "查詢失敗",
+        transaction_id: "COP309",
+        cost: 0,
+        charged_at: "2026-05-18T22:52:20+08:00",
+      },
+      {
+        service_name: "帳務查詢",
+        target: "地政帳號",
+        status_label: "免費",
+        transaction_id: "BALANCE-SYNC",
+        cost: 0,
+        charged_at: "2026-05-18T22:52:20+08:00",
+      },
+    ];
   }
 
   private landRegistryRecordConsent(args?: CommandArgs): undefined {

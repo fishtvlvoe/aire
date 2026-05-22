@@ -271,6 +271,7 @@ pub fn run() {
             land_registry::api_key_storage::land_registry_get_api_key,
             land_registry::api_key_storage::land_registry_test_connection,
             land_registry::balance::land_registry_get_balance,
+            land_registry::balance::land_registry_list_billing_entries,
             land_registry::consent::land_registry_record_consent,
             geo_services::overpass::query_nearby_amenities,
             geo_services::osm_map::fetch_location_map,

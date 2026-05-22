@@ -20,7 +20,27 @@ vi.mock("@/lib/mock-backend", () => ({
       ];
     }
     if (cmd === "land_registry_get_balance") {
-      return { month_total_cost: 500, month_query_count: 50, low_balance_warning: false };
+      return { month_total_cost: 27, month_query_count: 2, low_balance_warning: false };
+    }
+    if (cmd === "land_registry_list_billing_entries") {
+      return [
+        {
+          service_name: "建物所有權資料",
+          target: "AIRE-2026-001 / 建號 88-1",
+          status_label: "查詢成功",
+          transaction_id: "TXN-001",
+          cost: 27,
+          charged_at: "2026-05-18T22:52:20+08:00",
+        },
+        {
+          service_name: "門牌建號查詢",
+          target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
+          status_label: "查詢失敗",
+          transaction_id: "COP309",
+          cost: 0,
+          charged_at: "2026-05-18T22:52:20+08:00",
+        },
+      ];
     }
     return { success: true };
   }),
@@ -92,10 +112,28 @@ describe("Settings page（重組後）", () => {
     render(<SettingsPage />);
 
     expect(screen.getByRole("heading", { name: "資料來源" })).toBeInTheDocument();
+    expect(screen.getByLabelText("地籍圖上傳")).toBeInTheDocument();
+    expect(screen.getByLabelText("空拍圖上傳")).toBeInTheDocument();
+    expect(screen.getByLabelText("格局圖上傳")).toBeInTheDocument();
+    expect(screen.getByLabelText("地標圖上傳")).toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
     expect(screen.queryByText("地政 API 設定")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
+  });
+
+  it("費用紀錄顯示地政 API 明細與總計", async () => {
+    mockSection = "billing";
+    render(<SettingsPage />);
+
+    expect(screen.getByRole("heading", { name: "費用紀錄" })).toBeInTheDocument();
+    expect(screen.getByText("費用歸屬")).toBeInTheDocument();
+    expect(screen.getByText("本月使用量")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "地政 API 查詢明細" })).toBeInTheDocument();
+    expect(screen.getByText("建物所有權資料")).toBeInTheDocument();
+    expect(screen.getByText("門牌建號查詢")).toBeInTheDocument();
+    expect(screen.getByText("地政費用合計 27 元")).toBeInTheDocument();
+    expect(screen.getByText("AIRE 方案功能")).toBeInTheDocument();
   });
 
   it("DevSuperAdmin 在 test 環境不渲染（僅 development 環境可見）", () => {

@@ -26,7 +26,7 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
-import { getVisibleCaseManagementScope } from "@/lib/product-navigation-ia";
+import { getCaseRowDestination, getVisibleCaseManagementScope } from "@/lib/product-navigation-ia";
 
 export default function CasesPage() {
   const router = useRouter();
@@ -106,6 +106,10 @@ export default function CasesPage() {
   const scopedCases = scope.showsSupplementTasks
     ? caseRows.filter((item) => item.status === "keyin" || !item.owner_name)
     : caseRows;
+
+  function openCaseDestination(caseId: string) {
+    router.push(getCaseRowDestination(scope.id, caseId));
+  }
 
   return (
     <section aria-label="案件管理內容" className="space-y-6">
@@ -207,13 +211,13 @@ export default function CasesPage() {
               <article
                 key={c.id}
                 className="grid cursor-pointer gap-4 border-b border-slate-100 px-4 py-4 transition-colors last:border-b-0 hover:bg-slate-50/70 xl:grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_100px_180px] xl:items-center"
-                onClick={() => router.push(`/cases/${c.id}`)}
+                onClick={() => openCaseDestination(c.id)}
                 role="link"
                 tabIndex={0}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    router.push(`/cases/${c.id}`);
+                    openCaseDestination(c.id);
                   }
                 }}
               >
@@ -239,7 +243,7 @@ export default function CasesPage() {
                 <div className="flex flex-wrap items-center justify-start gap-1 xl:justify-end">
                   <CaseListActions
                     caseId={c.id}
-                    onView={() => router.push(`/cases/${c.id}`)}
+                    onView={() => openCaseDestination(c.id)}
                     onEdit={() => router.push(`/cases/${c.id}`)}
                     onDelete={() => setDeletingCase(c)}
                     onDownload={() => void handleDownload(c.id)}

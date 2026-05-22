@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   getEntitlementFeatures,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/product-ui-demo-alignment";
 import { LandApiSection } from "@/components/settings/LandApiSection";
 import { BalanceMonitor } from "@/components/BalanceMonitor";
+import { listBillingEntries, type BillingLineItem } from "@/lib/land-registry-api";
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
@@ -231,26 +233,99 @@ function BillingPanel() {
         <h2 className="text-base font-semibold">費用歸屬</h2>
         <dl className="mt-3 space-y-2 text-sm">
           <SettingKv label="地政查詢" value="客戶自己的地政查詢帳號負擔" />
-          <SettingKv label="Google / 空拍" value="AIRE 方案內含或另計" />
-          <SettingKv label="AI 格局圖" value="AIRE 升級功能，案件資料不送 OPCOS" />
+          <SettingKv label="AIRE 方案功能" value="Google、空拍、AI 格局圖不列入地政 API 明細" />
           <SettingKv label="失敗不計費" value="地政查詢失敗時在費用紀錄標示 0 元" />
         </dl>
       </article>
       <BalanceMonitor />
+      <BillingLedgerPanel />
     </div>
   );
 }
 
+function BillingLedgerPanel() {
+  const [rows, setRows] = useState<BillingLineItem[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const entries = await listBillingEntries();
+        if (!cancelled) setRows(entries);
+      } catch (loadError) {
+        if (!cancelled) setError(loadError instanceof Error ? loadError.message : "無法取得地政 API 查詢明細");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const total = (rows ?? []).reduce((sum, row) => sum + row.cost, 0);
+
+  return (
+    <article className="rounded-lg border p-4 xl:col-span-2">
+      <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-base font-semibold">地政 API 查詢明細</h2>
+          <p className="text-sm text-muted-foreground">只列地政查詢扣款；AIRE 方案功能費用不放在這張表。</p>
+        </div>
+        <strong className="text-sm">地政費用合計 {total} 元</strong>
+      </div>
+      {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
+      {!rows && !error ? <p className="mt-3 text-sm text-muted-foreground">載入查詢明細中…</p> : null}
+      {rows ? (
+        <div className="mt-3 overflow-hidden rounded-lg border">
+          <div className="grid grid-cols-[1.2fr_1.4fr_90px_1fr_80px] gap-3 border-b bg-slate-50 px-3 py-2 text-sm font-medium text-muted-foreground max-lg:hidden">
+            <span>服務</span>
+            <span>查詢目標</span>
+            <span>狀態</span>
+            <span>交易序號</span>
+            <span className="text-right">費用</span>
+          </div>
+          {rows.map((row) => (
+            <div key={`${row.transaction_id}-${row.service_name}`} className="grid gap-2 border-b px-3 py-3 text-sm last:border-b-0 lg:grid-cols-[1.2fr_1.4fr_90px_1fr_80px]">
+              <span className="font-medium">{row.service_name}</span>
+              <span>{row.target}</span>
+              <span>{row.status_label}</span>
+              <span className="truncate text-muted-foreground">{row.transaction_id}</span>
+              <strong className="text-right">{row.cost} 元</strong>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function PdfAssetPanel({ slots }: { slots: ReturnType<typeof getPdfAssetSlots> }) {
+  const [selectedFiles, setSelectedFiles] = useState<Record<string, string>>({});
+
   return (
     <article className="rounded-lg border p-4 xl:col-span-2">
       <h2 className="text-base font-semibold">PDF 圖資欄位</h2>
       <div className="mt-3 grid gap-2 md:grid-cols-2">
         {slots.map((slot) => (
-          <div key={slot.label} className="rounded-md bg-slate-50 p-3 text-sm">
+          <label key={slot.label} className="rounded-md bg-slate-50 p-3 text-sm">
             <strong>{slot.label}</strong>
             <span className="mt-1 block text-muted-foreground">{slot.description}</span>
-          </div>
+            <span className="mt-1 block">{slot.basicFallback}</span>
+            <span className="mt-1 block text-muted-foreground">{slot.upgradeAutomation}</span>
+            <input
+              className="mt-3 block w-full text-xs"
+              type="file"
+              accept="image/*,.pdf"
+              aria-label={`${slot.label}上傳`}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (file) setSelectedFiles((prev) => ({ ...prev, [slot.label]: file.name }));
+              }}
+            />
+            <span className="mt-2 block text-xs text-muted-foreground">
+              {selectedFiles[slot.label] ? `已選擇：${selectedFiles[slot.label]}` : "尚未上傳"}
+            </span>
+          </label>
         ))}
       </div>
     </article>

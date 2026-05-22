@@ -34,6 +34,10 @@ impl BillingLogEntry {
         &self.transaction_id
     }
 
+    pub fn parcel_id(&self) -> &str {
+        &self.parcel_id
+    }
+
     pub fn api_id(&self) -> &str {
         &self.endpoint
     }
@@ -142,6 +146,10 @@ impl BillingLog {
                     .collect()
             })
             .unwrap_or_default()
+    }
+
+    pub fn entries(&self) -> Vec<BillingLogEntry> {
+        self.entries.lock().map(|v| v.clone()).unwrap_or_default()
     }
 
     pub fn aggregate_daily(&self, date_yyyy_mm_dd: &str) -> f64 {

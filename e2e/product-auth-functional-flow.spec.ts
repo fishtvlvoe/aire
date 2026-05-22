@@ -23,6 +23,7 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
   await expect(page.getByRole("region", { name: "案件與章節" })).toBeVisible();
   await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
+  await page.getByRole("tab", { name: "補件" }).click();
   await expect(page.getByRole("region", { name: "補件與現場確認" })).toBeVisible();
   await expect(page.getByText("MOI_API_")).toHaveCount(0);
   await expect(page.getByText("COP309")).toHaveCount(0);
@@ -31,6 +32,7 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await page.goto("/settings?section=billing");
   await expect(page.getByRole("heading", { name: "費用紀錄" })).toBeVisible();
   await expect(page.getByText("費用歸屬")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "地政 API 查詢明細" })).toBeVisible();
   await expect(page.getByText("授權管理")).toHaveCount(0);
   await expect(page.getByText("地政 API 設定")).toHaveCount(0);
   await expect(page.getByText("實價登錄 MCP Hub")).toHaveCount(0);

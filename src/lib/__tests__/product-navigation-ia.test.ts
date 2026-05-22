@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getCaseManagementViews,
+  getCaseRowDestination,
   getProductNavigationModel,
   getVisibleCaseManagementScope,
 } from "@/lib/product-navigation-ia";
@@ -62,5 +63,13 @@ describe("product navigation IA", () => {
       showsCaseOverview: false,
       documentPrompt: "請先選擇案件列印或匯出文件。",
     });
+  });
+
+  it("routes case rows according to the selected workflow scope", () => {
+    expect(getCaseRowDestination("overview", "case-1")).toBe("/cases/case-1");
+    expect(getCaseRowDestination("workbench", "case-1")).toBe("/cases/case-1");
+    expect(getCaseRowDestination("supplements", "case-1")).toBe("/cases/case-1?tab=supplements");
+    expect(getCaseRowDestination("pdf", "case-1")).toBe("/cases/case-1/preview");
+    expect(getCaseRowDestination("export", "case-1")).toBe("/cases/case-1/preview?mode=export");
   });
 });

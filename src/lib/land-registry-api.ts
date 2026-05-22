@@ -37,6 +37,15 @@ export interface BalanceInfo {
   low_balance_warning: boolean;
 }
 
+export interface BillingLineItem {
+  service_name: string;
+  target: string;
+  status_label: string;
+  transaction_id: string;
+  cost: number;
+  charged_at: string;
+}
+
 export interface ApiKeyInfo {
   client_id_masked: string;
   has_secret: boolean;
@@ -69,6 +78,10 @@ export async function testConnection(): Promise<ConnectionTestResult> {
 
 export async function getBalance(): Promise<BalanceInfo> {
   return invoke<BalanceInfo>("land_registry_get_balance");
+}
+
+export async function listBillingEntries(): Promise<BillingLineItem[]> {
+  return invoke<BillingLineItem[]>("land_registry_list_billing_entries");
 }
 
 export async function recordConsent(caseId: string): Promise<void> {

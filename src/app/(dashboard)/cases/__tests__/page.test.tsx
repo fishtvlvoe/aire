@@ -1,8 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent } from "@testing-library/dom";
 
 let mockSearchParams = new URLSearchParams();
+const mockPush = vi.fn();
 
 vi.mock("@/lib/cases-api", () => ({
   casesApi: {
@@ -19,7 +21,7 @@ vi.mock("@/lib/tauri-bridge", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn() }),
   useSearchParams: () => mockSearchParams,
   usePathname: () => "/cases",
 }));
@@ -33,6 +35,7 @@ const mockList = vi.mocked(casesApi.list);
 describe("Cases page fallback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPush.mockClear();
     mockSearchParams = new URLSearchParams();
   });
 
@@ -130,6 +133,8 @@ describe("Cases page fallback", () => {
     expect(await screen.findByRole("heading", { name: "PDF 預覽" })).toBeInTheDocument();
     expect(within(screen.getByRole("region", { name: "產出文件提示" })).getByText("請先選擇案件產生 PDF 預覽。")).toBeInTheDocument();
     expect(screen.queryByText("全部案件")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("和平東路案"));
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1/preview");
 
     mockSearchParams = new URLSearchParams("view=export");
     rerender(<CasesPage />);
@@ -137,6 +142,34 @@ describe("Cases page fallback", () => {
     expect(await screen.findByRole("heading", { name: "列印與匯出" })).toBeInTheDocument();
     expect(within(screen.getByRole("region", { name: "產出文件提示" })).getByText("請先選擇案件列印或匯出文件。")).toBeInTheDocument();
     expect(screen.queryByText("全部案件")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("和平東路案"));
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1/preview?mode=export");
+  });
+
+  it("opens supplement list rows in the supplement workbench tab", async () => {
+    mockList.mockResolvedValue([
+      {
+        id: "case-1",
+        case_no: "AIRE-2026-001",
+        case_name: "和平東路案",
+        property_type: "residential",
+        land_lot_no: "大安段 100",
+        land_lots: ["大安段 100"],
+        building_lot_no: "建號 8",
+        address: "台北市大安區和平東路一段 100 號",
+        owner_name: null,
+        status: "draft",
+        created_at: 1763200000,
+        updated_at: 1763200000,
+      },
+    ]);
+
+    mockSearchParams = new URLSearchParams("view=supplements");
+    render(<CasesPage />);
+
+    expect(await screen.findByRole("heading", { name: "補件清單" })).toBeInTheDocument();
+    fireEvent.click(screen.getByText("和平東路案"));
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1?tab=supplements");
   });
 
   it("does not expose case-scoped or implementation labels on the cases page", async () => {

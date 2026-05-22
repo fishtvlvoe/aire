@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { fireEvent } from "@testing-library/dom";
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -33,8 +34,8 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByText("已找到 2 筆土地、1 筆建物")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "重新查詢" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "產生補件清單" })).not.toBeInTheDocument();
-    expect(screen.getByText("地政重查待後端串接")).toBeInTheDocument();
-    expect(screen.getByText("補件產生待後端串接")).toBeInTheDocument();
+    expect(screen.getByText("地政重查：後端串接中")).toBeInTheDocument();
+    expect(screen.getByText("自動補件：後端串接中")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "現場必問" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("tab", { name: "費用" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "PDF 檢查" })).toBeInTheDocument();
@@ -67,9 +68,30 @@ describe("DemoAlignedWorkbench", () => {
     const workbench = screen.getByTestId("demo-aligned-workbench");
     expect(within(workbench).getByText("1/1")).toBeInTheDocument();
     expect(within(workbench).getByText("083/10/18")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "補件" }));
     const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
     expect(supplementRegion).toBeInTheDocument();
     expect(within(supplementRegion).getByRole("button", { name: "加入補件清單" })).toBeInTheDocument();
     expect(within(supplementRegion).getByRole("button", { name: "現場必問" })).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("地籍圖上傳")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("空拍圖上傳")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("格局圖上傳")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("地標圖上傳")).toBeInTheDocument();
+    fireEvent.click(within(supplementRegion).getByRole("button", { name: "加入補件清單" }));
+    expect(within(supplementRegion).getByText("已加入補件清單")).toBeInTheDocument();
+  });
+
+  it("switches workbench tabs instead of showing every panel at once", () => {
+    render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
+
+    expect(screen.getByRole("tab", { name: "補件" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("region", { name: "補件與現場確認" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "費用摘要" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "費用" }));
+
+    expect(screen.getByRole("tab", { name: "費用" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("region", { name: "費用摘要" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "補件與現場確認" })).not.toBeInTheDocument();
   });
 });

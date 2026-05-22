@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
 import type { CaseRow } from "@/lib/cases-api";
 import {
   getAddressFirstClassification,
@@ -10,9 +12,30 @@ import { getCaseWorkbenchNavigation } from "@/lib/product-navigation-ia";
 
 interface DemoAlignedWorkbenchProps {
   caseData: CaseRow;
+  initialTab?: string | null;
 }
 
-export function DemoAlignedWorkbench({ caseData }: DemoAlignedWorkbenchProps) {
+type WorkbenchTab = "fields" | "sources" | "supplements" | "costs" | "pdf";
+
+function normalizeWorkbenchTab(value?: string | null): WorkbenchTab {
+  if (value === "sources" || value === "supplements" || value === "costs" || value === "pdf") return value;
+  return "fields";
+}
+
+const WORKBENCH_TABS: Array<{ id: WorkbenchTab; label: string }> = [
+  { id: "fields", label: "欄位" },
+  { id: "sources", label: "資料來源" },
+  { id: "supplements", label: "補件" },
+  { id: "costs", label: "費用" },
+  { id: "pdf", label: "PDF 檢查" },
+];
+
+const ASSET_UPLOAD_SLOTS = ["地籍圖", "空拍圖", "格局圖", "地標圖"];
+
+export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbenchProps) {
+  const [activeTab, setActiveTab] = useState<WorkbenchTab>(() => normalizeWorkbenchTab(initialTab));
+  const [supplementAdded, setSupplementAdded] = useState(false);
+  const [assetUploads, setAssetUploads] = useState<Record<string, string>>({});
   const classification = getAddressFirstClassification(caseData.address);
   const fields = getDemoFieldReviewRows(caseData);
   const usageRows = getUsageLedgerRows();
@@ -34,16 +57,16 @@ export function DemoAlignedWorkbench({ caseData }: DemoAlignedWorkbenchProps) {
             地政查詢費由客戶的地政帳號負擔
           </p>
         </div>
-        <div className="flex flex-wrap gap-2" aria-label="工作台狀態">
-          <span className="rounded-md border bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
-            地政重查待後端串接
+        <div className="flex flex-wrap items-center gap-2 text-sm" aria-label="工作台狀態">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-muted-foreground">
+            地政重查：後端串接中
           </span>
-          <span className="rounded-md border bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
-            補件產生待後端串接
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-muted-foreground">
+            自動補件：後端串接中
           </span>
-          <button className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white" type="button">
+          <Link className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseData.id}/preview`}>
             預覽 PDF
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -115,6 +138,11 @@ export function DemoAlignedWorkbench({ caseData }: DemoAlignedWorkbenchProps) {
                     item.label === "地政資料" ? "border-emerald-300 bg-emerald-50 text-emerald-800" : ""
                   }`}
                   type="button"
+                  onClick={() => {
+                    if (item.label === "補件") setActiveTab("supplements");
+                    if (item.label === "PDF 檢查") setActiveTab("pdf");
+                    if (item.label === "地政資料") setActiveTab("sources");
+                  }}
                 >
                   {item.label}
                 </button>
@@ -139,73 +167,133 @@ export function DemoAlignedWorkbench({ caseData }: DemoAlignedWorkbenchProps) {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="工作分頁">
-            {["欄位", "資料來源", "補件", "費用", "PDF 檢查"].map((label) => (
+            {WORKBENCH_TABS.map((tab) => (
               <button
-                key={label}
-                className={`rounded-md px-3 py-2 text-sm ${label === "欄位" ? "bg-slate-950 text-white" : "border"}`}
+                key={tab.id}
+                aria-selected={activeTab === tab.id}
+                className={`rounded-md px-3 py-2 text-sm ${activeTab === tab.id ? "bg-slate-950 text-white" : "border"}`}
+                onClick={() => setActiveTab(tab.id)}
                 role="tab"
                 type="button"
               >
-                {label}
+                {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="mt-4 grid gap-2 sm:grid-cols-4">
-            <Metric label="地政已帶入" value="42" />
-            <Metric label="屋主提供" value="3" />
-            <Metric label="查詢未成功" value="2" />
-            <Metric label="累計費用" value="27 元" />
-          </div>
+          {activeTab === "fields" ? (
+            <>
+              <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                <Metric label="地政已帶入" value="42" />
+                <Metric label="屋主提供" value="3" />
+                <Metric label="查詢未成功" value="2" />
+                <Metric label="累計費用" value="27 元" />
+              </div>
 
-          <div className="mt-4 divide-y rounded-lg border">
-            {fields.map((field) => (
-              <article key={field.fieldName} className="grid gap-3 p-4 md:grid-cols-[1.3fr_1fr_auto] md:items-center">
-                <div>
-                  <strong>{field.fieldName}</strong>
-                  <span className="mt-1 block text-sm text-muted-foreground">{field.helper}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="block">{field.value}</span>
-                  <span className="mt-1 block text-muted-foreground">{field.serviceName}</span>
-                </div>
-                <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
-                  {field.statusLabel}
-                </span>
-              </article>
-            ))}
-          </div>
+              <div className="mt-4 divide-y rounded-lg border">
+                {fields.map((field) => (
+                  <article key={field.fieldName} className="grid gap-3 p-4 md:grid-cols-[1.3fr_1fr_auto] md:items-center">
+                    <div>
+                      <strong>{field.fieldName}</strong>
+                      <span className="mt-1 block text-sm text-muted-foreground">{field.helper}</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="block">{field.value}</span>
+                      <span className="mt-1 block text-muted-foreground">{field.serviceName}</span>
+                    </div>
+                    <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                      {field.statusLabel}
+                    </span>
+                  </article>
+                ))}
+              </div>
+            </>
+          ) : null}
 
-          <section className="mt-4 rounded-lg border bg-slate-50 p-4" aria-label="費用摘要">
-            <h3 className="text-sm font-semibold">費用成功與失敗紀錄</h3>
-            <div className="mt-3 grid gap-2">
-              {usageRows.map((row) => (
-                <div key={`${row.serviceName}-${row.outcomeLabel}`} className="grid gap-2 rounded-md bg-white p-3 text-sm md:grid-cols-[1fr_auto_auto]">
-                  <span>{row.serviceName}</span>
-                  <span>{row.outcomeLabel} · {row.returnRowsLabel}</span>
-                  <strong>{row.amountLabel}</strong>
-                </div>
-              ))}
-            </div>
-          </section>
+          {activeTab === "sources" ? (
+            <section className="mt-4 rounded-lg border p-4" aria-label="欄位資料來源">
+              <h3 className="text-sm font-semibold">欄位資料來源</h3>
+              <div className="mt-3 divide-y rounded-md border">
+                {fields.map((field) => (
+                  <div key={field.fieldName} className="grid gap-2 p-3 text-sm md:grid-cols-[1fr_1fr_auto]">
+                    <span>{field.fieldName}</span>
+                    <span className="text-muted-foreground">{field.serviceName}</span>
+                    <span>{field.statusLabel}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-          <section className="mt-4 rounded-lg border p-4" aria-label="補件與現場確認">
-            <h3 className="text-sm font-semibold">補件與現場確認</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              保留現場必問、正式補件與手動覆蓋能力，但不在工作台常駐顯示升級規則。
-            </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <button className="rounded-md border px-3 py-2 text-sm" type="button">
-                加入補件清單
-              </button>
-              <button className="rounded-md border px-3 py-2 text-sm" type="button">
-                現場必問
-              </button>
-              <button className="rounded-md border px-3 py-2 text-sm" type="button">
-                手動上傳覆蓋
-              </button>
-            </div>
-          </section>
+          {activeTab === "costs" ? (
+            <section className="mt-4 rounded-lg border bg-slate-50 p-4" aria-label="費用摘要">
+              <h3 className="text-sm font-semibold">費用成功與失敗紀錄</h3>
+              <div className="mt-3 grid gap-2">
+                {usageRows.map((row) => (
+                  <div key={`${row.serviceName}-${row.outcomeLabel}`} className="grid gap-2 rounded-md bg-white p-3 text-sm md:grid-cols-[1fr_auto_auto]">
+                    <span>{row.serviceName}</span>
+                    <span>{row.outcomeLabel} · {row.returnRowsLabel}</span>
+                    <strong>{row.amountLabel}</strong>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {activeTab === "supplements" ? (
+            <section className="mt-4 rounded-lg border p-4" aria-label="補件與現場確認">
+              <h3 className="text-sm font-semibold">補件與現場確認</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                保留現場必問、正式補件與手動覆蓋能力；基本款可手動上傳 PDF 圖資，進階款才自動取得或 AI 整理。
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {ASSET_UPLOAD_SLOTS.map((slot) => (
+                  <label key={slot} className="rounded-md border p-3 text-sm">
+                    <span className="font-medium">{slot}上傳</span>
+                    <input
+                      className="mt-2 block w-full text-xs"
+                      type="file"
+                      accept="image/*,.pdf"
+                      aria-label={`${slot}上傳`}
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        if (file) setAssetUploads((prev) => ({ ...prev, [slot]: file.name }));
+                      }}
+                    />
+                    <span className="mt-2 block text-xs text-muted-foreground">
+                      {assetUploads[slot] ? `已選擇：${assetUploads[slot]}` : "尚未上傳"}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <button className="rounded-md border px-3 py-2 text-sm" type="button" onClick={() => setSupplementAdded(true)}>
+                  加入補件清單
+                </button>
+                <button className="rounded-md border px-3 py-2 text-sm" type="button" onClick={() => setSupplementAdded(true)}>
+                  現場必問
+                </button>
+                <button className="rounded-md border px-3 py-2 text-sm" type="button" onClick={() => setSupplementAdded(true)}>
+                  手動上傳覆蓋
+                </button>
+              </div>
+              {supplementAdded ? <p className="mt-3 text-sm font-medium text-emerald-700">已加入補件清單</p> : null}
+            </section>
+          ) : null}
+
+          {activeTab === "pdf" ? (
+            <section className="mt-4 rounded-lg border p-4" aria-label="PDF 檢查內容">
+              <h3 className="text-sm font-semibold">PDF 檢查</h3>
+              <p className="mt-1 text-sm text-muted-foreground">預覽前先確認欄位與圖資是否已補齊。</p>
+              <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+                <div className="rounded-md bg-slate-50 p-3">待確認欄位：23 欄</div>
+                <div className="rounded-md bg-slate-50 p-3">已上傳圖資：{Object.keys(assetUploads).length} 項</div>
+              </div>
+              <Link className="mt-3 inline-flex rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseData.id}/preview`}>
+                開啟 PDF 預覽
+              </Link>
+            </section>
+          ) : null}
         </section>
       </div>
     </section>

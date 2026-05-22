@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   casesApi,
@@ -16,6 +16,7 @@ import { useIpcErrorToast } from "@/hooks/useIpcErrorToast";
 export default function CaseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params?.id;
 
   const { handleError } = useIpcErrorToast();
@@ -76,7 +77,7 @@ export default function CaseDetailPage() {
         </p>
       </header>
 
-      <DemoAlignedWorkbench caseData={caseData} />
+      <DemoAlignedWorkbench caseData={caseData} initialTab={searchParams.get("tab")} />
     </main>
   );
 }

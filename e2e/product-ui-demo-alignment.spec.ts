@@ -66,10 +66,16 @@ for (const viewport of viewports) {
     await expect(page.getByRole("link", { name: "品牌設定" })).toHaveCount(0);
     await expect(page.getByText("授權管理")).toHaveCount(0);
     await expect(page.getByText("地政 API 設定")).toHaveCount(0);
+    await expect(page.getByLabel("地籍圖上傳")).toBeVisible();
+    await expect(page.getByLabel("空拍圖上傳")).toBeVisible();
+    await expect(page.getByLabel("格局圖上傳")).toBeVisible();
+    await expect(page.getByLabel("地標圖上傳")).toBeVisible();
 
     await page.goto("/settings?section=billing");
     await expect(page.getByRole("main").getByRole("heading", { name: "費用紀錄", exact: true })).toBeVisible();
     await expect(page.getByText("本月使用量")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "地政 API 查詢明細" })).toBeVisible();
+    await expect(page.getByText("地政費用合計 27 元")).toBeVisible();
     await expect(page.getByText("授權管理")).toHaveCount(0);
 
     await page.goto("/settings?section=plans");
@@ -141,7 +147,7 @@ test("cases overview uses sidebar scope navigation without duplicating page tabs
   await expect(page.getByRole("region", { name: "產出文件提示" })).toContainText("請先選擇案件列印或匯出文件。");
 
   await page.getByText("宜蘭五結農舍").click();
-  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}/preview\\?mode=export$`));
 
   await expectNoHorizontalOverflow(page);
   await page.screenshot({

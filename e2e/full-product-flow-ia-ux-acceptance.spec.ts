@@ -41,6 +41,11 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await sidebar.getByRole("link", { name: "補件清單" }).click();
   await expect(page).toHaveURL(/\/cases\?view=supplements$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "補件清單" })).toBeVisible();
+  await page.getByText("勝利小屋").click();
+  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID.replaceAll("-", "\\-")}\\?tab=supplements$`));
+  await expect(page.getByRole("tab", { name: "補件" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("region", { name: "補件與現場確認" })).toBeVisible();
+  await page.goBack();
 
   await sidebar.getByRole("button", { name: "展開地政資料選單" }).click();
   await sidebar.getByRole("link", { name: "資料來源" }).click();
@@ -59,10 +64,16 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await sidebar.getByRole("link", { name: "PDF 預覽" }).click();
   await expect(page).toHaveURL(/\/cases\?view=pdf$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "PDF 預覽" })).toBeVisible();
+  await page.getByText("勝利小屋").click();
+  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID.replaceAll("-", "\\-")}/preview$`));
+  await page.goBack();
 
   await sidebar.getByRole("link", { name: "列印與匯出" }).click();
   await expect(page).toHaveURL(/\/cases\?view=export$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "列印與匯出" })).toBeVisible();
+  await page.getByText("勝利小屋").click();
+  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID.replaceAll("-", "\\-")}/preview\\?mode=export$`));
+  await page.goBack();
 
   await sidebar.getByRole("button", { name: "展開系統設定選單" }).click();
   await expect(sidebar.getByRole("link", { name: "個人設定" })).toBeVisible();
@@ -102,8 +113,10 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page.getByRole("heading", { name: "說明書工作台" })).toBeVisible();
   await expect(page.getByRole("button", { name: "重新查詢" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "產生補件清單" })).toHaveCount(0);
-  await expect(page.getByText("地政重查待後端串接")).toBeVisible();
-  await expect(page.getByText("補件產生待後端串接")).toBeVisible();
+  await expect(page.getByText("地政重查：後端串接中")).toBeVisible();
+  await expect(page.getByText("自動補件：後端串接中")).toBeVisible();
+  await page.getByRole("tab", { name: "費用" }).click();
+  await expect(page.getByRole("region", { name: "費用摘要" })).toBeVisible();
 });
 
 async function seedCase(page: Page) {

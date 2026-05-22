@@ -168,3 +168,18 @@ export function getVisibleCaseManagementScope(value: string | null): CaseManagem
   const normalized = normalizeCaseManagementView(value);
   return CASE_MANAGEMENT_VIEWS.find((view) => view.id === normalized) ?? CASE_MANAGEMENT_VIEWS[0];
 }
+
+export function getCaseRowDestination(view: CaseManagementViewId, caseId: string): string {
+  switch (view) {
+    case "supplements":
+      return `/cases/${caseId}?tab=supplements`;
+    case "pdf":
+      return `/cases/${caseId}/preview`;
+    case "export":
+      return `/cases/${caseId}/preview?mode=export`;
+    case "workbench":
+    case "overview":
+    default:
+      return `/cases/${caseId}`;
+  }
+}
