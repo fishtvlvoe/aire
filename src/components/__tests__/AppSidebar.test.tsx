@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 
 let mockPathname = "/settings";
+let mockSearchParams = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
 }));
 
 import { AppSidebar } from "@/components/AppSidebar";
@@ -15,6 +16,7 @@ describe("AppSidebar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPathname = "/settings";
+    mockSearchParams = new URLSearchParams();
   });
 
   it("renders demo-aligned folder navigation with only the active folder expanded", () => {
@@ -25,10 +27,12 @@ describe("AppSidebar", () => {
     const navigation = screen.getByRole("navigation", { name: "主要選單" });
     expect(within(navigation).getByText("案件管理")).toBeInTheDocument();
     expect(within(navigation).getByText("地政資料")).toBeInTheDocument();
-    expect(within(navigation).getByText("產出文件")).toBeInTheDocument();
     expect(within(navigation).getByText("系統設定")).toBeInTheDocument();
+    expect(within(navigation).queryByText("產出文件")).not.toBeInTheDocument();
     expect(within(navigation).getByRole("link", { name: "新增案件" })).toBeInTheDocument();
-    expect(within(navigation).getByRole("link", { name: "說明書工作台" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "物件審核" })).toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "PDF 預覽" })).not.toBeInTheDocument();
+    expect(within(navigation).queryByRole("link", { name: "列印與匯出" })).not.toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "費用紀錄" })).not.toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "授權與升級" })).not.toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "功能開關" })).not.toBeInTheDocument();
@@ -57,6 +61,20 @@ describe("AppSidebar", () => {
     expect(within(navigation).getByRole("link", { name: "方案與升級" })).toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "功能開關" })).not.toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "授權與升級" })).not.toBeInTheDocument();
+  });
+
+  it("query section 頁面只標亮對應的系統設定子項目", () => {
+    mockPathname = "/settings";
+    mockSearchParams = new URLSearchParams("section=plans");
+
+    render(<AppSidebar collapsed={false} onToggle={vi.fn()} />);
+
+    const navigation = screen.getByRole("navigation", { name: "主要選單" });
+    const profile = within(navigation).getByRole("link", { name: "個人設定" });
+    const plans = within(navigation).getByRole("link", { name: "方案與升級" });
+
+    expect(profile).not.toHaveClass("bg-blue-50");
+    expect(plans).toHaveClass("bg-blue-50");
   });
 
   it("shows a persistent profile settings entry instead of the old app version card", () => {

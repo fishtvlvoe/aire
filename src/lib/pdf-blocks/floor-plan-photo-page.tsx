@@ -24,10 +24,10 @@ const styles = StyleSheet.create({
     height: 430,
     borderWidth: 1,
     borderStyle: "solid",
-    borderColor: "#E5E7EB",
+    borderColor: "#D1D5DB",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#FFFFFF",
     fontFamily: "NotoSansTC",
   },
   image: {
@@ -48,10 +48,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function placeholderForTitle(title: string): string {
-  return title === "土地規劃圖" ? "請上傳規劃圖" : "請上傳格局圖";
-}
-
 export function FloorPlanPhotoPage({
   photo,
   title,
@@ -65,10 +61,7 @@ export function FloorPlanPhotoPage({
         {hasPhoto ? (
           <Image style={styles.image} src={uint8ToDataUrl(photo)} />
         ) : (
-          <View style={{ alignItems: "center" }}>
-            <Text style={styles.placeholderTitle}>{title}</Text>
-            <Text style={styles.placeholderHint}>{placeholderForTitle(title)}</Text>
-          </View>
+          <View style={{ alignItems: "center" }} />
         )}
       </View>
       <PageFooter />

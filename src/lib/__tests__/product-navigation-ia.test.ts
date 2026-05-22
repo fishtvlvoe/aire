@@ -12,7 +12,7 @@ describe("product navigation IA", () => {
 
     expect(model.some((item) => item.level === "primary" && item.label === "案件管理")).toBe(true);
     expect(model.some((item) => item.level === "secondary" && item.label === "案件總覽")).toBe(true);
-    expect(model.some((item) => item.level === "case-workbench" && item.label === "現場必問")).toBe(true);
+    expect(model.some((item) => item.level === "case-workbench" && item.label === "補件/現場")).toBe(true);
 
     const secondaryLabels = model
       .filter((item) => item.level === "secondary")
@@ -20,6 +20,8 @@ describe("product navigation IA", () => {
     expect(secondaryLabels).toContain("新增案件");
     expect(secondaryLabels).toContain("補件清單");
     expect(secondaryLabels).toContain("方案與升級");
+    expect(secondaryLabels).not.toContain("PDF 預覽");
+    expect(secondaryLabels).not.toContain("列印與匯出");
     expect(secondaryLabels).not.toContain("地政查詢");
     expect(secondaryLabels).not.toContain("功能開關");
     expect(secondaryLabels).not.toContain("授權與升級");
@@ -31,8 +33,6 @@ describe("product navigation IA", () => {
       "overview",
       "workbench",
       "supplements",
-      "pdf",
-      "export",
     ]);
 
     expect(getVisibleCaseManagementScope("overview")).toMatchObject({
@@ -42,7 +42,7 @@ describe("product navigation IA", () => {
       showsSupplementTasks: false,
     });
     expect(getVisibleCaseManagementScope("workbench")).toMatchObject({
-      heading: "說明書工作台",
+      heading: "物件審核",
       showsCaseOverview: false,
       showsWorkbenchPrompt: true,
       showsSupplementTasks: false,
@@ -54,14 +54,8 @@ describe("product navigation IA", () => {
       showsSupplementTasks: true,
     });
     expect(getVisibleCaseManagementScope("pdf")).toMatchObject({
-      heading: "PDF 預覽",
-      showsCaseOverview: false,
-      documentPrompt: "請先選擇案件產生 PDF 預覽。",
-    });
-    expect(getVisibleCaseManagementScope("export")).toMatchObject({
-      heading: "列印與匯出",
-      showsCaseOverview: false,
-      documentPrompt: "請先選擇案件列印或匯出文件。",
+      heading: "案件總覽",
+      showsCaseOverview: true,
     });
   });
 
@@ -69,7 +63,5 @@ describe("product navigation IA", () => {
     expect(getCaseRowDestination("overview", "case-1")).toBe("/cases/case-1");
     expect(getCaseRowDestination("workbench", "case-1")).toBe("/cases/case-1");
     expect(getCaseRowDestination("supplements", "case-1")).toBe("/cases/case-1?tab=supplements");
-    expect(getCaseRowDestination("pdf", "case-1")).toBe("/cases/case-1/preview");
-    expect(getCaseRowDestination("export", "case-1")).toBe("/cases/case-1/preview?mode=export");
   });
 });

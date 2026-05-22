@@ -20,6 +20,10 @@ vi.mock("@/lib/tauri-bridge", () => ({
   NotInTauriError: class NotInTauriError extends Error {},
 }));
 
+vi.mock("@/lib/safe-invoke", () => ({
+  safeInvoke: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: vi.fn(), prefetch: vi.fn() }),
   useSearchParams: () => mockSearchParams,
@@ -29,13 +33,16 @@ vi.mock("next/navigation", () => ({
 import CasesPage from "../page";
 import { casesApi } from "@/lib/cases-api";
 import { NotInTauriError } from "@/lib/tauri-bridge";
+import { safeInvoke } from "@/lib/safe-invoke";
 
 const mockList = vi.mocked(casesApi.list);
+const mockSafeInvoke = vi.mocked(safeInvoke);
 
 describe("Cases page fallback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPush.mockClear();
+    mockSafeInvoke.mockResolvedValue(null);
     mockSearchParams = new URLSearchParams();
   });
 
@@ -97,7 +104,7 @@ describe("Cases page fallback", () => {
     mockSearchParams = new URLSearchParams("view=workbench");
     const { rerender } = render(<CasesPage />);
 
-    expect(await screen.findByRole("heading", { name: "說明書工作台" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "物件審核" })).toBeInTheDocument();
     expect(screen.getByText("請先選擇案件")).toBeInTheDocument();
     expect(screen.queryByText("全部案件")).not.toBeInTheDocument();
 
@@ -109,7 +116,7 @@ describe("Cases page fallback", () => {
     expect(screen.queryByText("全部案件")).not.toBeInTheDocument();
   });
 
-  it("changes main content scope for PDF preview and export views", async () => {
+  it("puts PDF preview and export on the case row actions", async () => {
     mockList.mockResolvedValue([
       {
         id: "case-1",
@@ -127,23 +134,21 @@ describe("Cases page fallback", () => {
       },
     ]);
 
-    mockSearchParams = new URLSearchParams("view=pdf");
-    const { rerender } = render(<CasesPage />);
+    render(<CasesPage />);
 
-    expect(await screen.findByRole("heading", { name: "PDF 預覽" })).toBeInTheDocument();
-    expect(within(screen.getByRole("region", { name: "產出文件提示" })).getByText("請先選擇案件產生 PDF 預覽。")).toBeInTheDocument();
-    expect(screen.queryByText("全部案件")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("和平東路案"));
+    expect(await screen.findByRole("heading", { name: "案件總覽" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "開啟工作台" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "預覽 PDF" }));
     expect(mockPush).toHaveBeenCalledWith("/cases/case-1/preview");
 
-    mockSearchParams = new URLSearchParams("view=export");
-    rerender(<CasesPage />);
+    fireEvent.click(screen.getByRole("button", { name: "匯出 PDF" }));
+    await waitFor(() => {
+      expect(mockSafeInvoke).toHaveBeenCalledWith("export_pdf", { caseId: "case-1" });
+    });
 
-    expect(await screen.findByRole("heading", { name: "列印與匯出" })).toBeInTheDocument();
-    expect(within(screen.getByRole("region", { name: "產出文件提示" })).getByText("請先選擇案件列印或匯出文件。")).toBeInTheDocument();
-    expect(screen.queryByText("全部案件")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("和平東路案"));
-    expect(mockPush).toHaveBeenCalledWith("/cases/case-1/preview?mode=export");
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1");
   });
 
   it("opens supplement list rows in the supplement workbench tab", async () => {

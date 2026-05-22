@@ -266,10 +266,6 @@ export interface HtmlFloorPlanPhotoProps {
   tokens: HtmlThemeTokens;
 }
 
-function floorPlanPlaceholder(title: HtmlFloorPlanPhotoProps["title"]): string {
-  return title === "土地規劃圖" ? "請上傳規劃圖" : "請上傳格局圖";
-}
-
 export function HtmlFloorPlanPhoto({
   photo,
   title,
@@ -283,7 +279,7 @@ export function HtmlFloorPlanPhoto({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#FFFFFF",
     overflow: "hidden",
   };
 
@@ -307,28 +303,7 @@ export function HtmlFloorPlanPhoto({
             style={{ width: "100%", height: 430, objectFit: "contain" }}
           />
         ) : (
-          <div style={{ textAlign: "center" }}>
-            <p
-              style={{
-                color: tokens.text,
-                fontSize: 14,
-                fontFamily: tokens.fontFamily,
-                marginBottom: 8,
-              }}
-            >
-              {title}
-            </p>
-            <p
-              style={{
-                color: "#9CA3AF",
-                fontSize: 10,
-                fontFamily: tokens.fontFamily,
-                margin: 0,
-              }}
-            >
-              {floorPlanPlaceholder(title)}
-            </p>
-          </div>
+          <div aria-label={`${title}空白框`} />
         )}
       </div>
     </div>

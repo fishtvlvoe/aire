@@ -81,6 +81,16 @@ const mockRealPriceRecords = [
   { unit_price: 90000 },
 ];
 
+const mockRealPriceRecordsWithDate = [
+  {
+    address: "台南市永康區勝利街58巷6號",
+    area: 30.2,
+    total_price: 11800000,
+    unit_price: 390728,
+    date: "2024-02-18",
+  },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Setup
 // ─────────────────────────────────────────────────────────────────────────────
@@ -169,6 +179,26 @@ describe("assembleDossierData — 土地版成功路徑", () => {
     expect(result.legalClauses).toHaveLength(2);
     expect(result.recentSalePricePerSqm).toBe(110000);
     expect(result.recentSaleCount).toBe(5);
+  });
+
+  it("實價登錄 date 欄位會帶入 PDF 成交日期，不顯示空白", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "land_registry_pull_data") return mockPullResultLand;
+      if (cmd === "get_legal_clause") return mockLegalClauses;
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return mockRealPriceRecordsWithDate;
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      address: "台南市永康區勝利街58巷4號1樓",
+    });
+
+    expect(result.transactionHistory?.[0]).toMatchObject({
+      address: "台南市永康區勝利街58巷6號",
+      transactionDate: "2024-02-18",
+    });
   });
 });
 

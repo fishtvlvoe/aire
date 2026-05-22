@@ -27,18 +27,23 @@ describe("DemoAlignedWorkbench", () => {
   it("renders the two-column case/chapter and field review workbench", () => {
     render(<DemoAlignedWorkbench caseData={caseRow} />);
 
-    expect(screen.getByRole("heading", { name: "說明書工作台" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "案件與章節" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "物件審核" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "物件摘要" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "欄位審核" })).toBeInTheDocument();
-    expect(screen.getByText("地址與地政判斷")).toBeInTheDocument();
-    expect(screen.getByText("已找到 2 筆土地、1 筆建物")).toBeInTheDocument();
+    expect(screen.getByText("地政資料")).toBeInTheDocument();
+    expect(screen.getByText("土地 2 筆 · 建物 1 筆")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "重新查詢" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "產生補件清單" })).not.toBeInTheDocument();
-    expect(screen.getByText("地政重查：後端串接中")).toBeInTheDocument();
-    expect(screen.getByText("自動補件：後端串接中")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "現場必問" }).length).toBeGreaterThan(0);
-    expect(screen.getByRole("tab", { name: "費用" })).toBeInTheDocument();
+    expect(screen.queryByText("地政重查：後端串接中")).not.toBeInTheDocument();
+    expect(screen.queryByText("自動補件：後端串接中")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "補件/現場" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "現場必問" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "費用" })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "PDF 檢查" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "本次調閱費用" })).toBeInTheDocument();
+    expect(screen.queryByText("說明書章節")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "修改" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "下一步：資料來源" })).toBeInTheDocument();
   });
 
   it("uses customer-facing field labels and hides engineering codes", () => {
@@ -68,11 +73,14 @@ describe("DemoAlignedWorkbench", () => {
     const workbench = screen.getByTestId("demo-aligned-workbench");
     expect(within(workbench).getByText("1/1")).toBeInTheDocument();
     expect(within(workbench).getByText("083/10/18")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "補件" }));
+    fireEvent.click(screen.getByRole("tab", { name: "補件/現場" }));
     const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
     expect(supplementRegion).toBeInTheDocument();
     expect(within(supplementRegion).getByRole("button", { name: "加入補件清單" })).toBeInTheDocument();
-    expect(within(supplementRegion).getByRole("button", { name: "現場必問" })).toBeInTheDocument();
+    expect(within(supplementRegion).queryByRole("button", { name: "現場必問" })).not.toBeInTheDocument();
+    expect(within(supplementRegion).queryByRole("button", { name: "手動上傳覆蓋" })).not.toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("建物現況回答")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("LINE 照片上傳")).toBeInTheDocument();
     expect(within(supplementRegion).getByLabelText("地籍圖上傳")).toBeInTheDocument();
     expect(within(supplementRegion).getByLabelText("空拍圖上傳")).toBeInTheDocument();
     expect(within(supplementRegion).getByLabelText("格局圖上傳")).toBeInTheDocument();
@@ -84,14 +92,27 @@ describe("DemoAlignedWorkbench", () => {
   it("switches workbench tabs instead of showing every panel at once", () => {
     render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
 
-    expect(screen.getByRole("tab", { name: "補件" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "補件/現場" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("region", { name: "補件與現場確認" })).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "費用摘要" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "欄位資料來源" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "費用" }));
+    fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
 
-    expect(screen.getByRole("tab", { name: "費用" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("region", { name: "費用摘要" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "資料來源" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "補件與現場確認" })).not.toBeInTheDocument();
+  });
+
+  it("supports SOP next-step navigation and inline field correction", () => {
+    render(<DemoAlignedWorkbench caseData={caseRow} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "修改" })[0]);
+    expect(screen.getByLabelText("屋主姓名修改值")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "下一步：資料來源" }));
+
+    expect(screen.getByRole("tab", { name: "資料來源" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "下載 JSON" })).toBeInTheDocument();
+    expect(screen.getByText("JSON 預覽")).toBeInTheDocument();
   });
 });

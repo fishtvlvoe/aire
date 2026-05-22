@@ -48,11 +48,11 @@ describe("SettingsPage demo alignment", () => {
 
     expect(screen.getByRole("heading", { name: "個人設定" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "設定分類" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "帳號與授權管理" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "更新密碼" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "個人名稱與 Email" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "品牌色" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "目前操作紀錄" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "品牌色與 Logo" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "帳號與授權管理" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "目前操作紀錄" })).not.toBeInTheDocument();
   });
 
   it("renders plan cards and usable test-build feature controls", async () => {
@@ -64,15 +64,17 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.getByRole("heading", { name: "基本款" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "進階款" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "高級款" })).toBeInTheDocument();
-    expect(screen.getByText("目前方案")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "帳號與授權管理" })).toBeInTheDocument();
+    expect(screen.getAllByText("目前方案").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByRole("button", { name: "前往升級" })).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "預留功能" })).toBeInTheDocument();
+    expect(screen.getByText("目前正在開發中。")).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByRole("switch", { name: "Google 地圖開發中" })).not.toBeDisabled();
+      expect(screen.getByRole("switch", { name: "Google 地圖未啟用" })).not.toBeDisabled();
     });
-    expect(screen.getByRole("switch", { name: "地籍圖整理開發中" })).not.toBeDisabled();
-    expect(screen.getByRole("switch", { name: "實價登錄開發中" })).not.toBeDisabled();
-    expect(screen.getAllByText("開發中")).toHaveLength(6);
+    expect(screen.getByRole("switch", { name: "地籍圖整理未啟用" })).not.toBeDisabled();
+    expect(screen.getByRole("switch", { name: "實價登錄未啟用" })).not.toBeDisabled();
+    expect(screen.getAllByText("未啟用").length).toBeGreaterThanOrEqual(6);
     expect(screen.queryByText("測試版已開啟")).not.toBeInTheDocument();
     expect(screen.queryByText(/正式版歸在/)).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();

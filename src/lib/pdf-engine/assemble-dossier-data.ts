@@ -329,7 +329,12 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         areaPing: typeof rec.area === "number" ? rec.area : 0,
         totalPrice: typeof rec.total_price === "number" ? rec.total_price : 0,
         unitPrice: typeof rec.unit_price === "number" ? rec.unit_price : 0,
-        transactionDate: typeof rec.transaction_date === "string" ? rec.transaction_date : "",
+        transactionDate:
+          typeof rec.transaction_date === "string"
+            ? rec.transaction_date
+            : typeof rec.date === "string"
+              ? rec.date
+              : "",
       };
     }) : [];
     recentSalePricePerSqm = stats.avg;

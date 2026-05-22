@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Database,
-  FileText,
   Folder,
   MoreHorizontal,
   Settings,
@@ -35,7 +34,7 @@ export function AppSidebar({
   const currentHref = search ? `${pathname}?${search}` : pathname;
   const userInitial = userName.trim().slice(0, 1) || "個";
   const folders = getDemoSidebarFolders();
-  const folderIcons = [Folder, Database, FileText, Settings];
+  const folderIcons = [Folder, Database, Settings];
   const activeFolderLabel = useMemo(() => {
     if (pathname === "/settings" && !search) {
       return "系統設定";
@@ -134,8 +133,7 @@ export function AppSidebar({
               {!collapsed && isOpen ? (
                 <div id={submenuId} className="ml-7 mt-1 space-y-1">
                   {folder.items.map((item) => {
-                    const baseHref = item.href.split("?")[0];
-                    const isActive = currentHref === item.href || (!item.href.includes("?") && pathname === baseHref);
+                    const isActive = currentHref === item.href;
 
                     return (
                       <Link

@@ -1,6 +1,6 @@
 export type ProductNavigationLevel = "primary" | "secondary" | "case-workbench";
 export type ProductNavigationScope = "global" | "module" | "case";
-export type CaseManagementViewId = "overview" | "workbench" | "supplements" | "pdf" | "export";
+export type CaseManagementViewId = "overview" | "workbench" | "supplements";
 
 export interface ProductNavigationItem {
   level: ProductNavigationLevel;
@@ -22,7 +22,6 @@ export interface CaseManagementView {
   showsCaseOverview: boolean;
   showsWorkbenchPrompt: boolean;
   showsSupplementTasks: boolean;
-  documentPrompt?: string;
 }
 
 const PRIMARY_NAVIGATION: ProductNavigationItem[] = [
@@ -42,13 +41,6 @@ const PRIMARY_NAVIGATION: ProductNavigationItem[] = [
   },
   {
     level: "primary",
-    label: "產出文件",
-    href: "/cases?view=pdf",
-    scope: "global",
-    description: "預覽、匯出、列印",
-  },
-  {
-    level: "primary",
     label: "系統設定",
     href: "/settings",
     scope: "global",
@@ -59,24 +51,20 @@ const PRIMARY_NAVIGATION: ProductNavigationItem[] = [
 const SECONDARY_NAVIGATION: ProductNavigationItem[] = [
   { level: "secondary", label: "案件總覽", href: "/cases", scope: "module", parentLabel: "案件管理" },
   { level: "secondary", label: "新增案件", href: "/cases/new", scope: "module", parentLabel: "案件管理" },
-  { level: "secondary", label: "說明書工作台", href: "/cases?view=workbench", scope: "module", parentLabel: "案件管理" },
+  { level: "secondary", label: "物件審核", href: "/cases?view=workbench", scope: "module", parentLabel: "案件管理" },
   { level: "secondary", label: "補件清單", href: "/cases?view=supplements", scope: "module", parentLabel: "案件管理" },
   { level: "secondary", label: "資料來源", href: "/settings?section=registry-rules", scope: "module", parentLabel: "地政資料" },
   { level: "secondary", label: "費用紀錄", href: "/settings?section=billing", scope: "module", parentLabel: "地政資料" },
-  { level: "secondary", label: "PDF 預覽", href: "/cases?view=pdf", scope: "module", parentLabel: "產出文件" },
-  { level: "secondary", label: "列印與匯出", href: "/cases?view=export", scope: "module", parentLabel: "產出文件" },
   { level: "secondary", label: "個人設定", href: "/settings", scope: "module", parentLabel: "系統設定" },
   { level: "secondary", label: "地政授權", href: "/settings?section=registry-auth", scope: "module", parentLabel: "系統設定" },
   { level: "secondary", label: "方案與升級", href: "/settings?section=plans", scope: "module", parentLabel: "系統設定" },
 ];
 
 const CASE_WORKBENCH_NAVIGATION: ProductNavigationItem[] = [
-  { level: "case-workbench", label: "基本資料", href: "#basic", scope: "case", parentLabel: "說明書工作台", primaryAction: true },
-  { level: "case-workbench", label: "地政資料", href: "#registry", scope: "case", parentLabel: "說明書工作台" },
-  { level: "case-workbench", label: "揭露資料", href: "#disclosure", scope: "case", parentLabel: "說明書工作台" },
-  { level: "case-workbench", label: "現場必問", href: "#field-visit", scope: "case", parentLabel: "說明書工作台" },
-  { level: "case-workbench", label: "補件", href: "#supplements", scope: "case", parentLabel: "說明書工作台" },
-  { level: "case-workbench", label: "PDF 檢查", href: "#pdf", scope: "case", parentLabel: "說明書工作台" },
+  { level: "case-workbench", label: "欄位", href: "#fields", scope: "case", parentLabel: "物件審核", primaryAction: true },
+  { level: "case-workbench", label: "資料來源", href: "#sources", scope: "case", parentLabel: "物件審核" },
+  { level: "case-workbench", label: "補件/現場", href: "#supplements", scope: "case", parentLabel: "物件審核" },
+  { level: "case-workbench", label: "PDF 檢查", href: "#pdf", scope: "case", parentLabel: "物件審核" },
 ];
 
 const CASE_MANAGEMENT_VIEWS: CaseManagementView[] = [
@@ -93,11 +81,11 @@ const CASE_MANAGEMENT_VIEWS: CaseManagementView[] = [
   },
   {
     id: "workbench",
-    label: "說明書工作台",
+    label: "物件審核",
     href: "/cases?view=workbench",
-    heading: "說明書工作台",
+    heading: "物件審核",
     eyebrow: "案件管理",
-    description: "請先選擇案件，再進入該案件的說明書工作台。",
+    description: "請先選擇案件，再進入該案件的物件審核流程。",
     showsCaseOverview: false,
     showsWorkbenchPrompt: true,
     showsSupplementTasks: false,
@@ -112,30 +100,6 @@ const CASE_MANAGEMENT_VIEWS: CaseManagementView[] = [
     showsCaseOverview: false,
     showsWorkbenchPrompt: false,
     showsSupplementTasks: true,
-  },
-  {
-    id: "pdf",
-    label: "PDF 預覽",
-    href: "/cases?view=pdf",
-    heading: "PDF 預覽",
-    eyebrow: "產出文件",
-    description: "請先選擇案件產生 PDF 預覽。",
-    showsCaseOverview: false,
-    showsWorkbenchPrompt: false,
-    showsSupplementTasks: false,
-    documentPrompt: "請先選擇案件產生 PDF 預覽。",
-  },
-  {
-    id: "export",
-    label: "列印與匯出",
-    href: "/cases?view=export",
-    heading: "列印與匯出",
-    eyebrow: "產出文件",
-    description: "請先選擇案件列印或匯出文件。",
-    showsCaseOverview: false,
-    showsWorkbenchPrompt: false,
-    showsSupplementTasks: false,
-    documentPrompt: "請先選擇案件列印或匯出文件。",
   },
 ];
 
@@ -160,7 +124,7 @@ export function getCaseManagementViews(): CaseManagementView[] {
 }
 
 export function normalizeCaseManagementView(value: string | null): CaseManagementViewId {
-  if (value === "workbench" || value === "supplements" || value === "pdf" || value === "export") return value;
+  if (value === "workbench" || value === "supplements") return value;
   return "overview";
 }
 
@@ -173,10 +137,6 @@ export function getCaseRowDestination(view: CaseManagementViewId, caseId: string
   switch (view) {
     case "supplements":
       return `/cases/${caseId}?tab=supplements`;
-    case "pdf":
-      return `/cases/${caseId}/preview`;
-    case "export":
-      return `/cases/${caseId}/preview?mode=export`;
     case "workbench":
     case "overview":
     default:

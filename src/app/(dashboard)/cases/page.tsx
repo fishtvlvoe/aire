@@ -159,7 +159,7 @@ export default function CasesPage() {
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-label="選擇案件進入工作台">
           <h2 className="text-base font-semibold">請先選擇案件</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            工作台是單一案件內的操作區。請從下方選擇案件後，再處理基本資料、地政資料、揭露資料、現場必問、補件與 PDF 檢查。
+            物件審核是單一案件內的操作區。請從下方選擇案件後，再處理欄位、資料來源、補件與現場確認、PDF 檢查。
           </p>
         </section>
       )}
@@ -170,13 +170,6 @@ export default function CasesPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             這裡只列出目前缺少屋主、現場或正式文件資料的案件。選擇案件後再進入案件內補件。
           </p>
-        </section>
-      )}
-
-      {scope.documentPrompt && !error && !requiresTauri && cases !== null && cases.length > 0 && (
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-label="產出文件提示">
-          <h2 className="text-base font-semibold">請先選擇案件</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{scope.documentPrompt}</p>
         </section>
       )}
 
@@ -195,7 +188,7 @@ export default function CasesPage() {
           ) : null}
 
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="grid grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_100px_180px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-muted-foreground max-xl:hidden">
+            <div className="grid grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_110px_200px] gap-4 border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-muted-foreground max-xl:hidden">
               <div>案件名稱</div>
               <div>地址與所有權人</div>
               <div>案件類型</div>
@@ -210,7 +203,7 @@ export default function CasesPage() {
             {scopedCases.map((c) => (
               <article
                 key={c.id}
-                className="grid cursor-pointer gap-4 border-b border-slate-100 px-4 py-4 transition-colors last:border-b-0 hover:bg-slate-50/70 xl:grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_100px_180px] xl:items-center"
+                className="grid cursor-pointer gap-4 border-b border-slate-100 px-4 py-4 transition-colors last:border-b-0 hover:bg-slate-50/70 xl:grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.7fr)_120px_110px_200px] xl:items-center"
                 onClick={() => openCaseDestination(c.id)}
                 role="link"
                 tabIndex={0}
@@ -243,7 +236,7 @@ export default function CasesPage() {
                 <div className="flex flex-wrap items-center justify-start gap-1 xl:justify-end">
                   <CaseListActions
                     caseId={c.id}
-                    onView={() => openCaseDestination(c.id)}
+                    onPreview={() => router.push(`/cases/${c.id}/preview`)}
                     onEdit={() => router.push(`/cases/${c.id}`)}
                     onDelete={() => setDeletingCase(c)}
                     onDownload={() => void handleDownload(c.id)}

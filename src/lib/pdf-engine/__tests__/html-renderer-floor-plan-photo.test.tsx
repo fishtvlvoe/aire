@@ -47,7 +47,7 @@ describe("renderDisclosureHtml — floor-plan photo preview", () => {
     expect(html).toContain("data:image/png;base64,");
   });
 
-  it("renders land planning-map placeholder when no upload exists", () => {
+  it("renders a blank planning-map frame when no upload exists", () => {
     const html = renderDisclosureHtml(
       baseDossier({
         propertyType: "land",
@@ -57,6 +57,8 @@ describe("renderDisclosureHtml — floor-plan photo preview", () => {
     );
 
     expect(html).toContain("土地規劃圖");
-    expect(html).toContain("請上傳規劃圖");
+    expect(html).toContain('aria-label="土地規劃圖空白框"');
+    expect(html).not.toContain("請上傳規劃圖");
+    expect(html).not.toContain("請上傳格局圖");
   });
 });

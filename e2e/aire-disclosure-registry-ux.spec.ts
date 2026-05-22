@@ -70,10 +70,13 @@ test("registry-aligned workbench stays readable", async ({ page }) => {
   await page.goto(`/cases/${CASE_ID}`);
 
   await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
-  await expect(page.getByRole("region", { name: "案件與章節" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
   await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
   await expect(page.getByText("建物權利範圍")).toBeVisible();
-  await expect(page.getByText("費用成功與失敗紀錄")).toBeVisible();
+  await expect(page.getByRole("region", { name: "本次調閱費用" })).toBeVisible();
+  await page.getByRole("tab", { name: "資料來源" }).click();
+  await expect(page.getByText("地政匯入資料")).toBeVisible();
+  await expect(page.getByRole("link", { name: "下載 JSON" })).toBeVisible();
   await expect(page.getByText("MOI_API_")).toHaveCount(0);
   await expect(page.getByText("COP309")).toHaveCount(0);
 

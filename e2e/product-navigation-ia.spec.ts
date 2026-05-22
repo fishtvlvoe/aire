@@ -16,16 +16,16 @@ test("primary and secondary navigation change the visible case-management scope"
   const sidebar = page.getByRole("navigation", { name: "主要選單" });
 
   await expect(sidebar.getByRole("link", { name: "案件總覽" })).toBeVisible();
-  await expect(sidebar.getByRole("link", { name: "說明書工作台" })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "物件審核" })).toBeVisible();
   await expect(sidebar.getByRole("link", { name: "補件清單" })).toBeVisible();
   await expect(main.getByRole("heading", { name: "案件總覽" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "案件分類" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /開啟.*工作台/ })).toHaveCount(0);
   await expect(page.getByText("現場必問工作台")).toHaveCount(0);
 
-  await sidebar.getByRole("link", { name: "說明書工作台" }).click();
+  await sidebar.getByRole("link", { name: "物件審核" }).click();
   await expect(page).toHaveURL(/\/cases\?view=workbench$/);
-  await expect(main.getByRole("heading", { name: "說明書工作台" })).toBeVisible();
+  await expect(main.getByRole("heading", { name: "物件審核" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "請先選擇案件" })).toBeVisible();
   await expect(page.getByText("全部案件")).toHaveCount(0);
 
@@ -42,9 +42,11 @@ test("case row enters the selected case and exposes case-level workbench tools",
 
   await page.locator('article[role="link"]').filter({ hasText: "和平東路案" }).click();
   await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
-  await expect(page.getByRole("heading", { name: "說明書工作台" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "案件與章節" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "現場必問" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "物件審核" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "補件/現場" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "費用" })).toHaveCount(0);
+  await expect(page.getByText("說明書章節")).toHaveCount(0);
 });
 
 for (const viewport of [
@@ -58,7 +60,7 @@ for (const viewport of [
     await expect(page.getByRole("main").getByRole("heading", { name: "案件總覽" })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "案件分類" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "案件總覽" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "說明書工作台" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "物件審核" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "補件清單" })).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({

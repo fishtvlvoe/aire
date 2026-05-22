@@ -63,7 +63,9 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.queryByLabelText("物件類型")).not.toBeInTheDocument();
 
     mockAddressLookup.mockResolvedValue([]);
-    fireEvent.change(screen.getByLabelText("地址 *"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "宜蘭縣五結鄉協和村親河路二段 候選多筆" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "判斷地政資料" }));
 
     await waitFor(() => {
@@ -71,16 +73,20 @@ describe("NewCasePage address-first flow", () => {
     });
   });
 
-  it("blocks case creation until registry detection has been completed", async () => {
+  it("runs registry detection from the primary submit button before case creation", async () => {
     render(<NewCasePage />);
 
     fireEvent.change(screen.getByLabelText("地址 *"), {
       target: { value: "台南市永康區勝利街58巷4號1樓" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "先判斷地政資料" }));
+    fireEvent.click(screen.getByRole("button", { name: "判斷地政資料" }));
 
+    await waitFor(() => {
+      expect(mockAddressLookup).toHaveBeenCalledWith("台南市永康區勝利街58巷4號1樓");
+    });
     expect(mockCreateCase).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert")).toHaveTextContent("請先按「判斷地政資料」");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "建立案件" })).toBeInTheDocument();
   });
 
   it("shows manual fallback when registry returns multiple candidates", async () => {

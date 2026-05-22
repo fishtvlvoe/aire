@@ -49,7 +49,7 @@ export default function SettingsPage() {
         ? "目前方案、可用功能與升級入口集中在這裡。"
         : selectedSection === "registry-auth"
           ? "管理客戶自己的地政查詢帳號與連線測試。"
-          : "管理帳號、授權、密碼、品牌色與近期操作。";
+          : "管理個人名稱、Email、密碼、品牌色與 Logo。";
 
   return (
     <div className="space-y-6">
@@ -88,43 +88,109 @@ function isKnownSettingsSection(section: string) {
 }
 
 function ProfileSettingsPanel() {
+  const [name, setName] = useState("余啟彰");
+  const [email, setEmail] = useState("fish.myfb@gmail.com");
+  const [brandColor, setBrandColor] = useState("#174d36");
+  const [logoName, setLogoName] = useState("");
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <article className="rounded-lg border p-4">
-        <h2 className="text-base font-semibold">帳號與授權管理</h2>
-        <dl className="mt-3 space-y-2 text-sm">
-          <SettingKv label="目前方案" value="基本款" />
-          <SettingKv label="授權狀態" value="測試版已啟用" />
-          <SettingKv label="裝置" value="本機 AIRE 桌面 App" />
-        </dl>
-      </article>
-      <article className="rounded-lg border p-4">
-        <h2 className="text-base font-semibold">更新密碼</h2>
-        <p className="mt-2 text-sm text-muted-foreground">管理登入密碼與 PDF 開啟密碼；正式版會依角色限制可見範圍。</p>
-        <button className="mt-4 rounded-md border px-3 py-2 text-sm" type="button">更新密碼</button>
-      </article>
-      <article className="rounded-lg border p-4">
+      <form
+        className="rounded-lg border p-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setProfileSaved(true);
+        }}
+      >
         <h2 className="text-base font-semibold">個人名稱與 Email</h2>
-        <dl className="mt-3 space-y-2 text-sm">
-          <SettingKv label="名稱" value="余啟彰" />
-          <SettingKv label="Email" value="fish.myfb@gmail.com" />
-        </dl>
-      </article>
-      <article className="rounded-lg border p-4">
-        <h2 className="text-base font-semibold">品牌色</h2>
-        <div className="mt-3 flex items-center gap-3 text-sm">
-          <span className="h-8 w-8 rounded-full bg-teal-700" aria-label="目前品牌色" />
-          <span className="text-muted-foreground">目前使用 AIRE 深綠品牌色</span>
+        <div className="mt-3 grid gap-3 text-sm">
+          <label>
+            <span className="font-medium">名稱</span>
+            <input
+              className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              aria-label="個人名稱"
+            />
+          </label>
+          <label>
+            <span className="font-medium">Email</span>
+            <input
+              className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              aria-label="Email"
+            />
+          </label>
         </div>
-      </article>
-      <article className="rounded-lg border p-4 xl:col-span-2">
-        <h2 className="text-base font-semibold">目前操作紀錄</h2>
-        <div className="mt-3 grid gap-2 text-sm md:grid-cols-3">
-          <div className="rounded-md bg-slate-50 p-3">最近建立案件：勝利小屋</div>
-          <div className="rounded-md bg-slate-50 p-3">最近地政查詢：測試資料</div>
-          <div className="rounded-md bg-slate-50 p-3">最近匯出：尚未匯出</div>
+        <button className="mt-4 rounded-md bg-slate-950 px-3 py-2 text-sm text-white" type="submit">
+          儲存個人資料
+        </button>
+        {profileSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">個人資料已暫存</p> : null}
+      </form>
+
+      <form
+        className="rounded-lg border p-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setPasswordSaved(true);
+        }}
+      >
+        <h2 className="text-base font-semibold">更新密碼</h2>
+        <p className="mt-2 text-sm text-muted-foreground">用於登入 AIRE 與開啟加密 PDF。</p>
+        <div className="mt-3 grid gap-3 text-sm">
+          <label>
+            <span className="font-medium">目前密碼</span>
+            <input className="mt-1 min-h-10 w-full rounded-md border px-3 py-2" type="password" aria-label="目前密碼" />
+          </label>
+          <label>
+            <span className="font-medium">新密碼</span>
+            <input className="mt-1 min-h-10 w-full rounded-md border px-3 py-2" type="password" aria-label="新密碼" />
+          </label>
         </div>
-      </article>
+        <button className="mt-4 rounded-md border px-3 py-2 text-sm" type="submit">更新密碼</button>
+        {passwordSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">密碼設定已暫存</p> : null}
+      </form>
+
+      <form
+        className="rounded-lg border p-4 xl:col-span-2"
+        onSubmit={(event) => event.preventDefault()}
+      >
+        <h2 className="text-base font-semibold">品牌色與 Logo</h2>
+        <p className="mt-2 text-sm text-muted-foreground">會套用在 PDF 封面、頁首與系統識別。</p>
+        <div className="mt-3 grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+          <label className="text-sm">
+            <span className="font-medium">品牌色</span>
+            <div className="mt-2 flex items-center gap-3">
+              <input
+                className="h-10 w-14 rounded-md border"
+                type="color"
+                value={brandColor}
+                onChange={(event) => setBrandColor(event.target.value)}
+                aria-label="品牌色"
+              />
+              <span className="text-muted-foreground">{brandColor}</span>
+            </div>
+          </label>
+          <label className="text-sm">
+            <span className="font-medium">品牌 Logo</span>
+            <input
+              className="mt-2 block w-full text-sm"
+              type="file"
+              accept="image/*"
+              aria-label="品牌 Logo 上傳"
+              onChange={(event) => setLogoName(event.currentTarget.files?.[0]?.name ?? "")}
+            />
+            <span className="mt-2 block text-xs text-muted-foreground">
+              {logoName ? `已選擇：${logoName}` : "尚未上傳"}
+            </span>
+          </label>
+        </div>
+        <button className="mt-4 rounded-md border px-3 py-2 text-sm" type="submit">儲存品牌設定</button>
+      </form>
     </div>
   );
 }
@@ -168,12 +234,30 @@ function PlansAndUpgradePanel({
       id: feature.id,
     });
     setFeatureStates((prev) =>
-      prev.map((row) => (row.id === feature.id ? { ...row, enabled: res.enabled } : row)),
+      prev.map((row) =>
+        row.id === feature.id
+          ? {
+              ...row,
+              enabled: res.enabled,
+              description: res.enabled ? "已啟用" : "未啟用",
+              ariaLabel: `${row.label}${res.enabled ? "已啟用" : "未啟用"}`,
+            }
+          : row,
+      ),
     );
   }
 
   return (
     <div className="space-y-5">
+      <section className="rounded-lg border p-4" aria-label="帳號與授權管理">
+        <h2 className="text-base font-semibold">帳號與授權管理</h2>
+        <dl className="mt-3 grid gap-2 text-sm md:grid-cols-3">
+          <SettingKv label="目前方案" value="基本款" />
+          <SettingKv label="授權狀態" value="測試版已啟用" />
+          <SettingKv label="裝置" value="本機 AIRE 桌面 App" />
+        </dl>
+      </section>
+
       <section className="grid gap-4 xl:grid-cols-3" aria-label="方案卡片">
         {plans.map((plan) => (
           <article
@@ -213,7 +297,7 @@ function PlansAndUpgradePanel({
 
       <section>
         <h2 className="text-base font-semibold">預留功能</h2>
-        <p className="text-sm text-muted-foreground">各項預留功能目前皆為開發中。</p>
+        <p className="text-sm text-muted-foreground">目前正在開發中。</p>
         <div className="mt-4 divide-y rounded-lg border">
           {featureStates.map((feature) => (
             <div key={feature.label} className="flex items-center justify-between gap-4 p-4">
@@ -255,6 +339,8 @@ function getFeatureStates(features: EntitlementFeature[], flags: FeatureFlag[]) 
   return features.map((feature) => ({
     ...feature,
     enabled: flagMap.get(feature.id) ?? false,
+    description: flagMap.get(feature.id) ? "已啟用" : "未啟用",
+    ariaLabel: `${feature.label}${flagMap.get(feature.id) ? "已啟用" : "未啟用"}`,
   }));
 }
 

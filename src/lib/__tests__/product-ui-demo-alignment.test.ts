@@ -40,13 +40,12 @@ describe("product-ui-demo-alignment contract", () => {
     expect(getDemoSidebarFolders().map((folder) => folder.label)).toEqual([
       "案件管理",
       "地政資料",
-      "產出文件",
       "系統設定",
     ]);
     expect(getDemoSidebarFolders()[0].items.map((item) => item.label)).toEqual([
       "案件總覽",
       "新增案件",
-      "說明書工作台",
+      "物件審核",
       "補件清單",
     ]);
     expect(getDemoSidebarFolders()[1].items.map((item) => item.label)).toEqual([
@@ -58,7 +57,7 @@ describe("product-ui-demo-alignment contract", () => {
       "地政授權",
       "方案與升級",
     ]);
-    expect(getDemoSidebarFolders()[3].items.map((item) => item.label)).toEqual([
+    expect(getDemoSidebarFolders()[2].items.map((item) => item.label)).toEqual([
       "個人設定",
       "地政授權",
       "方案與升級",
@@ -84,7 +83,15 @@ describe("product-ui-demo-alignment contract", () => {
       "地籍圖整理",
       "實價登錄",
     ]);
-    expect(features.every((feature) => feature.description === "開發中")).toBe(true);
+    expect(features.every((feature) => feature.description === "未啟用")).toBe(true);
+    expect(features.map((feature) => feature.ariaLabel)).toEqual([
+      "Google 地圖未啟用",
+      "空拍圖未啟用",
+      "街景參考未啟用",
+      "AI 格局圖整理未啟用",
+      "地籍圖整理未啟用",
+      "實價登錄未啟用",
+    ]);
     expect(features.every((feature) => feature.enabled === false)).toBe(true);
     expect(features.map((feature) => feature.description).join(" ")).not.toContain("測試版已開啟");
     expect(features.map((feature) => feature.description).join(" ")).not.toContain("正式版歸在");

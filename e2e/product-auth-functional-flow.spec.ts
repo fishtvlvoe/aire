@@ -22,9 +22,9 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await page.getByText("宜蘭五結農舍").click();
   await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
   await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
-  await expect(page.getByRole("region", { name: "案件與章節" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
   await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
-  await page.getByRole("tab", { name: "補件" }).click();
+  await page.getByRole("tab", { name: "補件/現場" }).click();
   await expect(page.getByRole("region", { name: "補件與現場確認" })).toBeVisible();
   await expect(page.getByText("MOI_API_")).toHaveCount(0);
   await expect(page.getByText("COP309")).toHaveCount(0);
@@ -44,8 +44,8 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await expect(page.getByRole("heading", { name: "預留功能" })).toBeVisible();
   await expect(page.getByText("測試版已開啟")).toHaveCount(0);
   await expect(page.getByText(/正式版歸在/)).toHaveCount(0);
-  await expect(page.getByRole("switch", { name: "Google 地圖開發中" })).toBeEnabled();
-  await expect(page.getByRole("switch", { name: "實價登錄開發中" })).toBeEnabled();
+  await expect(page.getByRole("switch", { name: "Google 地圖未啟用" })).toBeEnabled();
+  await expect(page.getByRole("switch", { name: "實價登錄未啟用" })).toBeEnabled();
 
   await page.goto("/cases/new");
   await expect(page.getByLabel("地址 *")).toBeVisible();

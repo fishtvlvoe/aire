@@ -48,7 +48,7 @@ export default function NewCasePage() {
     setErrors((e) => ({ ...e, [k]: undefined }));
   }
 
-  async function handleDetectRegistry() {
+  async function detectRegistry(): Promise<AddressFirstClassification | null> {
     setSubmitError(null);
     setDetectingRegistry(true);
     setRegistryDetectMessage(null);
@@ -59,6 +59,7 @@ export default function NewCasePage() {
       if (!result.manualSelectionRequired) {
         update("property_type", result.propertyType);
       }
+      return result;
     } catch (error) {
       const result = getAddressFirstClassification(values.address);
       setClassification(result);
@@ -70,6 +71,7 @@ export default function NewCasePage() {
       if (!result.manualSelectionRequired) {
         update("property_type", result.propertyType);
       }
+      return result;
     } finally {
       setDetectingRegistry(false);
     }
@@ -91,7 +93,7 @@ export default function NewCasePage() {
     setLoading(true);
     try {
       if (!classification) {
-        setSubmitError("請先按「判斷地政資料」確認土地或建物資料，再建立案件。");
+        await detectRegistry();
         return;
       }
       const detected = classification;
@@ -127,7 +129,7 @@ export default function NewCasePage() {
           <label className="mb-2 block text-sm font-semibold" htmlFor="case-address">
             地址 *
           </label>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div>
             <input
               id="case-address"
               type="text"
@@ -137,17 +139,9 @@ export default function NewCasePage() {
                 setClassification(null);
                 setSubmitError(null);
               }}
-              className="min-h-11 flex-1 rounded-md border px-3 py-2 text-sm"
+              className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
               placeholder="例：宜蘭縣五結鄉協和村親河路二段 1 號"
             />
-            <button
-              type="button"
-              className="min-h-11 rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-              onClick={() => void handleDetectRegistry()}
-              disabled={detectingRegistry}
-            >
-              {detectingRegistry ? "判斷中..." : "判斷地政資料"}
-            </button>
           </div>
           {errors.address ? (
             <span className="mt-1 block text-xs text-destructive">{errors.address}</span>
@@ -261,10 +255,10 @@ export default function NewCasePage() {
           </button>
           <button
             type="submit"
-            disabled={loading}
-              className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={loading || detectingRegistry}
+            className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "建立中…" : classification ? "建立案件" : "先判斷地政資料"}
+            {loading ? "建立中…" : detectingRegistry ? "判斷中..." : classification ? "建立案件" : "判斷地政資料"}
           </button>
         </div>
       </form>

@@ -103,7 +103,7 @@ const SERVICE_LABELS: Record<string, string> = {
 
 const DEMO_FIELD_ROWS: DemoFieldReviewRow[] = [
   {
-    fieldName: "私人屋主姓名",
+    fieldName: "屋主姓名",
     helper: "由屋主或正式文件提供",
     value: "待屋主提供或由謄本帶入",
     serviceName: "屋主提供資料",
@@ -127,8 +127,8 @@ const DEMO_FIELD_ROWS: DemoFieldReviewRow[] = [
     amountLabel: "已含本次費用",
   },
   {
-    fieldName: "屋主姓名確認",
-    helper: "用已提供姓名確認是否相符",
+    fieldName: "姓名比對結果",
+    helper: "用屋主姓名比對所有權人",
     value: "等待屋主姓名後再比對",
     serviceName: "所有權人比對服務",
     statusLabel: "待資料",
@@ -183,50 +183,50 @@ const ENTITLEMENT_FEATURES: EntitlementFeature[] = [
   {
     id: "google-map",
     label: "Google 地圖",
-    description: "開發中",
+    description: "未啟用",
     enabled: false,
     upgraded: false,
-    ariaLabel: "Google 地圖開發中",
+    ariaLabel: "Google 地圖未啟用",
   },
   {
     id: "aerial-photo",
     label: "空拍圖",
-    description: "開發中",
+    description: "未啟用",
     enabled: false,
     upgraded: false,
-    ariaLabel: "空拍圖開發中",
+    ariaLabel: "空拍圖未啟用",
   },
   {
     id: "street-view-reference",
     label: "街景參考",
-    description: "開發中",
+    description: "未啟用",
     enabled: false,
     upgraded: false,
-    ariaLabel: "街景參考開發中",
+    ariaLabel: "街景參考未啟用",
   },
   {
     id: "ai-floor-plan",
     label: "AI 格局圖整理",
-    description: "開發中",
+    description: "未啟用",
     enabled: false,
     upgraded: false,
-    ariaLabel: "AI 格局圖整理開發中",
+    ariaLabel: "AI 格局圖整理未啟用",
   },
   {
     id: "cadastral-map",
     label: "地籍圖整理",
-    description: "開發中",
+    description: "未啟用",
     enabled: false,
     upgraded: false,
-    ariaLabel: "地籍圖整理開發中",
+    ariaLabel: "地籍圖整理未啟用",
   },
   {
     id: "premium_real_price_enabled",
     label: "實價登錄",
-    description: "開發中",
+    description: "未啟用",
     enabled: false,
     upgraded: false,
-    ariaLabel: "實價登錄開發中",
+    ariaLabel: "實價登錄未啟用",
   },
 ];
 
@@ -239,7 +239,7 @@ const UPGRADE_PLANS: UpgradePlan[] = [
     description: "適合先完成不動產說明書、地政資料查詢與 PDF 產出的基本流程。",
     current: true,
     ctaLabel: "目前使用中",
-    features: ["案件管理", "地政資料查詢", "不動產說明書工作台", "PDF 預覽與匯出"],
+    features: ["案件管理", "地政資料查詢", "不動產物件審核", "PDF 預覽與匯出"],
   },
   {
     id: "advanced",
@@ -279,8 +279,8 @@ const PDF_ASSET_SLOTS: PdfAssetSlot[] = [
   {
     label: "格局圖",
     description: "放入建物格局與室內配置頁面",
-    basicFallback: "基本款可手動上傳原有格局圖",
-    upgradeAutomation: "高級款可啟用 AI 格局圖整理",
+    basicFallback: "尚未上傳時 PDF 保留空白框，供現場手繪或後續補圖",
+    upgradeAutomation: "高級款可將現場手稿照片整理成正式格局圖",
   },
   {
     label: "地標圖",
@@ -431,7 +431,7 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
   }
 
   if (caseData.owner_name?.trim()) {
-    updateFieldRow(rows, "私人屋主姓名", {
+    updateFieldRow(rows, "屋主姓名", {
       value: "已由案件資料提供，可進行比對",
       statusLabel: "待系統補齊",
     });

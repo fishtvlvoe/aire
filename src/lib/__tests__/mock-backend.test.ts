@@ -274,6 +274,29 @@ describe("MockStore", () => {
     }
   });
 
+  it("query_real_price returns Yongkang records for a Yongkang Shengli case", async () => {
+    const records = await mockInvoke<
+      Array<{
+        unit_price: number;
+        total_price: number;
+        area: number;
+        address: string;
+        date: string;
+      }>
+    >("query_real_price", {
+      district: "台南市永康區",
+      keyword: "台南市永康區勝利街58巷4號1樓",
+      limit: 5,
+    });
+
+    expect(records).toHaveLength(3);
+    for (const row of records) {
+      expect(row.address).toContain("台南市永康區");
+      expect(row.address).not.toContain("育農路");
+      expect(row.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
   it("resets state to initial seed", async () => {
     const store = new MockStore();
 

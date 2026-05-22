@@ -1362,6 +1362,35 @@ export class MockStore {
       return [];
     }
 
+    if (normalizedQuery.includes("永康") || normalizedQuery.includes("勝利")) {
+      return [
+        {
+          address: "台南市永康區勝利街58巷6號",
+          total_price: 11800000,
+          area: 30.2,
+          unit_price: 390728,
+          date: "2024-02-18",
+          type: "華廈",
+        },
+        {
+          address: "台南市永康區勝利街76巷12號4樓",
+          total_price: 9300000,
+          area: 25.1,
+          unit_price: 370518,
+          date: "2023-12-06",
+          type: "公寓",
+        },
+        {
+          address: "台南市永康區中華一路39巷8號",
+          total_price: 14600000,
+          area: 39.6,
+          unit_price: 368687,
+          date: "2024-04-11",
+          type: "大樓",
+        },
+      ];
+    }
+
     return [
       {
         address: "台南市東區裕農路123號",
