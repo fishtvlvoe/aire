@@ -18,6 +18,16 @@ Fish 要的不是「可以產一份半空白 PDF」，而是：
 | 手動/屋主提供 `manual` | 使用者或屋主提供 | 進 PDF 並標來源 | 偽裝成 API 回傳 |
 | mock | 開發假資料 | 測試 UI | 客戶 PDF 或交付驗收 |
 
+## Current State Seen In Browser
+
+Fish 目前看到兩個瀏覽器資料不一致，是因為一般 browser dev path 會 fallback 到 `mock-backend`，資料存在各瀏覽器自己的 localStorage `aire-mock-store`。因此：
+
+- Chrome A、新 Chrome profile、Safari 會各有自己的案件清單與補件狀態。
+- 這不是正式 SaaS 共用資料庫，也不是 Tauri native SQLite 的權威資料。
+- 在這個 CR 完成前，browser localhost 只能當 UI 測試；正式驗收要走 native/Tauri 或共享 backend path。
+
+產品需要避免誤導使用者：若目前是 browser mock state，頁面 SHALL 明確標示這是「本瀏覽器本機測試資料」，並提供匯出/匯入或重置輔助；客戶交付流程 SHALL 不以此作為真實資料來源。
+
 ## Required Data Flow
 
 ### 1. 新增案件
@@ -50,6 +60,26 @@ Fish 要的不是「可以產一份半空白 PDF」，而是：
 
 輸入不可只用 `lot_number = 0001`。地址 lookup 回傳若沒有足夠正式 parcel id/building id，系統要讓使用者補建號/地號，或使用已知可查 API 做下一步查詢。
 
+目前建物案件的 PDF assembly 只指定 `building_registry`、`building_ownership`、`mortgages`，因此物調表土地區塊會缺：
+
+- 地段、地號、使用分區、土地面積。
+- 土地權利範圍、持分面積。
+- 建蔽率、容積率。
+
+建物欄位則依賴 `building_registry` 與 `building_ownership` 的欄位映射；若正式 pull 沒跑、只拿到 candidate、或 API 回傳 key 名稱未被 mapper 支援，就會缺：
+
+- 建物面積、登記坪數、主建坪數、附屬建物、公共設施、車位坪數。
+- 法定用途、主要建材、建築完成日、屋齡、樓層、建物權利範圍。
+
+下列欄位不是地政 API 必然會給，系統 SHALL 提供補件欄位並標來源：
+
+- 建物現況。
+- 格局。
+- 座向。
+- 管理費。
+
+「所有權人」有兩個來源：正式所有權資料或案件手動輸入。使用者在工作台修改姓名時，系統 SHALL 寫回案件 `owner_name` 或補件資料，並重新驅動所有權人比對與 PDF assembly；不得只改畫面上的暫存 input。
+
 ### 4. PDF Assembly
 
 PDF assembly 規則：
@@ -75,19 +105,66 @@ mock -> 不得進客戶 PDF
 
 ### 6. 設定與品牌欄位
 
-設定頁需要完整保存並回填 PDF：
+設定頁需要完整保存並回填 PDF。這些是固定的全域交付設定，不屬於單一案件：
 
 - 承辦人。
 - 經紀人。
 - 經紀人證號。
-- 不動產業者。
-- 經紀業者編號。
+- 不動產經紀業。
+- 經紀業證號。
 - 公司地址。
 - 公司電話。
 
+目前程式已有 `/settings/branding` 與 `BrandTextSettings`，但欄位 label 與 PDF 名稱不一致，且入口不夠清楚。修正後的資訊架構：
+
+```
+系統設定
+  -> 品牌與交付資訊
+     -> 承辦人
+     -> 經紀人
+     -> 經紀人證號
+     -> 不動產經紀業
+     -> 經紀業證號
+     -> 公司地址
+     -> 公司電話
+```
+
+欄位對應：
+
+| UI Label | Storage key | PDF field |
+| --- | --- | --- |
+| 承辦人 | `agent_name` | `cover.handlingAgent` |
+| 經紀人 | `realtor_name` | `cover.licensedAgentName` |
+| 經紀人證號 | `agent_cert_no` 或遷移後 `realtor_license_no` | `cover.licensedAgentCertNo` |
+| 不動產經紀業 | `company_name` | `cover.brokerageCompanyName` |
+| 經紀業證號 | `company_license_no` | `cover.brokerageLicenseNo` |
+| 公司地址 | `company_address` | `cover.companyAddress` |
+| 公司電話 | `company_phone` | `cover.companyPhone` |
+
 封面、頁首/頁尾、簽章欄不得只留空 label。
 
-### 7. 法規內容
+### 7. 補件欄位
+
+「地政匯入資料」是來源稽核，不應只停在 read-only JSON。系統 SHALL 將所有缺口轉為可處理補件：
+
+- `需人工提供`：自動建立對應輸入欄位，來源標示為屋主提供/人工。
+- `待資料`：保留重試正式查詢與人工補值兩條路。
+- `查詢未成功`：顯示原因、可重試條件，必要時提供手動建號/地號欄位。
+- 已補值後，預覽、PDF 與 JSON export 都要能看見該補值與來源。
+
+這些補件不得只存在某個瀏覽器的 localStorage；正式資料路徑 SHALL 寫回案件權威資料 store。
+
+工作台「修改」按鈕 SHALL 有真實儲存語意：
+
+```
+點修改 -> 編輯欄位 -> 完成
+  -> validate 欄位
+  -> 寫回案件或補件資料
+  -> 重新整理資料來源狀態
+  -> PDF 預覽讀到同一份值
+```
+
+### 8. 法規內容
 
 法規內容要有 source of truth，不可只靠目前幾條 hardcoded 文案：
 
@@ -100,6 +177,8 @@ mock -> 不得進客戶 PDF
 
 1. 用真實 native/Tauri 或 backend integration path 驗正式 pull，不接受 mock-only。
 2. 用 `0005` 類似地址與屋主姓名重建案件，執行授權、正式 pull、PDF 預覽、PDF 匯出。
-3. 用 `pdftotext` 檢查謄本欄位、法規、公司/經紀資訊。
-4. 用 `pdfimages -list` 檢查圖資是否真的嵌入。
-5. 用 Playwright headed E2E 驗 UI，但只作為使用流程驗收，不作為 API 真實性證據。
+3. 在系統設定儲存固定公司/經紀資料，確認既有案件與新增案件 PDF 都讀取同一份設定。
+4. 對門牌建號查詢失敗、姓名比對待資料等缺口填補件，確認預覽與 PDF 回填人工值。
+5. 用 `pdftotext` 檢查謄本欄位、法規、公司/經紀資訊。
+6. 用 `pdfimages -list` 檢查圖資是否真的嵌入。
+7. 用 Playwright headed E2E 驗 UI，但只作為使用流程驗收，不作為 API 真實性證據。
