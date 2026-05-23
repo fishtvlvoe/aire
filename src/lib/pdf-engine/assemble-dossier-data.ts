@@ -62,6 +62,24 @@ function brandingDataToBrandText(data: BrandingData | null): Record<string, stri
   };
 }
 
+async function fetchWebBrandTextSettings(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") return {};
+  try {
+    const resp = await fetch(`${window.location.origin}/api/branding-text`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) return {};
+    const data = (await resp.json()) as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(data).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    );
+  } catch {
+    return {};
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 使用分區 → 法規限制 lookup table
 // ─────────────────────────────────────────────────────────────────────────────
@@ -586,6 +604,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     } catch {
       // Native settings are provided by get_brand_text_settings.
     }
+  }
+  if (!hasBrandText(brandText)) {
+    brandText = await fetchWebBrandTextSettings();
   }
 
   let workbenchSupplement: WorkbenchSupplementPayload | undefined;

@@ -47,6 +47,7 @@ openspec/.vector-search.db*
 
 # 應用資料（執行期產生，不入版控）
 data/
+.aire-dev/
 listings.db
 three-ai.db
 *.sqlite

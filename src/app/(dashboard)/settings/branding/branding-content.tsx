@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { LogoUploader } from "@/components/LogoUploader";
@@ -17,6 +17,7 @@ import { isTauriEnv } from "@/lib/tauri-bridge";
 
 function BrandTextForm() {
   const { register, handleSubmit, reset } = useForm<BrandTextSettings>();
+  const hasUserEdited = useRef(false);
 
   function hasBrandText(values: BrandTextSettings | null | undefined) {
     return Boolean(values && Object.values(values).some((value) => value?.trim()));
@@ -51,7 +52,7 @@ function BrandTextForm() {
       try {
         const values = await brandingApi.getBrandText();
         if (hasBrandText(values)) {
-          reset(values);
+          if (!hasUserEdited.current) reset(values);
           return;
         }
       } catch {
@@ -60,7 +61,7 @@ function BrandTextForm() {
 
       try {
         const data = await storage.getBranding();
-        if (data) reset(fromStorageFormat(data));
+        if (data && !hasUserEdited.current) reset(fromStorageFormat(data));
       } catch {
         // ignore
       }
@@ -93,7 +94,14 @@ function BrandTextForm() {
       {FIELDS.map(({ key, label }) => (
         <div key={key} className="space-y-1.5">
           <Label htmlFor={`brand-${key}`}>{label}</Label>
-          <Input id={`brand-${key}`} {...register(key)} />
+          <Input
+            id={`brand-${key}`}
+            {...register(key, {
+              onChange: () => {
+                hasUserEdited.current = true;
+              },
+            })}
+          />
         </div>
       ))}
       <Button type="submit">儲存品牌資訊</Button>

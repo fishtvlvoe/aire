@@ -11,6 +11,19 @@ const DOWNLOAD_PATH = join(DOWNLOAD_DIR, `${CASE_NO}-說明書.pdf`);
 test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000" });
 
 test.beforeEach(async ({ page }) => {
+  await page.request.post("/api/branding-text", {
+    data: {
+      settings: {
+        agent_name: "",
+        realtor_name: "",
+        agent_cert_no: "",
+        company_name: "",
+        company_license_no: "",
+        company_address: "",
+        company_phone: "",
+      },
+    },
+  });
   await page.addInitScript(() => {
     if (!window.localStorage.getItem("aire-mock-store")) {
       window.localStorage.setItem(

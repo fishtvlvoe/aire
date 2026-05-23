@@ -12,6 +12,19 @@ const DOWNLOAD_PATH = join(DOWNLOAD_DIR, `${CASE_NO}-說明書.pdf`);
 test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000" });
 
 test.beforeEach(async ({ page }) => {
+  await page.request.post("/api/branding-text", {
+    data: {
+      settings: {
+        agent_name: "",
+        realtor_name: "",
+        agent_cert_no: "",
+        company_name: "",
+        company_license_no: "",
+        company_address: "",
+        company_phone: "",
+      },
+    },
+  });
   await page.addInitScript(() => {
     window.localStorage.setItem(
       "aire-mock-store",
@@ -87,6 +100,13 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   expect(download.suggestedFilename()).toBe(`${CASE_NO}-說明書.pdf`);
 
   const pdfText = execFileSync("pdftotext", [DOWNLOAD_PATH, "-"], { encoding: "utf8" });
+  expect(pdfText).toContain("王承辦");
+  expect(pdfText).toContain("陳經紀");
+  expect(pdfText).toContain("南市經紀人字第 000001 號");
+  expect(pdfText).toContain("裕農安居不動產經紀有限公司");
+  expect(pdfText).toContain("南市經紀業字第 000001 號");
+  expect(pdfText).toContain("台南市東區裕農路1號");
+  expect(pdfText).toContain("06-123-4567");
   expect(pdfText).toContain("地政資料，最終以正式謄本為主；本說明書不代表完整資訊。");
   expect(pdfText).toMatch(/31\.25|31\.250/);
   expect(pdfText).toMatch(/23\.10|23\.1/);
