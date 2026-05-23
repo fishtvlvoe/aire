@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createRegistryProvenancePayload,
+  extractCandidateOptions,
   extractPreSurveyRegistryData,
   extractRegistryFailureReasons,
   extractTrustedRegistryData,
@@ -177,6 +178,135 @@ describe("registry-provenance", () => {
         apiId: "building_ownership",
         status: "unauthorized",
         reason: "缺少屋主授權或授權不足",
+      },
+    ]);
+  });
+
+  it("preserves Yunong land and building candidate parcel options for pre-survey", () => {
+    const payload = createRegistryProvenancePayload({
+      parcelId: "DC-1556-00700000",
+      candidateOptions: [
+        {
+          candidate_id: "land:DC-1556-00700000",
+          parcel_type: "land",
+          section_code: "1556",
+          section_name: "富強段",
+          parcel_number: "00700000",
+          normalized_parcel_id: "DC-1556-00700000",
+          source: "public_reference",
+          confidence_label: "same_address_candidate",
+          official_status: "candidate_unconfirmed",
+          query_status: "candidate_data_available" as const,
+          summary_fields: { landAreaSqm: 120.5 },
+          warnings: ["待屋主或權狀確認"],
+        },
+        ...["00165000", "00167000", "00229000", "00230000"].map((parcelNumber) => ({
+          candidate_id: `building:DC-1556-${parcelNumber}`,
+          parcel_type: "building" as const,
+          section_code: "1556",
+          section_name: "富強段",
+          parcel_number: parcelNumber,
+          normalized_parcel_id: `DC-1556-${parcelNumber}`,
+          source: "public_reference",
+          confidence_label: "same_address_candidate",
+          official_status: "candidate_unconfirmed",
+          query_status: "candidate_data_available" as const,
+          summary_fields: {
+            registeredAreaPing: 31.25,
+            mainBuildingAreaPing: 23.1,
+            legalUse: "住家用",
+            constructionDate: "083/10/18",
+            floor: "8樓之1",
+          },
+          warnings: ["待屋主或權狀確認是否為 8樓之1"],
+        })),
+      ],
+      selectedCandidateIds: {
+        land: "land:DC-1556-00700000",
+        building: "building:DC-1556-00165000",
+      },
+      coordinateSource: {
+        lat: 22.986314,
+        lng: 120.22908,
+        source: "candidate_reference",
+      },
+    });
+
+    expect(extractCandidateOptions(payload).map((candidate) => candidate.normalized_parcel_id)).toEqual([
+      "DC-1556-00700000",
+      "DC-1556-00165000",
+      "DC-1556-00167000",
+      "DC-1556-00229000",
+      "DC-1556-00230000",
+    ]);
+    expect(payload.selected_candidate_ids?.building).toBe("building:DC-1556-00165000");
+    expect(payload.coordinate_source).toMatchObject({
+      lat: 22.986314,
+      lng: 120.22908,
+      source: "candidate_reference",
+    });
+  });
+
+  it("keeps successful and failed candidate summaries comparable before confirmation", () => {
+    const payload = createRegistryProvenancePayload({
+      candidateOptions: [
+        {
+          candidate_id: "building:DC-1556-00165000",
+          parcel_type: "building",
+          section_code: "1556",
+          section_name: "富強段",
+          parcel_number: "00165000",
+          normalized_parcel_id: "DC-1556-00165000",
+          source: "public_reference",
+          confidence_label: "same_address_candidate",
+          official_status: "candidate_unconfirmed",
+          query_status: "candidate_data_available",
+          summary_fields: {
+            registeredAreaPing: 31.25,
+            mainBuildingAreaPing: 23.1,
+            legalUse: "住家用",
+            constructionDate: "083/10/18",
+            floor: "8樓之1",
+          },
+          query_cost: 12,
+          warnings: [],
+        },
+        {
+          candidate_id: "building:DC-1556-00167000",
+          parcel_type: "building",
+          section_code: "1556",
+          section_name: "富強段",
+          parcel_number: "00167000",
+          normalized_parcel_id: "DC-1556-00167000",
+          source: "public_reference",
+          confidence_label: "same_address_candidate",
+          official_status: "candidate_unconfirmed",
+          query_status: "failed",
+          error_code: "COP312",
+          error_message: "取得服務資訊失敗",
+          summary_fields: {},
+          query_cost: 0,
+          warnings: ["候選 probe 失敗，仍保留供比對"],
+        },
+      ],
+    });
+
+    expect(extractCandidateOptions(payload)).toMatchObject([
+      {
+        normalized_parcel_id: "DC-1556-00165000",
+        query_status: "candidate_data_available",
+        summary_fields: {
+          registeredAreaPing: 31.25,
+          mainBuildingAreaPing: 23.1,
+          legalUse: "住家用",
+          constructionDate: "083/10/18",
+          floor: "8樓之1",
+        },
+      },
+      {
+        normalized_parcel_id: "DC-1556-00167000",
+        query_status: "failed",
+        error_code: "COP312",
       },
     ]);
   });

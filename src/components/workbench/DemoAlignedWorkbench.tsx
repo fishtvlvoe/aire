@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { casesApi, type CaseRow } from "@/lib/cases-api";
+import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
 import { mockInvoke } from "@/lib/mock-backend";
 import {
   getAddressFirstClassification,
@@ -11,8 +11,10 @@ import {
 } from "@/lib/product-ui-demo-alignment";
 import {
   createRegistryProvenancePayload,
+  extractCandidateOptions,
   isRegistryProvenancePayload,
   type RegistryProvenancePayload,
+  type CandidateParcelOption,
 } from "@/lib/registry-provenance";
 
 interface DemoAlignedWorkbenchProps {
@@ -186,6 +188,60 @@ function mergeManualSupplementIntoRegistryData(
   };
 }
 
+function candidateSummaryText(candidate: CandidateParcelOption): string {
+  const fields = candidate.summary_fields ?? {};
+  const errorHint =
+    candidate.error_code === "COP317"
+      ? "正式門牌建號查詢未授權，改用候選資料"
+      : candidate.error_code === "COP312"
+        ? "候選 probe 取得服務資訊失敗，待權狀或謄本確認"
+        : candidate.error_code === "COP305"
+          ? "候選查無資料，保留供人工排除"
+          : candidate.error_message;
+  return [
+    typeof fields.registeredAreaPing === "number" ? `${fields.registeredAreaPing.toFixed(2)}坪` : "",
+    typeof fields.mainBuildingAreaPing === "number" ? `主建 ${fields.mainBuildingAreaPing.toFixed(2)}坪` : "",
+    typeof fields.legalUse === "string" ? fields.legalUse : "",
+    typeof fields.constructionDate === "string" ? fields.constructionDate : "",
+    typeof fields.floor === "string" ? fields.floor : "",
+    candidate.error_code,
+    errorHint,
+  ].filter(Boolean).join("｜");
+}
+
+function mergeCandidateSelection(
+  existing: CaseRow["land_registry_data"],
+  candidate: CandidateParcelOption,
+  mode: "selected" | "confirmed",
+): RegistryProvenancePayload {
+  const base = isRegistryProvenancePayload(existing)
+    ? existing
+    : createRegistryProvenancePayload({});
+  const selected_candidate_ids = {
+    ...(base.selected_candidate_ids ?? {}),
+    [candidate.parcel_type]: candidate.candidate_id,
+  };
+  const confirmed_parcel_ids =
+    mode === "confirmed"
+      ? {
+          ...(base.confirmed_parcel_ids ?? {}),
+          [candidate.parcel_type]: candidate.candidate_id,
+        }
+      : base.confirmed_parcel_ids;
+  return {
+    ...base,
+    selected_candidate_ids,
+    confirmed_parcel_ids,
+    candidate_options: (base.candidate_options ?? []).map((item) => {
+      if (item.candidate_id !== candidate.candidate_id) return item;
+      return {
+        ...item,
+        confirmation_state: mode === "confirmed" ? "confirmed" : "selected_candidate",
+      };
+    }),
+  };
+}
+
 export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbenchProps) {
   const [activeTab, setActiveTab] = useState<WorkbenchTab>(() => normalizeWorkbenchTab(initialTab));
   const [supplementAdded, setSupplementAdded] = useState(false);
@@ -212,6 +268,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     ACTIONABLE_SOURCE_STATUSES.some((status) => field.statusLabel.includes(status)),
   );
   const usageRows = getUsageLedgerRows();
+  const candidateOptions = extractCandidateOptions(caseDraft.land_registry_data);
   const lookupCost =
     isRegistryProvenancePayload(caseDraft.land_registry_data) &&
     typeof caseDraft.land_registry_data.totalCost === "number"
@@ -240,6 +297,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       source: field.serviceName,
       status: field.statusLabel,
     })),
+    candidateOptions,
     supplementFields: Object.entries(registrySupplementDrafts)
       .filter(([, draft]) => Boolean(draft.value.trim()))
       .map(([fieldName, draft]) => ({
@@ -415,6 +473,27 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       }
     }
     persistSupplementDraft({ registryDrafts: nextDrafts });
+  }
+
+  function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed") {
+    const nextLandRegistryData = mergeCandidateSelection(caseDraft.land_registry_data, candidate, mode);
+    const updateInput: UpdateCaseInput = {
+      land_registry_data: nextLandRegistryData,
+    };
+    if (mode === "confirmed") {
+      if (candidate.parcel_type === "building") {
+        updateInput.building_lot_no = candidate.normalized_parcel_id;
+      } else {
+        updateInput.land_lot_no = candidate.normalized_parcel_id;
+        updateInput.land_lots = [candidate.normalized_parcel_id];
+      }
+    }
+    setCaseDraft((current) => ({
+      ...current,
+      ...updateInput,
+      land_registry_data: nextLandRegistryData,
+    }));
+    void casesApi.update(caseDraft.id, updateInput);
   }
 
   async function finishFieldEdit(fieldName: string, currentValue: string) {
@@ -649,6 +728,51 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   ))}
                 </tbody>
               </table>
+
+              {candidateOptions.length > 0 ? (
+                <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50/40 p-3" aria-label="候選土地建物清單" role="region">
+                  <div>
+                    <h4 className="text-sm font-semibold">候選土地建物清單</h4>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      這些資料可先供前期物調參考；正式地政資料仍以謄本與屋主/權狀確認為準。
+                    </p>
+                  </div>
+                  <div className="mt-3 overflow-hidden rounded-md border bg-white">
+                    {candidateOptions.map((candidate) => (
+                      <article
+                        key={candidate.candidate_id}
+                        className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[minmax(170px,1fr)_minmax(220px,1.5fr)_190px]"
+                      >
+                        <div>
+                          <strong className="block">{candidate.normalized_parcel_id}</strong>
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            {candidate.parcel_type === "building" ? "建物候選" : "土地候選"} · {candidate.query_status ?? "pending"}
+                          </span>
+                        </div>
+                        <div className="text-muted-foreground">
+                          {candidateSummaryText(candidate) || "待候選資料查詢"}
+                        </div>
+                        <div className="flex flex-wrap gap-2 md:justify-end">
+                          <button
+                            className="rounded-md border bg-white px-3 py-2 text-sm"
+                            type="button"
+                            onClick={() => updateCandidateSelection(candidate, "selected")}
+                          >
+                            暫用 {candidate.normalized_parcel_id}
+                          </button>
+                          <button
+                            className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white"
+                            type="button"
+                            onClick={() => updateCandidateSelection(candidate, "confirmed")}
+                          >
+                            確認 {candidate.normalized_parcel_id}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
 
               <details className="mt-4 rounded-lg border bg-slate-50 p-3">
                 <summary className="cursor-pointer text-sm font-medium">JSON 預覽</summary>

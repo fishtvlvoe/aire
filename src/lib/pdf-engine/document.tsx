@@ -25,6 +25,10 @@ import { ExteriorPhotoPage } from "@/lib/pdf-blocks/exterior-photo-page";
 import FieldSketchFloorPlanPage from "@/lib/pdf-blocks/field-sketch-floor-plan-page";
 import { FloorPlanPhotoPage } from "@/lib/pdf-blocks/floor-plan-photo-page";
 import { COMPLETE_DEFAULT_LEGAL_CLAUSES } from "@/lib/legal-clauses-defaults";
+import type {
+  CandidateParcelOption,
+  InferredRegistryReference,
+} from "@/lib/registry-provenance";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -189,6 +193,9 @@ export interface CaseDossierData {
       status: "failed" | "unauthorized";
       reason: string;
     }>;
+    candidateDisclaimer?: string;
+    candidateOptions?: CandidateParcelOption[];
+    inferredReference?: InferredRegistryReference;
   };
 }
 

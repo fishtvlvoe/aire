@@ -89,4 +89,90 @@ describe("PropertyDataSheetPage", () => {
     expect(text).toContain("2,500（來源：屋主提供）");
     expect(text).toContain("現況自住（來源：現場確認）");
   });
+
+  it("renders candidate comparison, inferred source, and mandatory pre-survey disclaimer", () => {
+    const data: CaseDossierData = {
+      caseNo: "AIRE-YUNONG",
+      address: "台南市東區裕農路288巷17號8樓之1",
+      propertyType: "building",
+      landLotNo: "0001",
+      ownerName: "余啟彰",
+      companyName: "",
+      generatedAt: "2026/05/23",
+      propertySheet: {
+        landSection: "富強段",
+        landNumber: "00700000",
+        zoning: "住宅區",
+        landArea: 120.5,
+        ownershipRatio: "91/10000",
+        buildingCoverage: "60%",
+        floorAreaRatio: "200%",
+        owner: "余啟彰",
+        acquisitionDate: "",
+        registeredArea: 31.25,
+        mainBuildingArea: 23.1,
+        legalUse: "住家用",
+        constructionDate: "083/10/18",
+        buildingAge: "31年",
+        floor: "8樓之1",
+      },
+      propertySheetSources: {
+        registeredArea: "候選資料，待屋主/權狀確認",
+        mainBuildingArea: "推測資料，非登記資料",
+      },
+      preSurvey: {
+        lookupCost: 0,
+        failureReasons: [],
+        candidateDisclaimer: "地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
+        candidateOptions: [
+          {
+            candidate_id: "building:DC-1556-00165000",
+            parcel_type: "building",
+            normalized_parcel_id: "DC-1556-00165000",
+            query_status: "candidate_data_available",
+            confirmation_state: "selected_candidate",
+            summary_fields: {
+              registeredAreaPing: 31.25,
+              mainBuildingAreaPing: 23.1,
+              legalUse: "住家用",
+              constructionDate: "083/10/18",
+              floor: "8樓之1",
+            },
+          },
+          {
+            candidate_id: "building:DC-1556-00167000",
+            parcel_type: "building",
+            normalized_parcel_id: "DC-1556-00167000",
+            query_status: "failed",
+            confirmation_state: "unconfirmed",
+            error_code: "COP312",
+            summary_fields: {},
+          },
+        ],
+        inferredReference: {
+          target_unit: "8樓之1",
+          basis: "same_suffix_vertical_stack",
+          confidence: "high",
+          source_units: ["3樓之1", "5樓之1", "7樓之1"],
+          estimated_fields: {
+            registeredAreaPing: 31.25,
+            mainBuildingAreaPing: 23.1,
+          },
+          warning: "推測資料，非登記資料",
+        },
+      },
+    };
+
+    const text = collectText(PropertyDataSheetPage({ propertyType: "building", data }));
+
+    expect(text).toContain("31.25（來源：候選資料，待屋主/權狀確認）");
+    expect(text).toContain("23.10（來源：推測資料，非登記資料）");
+    expect(text).toContain("地政資料，最終以正式謄本為主；本說明書不代表完整資訊。");
+    expect(text).toContain("候選資料比較");
+    expect(text).toContain("DC-1556-00165000");
+    expect(text).toContain("DC-1556-00167000");
+    expect(text).toContain("COP312");
+    expect(text).toContain("推測資料來源");
+    expect(text).toContain("3樓之1、5樓之1、7樓之1");
+  });
 });

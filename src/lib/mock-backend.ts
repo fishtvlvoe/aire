@@ -1131,6 +1131,9 @@ export class MockStore {
         (pickString(input, ["property_type"]) as UpdateCaseInput["property_type"]) ??
         existing.property_type,
       land_lot_no: pickString(input, ["land_lot_no"]) ?? existing.land_lot_no,
+      land_lots: Array.isArray(input.land_lots) && (input.land_lots as string[]).length > 0
+        ? (input.land_lots as string[]).filter((lot) => typeof lot === "string" && lot.trim())
+        : existing.land_lots,
       address: pickString(input, ["address"]) ?? existing.address,
       owner_name: pickString(input, ["owner_name"]) ?? existing.owner_name,
       case_no: pickString(input, ["case_no"]) ?? existing.case_no,
@@ -1510,6 +1513,15 @@ export class MockStore {
     const addr = (args?.address as string) || "未知地址";
     if (!addr.trim() || /查無|不存在/.test(addr)) {
       return [];
+    }
+    if (/裕農路288巷17號/.test(addr)) {
+      return [
+        { parcel_id: "DC-1556-00700000", address: addr, lot_number: "00700000", building_number: "" },
+        { parcel_id: "DC-1556-00165000", address: addr, lot_number: "00700000", building_number: "00165000" },
+        { parcel_id: "DC-1556-00167000", address: addr, lot_number: "00700000", building_number: "00167000" },
+        { parcel_id: "DC-1556-00229000", address: addr, lot_number: "00700000", building_number: "00229000" },
+        { parcel_id: "DC-1556-00230000", address: addr, lot_number: "00700000", building_number: "00230000" },
+      ];
     }
     if (/候選|多筆|結果不明確/.test(addr)) {
       return [

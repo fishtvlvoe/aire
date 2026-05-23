@@ -21,6 +21,17 @@ function sourced(value: string, source?: string): string {
   return `${value}（來源：${source}）`;
 }
 
+function formatCandidateSummary(fields?: Record<string, unknown>): string {
+  if (!fields) return "";
+  return [
+    typeof fields.registeredAreaPing === "number" ? `登記 ${fields.registeredAreaPing.toFixed(2)}坪` : "",
+    typeof fields.mainBuildingAreaPing === "number" ? `主建 ${fields.mainBuildingAreaPing.toFixed(2)}坪` : "",
+    typeof fields.legalUse === "string" ? fields.legalUse : "",
+    typeof fields.constructionDate === "string" ? fields.constructionDate : "",
+    typeof fields.floor === "string" ? fields.floor : "",
+  ].filter(Boolean).join(" / ");
+}
+
 export interface HtmlPropertyDataSheetProps {
   propertyType: "land" | "building";
   data: CaseDossierData;
@@ -108,6 +119,39 @@ export function HtmlPropertyDataSheet({
 
       {/* 共用基本資料表格 */}
       <HtmlFieldTable tokens={tokens} rows={commonRows} />
+
+      {data.preSurvey?.candidateDisclaimer ? (
+        <HtmlSection tokens={tokens} title="前期物調聲明">
+          <p>{data.preSurvey.candidateDisclaimer}</p>
+        </HtmlSection>
+      ) : null}
+
+      {data.preSurvey?.inferredReference ? (
+        <HtmlSection tokens={tokens} title="推測資料來源">
+          <p>
+            {data.preSurvey.inferredReference.source_units.join("、")}｜
+            {data.preSurvey.inferredReference.warning}
+          </p>
+        </HtmlSection>
+      ) : null}
+
+      {data.preSurvey?.candidateOptions && data.preSurvey.candidateOptions.length > 0 ? (
+        <HtmlSection tokens={tokens} title="候選資料比較">
+          <HtmlFieldTable
+            tokens={tokens}
+            rows={data.preSurvey.candidateOptions.map((candidate) => [
+              candidate.normalized_parcel_id,
+              [
+                candidate.parcel_type === "building" ? "建物" : "土地",
+                candidate.query_status ?? "pending",
+                candidate.confirmation_state ?? "unconfirmed",
+                candidate.error_code ?? "",
+                formatCandidateSummary(candidate.summary_fields),
+              ].filter(Boolean).join("｜"),
+            ])}
+          />
+        </HtmlSection>
+      ) : null}
 
       {/* 建物專屬區塊 */}
       {propertyType === "building" && (

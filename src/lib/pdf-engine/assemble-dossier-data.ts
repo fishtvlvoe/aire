@@ -7,9 +7,12 @@ import { calculateBuildingAge } from "@/lib/registry-preview";
 import { storage, type BrandingData } from "@/lib/storage";
 import {
   createRegistryProvenancePayload,
+  extractCandidateOptions,
   extractRegistryFailureReasons,
   extractTrustedRegistryData,
   isRegistryProvenancePayload,
+  type CandidateParcelOption,
+  type CandidateSummaryFields,
   type RegistryProvenancePayload,
 } from "@/lib/registry-provenance";
 
@@ -338,11 +341,17 @@ function mergeRegistryProvenancePayload(
 ): RegistryProvenancePayload {
   if (!isRegistryProvenancePayload(existing)) return next;
   return {
+    ...existing,
     ...next,
     entries: {
       ...existing.entries,
       ...next.entries,
     },
+    candidate_options: next.candidate_options ?? existing.candidate_options,
+    selected_candidate_ids: next.selected_candidate_ids ?? existing.selected_candidate_ids,
+    confirmed_parcel_ids: next.confirmed_parcel_ids ?? existing.confirmed_parcel_ids,
+    coordinate_source: next.coordinate_source ?? existing.coordinate_source,
+    inferred_reference: next.inferred_reference ?? existing.inferred_reference,
   };
 }
 
@@ -367,6 +376,68 @@ function normalizePullResultsForProvenance(
       ];
     }),
   );
+}
+
+const PRE_SURVEY_DISCLAIMER = "地政資料，最終以正式謄本為主；本說明書不代表完整資訊。";
+const CANDIDATE_SOURCE_LABEL = "候選資料，待屋主/權狀確認";
+const INFERRED_SOURCE_LABEL = "推測資料，非登記資料";
+
+function findSelectedCandidate(
+  payload: unknown,
+  parcelType: "land" | "building",
+): CandidateParcelOption | undefined {
+  if (!isRegistryProvenancePayload(payload)) return undefined;
+  const selectedId = payload.selected_candidate_ids?.[parcelType];
+  if (!selectedId) return undefined;
+  return extractCandidateOptions(payload).find((candidate) => candidate.candidate_id === selectedId);
+}
+
+function numberFromSummary(fields: CandidateSummaryFields | undefined, key: string): number | undefined {
+  const value = fields?.[key];
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.replace(/,/g, ""));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function textFromSummary(fields: CandidateSummaryFields | undefined, key: string): string | undefined {
+  const value = fields?.[key];
+  if (typeof value === "string" && value.trim()) return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
+}
+
+function setSourceIfValue(
+  sources: Record<string, string>,
+  key: string,
+  value: unknown,
+  source: string,
+) {
+  if (value !== undefined && value !== null && value !== "") {
+    sources[key] = source;
+  }
+}
+
+function decorateCandidateOptions(
+  payload: unknown,
+): CandidateParcelOption[] {
+  if (!isRegistryProvenancePayload(payload)) return [];
+  const selected = payload.selected_candidate_ids ?? {};
+  const confirmed = payload.confirmed_parcel_ids ?? {};
+  return extractCandidateOptions(payload).map((candidate) => {
+    const confirmedMatch = confirmed[candidate.parcel_type] === candidate.candidate_id;
+    const selectedMatch = selected[candidate.parcel_type] === candidate.candidate_id;
+    return {
+      ...candidate,
+      confirmation_state: confirmedMatch
+        ? "confirmed"
+        : selectedMatch
+          ? "selected_candidate"
+          : candidate.confirmation_state ?? "unconfirmed",
+    };
+  });
 }
 
 function normalizeLegalClauseRecord(clause: unknown): string | null {
@@ -488,6 +559,12 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   const isLand = caseRow.property_type === "land";
   const persisted = caseRow.land_registry_data;
   const registryFailureReasons = extractRegistryFailureReasons(persisted);
+  const candidateOptions = decorateCandidateOptions(persisted);
+  const inferredReference = isRegistryProvenancePayload(persisted)
+    ? persisted.inferred_reference
+    : undefined;
+  const hasCandidatePreSurveyData =
+    candidateOptions.length > 0 || Boolean(inferredReference);
   const lookupCost =
     isRegistryProvenancePayload(persisted) && typeof persisted.totalCost === "number"
       ? persisted.totalCost
@@ -525,10 +602,13 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     companyName: brandText.company_name ?? "",
     generatedAt: new Date().toLocaleDateString("zh-TW"),
     preSurvey:
-      lookupCost !== undefined || registryFailureReasons.length > 0
+      lookupCost !== undefined || registryFailureReasons.length > 0 || hasCandidatePreSurveyData
         ? {
             lookupCost,
             failureReasons: registryFailureReasons,
+            candidateDisclaimer: hasCandidatePreSurveyData ? PRE_SURVEY_DISCLAIMER : undefined,
+            candidateOptions: candidateOptions.length > 0 ? candidateOptions : undefined,
+            inferredReference,
           }
         : undefined,
   };
@@ -725,6 +805,20 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     apiData["land_registry"]?.data ?? apiData["building_registry"]?.data,
     "lng", isNumber,
   );
+
+  if ((!geoLat || !geoLng) && isRegistryProvenancePayload(persisted)) {
+    const coordinate = persisted.coordinate_source;
+    if (
+      coordinate &&
+      typeof coordinate.lat === "number" &&
+      Number.isFinite(coordinate.lat) &&
+      typeof coordinate.lng === "number" &&
+      Number.isFinite(coordinate.lng)
+    ) {
+      geoLat = coordinate.lat;
+      geoLng = coordinate.lng;
+    }
+  }
 
   // 若 API 資料無座標，嘗試用地址 geocode（Nominatim，免費）
   if ((!geoLat || !geoLng) && caseRow.address) {
@@ -975,6 +1069,111 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     } else if (manualBuildingStatus) {
       propertySheetSources.buildingStatus = manualSourceFor("buildingStatus");
     }
+    const selectedLandCandidate = findSelectedCandidate(persisted, "land");
+    const selectedBuildingCandidate = findSelectedCandidate(persisted, "building");
+    const landCandidateFields = selectedLandCandidate?.summary_fields;
+    const buildingCandidateFields = selectedBuildingCandidate?.summary_fields;
+    const inferredFields = inferredReference?.estimated_fields;
+    const trustedRegisteredArea = m2ToPing(firstNumber(buildingReg, ["area", "building_area", "AREA"]));
+    const trustedMainBuildingArea = m2ToPing(firstNumber(buildingReg, ["main_building_area", "MAINAREA"]));
+    const trustedAuxiliaryArea = m2ToPing(firstNumber(buildingReg, ["auxiliary_area", "ATTAREA"]));
+    const trustedCommonArea = m2ToPing(firstNumber(buildingReg, ["common_area", "SHAREAREA"]));
+    const trustedParkingArea = m2ToPing(firstNumber(buildingReg, ["parking_area", "PARKAREA"]));
+    const candidateRegisteredArea = numberFromSummary(buildingCandidateFields, "registeredAreaPing");
+    const candidateMainBuildingArea = numberFromSummary(buildingCandidateFields, "mainBuildingAreaPing");
+    const candidateAuxiliaryArea = numberFromSummary(buildingCandidateFields, "auxiliaryAreaPing");
+    const candidateCommonArea = numberFromSummary(buildingCandidateFields, "commonAreaPing");
+    const candidateParkingArea = numberFromSummary(buildingCandidateFields, "parkingAreaPing");
+    const inferredRegisteredArea = numberFromSummary(inferredFields, "registeredAreaPing");
+    const inferredMainBuildingArea = numberFromSummary(inferredFields, "mainBuildingAreaPing");
+    const resolvedRegisteredArea = trustedRegisteredArea ?? candidateRegisteredArea ?? inferredRegisteredArea;
+    const resolvedMainBuildingArea = trustedMainBuildingArea ?? candidateMainBuildingArea ?? inferredMainBuildingArea;
+    const resolvedAuxiliaryArea = trustedAuxiliaryArea ?? candidateAuxiliaryArea;
+    const resolvedCommonArea = trustedCommonArea ?? candidateCommonArea;
+    const resolvedParkingArea = trustedParkingArea ?? candidateParkingArea;
+    const resolvedLegalUse =
+      firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]) ??
+      textFromSummary(buildingCandidateFields, "legalUse");
+    const resolvedMaterial =
+      firstString(buildingReg, ["material", "MATERIAL"]) ??
+      textFromSummary(buildingCandidateFields, "material");
+    const resolvedConstructionDate =
+      firstString(buildingReg, ["construction_date", "COMPLETEDATE"]) ??
+      textFromSummary(buildingCandidateFields, "constructionDate");
+    const resolvedFloor = resolveBuildingFloor(
+      firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"]) ??
+        textFromSummary(buildingCandidateFields, "floor"),
+      caseRow.address,
+    );
+    const resolvedBuildingAge =
+      calculateBuildingAge(resolvedConstructionDate ?? "") ??
+      textFromSummary(buildingCandidateFields, "age");
+    const resolvedLandArea = landArea ?? numberFromSummary(landCandidateFields, "landAreaSqm");
+    const resolvedOwnershipRatio =
+      ownershipRatio || textFromSummary(buildingCandidateFields, "landOwnershipRatio") || "";
+    const resolvedOwnershipRatioNumber =
+      ownershipRatioNumber ?? ratioValue({ right: textFromSummary(buildingCandidateFields, "landOwnershipRatio") });
+    const resolvedOwnershipScope =
+      ratioText(buildingOwnership) || textFromSummary(buildingCandidateFields, "ownershipScope") || "";
+    const resolvedBuildingCoverage =
+      firstString(zoning, ["building_coverage_ratio", "BUILDING_COVERAGE_RATIO"]) ??
+      textFromSummary(landCandidateFields, "buildingCoverage") ??
+      "";
+    const resolvedFloorAreaRatio =
+      firstString(zoning, ["floor_area_ratio", "FLOOR_AREA_RATIO"]) ??
+      textFromSummary(landCandidateFields, "floorAreaRatio") ??
+      "";
+
+    setSourceIfValue(propertySheetSources, "landSection", selectedLandCandidate?.section_name, CANDIDATE_SOURCE_LABEL);
+    setSourceIfValue(propertySheetSources, "landNumber", selectedLandCandidate?.parcel_number, CANDIDATE_SOURCE_LABEL);
+    setSourceIfValue(propertySheetSources, "zoning", textFromSummary(landCandidateFields, "zoning"), CANDIDATE_SOURCE_LABEL);
+    setSourceIfValue(propertySheetSources, "landArea", numberFromSummary(landCandidateFields, "landAreaSqm"), CANDIDATE_SOURCE_LABEL);
+    setSourceIfValue(propertySheetSources, "buildingCoverage", textFromSummary(landCandidateFields, "buildingCoverage"), CANDIDATE_SOURCE_LABEL);
+    setSourceIfValue(propertySheetSources, "floorAreaRatio", textFromSummary(landCandidateFields, "floorAreaRatio"), CANDIDATE_SOURCE_LABEL);
+    if (trustedRegisteredArea === undefined) {
+      setSourceIfValue(
+        propertySheetSources,
+        "registeredArea",
+        candidateRegisteredArea,
+        CANDIDATE_SOURCE_LABEL,
+      );
+      if (candidateRegisteredArea === undefined) {
+        setSourceIfValue(propertySheetSources, "registeredArea", inferredRegisteredArea, INFERRED_SOURCE_LABEL);
+      }
+    }
+    if (trustedMainBuildingArea === undefined) {
+      setSourceIfValue(
+        propertySheetSources,
+        "mainBuildingArea",
+        candidateMainBuildingArea,
+        CANDIDATE_SOURCE_LABEL,
+      );
+      if (candidateMainBuildingArea === undefined) {
+        setSourceIfValue(propertySheetSources, "mainBuildingArea", inferredMainBuildingArea, INFERRED_SOURCE_LABEL);
+      }
+    }
+    if (trustedAuxiliaryArea === undefined) {
+      setSourceIfValue(propertySheetSources, "auxiliaryArea", candidateAuxiliaryArea, CANDIDATE_SOURCE_LABEL);
+    }
+    if (trustedCommonArea === undefined) {
+      setSourceIfValue(propertySheetSources, "commonArea", candidateCommonArea, CANDIDATE_SOURCE_LABEL);
+    }
+    if (trustedParkingArea === undefined) {
+      setSourceIfValue(propertySheetSources, "parkingArea", candidateParkingArea, CANDIDATE_SOURCE_LABEL);
+    }
+    if (!firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"])) {
+      setSourceIfValue(propertySheetSources, "legalUse", textFromSummary(buildingCandidateFields, "legalUse"), CANDIDATE_SOURCE_LABEL);
+    }
+    if (!firstString(buildingReg, ["construction_date", "COMPLETEDATE"])) {
+      setSourceIfValue(propertySheetSources, "constructionDate", textFromSummary(buildingCandidateFields, "constructionDate"), CANDIDATE_SOURCE_LABEL);
+      setSourceIfValue(propertySheetSources, "buildingAge", resolvedBuildingAge, CANDIDATE_SOURCE_LABEL);
+    }
+    if (!firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"])) {
+      setSourceIfValue(propertySheetSources, "floor", textFromSummary(buildingCandidateFields, "floor"), CANDIDATE_SOURCE_LABEL);
+    }
+    if (!ratioText(buildingOwnership)) {
+      setSourceIfValue(propertySheetSources, "ownershipScope", textFromSummary(buildingCandidateFields, "ownershipScope"), CANDIDATE_SOURCE_LABEL);
+    }
 
     return {
       ...base,
@@ -1005,44 +1204,43 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       },
       propertySheet: {
         askingPrice: 0,
-        landSection: firstString(landReg, ["section", "SECTION", "SUBSECTION"]) ?? "",
+        landSection:
+          firstString(landReg, ["section", "SECTION", "SUBSECTION"]) ??
+          selectedLandCandidate?.section_name ??
+          selectedBuildingCandidate?.section_name ??
+          "",
         landNumber:
           firstString(landReg, ["lot_number", "land_lot_no", "NO", "LOTNO"]) ??
+          selectedLandCandidate?.parcel_number ??
           caseRow.land_lot_no ??
           "",
         zoning:
           firstString(landReg, ["zoning", "ZONING", "purpose", "land_purpose"]) ??
           firstString(zoning, ["zoning_type", "ZONING", "usage_category"]) ??
+          textFromSummary(landCandidateFields, "zoning") ??
           "",
-        landArea,
-        ownershipRatio,
-        shareArea: shareArea(landArea, ownershipRatioNumber),
-        buildingCoverage:
-          firstString(zoning, ["building_coverage_ratio", "BUILDING_COVERAGE_RATIO"]) ?? "",
-        floorAreaRatio:
-          firstString(zoning, ["floor_area_ratio", "FLOOR_AREA_RATIO"]) ?? "",
+        landArea: resolvedLandArea,
+        ownershipRatio: resolvedOwnershipRatio,
+        shareArea: shareArea(resolvedLandArea, resolvedOwnershipRatioNumber),
+        buildingCoverage: resolvedBuildingCoverage,
+        floorAreaRatio: resolvedFloorAreaRatio,
         owner:
           firstString(buildingOwnership, ["owner_name", "LNAME"]) ??
           firstString(landOwnership, ["owner_name", "LNAME"]) ??
           caseRow.owner_name ??
           "",
         acquisitionDate: firstString(buildingOwnership, ["ownership_date", "RDATE"]) ?? "",
-        registeredArea: m2ToPing(firstNumber(buildingReg, ["area", "building_area", "AREA"])),
-        mainBuildingArea: m2ToPing(firstNumber(buildingReg, ["main_building_area", "MAINAREA"])),
-        auxiliaryArea: m2ToPing(firstNumber(buildingReg, ["auxiliary_area", "ATTAREA"])),
-        commonArea: m2ToPing(firstNumber(buildingReg, ["common_area", "SHAREAREA"])),
-        parkingArea: m2ToPing(firstNumber(buildingReg, ["parking_area", "PARKAREA"])),
-        floor: resolveBuildingFloor(
-          firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"]),
-          caseRow.address,
-        ),
-        legalUse: firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]),
-        material: firstString(buildingReg, ["material", "MATERIAL"]),
-        constructionDate: firstString(buildingReg, ["construction_date", "COMPLETEDATE"]),
-        buildingAge: calculateBuildingAge(
-          firstString(buildingReg, ["construction_date", "COMPLETEDATE"]) ?? "",
-        ),
-        ownershipScope: ratioText(buildingOwnership),
+        registeredArea: resolvedRegisteredArea,
+        mainBuildingArea: resolvedMainBuildingArea,
+        auxiliaryArea: resolvedAuxiliaryArea,
+        commonArea: resolvedCommonArea,
+        parkingArea: resolvedParkingArea,
+        floor: resolvedFloor,
+        legalUse: resolvedLegalUse,
+        material: resolvedMaterial,
+        constructionDate: resolvedConstructionDate,
+        buildingAge: resolvedBuildingAge,
+        ownershipScope: resolvedOwnershipScope,
         buildingStatus: manualBuildingStatus,
         rooms: manualRooms,
         direction: manualDirection,
@@ -1052,10 +1250,10 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       propertySheetSources:
         Object.keys(propertySheetSources).length > 0 ? propertySheetSources : undefined,
       buildingAreaBreakdown: {
-        main: firstNumber(buildingReg, ["main_building_area", "MAINAREA"]) ?? 0,
-        auxiliary: firstNumber(buildingReg, ["auxiliary_area", "ATTAREA"]) ?? 0,
-        common: firstNumber(buildingReg, ["common_area", "SHAREAREA"]) ?? 0,
-        parking: firstNumber(buildingReg, ["parking_area", "PARKAREA"]) ?? 0,
+        main: resolvedMainBuildingArea ?? 0,
+        auxiliary: resolvedAuxiliaryArea ?? 0,
+        common: resolvedCommonArea ?? 0,
+        parking: resolvedParkingArea ?? 0,
       },
     };
   }

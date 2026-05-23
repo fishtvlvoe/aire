@@ -148,6 +148,22 @@ describe("product-ui-demo-alignment contract", () => {
 
     expect(multipleCandidates.status).toBe("manual_required");
     expect(multipleCandidates.summary).toContain("多筆候選");
+    expect(multipleCandidates.landCount).toBe(1);
+    expect(multipleCandidates.buildingCount).toBe(1);
+  });
+
+  it("counts Yunong candidate land and buildings separately", () => {
+    const classified = classifyAddressLookupResult("台南市東區裕農路288巷17號8樓之1", [
+      { parcel_id: "DC-1556-00700000", address: "A", lot_number: "00700000", building_number: "" },
+      { parcel_id: "DC-1556-00165000", address: "A", lot_number: "00700000", building_number: "00165000" },
+      { parcel_id: "DC-1556-00167000", address: "A", lot_number: "00700000", building_number: "00167000" },
+      { parcel_id: "DC-1556-00229000", address: "A", lot_number: "00700000", building_number: "00229000" },
+      { parcel_id: "DC-1556-00230000", address: "A", lot_number: "00700000", building_number: "00230000" },
+    ]);
+
+    expect(classified.status).toBe("manual_required");
+    expect(classified.landCount).toBe(1);
+    expect(classified.buildingCount).toBe(4);
   });
 
   it("maps internal MOI labels to customer-facing Traditional Chinese labels", () => {

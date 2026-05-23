@@ -32,6 +32,18 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatCandidateSummary(fields?: Record<string, unknown>): string {
+  if (!fields) return "";
+  const parts = [
+    typeof fields.registeredAreaPing === "number" ? `登記 ${fields.registeredAreaPing.toFixed(2)}坪` : "",
+    typeof fields.mainBuildingAreaPing === "number" ? `主建 ${fields.mainBuildingAreaPing.toFixed(2)}坪` : "",
+    typeof fields.legalUse === "string" ? fields.legalUse : "",
+    typeof fields.constructionDate === "string" ? fields.constructionDate : "",
+    typeof fields.floor === "string" ? fields.floor : "",
+  ].filter(Boolean);
+  return parts.join(" / ");
+}
+
 export function PropertyDataSheetPage({
   propertyType,
   data,
@@ -82,6 +94,35 @@ export function PropertyDataSheetPage({
           ) : (
             <Row label="查詢狀態" value="無查詢失敗項目" />
           )}
+          {data.preSurvey.candidateDisclaimer ? (
+            <Row label="前期物調聲明" value={data.preSurvey.candidateDisclaimer} />
+          ) : null}
+          {data.preSurvey.inferredReference ? (
+            <Row
+              label="推測資料來源"
+              value={`${data.preSurvey.inferredReference.source_units.join("、")}｜${data.preSurvey.inferredReference.warning}`}
+            />
+          ) : null}
+          {data.preSurvey.candidateOptions && data.preSurvey.candidateOptions.length > 0 ? (
+            <>
+              <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 14, marginBottom: 8, color: "#111827" }}>
+                候選資料比較
+              </Text>
+              {data.preSurvey.candidateOptions.map((candidate) => (
+                <Row
+                  key={candidate.candidate_id}
+                  label={candidate.normalized_parcel_id}
+                  value={[
+                    candidate.parcel_type === "building" ? "建物" : "土地",
+                    candidate.query_status ?? "pending",
+                    candidate.confirmation_state ?? "unconfirmed",
+                    candidate.error_code ?? "",
+                    formatCandidateSummary(candidate.summary_fields),
+                  ].filter(Boolean).join("｜")}
+                />
+              ))}
+            </>
+          ) : null}
         </>
       ) : null}
 

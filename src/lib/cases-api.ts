@@ -38,6 +38,7 @@ export interface CreateCaseInput {
 export interface UpdateCaseInput {
   property_type?: "residential" | "land";
   land_lot_no?: string;
+  land_lots?: string[];
   building_lot_no?: string | null;
   address?: string;
   owner_name?: string | null;

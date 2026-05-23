@@ -201,6 +201,159 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByText("本次只取得候選或待確認資料；查詢失敗與帳務同步不計費。")).toBeInTheDocument();
   });
 
+  it("shows candidate parcel options and persists temporary and confirmed selections", async () => {
+    const candidateCase: CaseRow = {
+      ...caseRow,
+      address: "台南市東區裕農路288巷17號8樓之1",
+      land_lot_no: "0001",
+      building_lot_no: null,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-23T00:00:00.000Z",
+        entries: {
+          address_lookup: {
+            apiId: "address_lookup",
+            source: "moi_api",
+            status: "failed",
+            trustedForPdf: false,
+            error: "COP317 門牌建號查詢未成功",
+          },
+        },
+        candidate_options: [
+          {
+            candidate_id: "land:DC-1556-00700000",
+            parcel_type: "land",
+            section_code: "1556",
+            section_name: "富強段",
+            parcel_number: "00700000",
+            normalized_parcel_id: "DC-1556-00700000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            summary_fields: { landAreaSqm: 120.5 },
+            warnings: ["待屋主或權狀確認"],
+          },
+          {
+            candidate_id: "building:DC-1556-00165000",
+            parcel_type: "building",
+            section_code: "1556",
+            section_name: "富強段",
+            parcel_number: "00165000",
+            normalized_parcel_id: "DC-1556-00165000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            summary_fields: {
+              registeredAreaPing: 31.25,
+              mainBuildingAreaPing: 23.1,
+              legalUse: "住家用",
+              constructionDate: "083/10/18",
+              floor: "8樓之1",
+            },
+            warnings: ["待屋主或權狀確認是否為 8樓之1"],
+          },
+          {
+            candidate_id: "building:DC-1556-00167000",
+            parcel_type: "building",
+            section_code: "1556",
+            section_name: "富強段",
+            parcel_number: "00167000",
+            normalized_parcel_id: "DC-1556-00167000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "failed",
+            error_code: "COP312",
+            error_message: "取得服務資訊失敗",
+            summary_fields: {},
+            warnings: ["候選 probe 失敗"],
+          },
+          {
+            candidate_id: "building:DC-1556-00230000",
+            parcel_type: "building",
+            section_code: "1556",
+            section_name: "富強段",
+            parcel_number: "00230000",
+            normalized_parcel_id: "DC-1556-00230000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "failed",
+            error_code: "COP305",
+            error_message: "查無資料",
+            summary_fields: {},
+            warnings: ["候選查無資料"],
+          },
+        ],
+      },
+    };
+    mockUpdateCase.mockImplementation(async (_id, input) => ({
+      ...candidateCase,
+      ...input,
+    }));
+
+    render(<DemoAlignedWorkbench caseData={candidateCase} initialTab="sources" />);
+
+    const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
+    expect(within(sourceRegion).getByRole("region", { name: "候選土地建物清單" })).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("DC-1556-00700000")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("DC-1556-00165000")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("DC-1556-00167000")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("DC-1556-00230000")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText(/31\.25坪/)).toBeInTheDocument();
+    expect(within(sourceRegion).getAllByText(/COP312/).length).toBeGreaterThan(0);
+    expect(within(sourceRegion).getByText(/候選 probe 取得服務資訊失敗/)).toBeInTheDocument();
+    expect(within(sourceRegion).getAllByText(/COP305/).length).toBeGreaterThan(0);
+    expect(within(sourceRegion).getAllByText(/候選查無資料/).length).toBeGreaterThan(0);
+
+    fireEvent.click(within(sourceRegion).getByRole("button", { name: "確認 DC-1556-00700000" }));
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(
+        candidateCase.id,
+        expect.objectContaining({
+          land_lot_no: "DC-1556-00700000",
+          land_lots: ["DC-1556-00700000"],
+          land_registry_data: expect.objectContaining({
+            confirmed_parcel_ids: expect.objectContaining({
+              land: "land:DC-1556-00700000",
+            }),
+          }),
+        }),
+      );
+    });
+
+    fireEvent.click(within(sourceRegion).getByRole("button", { name: "暫用 DC-1556-00165000" }));
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(
+        candidateCase.id,
+        expect.objectContaining({
+          land_registry_data: expect.objectContaining({
+            selected_candidate_ids: expect.objectContaining({
+              building: "building:DC-1556-00165000",
+            }),
+          }),
+        }),
+      );
+    });
+
+    fireEvent.click(within(sourceRegion).getByRole("button", { name: "確認 DC-1556-00165000" }));
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(
+        candidateCase.id,
+        expect.objectContaining({
+          building_lot_no: "DC-1556-00165000",
+          land_registry_data: expect.objectContaining({
+            confirmed_parcel_ids: expect.objectContaining({
+              building: "building:DC-1556-00165000",
+            }),
+          }),
+        }),
+      );
+    });
+  });
+
   it("switches workbench tabs instead of showing every panel at once", () => {
     render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
 

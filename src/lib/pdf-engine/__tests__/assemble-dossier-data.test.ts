@@ -147,6 +147,95 @@ function trustedRegistryPayload(entries: Record<string, Record<string, unknown>>
   };
 }
 
+function candidateRegistryPayload() {
+  return {
+    schema: "aire.registry-provenance.v1" as const,
+    generatedAt: "2026-05-23T00:00:00.000Z",
+    totalCost: 0,
+    entries: {
+      address_lookup: {
+        apiId: "address_lookup",
+        source: "moi_api",
+        status: "failed",
+        trustedForPdf: false,
+        error: "門牌建號查詢未取得單一候選",
+      },
+    },
+    candidate_options: [
+      {
+        candidate_id: "land:DC-1556-00700000",
+        parcel_type: "land",
+        section_code: "1556",
+        section_name: "富強段",
+        parcel_number: "00700000",
+        normalized_parcel_id: "DC-1556-00700000",
+        source: "public_reference",
+        confidence_label: "same_address_candidate",
+        official_status: "candidate_unconfirmed",
+        query_status: "candidate_data_available",
+        summary_fields: {
+          landAreaSqm: 120.5,
+          zoning: "住宅區",
+          buildingCoverage: "60%",
+          floorAreaRatio: "200%",
+        },
+        warnings: ["待屋主或權狀確認"],
+      },
+      {
+        candidate_id: "building:DC-1556-00165000",
+        parcel_type: "building",
+        section_code: "1556",
+        section_name: "富強段",
+        parcel_number: "00165000",
+        normalized_parcel_id: "DC-1556-00165000",
+        source: "public_reference",
+        confidence_label: "same_address_candidate",
+        official_status: "candidate_unconfirmed",
+        query_status: "candidate_data_available",
+        summary_fields: {
+          registeredAreaPing: 31.25,
+          mainBuildingAreaPing: 23.1,
+          auxiliaryAreaPing: 2.1,
+          commonAreaPing: 6.05,
+          parkingAreaPing: 0,
+          legalUse: "住家用",
+          constructionDate: "083/10/18",
+          material: "鋼筋混凝土造",
+          floor: "8樓之1",
+          ownershipScope: "全部 1/1",
+          landOwnershipRatio: "91/10000",
+        },
+        warnings: ["待屋主或權狀確認是否為 8樓之1"],
+      },
+      {
+        candidate_id: "building:DC-1556-00167000",
+        parcel_type: "building",
+        section_code: "1556",
+        section_name: "富強段",
+        parcel_number: "00167000",
+        normalized_parcel_id: "DC-1556-00167000",
+        source: "public_reference",
+        confidence_label: "same_address_candidate",
+        official_status: "candidate_unconfirmed",
+        query_status: "failed",
+        error_code: "COP312",
+        error_message: "取得服務資訊失敗",
+        summary_fields: {},
+        warnings: ["候選 probe 失敗"],
+      },
+    ],
+    selected_candidate_ids: {
+      land: "land:DC-1556-00700000",
+      building: "building:DC-1556-00165000",
+    },
+    coordinate_source: {
+      lat: 22.986314,
+      lng: 120.22908,
+      source: "candidate_reference",
+    },
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Setup
 // ─────────────────────────────────────────────────────────────────────────────
@@ -717,6 +806,144 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.buildingArea).toBeUndefined();
     expect(result.buildingPurpose).toBeUndefined();
     expect(result.propertySheet?.owner).toBe("王建國");
+  });
+
+  it("selected candidate fills pre-survey property sheet with mandatory warning", async () => {
+    mockInvoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "fetch_location_map") {
+        expect(args).toMatchObject({ lat: 22.986314, lng: 120.22908 });
+        return [0x89, 0x50, 0x4e, 0x47];
+      }
+      if (cmd === "fetch_aerial_photo") {
+        expect(args).toMatchObject({ lat: 22.986314, lng: 120.22908 });
+        return [0x89, 0x50, 0x4e, 0x47, 1];
+      }
+      if (cmd === "fetch_street_view") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      case_name: "裕農路物調驗收",
+      case_no: "AIRE-YUNONG-20260523",
+      address: "台南市東區裕農路288巷17號8樓之1",
+      owner_name: "余啟彰",
+      land_lot_no: "0001",
+      land_lots: ["0001"],
+      building_lot_no: null,
+      land_registry_data: candidateRegistryPayload(),
+    });
+
+    expect(result.propertySheet?.landSection).toBe("富強段");
+    expect(result.propertySheet?.landNumber).toBe("00700000");
+    expect(result.propertySheet?.zoning).toBe("住宅區");
+    expect(result.propertySheet?.landArea).toBe(120.5);
+    expect(result.propertySheet?.registeredArea).toBe(31.25);
+    expect(result.propertySheet?.mainBuildingArea).toBe(23.1);
+    expect(result.propertySheet?.legalUse).toBe("住家用");
+    expect(result.propertySheet?.constructionDate).toBe("083/10/18");
+    expect(result.propertySheet?.floor).toBe("8樓之1");
+    expect(result.propertySheet?.buildingAge).toBeTruthy();
+    expect(result.propertySheetSources).toMatchObject({
+      registeredArea: "候選資料，待屋主/權狀確認",
+      mainBuildingArea: "候選資料，待屋主/權狀確認",
+      legalUse: "候選資料，待屋主/權狀確認",
+      constructionDate: "候選資料，待屋主/權狀確認",
+      floor: "候選資料，待屋主/權狀確認",
+    });
+    expect(result.preSurvey?.candidateDisclaimer).toBe(
+      "地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
+    );
+    expect(result.preSurvey?.candidateOptions?.map((candidate) => candidate.normalized_parcel_id)).toEqual([
+      "DC-1556-00700000",
+      "DC-1556-00165000",
+      "DC-1556-00167000",
+    ]);
+    expect(result.locationMapImage?.length).toBeGreaterThan(0);
+    expect(result.aerialPhoto?.length).toBeGreaterThan(0);
+  });
+
+  it("trusted registry data overrides selected candidate values", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        ...candidateRegistryPayload(),
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "moi_api",
+            status: "success",
+            trustedForPdf: true,
+            data: {
+              area: 108.43,
+              main_building_area: 82.64,
+              building_purpose: "住家用",
+              construction_date: "083/10/18",
+            },
+          },
+        },
+      },
+    });
+
+    expect(result.propertySheet?.registeredArea).toBe(32.8);
+    expect(result.propertySheet?.mainBuildingArea).toBe(25);
+    expect(result.propertySheetSources?.registeredArea).toBeUndefined();
+  });
+
+  it("same-suffix reference estimates fill fields when no selected candidate exists", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      address: "台南市東區裕農路288巷17號8樓之1",
+      land_lot_no: "0001",
+      land_lots: ["0001"],
+      building_lot_no: null,
+      land_registry_data: {
+        ...candidateRegistryPayload(),
+        selected_candidate_ids: {},
+        inferred_reference: {
+          target_unit: "8樓之1",
+          basis: "same_suffix_vertical_stack",
+          confidence: "high",
+          source_units: ["3樓之1", "5樓之1", "7樓之1"],
+          estimated_fields: {
+            registeredAreaPing: 31.25,
+            mainBuildingAreaPing: 23.1,
+          },
+          warning: "推測資料，非登記資料；地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
+        },
+      },
+    });
+
+    expect(result.propertySheet?.registeredArea).toBe(31.25);
+    expect(result.propertySheet?.mainBuildingArea).toBe(23.1);
+    expect(result.propertySheetSources).toMatchObject({
+      registeredArea: "推測資料，非登記資料",
+      mainBuildingArea: "推測資料，非登記資料",
+    });
+    expect(result.preSurvey?.inferredReference?.source_units).toEqual(["3樓之1", "5樓之1", "7樓之1"]);
+    expect(result.preSurvey?.candidateDisclaimer).toBe(
+      "地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
+    );
   });
 
   it("只有 candidate/failed provenance 且有屋主姓名時，PDF assembly 會嘗試正式 pull", async () => {

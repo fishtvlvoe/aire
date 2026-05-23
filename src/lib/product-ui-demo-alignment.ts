@@ -384,14 +384,18 @@ export function classifyAddressLookupResult(
   }
 
   if (parcels.length > 1) {
+    const landLots = new Set(
+      parcels.map((parcel) => parcel.lot_number?.trim()).filter(Boolean),
+    );
+    const buildingCount = parcels.filter((parcel) => Boolean(parcel.building_number?.trim())).length;
     return {
       status: "manual_required",
       propertyType: "residential",
       displayType: "需要人工確認",
       summary: "找到多筆候選地政資料，請人工確認土地或建物",
       manualSelectionRequired: true,
-      landCount: parcels.length,
-      buildingCount: parcels.filter((parcel) => Boolean(parcel.building_number?.trim())).length,
+      landCount: landLots.size || parcels.filter((parcel) => !parcel.building_number?.trim()).length,
+      buildingCount,
       note: "多筆候選時先顯示候選資料，再由使用者選擇正確類型。",
     };
   }

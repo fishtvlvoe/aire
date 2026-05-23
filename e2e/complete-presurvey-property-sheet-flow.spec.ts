@@ -49,8 +49,8 @@ test("visible Yunong pre-survey flow creates a case, records supplements, previe
   await page.getByLabel("案件編號（選填）").fill(CASE_NO);
 
   await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
-  await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
-  await expect(page.getByTestId("case-lot-inputs").getByPlaceholder("地號（如 123-4）").first()).toHaveValue("0001");
+  await expect(page.getByText("土地 1 筆 · 建物 4 筆")).toBeVisible();
+  await expect(page.getByTestId("case-lot-inputs").getByPlaceholder("地號（如 123-4）").first()).toHaveValue("");
 
   await page.getByRole("button", { name: "建立案件", exact: true }).click();
   await expect(page).toHaveURL(/\/cases\/[0-9a-f-]+$/);

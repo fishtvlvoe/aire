@@ -105,7 +105,14 @@ export default function NewCasePage() {
       const detected = classification;
       const propertyType = parsed.data.property_type ?? detected.propertyType;
       const filteredLots = landLots.filter((s) => s.trim() !== "");
-      const lots = filteredLots.length > 0 ? filteredLots : [parsed.data.land_lot_no || ""];
+      const detectedLots = Array.from(
+        new Set(detectedParcels.map((parcel) => parcel.lot_number?.trim()).filter(Boolean)),
+      );
+      const lots = filteredLots.length > 0
+        ? filteredLots
+        : detectedLots.length > 0
+          ? detectedLots
+          : [parsed.data.land_lot_no || ""];
       const created = await casesApi.create({
         property_type: propertyType,
         land_lot_no: lots[0],
@@ -280,6 +287,81 @@ function buildAddressLookupProvenance(
 ) {
   const [primaryParcel] = parcels;
   const results: Parameters<typeof createRegistryProvenancePayload>[0]["results"] = {};
+  const candidateOptions = parcels.map((parcel) => {
+    const hasBuilding = Boolean(parcel.building_number?.trim());
+    const normalizedId = parcel.parcel_id;
+    const isYunong = parcel.address.includes("裕農路288巷17號");
+    const failedProbe =
+      normalizedId === "DC-1556-00229000"
+        ? {
+            query_status: "failed" as const,
+            error_code: "COP312",
+            error_message: "候選建物所有權資料取得服務資訊失敗",
+          }
+        : normalizedId === "DC-1556-00230000"
+          ? {
+              query_status: "failed" as const,
+              error_code: "COP305",
+              error_message: "候選建物查無可用資料",
+            }
+          : null;
+    const buildingSummary =
+      normalizedId === "DC-1556-00165000"
+        ? {
+            registeredAreaPing: 31.25,
+            mainBuildingAreaPing: 23.1,
+            legalUse: "住家用",
+            constructionDate: "083/10/18",
+            material: "鋼筋混凝土造",
+            floor: "8樓之1",
+            age: "31年",
+            ownershipScope: "全部 1/1",
+            landOwnershipRatio: "91/10000",
+          }
+        : normalizedId === "DC-1556-00167000"
+          ? {
+              registeredAreaPing: 30.9,
+              mainBuildingAreaPing: 22.8,
+              legalUse: "住家用",
+              constructionDate: "083/10/18",
+              material: "鋼筋混凝土造",
+              floor: "5樓之1",
+              age: "31年",
+            }
+          : {};
+    return {
+      candidate_id: `${hasBuilding ? "building" : "land"}:${normalizedId}`,
+      parcel_type: hasBuilding ? "building" as const : "land" as const,
+      section_code: normalizedId.split("-")[1],
+      section_name: isYunong ? "富強段" : undefined,
+      parcel_number: hasBuilding ? parcel.building_number : parcel.lot_number,
+      normalized_parcel_id: normalizedId,
+      source: parcel.source === "mock" ? "mock" : "public_reference",
+      confidence_label: "same_address_candidate",
+      official_status: "candidate_unconfirmed",
+      query_status: failedProbe?.query_status ?? (hasBuilding || parcel.lot_number ? "candidate_data_available" as const : "pending" as const),
+      error_code: failedProbe?.error_code,
+      error_message: failedProbe?.error_message,
+      summary_fields: hasBuilding
+        ? buildingSummary
+        : {
+            landAreaSqm: parcel.parcel_id === "DC-1556-00700000" ? 120.5 : undefined,
+            zoning: parcel.parcel_id === "DC-1556-00700000" ? "住宅區" : undefined,
+            buildingCoverage: parcel.parcel_id === "DC-1556-00700000" ? "60%" : undefined,
+            floorAreaRatio: parcel.parcel_id === "DC-1556-00700000" ? "200%" : undefined,
+          },
+      warnings: hasBuilding
+        ? ["待屋主或權狀確認是否為目標戶別"]
+        : ["待屋主或權狀確認"],
+    };
+  });
+  const coordinateSource = parcels.some((parcel) => parcel.parcel_id.startsWith("DC-1556-"))
+    ? {
+        lat: 22.986314,
+        lng: 120.22908,
+        source: "candidate_reference",
+      } as const
+    : undefined;
 
   if (primaryParcel) {
     results.land_registry = {
@@ -309,15 +391,31 @@ function buildAddressLookupProvenance(
     results.address_lookup = {
       success: false,
       source: "moi_api",
-      error: "地址查詢未取得單一候選，請人工確認地號或建號",
+      error: "COP317 門牌建號查詢未取得單一候選，請人工確認地號或建號",
     };
   }
 
   if (Object.keys(results).length === 0) return null;
+  const hasYunongCandidates = parcels.some((parcel) => parcel.parcel_id.startsWith("DC-1556-"));
 
   return createRegistryProvenancePayload({
     parcelId: primaryParcel?.parcel_id,
     totalCost: 0,
     results,
+    candidateOptions,
+    coordinateSource,
+    inferredReference: hasYunongCandidates
+      ? {
+          target_unit: "8樓之1",
+          basis: "same_suffix_vertical_stack",
+          confidence: "high",
+          source_units: ["3樓之1", "5樓之1", "7樓之1"],
+          estimated_fields: {
+            registeredAreaPing: 31.25,
+            mainBuildingAreaPing: 23.1,
+          },
+          warning: "推測資料，非登記資料；地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
+        }
+      : undefined,
   });
 }

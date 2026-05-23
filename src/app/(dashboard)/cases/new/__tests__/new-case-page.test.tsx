@@ -90,6 +90,38 @@ describe("NewCasePage address-first flow", () => {
   });
 
   it("persists address lookup provenance without terminal failed ownership when creating the case", async () => {
+    mockAddressLookup.mockResolvedValue([
+      {
+        parcel_id: "DC-1556-00700000",
+        address: "台南市東區裕農路288巷17號8樓之1",
+        lot_number: "00700000",
+        building_number: "",
+      },
+      {
+        parcel_id: "DC-1556-00165000",
+        address: "台南市東區裕農路288巷17號8樓之1",
+        lot_number: "00700000",
+        building_number: "00165000",
+      },
+      {
+        parcel_id: "DC-1556-00167000",
+        address: "台南市東區裕農路288巷17號8樓之1",
+        lot_number: "00700000",
+        building_number: "00167000",
+      },
+      {
+        parcel_id: "DC-1556-00229000",
+        address: "台南市東區裕農路288巷17號8樓之1",
+        lot_number: "00700000",
+        building_number: "00229000",
+      },
+      {
+        parcel_id: "DC-1556-00230000",
+        address: "台南市東區裕農路288巷17號8樓之1",
+        lot_number: "00700000",
+        building_number: "00230000",
+      },
+    ]);
     render(<NewCasePage />);
 
     fireEvent.change(screen.getByLabelText("地址 *"), {
@@ -106,6 +138,7 @@ describe("NewCasePage address-first flow", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "建立案件" })).toBeInTheDocument();
     });
+    expect(screen.getByText("土地 1 筆 · 建物 4 筆")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
 
@@ -117,17 +150,47 @@ describe("NewCasePage address-first flow", () => {
         address: "台南市東區裕農路288巷17號8樓之1",
         case_name: "裕農路物調驗收",
         case_no: "AIRE-YUNONG-20260523",
-        land_lot_no: "0001",
+        land_lot_no: "00700000",
         land_registry_data: expect.objectContaining({
           schema: "aire.registry-provenance.v1",
-          parcelId: "0001-0001",
+          parcelId: "DC-1556-00700000",
           totalCost: 0,
-          entries: expect.objectContaining({
-            building_registry: expect.objectContaining({
-              source: "public_candidate",
-              status: "candidate",
-              trustedForPdf: false,
+          candidate_options: expect.arrayContaining([
+            expect.objectContaining({ normalized_parcel_id: "DC-1556-00700000" }),
+            expect.objectContaining({ normalized_parcel_id: "DC-1556-00165000" }),
+            expect.objectContaining({
+              normalized_parcel_id: "DC-1556-00167000",
+              query_status: "candidate_data_available",
+              summary_fields: expect.objectContaining({
+                registeredAreaPing: 30.9,
+                mainBuildingAreaPing: 22.8,
+              }),
             }),
+            expect.objectContaining({
+              normalized_parcel_id: "DC-1556-00229000",
+              query_status: "failed",
+              error_code: "COP312",
+            }),
+            expect.objectContaining({
+              normalized_parcel_id: "DC-1556-00230000",
+              query_status: "failed",
+              error_code: "COP305",
+            }),
+          ]),
+          inferred_reference: expect.objectContaining({
+            target_unit: "8樓之1",
+            basis: "same_suffix_vertical_stack",
+            confidence: "high",
+            source_units: ["3樓之1", "5樓之1", "7樓之1"],
+            estimated_fields: expect.objectContaining({
+              registeredAreaPing: 31.25,
+              mainBuildingAreaPing: 23.1,
+            }),
+          }),
+          coordinate_source: expect.objectContaining({
+            lat: 22.986314,
+            lng: 120.22908,
+            source: "candidate_reference",
           }),
         }),
       }),

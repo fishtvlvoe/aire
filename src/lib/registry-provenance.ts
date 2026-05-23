@@ -21,12 +21,75 @@ export interface RegistryProvenanceEntry {
   sourceNote?: string;
 }
 
+export interface CandidateSummaryFields {
+  registeredAreaPing?: number;
+  mainBuildingAreaPing?: number;
+  auxiliaryAreaPing?: number;
+  commonAreaPing?: number;
+  parkingAreaPing?: number;
+  landAreaSqm?: number;
+  legalUse?: string;
+  constructionDate?: string;
+  material?: string;
+  floor?: string;
+  age?: string;
+  zoning?: string;
+  buildingCoverage?: string;
+  floorAreaRatio?: string;
+  ownershipScope?: string;
+  landOwnershipRatio?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export type CandidateParcelType = "land" | "building";
+export type CandidateQueryStatus = "candidate_data_available" | "failed" | "pending";
+export type CandidateConfirmationState = "unconfirmed" | "selected_candidate" | "confirmed";
+
+export interface CandidateParcelOption {
+  candidate_id: string;
+  parcel_type: CandidateParcelType;
+  section_code?: string;
+  section_name?: string;
+  parcel_number?: string;
+  normalized_parcel_id: string;
+  source?: string;
+  confidence_label?: string;
+  official_status?: string;
+  query_status?: CandidateQueryStatus;
+  confirmation_state?: CandidateConfirmationState;
+  summary_fields?: CandidateSummaryFields;
+  query_cost?: number;
+  error_code?: string;
+  error_message?: string;
+  warnings?: string[];
+}
+
+export interface RegistryCoordinateSource {
+  lat: number;
+  lng: number;
+  source: "candidate_reference" | "manual" | "registry" | string;
+}
+
+export interface InferredRegistryReference {
+  target_unit: string;
+  basis: string;
+  confidence: "high" | "medium" | "low" | string;
+  source_units: string[];
+  estimated_fields: CandidateSummaryFields;
+  warning: string;
+}
+
 export interface RegistryProvenancePayload extends Record<string, unknown> {
   schema: "aire.registry-provenance.v1";
   generatedAt: string;
   parcelId?: string;
   totalCost?: number;
   entries: Record<string, RegistryProvenanceEntry>;
+  candidate_options?: CandidateParcelOption[];
+  selected_candidate_ids?: Partial<Record<CandidateParcelType, string>>;
+  confirmed_parcel_ids?: Partial<Record<CandidateParcelType, string>>;
+  coordinate_source?: RegistryCoordinateSource;
+  inferred_reference?: InferredRegistryReference;
 }
 
 type ApiLikeResult = {
@@ -120,6 +183,11 @@ export function createRegistryProvenancePayload(input: {
   totalCost?: number;
   results?: Record<string, ApiLikeResult>;
   manualEntries?: Array<{ apiId: string; data: Record<string, unknown> | null }>;
+  candidateOptions?: CandidateParcelOption[];
+  selectedCandidateIds?: Partial<Record<CandidateParcelType, string>>;
+  confirmedParcelIds?: Partial<Record<CandidateParcelType, string>>;
+  coordinateSource?: RegistryCoordinateSource;
+  inferredReference?: InferredRegistryReference;
   generatedAt?: string;
 }): RegistryProvenancePayload {
   const entries: Record<string, RegistryProvenanceEntry> = {};
@@ -183,13 +251,43 @@ export function createRegistryProvenancePayload(input: {
     };
   }
 
-  return {
+  const payload: RegistryProvenancePayload = {
     schema: "aire.registry-provenance.v1",
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     parcelId: input.parcelId,
     totalCost: input.totalCost,
     entries,
   };
+  if (input.candidateOptions && input.candidateOptions.length > 0) {
+    payload.candidate_options = input.candidateOptions;
+  }
+  if (input.selectedCandidateIds && Object.keys(input.selectedCandidateIds).length > 0) {
+    payload.selected_candidate_ids = input.selectedCandidateIds;
+  }
+  if (input.confirmedParcelIds && Object.keys(input.confirmedParcelIds).length > 0) {
+    payload.confirmed_parcel_ids = input.confirmedParcelIds;
+  }
+  if (input.coordinateSource) {
+    payload.coordinate_source = input.coordinateSource;
+  }
+  if (input.inferredReference) {
+    payload.inferred_reference = input.inferredReference;
+  }
+  return payload;
+}
+
+function isCandidateParcelOption(value: unknown): value is CandidateParcelOption {
+  if (!isRecord(value)) return false;
+  return typeof value.candidate_id === "string" &&
+    (value.parcel_type === "land" || value.parcel_type === "building") &&
+    typeof value.normalized_parcel_id === "string";
+}
+
+export function extractCandidateOptions(payload: unknown): CandidateParcelOption[] {
+  if (!isRegistryProvenancePayload(payload)) return [];
+  const options = payload.candidate_options;
+  if (!Array.isArray(options)) return [];
+  return options.filter(isCandidateParcelOption);
 }
 
 export function extractTrustedRegistryData(payload: unknown): Record<string, unknown> {
