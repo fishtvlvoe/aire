@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import React from "react";
 import { Document, pdf } from "@react-pdf/renderer";
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
+import sharp from "sharp";
 import { initReactPdfEngine } from "@/lib/pdf-engine/react-pdf-init";
 import { ThemeProvider } from "@/lib/pdf-themes/theme-provider";
 import { getTheme } from "@/lib/pdf-themes/registry";
@@ -9,11 +10,21 @@ import { AerialPhotoPage } from "../aerial-photo-page";
 import { ExteriorPhotoPage } from "../exterior-photo-page";
 import { LifeAmenitiesPage } from "../life-amenities";
 
-beforeAll(() => {
-  initReactPdfEngine();
-});
+let TEST_PNG: Uint8Array;
 
-const TEST_PNG = new Uint8Array(readFileSync("src/assets/icon-light.png"));
+beforeAll(async () => {
+  initReactPdfEngine();
+  TEST_PNG = new Uint8Array(
+    await sharp({
+      create: {
+        width: 64,
+        height: 48,
+        channels: 3,
+        background: { r: 46, g: 125, b: 50 },
+      },
+    }).png().toBuffer(),
+  );
+});
 
 async function renderImagePages() {
   const element = (

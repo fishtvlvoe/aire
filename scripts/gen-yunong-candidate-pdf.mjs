@@ -1,11 +1,44 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { createJiti } from "jiti";
 
-const { createPdfEngine } = await import("../src/lib/pdf-engine/engine.ts");
+const jiti = createJiti(import.meta.url, {
+  alias: { "@/": `${resolve("src")}/` },
+  fsCache: false,
+  jsx: { runtime: "automatic" },
+});
+const { createPdfEngine } = await jiti.import("../src/lib/pdf-engine/engine.ts");
 
 const outputPath = process.argv[2] ?? "/tmp/aire-yunong-candidate-presurvey.pdf";
-const pngPath = resolve("src/assets/icon-light.png");
-const imageBytes = existsSync(pngPath) ? new Uint8Array(readFileSync(pngPath)) : null;
+const imageApiBase = process.env.AIRE_IMAGE_API_BASE ?? "http://localhost:3000";
+const yunongCoordinate = { lat: 22.986314, lng: 120.22908 };
+
+async function fetchImage(path, body) {
+  try {
+    const resp = await fetch(`${imageApiBase}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30000),
+    });
+    const contentType = resp.headers.get("content-type") ?? "";
+    if (!resp.ok || !contentType.startsWith("image/")) {
+      console.warn(`[gen-yunong-candidate-pdf] ${path} unavailable: ${resp.status} ${contentType}`);
+      return null;
+    }
+    return new Uint8Array(await resp.arrayBuffer());
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[gen-yunong-candidate-pdf] ${path} unavailable: ${message}`);
+    return null;
+  }
+}
+
+const [locationMapImage, aerialPhoto, exteriorPhoto] = await Promise.all([
+  fetchImage("/api/location-map", { ...yunongCoordinate, zoom: 16 }),
+  fetchImage("/api/aerial-photo", { ...yunongCoordinate, zoom: 18 }),
+  fetchImage("/api/street-view", yunongCoordinate),
+]);
 
 const candidateOptions = [
   {
@@ -208,9 +241,9 @@ const data = {
   ],
   nearbyAmenities: [],
   surveyData: null,
-  locationMapImage: imageBytes,
-  aerialPhoto: imageBytes,
-  exteriorPhoto: null,
+  locationMapImage,
+  aerialPhoto,
+  exteriorPhoto,
 };
 
 const engine = await createPdfEngine();

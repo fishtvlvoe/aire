@@ -54,7 +54,7 @@ export function ExteriorPhotoPage({
               建物外觀
             </Text>
             <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "NotoSansTC" }}>
-              請於現場拍攝後上傳
+              未取得街景或外觀照；請補現場照片，或設定 Google Maps API Key 後重新產生
             </Text>
           </View>
         )}

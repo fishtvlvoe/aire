@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -12,16 +12,6 @@ const DOWNLOAD_PATH = join(DOWNLOAD_DIR, `${CASE_NO}-說明書.pdf`);
 test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000" });
 
 test.beforeEach(async ({ page }) => {
-  const png = readFileSync(join(process.cwd(), "src/assets/icon-light.png"));
-  await page.route("**/api/location-map", (route) =>
-    route.fulfill({ status: 200, contentType: "image/png", body: png }),
-  );
-  await page.route("**/api/aerial-photo", (route) =>
-    route.fulfill({ status: 200, contentType: "image/png", body: png }),
-  );
-  await page.route("**/api/street-view", (route) =>
-    route.fulfill({ status: 404, contentType: "application/json", body: "{}" }),
-  );
   await page.addInitScript(() => {
     window.localStorage.setItem(
       "aire-mock-store",
@@ -109,4 +99,8 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   const imageList = execFileSync("pdfimages", ["-list", DOWNLOAD_PATH], { encoding: "utf8" });
   const imageRows = imageList.split("\n").filter((line) => /\bimage\b/.test(line));
   expect(imageRows.length).toBeGreaterThanOrEqual(2);
+  const mapImageRows = imageRows.filter((line) => /\b600\s+400\b/.test(line));
+  expect(mapImageRows.length).toBeGreaterThanOrEqual(2);
+  const logoRows = imageRows.filter((line) => /\b1024\s+1024\b/.test(line));
+  expect(imageRows.length - logoRows.length).toBeGreaterThanOrEqual(2);
 });
