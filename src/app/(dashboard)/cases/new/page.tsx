@@ -399,7 +399,7 @@ function buildAddressLookupProvenance(
   }
 
   if (Object.keys(results).length === 0) return null;
-  const hasYunongCandidates = parcels.some((parcel) => parcel.parcel_id.startsWith("DC-1556-"));
+  const inferredReference = buildInferredReferenceFromCandidates(primaryParcel?.address ?? "", candidateOptions);
 
   return createRegistryProvenancePayload({
     parcelId: primaryParcel?.parcel_id,
@@ -407,28 +407,91 @@ function buildAddressLookupProvenance(
     results,
     candidateOptions,
     coordinateSource,
-    inferredReference: hasYunongCandidates
-      ? {
-          target_unit: "8樓之1",
-          basis: "same_suffix_vertical_stack",
-          confidence: "high",
-          source_units: ["3樓之1", "5樓之1", "7樓之1"],
-          estimated_fields: {
-            registeredAreaPing: 31.25,
-            mainBuildingAreaPing: 23.1,
-            auxiliaryAreaPing: 2.1,
-            commonAreaPing: 6.05,
-            parkingAreaPing: 0,
-            legalUse: "住家用",
-            constructionDate: "083/10/18",
-            material: "鋼筋混凝土造",
-            floor: "8樓之1",
-            age: "31年",
-            ownershipScope: "全部 1/1",
-            landOwnershipRatio: "91/10000",
-          },
-          warning: "推測資料，非登記資料；地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
-        }
-      : undefined,
+    inferredReference,
   });
+}
+
+function extractTargetUnit(address: string): string | undefined {
+  const match = address.match(/(\d+樓之\d+|\d+樓-\d+|\d+樓)/);
+  return match?.[1];
+}
+
+function extractUnitSuffix(unit: string): string | undefined {
+  const match = unit.match(/之(\d+)$/);
+  return match?.[1];
+}
+
+function buildInferredReferenceFromCandidates(
+  address: string,
+  candidateOptions: Array<{
+    parcel_type: "land" | "building";
+    summary_fields?: Record<string, unknown>;
+  }>,
+) {
+  const targetUnit = extractTargetUnit(address);
+  if (!targetUnit) return undefined;
+
+  const targetSuffix = extractUnitSuffix(targetUnit);
+  const buildingCandidates = candidateOptions
+    .filter((candidate) => candidate.parcel_type === "building")
+    .map((candidate) => candidate.summary_fields ?? {});
+
+  const sameSuffixCandidates = buildingCandidates.filter((fields) => {
+    const floor = typeof fields.floor === "string" ? fields.floor : "";
+    if (!floor) return false;
+    if (floor === targetUnit) return true;
+    if (!targetSuffix) return false;
+    return extractUnitSuffix(floor) === targetSuffix;
+  });
+
+  if (sameSuffixCandidates.length === 0) return undefined;
+
+  const exactUnitCandidate = sameSuffixCandidates.find(
+    (fields) => typeof fields.floor === "string" && fields.floor === targetUnit,
+  );
+  const sourceFields = exactUnitCandidate ?? sameSuffixCandidates[0];
+  const sourceUnits = sameSuffixCandidates
+    .map((fields) => (typeof fields.floor === "string" ? fields.floor : ""))
+    .filter((value): value is string => Boolean(value));
+  const pickText = (key: string): string | undefined => {
+    const value = sourceFields[key];
+    return typeof value === "string" ? value : undefined;
+  };
+  const pickNumber = (key: string): number | undefined => {
+    const value = sourceFields[key];
+    return typeof value === "number" ? value : undefined;
+  };
+
+  const estimatedFields = {
+    registeredAreaPing: pickNumber("registeredAreaPing"),
+    mainBuildingAreaPing: pickNumber("mainBuildingAreaPing"),
+    auxiliaryAreaPing: pickNumber("auxiliaryAreaPing"),
+    commonAreaPing: pickNumber("commonAreaPing"),
+    parkingAreaPing: pickNumber("parkingAreaPing"),
+    legalUse: pickText("legalUse"),
+    constructionDate: pickText("constructionDate"),
+    material: pickText("material"),
+    floor: targetUnit,
+    age: pickText("age"),
+    ownershipScope: pickText("ownershipScope"),
+    landOwnershipRatio: pickText("landOwnershipRatio"),
+  };
+
+  if (
+    estimatedFields.registeredAreaPing === undefined &&
+    estimatedFields.mainBuildingAreaPing === undefined &&
+    !estimatedFields.legalUse &&
+    !estimatedFields.constructionDate
+  ) {
+    return undefined;
+  }
+
+  return {
+    target_unit: targetUnit,
+    basis: "same_suffix_vertical_stack",
+    confidence: sourceUnits.length >= 2 ? "high" : "medium",
+    source_units: sourceUnits,
+    estimated_fields: estimatedFields,
+    warning: "推測資料，非登記資料；地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
+  };
 }

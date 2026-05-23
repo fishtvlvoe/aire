@@ -192,7 +192,7 @@ describe("NewCasePage address-first flow", () => {
             target_unit: "8樓之1",
             basis: "same_suffix_vertical_stack",
             confidence: "high",
-            source_units: ["3樓之1", "5樓之1", "7樓之1"],
+            source_units: ["8樓之1", "5樓之1"],
             estimated_fields: expect.objectContaining({
               registeredAreaPing: 31.25,
               mainBuildingAreaPing: 23.1,
