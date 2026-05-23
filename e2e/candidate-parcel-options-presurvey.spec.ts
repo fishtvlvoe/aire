@@ -108,6 +108,7 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   expect(pdfText).toContain("台南市東區裕農路1號");
   expect(pdfText).toContain("06-123-4567");
   expect(pdfText).toContain("地政資料，最終以正式謄本為主；本說明書不代表完整資訊。");
+  expect(pdfText).not.toContain("尚待正式謄本或屋主權狀確認");
   expect(pdfText).toMatch(/31\.25|31\.250/);
   expect(pdfText).toMatch(/23\.10|23\.1/);
   expect(pdfText).toContain("附屬建物");
@@ -124,6 +125,13 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   expect(pdfText).toContain("推測資料");
   expect(pdfText).toContain("附近地段實價登錄成交行情");
   expect(pdfText).toContain("台南市東區裕農路123號");
+  expect(pdfText).toContain("三、產權調查表—所有權及他項權利");
+  expect(pdfText).toContain("所有權人");
+  expect(pdfText).toContain("權狀字號");
+  expect(pdfText).toContain("登記日期");
+  expect(pdfText).toContain("他項權利種類");
+  expect(pdfText).toContain("擔保金額");
+  expect(pdfText).toContain("存續期間");
 
   const imageList = execFileSync("pdfimages", ["-list", DOWNLOAD_PATH], { encoding: "utf8" });
   const imageRows = imageList.split("\n").filter((line) => /\bimage\b/.test(line));

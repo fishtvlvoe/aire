@@ -854,9 +854,13 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.propertySheet?.constructionDate).toBe("083/10/18");
     expect(result.propertySheet?.floor).toBe("8樓之1");
     expect(result.propertySheet?.buildingAge).toBeTruthy();
+    expect(result.propertySheet?.acquisitionDate).toBe("");
     expect(result.buildingArea).toBeCloseTo(103.31, 2);
     expect(result.buildingPurpose).toBe("住家用");
     expect(result.constructionDate).toBe("083/10/18");
+    expect(result.buildingCertificateNo).toBeUndefined();
+    expect(result.buildingOwnershipDate).toBeUndefined();
+    expect(result.mortgages).toBeUndefined();
     expect(result.propertySheetSources).toMatchObject({
       registeredArea: "候選資料，待屋主/權狀確認",
       mainBuildingArea: "候選資料，待屋主/權狀確認",
@@ -962,6 +966,10 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.propertySheet?.constructionDate).toBe("083/10/18");
     expect(result.propertySheet?.ownershipRatio).toBe("91/10000");
     expect(result.propertySheet?.shareArea).toBe(1.1);
+    expect(result.propertySheet?.acquisitionDate).toBe("");
+    expect(result.buildingCertificateNo).toBeUndefined();
+    expect(result.buildingOwnershipDate).toBeUndefined();
+    expect(result.mortgages).toBeUndefined();
     expect(result.propertySheetSources).toMatchObject({
       registeredArea: "推測資料，非登記資料",
       mainBuildingArea: "推測資料，非登記資料",
