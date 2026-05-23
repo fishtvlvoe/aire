@@ -43,3 +43,11 @@
 - [x] 6.5 Follow-up：產權調查表—建物標示原本讀 root `buildingArea/buildingPurpose/constructionDate`，候選值只進 `propertySheet`，因此頁面空白；已同步 selected candidate 的登記坪數換算㎡、用途與完成日，並讓裕農路 E2E 檢查 `103.31`、`住家用`、`083/10/18`。
 - [x] 6.6 Follow-up：手動 candidate PDF artifact 的實價登錄列原本只有 0 值，已補裕農路周邊成交列；E2E 追加檢查「附近地段實價登錄成交行情」與 `台南市東區裕農路123號`。
 - [x] 6.7 Follow-up：browser-dev 品牌文字原本只靠各瀏覽器 localStorage，兩個瀏覽器/Chrome profile 會看到不同資料；設定頁也可能在載入回填時覆蓋剛輸入的值。已新增 `/api/branding-text` 本機共用設定檔、表單避免載入 reset 覆蓋使用者輸入、PDF assembly 增加 web fallback，並讓裕農路 E2E 驗證承辦人、經紀人、經紀業、公司地址與電話會自動帶入 PDF。
+- [x] 6.8 Follow-up：`/cases/new` 裕農路候選建物 `DC-1556-00165000` 原本只塞登記坪數、主建坪、用途與完成日，漏帶附屬建物、公共設施/共有部分與車位坪數，導致 PDF 物件資料表這三格空白。已補 `auxiliaryAreaPing: 2.10`、`commonAreaPing: 6.05`、`parkingAreaPing: 0.00`，並讓 component/E2E PDF 驗收檢查這些欄位。
+- [x] 6.9 Mapping audit：一次盤點 PDF 物件資料表、候選 summary、assembly 與 `/cases/new` provenance 後，確認以下屬於「程式 mapping/display 漏接」並已修正：
+  - 候選清單/PDF 候選比較原本未顯示附屬建物、公共設施/共有部分、車位坪數、主要建材、權利範圍。
+  - 同尾碼推測資料原本只推登記坪數與主建坪，已補附屬建物、公共設施/共有部分、車位坪數、用途、完成日、建材、樓層、權利範圍與土地持分。
+  - 只有一筆土地候選但尚未人工暫用時，PDF assembly 原本不會取土地候選的地段、地號、使用分區、土地面積、建蔽率、容積率，導致持分面積也無法計算；已改成單一土地候選可作為前期物調參考來源。
+  - PDF `propertySheetSources` 原本漏標主要建材、土地權利範圍與持分面積的候選/推測來源，已補來源標記。
+  - 單元測試原本可能讀到本機 `/api/branding-text` 設定，造成品牌欄位測試被開發機資料污染；已在 `assemble-dossier-data` unit tests 隔離 fetch。
+  - 取得日期、正式所有權取得日、他項權利、抵押權內容仍歸類為「候選/公開參考資料不足」，不可由程式推測填入，需正式謄本或屋主權狀補件。

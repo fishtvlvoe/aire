@@ -37,9 +37,14 @@ function formatCandidateSummary(fields?: Record<string, unknown>): string {
   const parts = [
     typeof fields.registeredAreaPing === "number" ? `登記 ${fields.registeredAreaPing.toFixed(2)}坪` : "",
     typeof fields.mainBuildingAreaPing === "number" ? `主建 ${fields.mainBuildingAreaPing.toFixed(2)}坪` : "",
+    typeof fields.auxiliaryAreaPing === "number" ? `附屬 ${fields.auxiliaryAreaPing.toFixed(2)}坪` : "",
+    typeof fields.commonAreaPing === "number" ? `共有 ${fields.commonAreaPing.toFixed(2)}坪` : "",
+    typeof fields.parkingAreaPing === "number" ? `車位 ${fields.parkingAreaPing.toFixed(2)}坪` : "",
     typeof fields.legalUse === "string" ? fields.legalUse : "",
+    typeof fields.material === "string" ? fields.material : "",
     typeof fields.constructionDate === "string" ? fields.constructionDate : "",
     typeof fields.floor === "string" ? fields.floor : "",
+    typeof fields.ownershipScope === "string" ? `權利 ${fields.ownershipScope}` : "",
   ].filter(Boolean);
   return parts.join(" / ");
 }

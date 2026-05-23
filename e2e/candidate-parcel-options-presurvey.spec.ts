@@ -110,6 +110,12 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   expect(pdfText).toContain("地政資料，最終以正式謄本為主；本說明書不代表完整資訊。");
   expect(pdfText).toMatch(/31\.25|31\.250/);
   expect(pdfText).toMatch(/23\.10|23\.1/);
+  expect(pdfText).toContain("附屬建物");
+  expect(pdfText).toMatch(/2\.10|2\.1/);
+  expect(pdfText).toContain("公共設施");
+  expect(pdfText).toMatch(/6\.05/);
+  expect(pdfText).toContain("車位坪數");
+  expect(pdfText).toMatch(/車位坪數\s*0\.00/);
   expect(pdfText).toContain("住家用");
   expect(pdfText).toContain("083/10/18");
   expect(pdfText).toContain("8樓之1");

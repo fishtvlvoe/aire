@@ -167,6 +167,17 @@ describe("NewCasePage address-first flow", () => {
               }),
             }),
             expect.objectContaining({
+              normalized_parcel_id: "DC-1556-00165000",
+              query_status: "candidate_data_available",
+              summary_fields: expect.objectContaining({
+                registeredAreaPing: 31.25,
+                mainBuildingAreaPing: 23.1,
+                auxiliaryAreaPing: 2.1,
+                commonAreaPing: 6.05,
+                parkingAreaPing: 0,
+              }),
+            }),
+            expect.objectContaining({
               normalized_parcel_id: "DC-1556-00229000",
               query_status: "failed",
               error_code: "COP312",
@@ -185,6 +196,14 @@ describe("NewCasePage address-first flow", () => {
             estimated_fields: expect.objectContaining({
               registeredAreaPing: 31.25,
               mainBuildingAreaPing: 23.1,
+              auxiliaryAreaPing: 2.1,
+              commonAreaPing: 6.05,
+              parkingAreaPing: 0,
+              legalUse: "住家用",
+              constructionDate: "083/10/18",
+              material: "鋼筋混凝土造",
+              ownershipScope: "全部 1/1",
+              landOwnershipRatio: "91/10000",
             }),
           }),
           coordinate_source: expect.objectContaining({

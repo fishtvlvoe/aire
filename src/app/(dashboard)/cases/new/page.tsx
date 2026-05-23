@@ -310,6 +310,9 @@ function buildAddressLookupProvenance(
         ? {
             registeredAreaPing: 31.25,
             mainBuildingAreaPing: 23.1,
+            auxiliaryAreaPing: 2.1,
+            commonAreaPing: 6.05,
+            parkingAreaPing: 0,
             legalUse: "住家用",
             constructionDate: "083/10/18",
             material: "鋼筋混凝土造",
@@ -413,6 +416,16 @@ function buildAddressLookupProvenance(
           estimated_fields: {
             registeredAreaPing: 31.25,
             mainBuildingAreaPing: 23.1,
+            auxiliaryAreaPing: 2.1,
+            commonAreaPing: 6.05,
+            parkingAreaPing: 0,
+            legalUse: "住家用",
+            constructionDate: "083/10/18",
+            material: "鋼筋混凝土造",
+            floor: "8樓之1",
+            age: "31年",
+            ownershipScope: "全部 1/1",
+            landOwnershipRatio: "91/10000",
           },
           warning: "推測資料，非登記資料；地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
         }

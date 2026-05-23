@@ -243,6 +243,12 @@ function candidateRegistryPayload() {
 beforeEach(() => {
   vi.clearAllMocks();
   ensureLocalStorage().removeItem("aire-mock-store");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => {
+      throw new Error("fetch is not available in assemble-dossier-data unit tests");
+    }),
+  );
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -931,6 +937,15 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
           estimated_fields: {
             registeredAreaPing: 31.25,
             mainBuildingAreaPing: 23.1,
+            auxiliaryAreaPing: 2.1,
+            commonAreaPing: 6.05,
+            parkingAreaPing: 0,
+            legalUse: "住家用",
+            constructionDate: "083/10/18",
+            material: "鋼筋混凝土造",
+            floor: "8樓之1",
+            ownershipScope: "全部 1/1",
+            landOwnershipRatio: "91/10000",
           },
           warning: "推測資料，非登記資料；地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
         },
@@ -939,9 +954,25 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
 
     expect(result.propertySheet?.registeredArea).toBe(31.25);
     expect(result.propertySheet?.mainBuildingArea).toBe(23.1);
+    expect(result.propertySheet?.auxiliaryArea).toBe(2.1);
+    expect(result.propertySheet?.commonArea).toBe(6.05);
+    expect(result.propertySheet?.parkingArea).toBe(0);
+    expect(result.propertySheet?.legalUse).toBe("住家用");
+    expect(result.propertySheet?.material).toBe("鋼筋混凝土造");
+    expect(result.propertySheet?.constructionDate).toBe("083/10/18");
+    expect(result.propertySheet?.ownershipRatio).toBe("91/10000");
+    expect(result.propertySheet?.shareArea).toBe(1.1);
     expect(result.propertySheetSources).toMatchObject({
       registeredArea: "推測資料，非登記資料",
       mainBuildingArea: "推測資料，非登記資料",
+      auxiliaryArea: "推測資料，非登記資料",
+      commonArea: "推測資料，非登記資料",
+      parkingArea: "推測資料，非登記資料",
+      legalUse: "推測資料，非登記資料",
+      material: "推測資料，非登記資料",
+      constructionDate: "推測資料，非登記資料",
+      ownershipRatio: "推測資料，非登記資料",
+      shareArea: "推測資料，非登記資料",
     });
     expect(result.preSurvey?.inferredReference?.source_units).toEqual(["3樓之1", "5樓之1", "7樓之1"]);
     expect(result.preSurvey?.candidateDisclaimer).toBe(

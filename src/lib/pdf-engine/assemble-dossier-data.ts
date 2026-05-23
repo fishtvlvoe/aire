@@ -1096,7 +1096,12 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     } else if (manualBuildingStatus) {
       propertySheetSources.buildingStatus = manualSourceFor("buildingStatus");
     }
-    const selectedLandCandidate = findSelectedCandidate(persisted, "land");
+    const landCandidates = isRegistryProvenancePayload(persisted)
+      ? extractCandidateOptions(persisted).filter((candidate) => candidate.parcel_type === "land")
+      : [];
+    const selectedLandCandidate = findSelectedCandidate(persisted, "land") ?? (
+      landCandidates.length === 1 ? landCandidates[0] : undefined
+    );
     const selectedBuildingCandidate = findSelectedCandidate(persisted, "building");
     const landCandidateFields = selectedLandCandidate?.summary_fields;
     const buildingCandidateFields = selectedBuildingCandidate?.summary_fields;
@@ -1113,35 +1118,48 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const candidateParkingArea = numberFromSummary(buildingCandidateFields, "parkingAreaPing");
     const inferredRegisteredArea = numberFromSummary(inferredFields, "registeredAreaPing");
     const inferredMainBuildingArea = numberFromSummary(inferredFields, "mainBuildingAreaPing");
+    const inferredAuxiliaryArea = numberFromSummary(inferredFields, "auxiliaryAreaPing");
+    const inferredCommonArea = numberFromSummary(inferredFields, "commonAreaPing");
+    const inferredParkingArea = numberFromSummary(inferredFields, "parkingAreaPing");
     const resolvedRegisteredArea = trustedRegisteredArea ?? candidateRegisteredArea ?? inferredRegisteredArea;
     const resolvedMainBuildingArea = trustedMainBuildingArea ?? candidateMainBuildingArea ?? inferredMainBuildingArea;
-    const resolvedAuxiliaryArea = trustedAuxiliaryArea ?? candidateAuxiliaryArea;
-    const resolvedCommonArea = trustedCommonArea ?? candidateCommonArea;
-    const resolvedParkingArea = trustedParkingArea ?? candidateParkingArea;
+    const resolvedAuxiliaryArea = trustedAuxiliaryArea ?? candidateAuxiliaryArea ?? inferredAuxiliaryArea;
+    const resolvedCommonArea = trustedCommonArea ?? candidateCommonArea ?? inferredCommonArea;
+    const resolvedParkingArea = trustedParkingArea ?? candidateParkingArea ?? inferredParkingArea;
     const resolvedLegalUse =
       firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]) ??
-      textFromSummary(buildingCandidateFields, "legalUse");
+      textFromSummary(buildingCandidateFields, "legalUse") ??
+      textFromSummary(inferredFields, "legalUse");
     const resolvedMaterial =
       firstString(buildingReg, ["material", "MATERIAL"]) ??
-      textFromSummary(buildingCandidateFields, "material");
+      textFromSummary(buildingCandidateFields, "material") ??
+      textFromSummary(inferredFields, "material");
     const resolvedConstructionDate =
       firstString(buildingReg, ["construction_date", "COMPLETEDATE"]) ??
-      textFromSummary(buildingCandidateFields, "constructionDate");
+      textFromSummary(buildingCandidateFields, "constructionDate") ??
+      textFromSummary(inferredFields, "constructionDate");
     const resolvedFloor = resolveBuildingFloor(
       firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"]) ??
-        textFromSummary(buildingCandidateFields, "floor"),
+        textFromSummary(buildingCandidateFields, "floor") ??
+        textFromSummary(inferredFields, "floor"),
       caseRow.address,
     );
     const resolvedBuildingAge =
       calculateBuildingAge(resolvedConstructionDate ?? "") ??
-      textFromSummary(buildingCandidateFields, "age");
+      textFromSummary(buildingCandidateFields, "age") ??
+      textFromSummary(inferredFields, "age");
     const resolvedLandArea = landArea ?? numberFromSummary(landCandidateFields, "landAreaSqm");
+    const candidateOwnershipRatio = textFromSummary(buildingCandidateFields, "landOwnershipRatio");
+    const inferredOwnershipRatio = textFromSummary(inferredFields, "landOwnershipRatio");
     const resolvedOwnershipRatio =
-      ownershipRatio || textFromSummary(buildingCandidateFields, "landOwnershipRatio") || "";
+      ownershipRatio || candidateOwnershipRatio || inferredOwnershipRatio || "";
     const resolvedOwnershipRatioNumber =
-      ownershipRatioNumber ?? ratioValue({ right: textFromSummary(buildingCandidateFields, "landOwnershipRatio") });
+      ownershipRatioNumber ?? ratioValue({ right: candidateOwnershipRatio ?? inferredOwnershipRatio });
     const resolvedOwnershipScope =
-      ratioText(buildingOwnership) || textFromSummary(buildingCandidateFields, "ownershipScope") || "";
+      ratioText(buildingOwnership) ||
+      textFromSummary(buildingCandidateFields, "ownershipScope") ||
+      textFromSummary(inferredFields, "ownershipScope") ||
+      "";
     const resolvedBuildingCoverage =
       firstString(zoning, ["building_coverage_ratio", "BUILDING_COVERAGE_RATIO"]) ??
       textFromSummary(landCandidateFields, "buildingCoverage") ??
@@ -1181,25 +1199,60 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     }
     if (trustedAuxiliaryArea === undefined) {
       setSourceIfValue(propertySheetSources, "auxiliaryArea", candidateAuxiliaryArea, CANDIDATE_SOURCE_LABEL);
+      if (candidateAuxiliaryArea === undefined) {
+        setSourceIfValue(propertySheetSources, "auxiliaryArea", inferredAuxiliaryArea, INFERRED_SOURCE_LABEL);
+      }
     }
     if (trustedCommonArea === undefined) {
       setSourceIfValue(propertySheetSources, "commonArea", candidateCommonArea, CANDIDATE_SOURCE_LABEL);
+      if (candidateCommonArea === undefined) {
+        setSourceIfValue(propertySheetSources, "commonArea", inferredCommonArea, INFERRED_SOURCE_LABEL);
+      }
     }
     if (trustedParkingArea === undefined) {
       setSourceIfValue(propertySheetSources, "parkingArea", candidateParkingArea, CANDIDATE_SOURCE_LABEL);
+      if (candidateParkingArea === undefined) {
+        setSourceIfValue(propertySheetSources, "parkingArea", inferredParkingArea, INFERRED_SOURCE_LABEL);
+      }
     }
     if (!firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"])) {
       setSourceIfValue(propertySheetSources, "legalUse", textFromSummary(buildingCandidateFields, "legalUse"), CANDIDATE_SOURCE_LABEL);
+      if (!textFromSummary(buildingCandidateFields, "legalUse")) {
+        setSourceIfValue(propertySheetSources, "legalUse", textFromSummary(inferredFields, "legalUse"), INFERRED_SOURCE_LABEL);
+      }
+    }
+    if (!firstString(buildingReg, ["material", "MATERIAL"])) {
+      setSourceIfValue(propertySheetSources, "material", textFromSummary(buildingCandidateFields, "material"), CANDIDATE_SOURCE_LABEL);
+      if (!textFromSummary(buildingCandidateFields, "material")) {
+        setSourceIfValue(propertySheetSources, "material", textFromSummary(inferredFields, "material"), INFERRED_SOURCE_LABEL);
+      }
     }
     if (!firstString(buildingReg, ["construction_date", "COMPLETEDATE"])) {
       setSourceIfValue(propertySheetSources, "constructionDate", textFromSummary(buildingCandidateFields, "constructionDate"), CANDIDATE_SOURCE_LABEL);
       setSourceIfValue(propertySheetSources, "buildingAge", resolvedBuildingAge, CANDIDATE_SOURCE_LABEL);
+      if (!textFromSummary(buildingCandidateFields, "constructionDate")) {
+        setSourceIfValue(propertySheetSources, "constructionDate", textFromSummary(inferredFields, "constructionDate"), INFERRED_SOURCE_LABEL);
+        setSourceIfValue(propertySheetSources, "buildingAge", resolvedBuildingAge, INFERRED_SOURCE_LABEL);
+      }
     }
     if (!firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"])) {
       setSourceIfValue(propertySheetSources, "floor", textFromSummary(buildingCandidateFields, "floor"), CANDIDATE_SOURCE_LABEL);
+      if (!textFromSummary(buildingCandidateFields, "floor")) {
+        setSourceIfValue(propertySheetSources, "floor", textFromSummary(inferredFields, "floor"), INFERRED_SOURCE_LABEL);
+      }
     }
     if (!ratioText(buildingOwnership)) {
       setSourceIfValue(propertySheetSources, "ownershipScope", textFromSummary(buildingCandidateFields, "ownershipScope"), CANDIDATE_SOURCE_LABEL);
+      if (!textFromSummary(buildingCandidateFields, "ownershipScope")) {
+        setSourceIfValue(propertySheetSources, "ownershipScope", textFromSummary(inferredFields, "ownershipScope"), INFERRED_SOURCE_LABEL);
+      }
+    }
+    if (!ownershipRatio && candidateOwnershipRatio) {
+      setSourceIfValue(propertySheetSources, "ownershipRatio", resolvedOwnershipRatio, CANDIDATE_SOURCE_LABEL);
+      setSourceIfValue(propertySheetSources, "shareArea", resolvedOwnershipRatioNumber, CANDIDATE_SOURCE_LABEL);
+    } else if (!ownershipRatio && inferredOwnershipRatio) {
+      setSourceIfValue(propertySheetSources, "ownershipRatio", resolvedOwnershipRatio, INFERRED_SOURCE_LABEL);
+      setSourceIfValue(propertySheetSources, "shareArea", resolvedOwnershipRatioNumber, INFERRED_SOURCE_LABEL);
     }
 
     return {
