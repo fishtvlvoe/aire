@@ -4,6 +4,7 @@ import type { CaseDossierData } from "./document";
 import { calculateTaxFees } from "@/lib/tax-calculator";
 import { queryNearbyAmenities, summarizeNearbyAmenities } from "@/lib/overpass-client";
 import { calculateBuildingAge } from "@/lib/registry-preview";
+import { storage, type BrandingData } from "@/lib/storage";
 import {
   createRegistryProvenancePayload,
   extractRegistryFailureReasons,
@@ -40,6 +41,23 @@ type WorkbenchSupplementPayload = {
     updatedAt?: string;
   }>;
 };
+
+function hasBrandText(values: Record<string, string>): boolean {
+  return Object.values(values).some((value) => typeof value === "string" && value.trim().length > 0);
+}
+
+function brandingDataToBrandText(data: BrandingData | null): Record<string, string> {
+  if (!data) return {};
+  return {
+    agent_name: data.agentName ?? "",
+    realtor_name: data.realtorName ?? "",
+    agent_cert_no: data.agentCertNo ?? "",
+    company_name: data.companyName ?? "",
+    company_license_no: data.companyLicenseNo ?? "",
+    company_address: data.companyAddress ?? "",
+    company_phone: data.companyPhone ?? "",
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 使用分區 → 法規限制 lookup table
@@ -479,6 +497,13 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   try {
     brandText = (await safeInvoke<Record<string, string>>("get_brand_text_settings")) ?? {};
   } catch { /* dev fallback */ }
+  if (!hasBrandText(brandText)) {
+    try {
+      brandText = brandingDataToBrandText(await storage.getBranding());
+    } catch {
+      // Native settings are provided by get_brand_text_settings.
+    }
+  }
 
   let workbenchSupplement: WorkbenchSupplementPayload | undefined;
   try {

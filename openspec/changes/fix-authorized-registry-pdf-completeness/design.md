@@ -192,3 +192,6 @@ mock -> 不得進客戶 PDF
 - Graphify 檢查確認法規有 `LegalNoticeBlock`、`list_legal_clauses`、HTML renderer 三條路徑；主說明書已改為優先讀取 `list_legal_clauses` cache，HTML/PDF 共用完整 fallback 法規集合，設定頁同步狀態既有測試通過。
 - 物件資料表已補齊 trusted registry mapping：土地地段/地號/分區、土地面積、權利範圍、持分面積、建蔽率、容積率、所有權人、取得日期與建物面積/用途/建材/完成日/屋齡/樓層等欄位；實價登錄會過濾不同行政區地址。
 - PDF 圖頁已有 bytes 時會嵌入位置圖、空拍圖、外觀與格局/規劃圖；browser mock banner 已加上 JSON 對齊與 `aire-mock-store` reset 指引，並明確標示 mock-only 不作正式交付證據。
+- 2026-05-23 browser 驗收時發現設定頁曾只寫舊 `storage.saveBranding`，PDF assembly 讀 `get_brand_text_settings` 因而封面仍是空欄；已改成 `/settings/branding` 儲存時同步寫入 `save_brand_text_settings`，舊 storage 只作相容備份。
+- 同次驗收也修正 E2E 初始化：`addInitScript` 原本每次換頁都重設 `aire-mock-store`，會把設定頁剛存好的品牌欄位覆蓋掉；現在只在沒有 store 時 seed，避免測試掩蓋跨頁 persistence bug。
+- 最新裕農路 E2E 產出 `/Users/fishtv/Downloads/AIRE-YUNONG-20260523-說明書.pdf`，`pdftotext` 已確認承辦人、經紀人、經紀人證號、不動產經紀業、經紀業證號、公司地址、公司電話、法規與現場補件值都回填。該裕農路案件沒有實際圖資 bytes，所以 `pdfimages -list` 為空是預期；另以 `/tmp/aire-registry-image-pages.pdf` 驗證有圖資 bytes 時 `pdfimages -list` 會列出位置圖、空拍圖、外觀圖圖片物件。

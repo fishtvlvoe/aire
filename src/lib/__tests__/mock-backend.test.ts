@@ -155,6 +155,30 @@ describe("MockStore", () => {
       mockInvoke<{ company_name: string }>("get_brand_settings"),
     ).resolves.toMatchObject({ company_name: "新品牌" });
 
+    window.localStorage.setItem(
+      "aire-mock-store",
+      JSON.stringify({
+        branding: {
+          agentName: "王承辦",
+          realtorName: "陳經紀",
+          agentCertNo: "南市經紀人字第 000001 號",
+          companyName: "裕農安居不動產經紀有限公司",
+          companyLicenseNo: "南市經紀業字第 000001 號",
+          companyAddress: "台南市東區裕農路1號",
+          companyPhone: "06-123-4567",
+        },
+      }),
+    );
+    await expect(mockInvoke("get_brand_text_settings")).resolves.toMatchObject({
+      agent_name: "王承辦",
+      realtor_name: "陳經紀",
+      agent_cert_no: "南市經紀人字第 000001 號",
+      company_name: "裕農安居不動產經紀有限公司",
+      company_license_no: "南市經紀業字第 000001 號",
+      company_address: "台南市東區裕農路1號",
+      company_phone: "06-123-4567",
+    });
+
     await expect(
       mockInvoke("upload_logo", {
         bytes: [1, 2, 3],

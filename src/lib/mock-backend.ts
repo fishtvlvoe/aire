@@ -452,6 +452,53 @@ function getBrowserLocalStorage(): Storage | null {
   }
 }
 
+function readPersistedBrandTextSettings(): Record<string, unknown> {
+  const storage = getBrowserLocalStorage();
+  if (!storage) return {};
+
+  try {
+    const raw = storage.getItem("aire-mock-store");
+    if (!raw) return {};
+    const parsed = toRecord(JSON.parse(raw));
+    const branding = toRecord(parsed.branding);
+    return {
+      agent_name: pickString(branding, ["agent_name", "agentName"]) ?? undefined,
+      realtor_name: pickString(branding, ["realtor_name", "realtorName"]) ?? undefined,
+      agent_cert_no: pickString(branding, ["agent_cert_no", "agentCertNo"]) ?? undefined,
+      company_name: pickString(branding, ["company_name", "companyName"]) ?? undefined,
+      company_license_no: pickString(branding, ["company_license_no", "companyLicenseNo"]) ?? undefined,
+      company_address: pickString(branding, ["company_address", "companyAddress"]) ?? undefined,
+      company_phone: pickString(branding, ["company_phone", "companyPhone"]) ?? undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function persistBrandTextSettings(settings: Record<string, unknown>): void {
+  const storage = getBrowserLocalStorage();
+  if (!storage) return;
+
+  try {
+    const raw = storage.getItem("aire-mock-store");
+    const parsed = raw ? toRecord(JSON.parse(raw)) : {};
+    const branding = toRecord(parsed.branding);
+    parsed.branding = {
+      ...branding,
+      agentName: pickString(settings, ["agent_name"]) ?? branding.agentName,
+      realtorName: pickString(settings, ["realtor_name"]) ?? branding.realtorName,
+      agentCertNo: pickString(settings, ["agent_cert_no"]) ?? branding.agentCertNo,
+      companyName: pickString(settings, ["company_name"]) ?? branding.companyName,
+      companyLicenseNo: pickString(settings, ["company_license_no"]) ?? branding.companyLicenseNo,
+      companyAddress: pickString(settings, ["company_address"]) ?? branding.companyAddress,
+      companyPhone: pickString(settings, ["company_phone"]) ?? branding.companyPhone,
+    };
+    storage.setItem("aire-mock-store", JSON.stringify(parsed));
+  } catch {
+    // Browser mock persistence is best-effort.
+  }
+}
+
 export class MockStore {
   private license: LicenseState = {
     status: "none",
@@ -1370,13 +1417,14 @@ export class MockStore {
   }
 
   private getBrandTextSettings(): Record<string, unknown> {
-    return { ...this.brandTextSettings };
+    return { ...readPersistedBrandTextSettings(), ...this.brandTextSettings };
   }
 
   private saveBrandTextSettings(args?: CommandArgs): void {
     const payload = toRecord(args);
     const settings = toRecord(payload.settings ?? payload.input ?? payload);
     this.brandTextSettings = { ...this.brandTextSettings, ...settings };
+    persistBrandTextSettings(this.brandTextSettings);
   }
 
   private uploadLogo(args?: CommandArgs): { success: true } {

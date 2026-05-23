@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import React from "react";
 import { Document, pdf } from "@react-pdf/renderer";
+import { readFileSync, writeFileSync } from "node:fs";
 import { initReactPdfEngine } from "@/lib/pdf-engine/react-pdf-init";
 import { ThemeProvider } from "@/lib/pdf-themes/theme-provider";
 import { getTheme } from "@/lib/pdf-themes/registry";
@@ -12,20 +13,20 @@ beforeAll(() => {
   initReactPdfEngine();
 });
 
-const PNG_HEADER = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+const TEST_PNG = new Uint8Array(readFileSync("src/assets/icon-light.png"));
 
 async function renderImagePages() {
   const element = (
     <ThemeProvider theme={getTheme("theme-a-minimal")!}>
       <Document>
         <LifeAmenitiesPage
-          locationMapImage={PNG_HEADER}
+          locationMapImage={TEST_PNG}
           nearbyAmenities={[
             { name: "大安國小", category: "學校", distanceM: 300, address: "臺北市大安區" },
           ]}
         />
-        <AerialPhotoPage aerialPhoto={PNG_HEADER} />
-        <ExteriorPhotoPage exteriorPhoto={PNG_HEADER} />
+        <AerialPhotoPage aerialPhoto={TEST_PNG} />
+        <ExteriorPhotoPage exteriorPhoto={TEST_PNG} />
       </Document>
     </ThemeProvider>
   );
@@ -36,8 +37,9 @@ async function renderImagePages() {
 describe("registry image PDF pages", () => {
   it("renders location map, aerial and exterior pages when image bytes are available", async () => {
     const blob = await renderImagePages();
+    const buffer = Buffer.from(await blob.arrayBuffer());
 
     expect(blob.size).toBeGreaterThan(1000);
+    writeFileSync("/tmp/aire-registry-image-pages.pdf", buffer);
   });
 });
-

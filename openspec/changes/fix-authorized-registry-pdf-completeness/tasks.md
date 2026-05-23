@@ -1,7 +1,7 @@
 ## 1. 根因固定與防回歸
 
 - [x] 1.1 建立 failing tests：有 `public_candidate` 但有屋主授權時，PDF assembly 必須嘗試正式 `land_registry_pull_data`，不得直接輸出空白。
-- [ ] 1.2 建立 `0005` PDF artifact regression：檢查 PDF 不得只有候選地號與查詢失敗文字，且 `pdfimages -list` 對有圖資案件需有圖片。
+- [x] 1.2 建立 `0005` PDF artifact regression：檢查 PDF 不得只有候選地號與查詢失敗文字，且 `pdfimages -list` 對有圖資案件需有圖片。
 - [x] 1.3 建立 mock/native 邊界測試：browser mock 成功不得被視為正式 API 驗收。
 
 ## 2. 授權後正式地政 API 資料鏈
@@ -56,9 +56,9 @@
 
 - [x] 8.1 跑 Spectra gate：`spectra analyze fix-authorized-registry-pdf-completeness --json` clean，`spectra validate fix-authorized-registry-pdf-completeness` 通過。
 - [x] 8.2 跑 targeted Vitest 與 type-check。
-- [ ] 8.3 跑 Rust land-registry/API targeted tests，包含授權後正式 pull。
-- [ ] 8.4 用可視化瀏覽器跑新增/授權/正式查詢/PDF 預覽與匯出流程。
-- [ ] 8.5 在設定頁輸入固定公司/經紀資料，驗證 PDF 封面與簽章欄一致回填。
-- [ ] 8.6 對資料來源缺口填寫補件，驗證 JSON export、預覽與 PDF 都回填人工值。
-- [ ] 8.7 對輸出 PDF 跑 `pdftotext` 與 `pdfimages -list`，確認資料、法規、品牌欄位與圖片存在。
-- [ ] 8.8 commit + push，並列出仍未處理的既有 dirty files。
+- [x] 8.3 跑 Rust land-registry/API targeted tests，包含授權後正式 pull。
+- [x] 8.4 用可視化瀏覽器跑新增/授權/正式查詢/PDF 預覽與匯出流程。
+- [x] 8.5 在設定頁輸入固定公司/經紀資料，驗證 PDF 封面與簽章欄一致回填。
+- [x] 8.6 對資料來源缺口填寫補件，驗證 JSON export、預覽與 PDF 都回填人工值。
+- [x] 8.7 對輸出 PDF 跑 `pdftotext` 與 `pdfimages -list`，確認資料、法規、品牌欄位與圖片存在。
+- [x] 8.8 commit + push，並列出仍未處理的既有 dirty files。

@@ -9,6 +9,7 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { brandingApi } from "@/lib/branding-api";
 import type { BrandTextSettings } from "@/lib/branding-api";
 import { storage } from "@/lib/storage";
 import { ThemeProvider } from "@/lib/pdf-themes/theme-provider";
@@ -16,6 +17,10 @@ import { isTauriEnv } from "@/lib/tauri-bridge";
 
 function BrandTextForm() {
   const { register, handleSubmit, reset } = useForm<BrandTextSettings>();
+
+  function hasBrandText(values: BrandTextSettings | null | undefined) {
+    return Boolean(values && Object.values(values).some((value) => value?.trim()));
+  }
 
   function toStorageFormat(values: BrandTextSettings) {
     return {
@@ -42,12 +47,30 @@ function BrandTextForm() {
   }
 
   useEffect(() => {
-    storage.getBranding().then((data) => { if (data) reset(fromStorageFormat(data)); }).catch(() => null);
+    (async () => {
+      try {
+        const values = await brandingApi.getBrandText();
+        if (hasBrandText(values)) {
+          reset(values);
+          return;
+        }
+      } catch {
+        // 舊版 browser mock 或未接 IPC 時，改讀相容 storage。
+      }
+
+      try {
+        const data = await storage.getBranding();
+        if (data) reset(fromStorageFormat(data));
+      } catch {
+        // ignore
+      }
+    })();
   }, [reset]);
 
   async function onSubmit(values: BrandTextSettings) {
     try {
-      await storage.saveBranding(toStorageFormat(values));
+      await brandingApi.saveBrandText(values);
+      await storage.saveBranding(toStorageFormat(values)).catch(() => null);
       toast.success("品牌資訊已儲存");
     } catch {
       toast.error("儲存失敗，請重試");

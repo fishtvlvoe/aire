@@ -17,6 +17,39 @@ vi.mock("@/lib/tauri-bridge", () => ({
 import { safeInvoke } from "@/lib/tauri-bridge";
 const mockInvoke = vi.mocked(safeInvoke);
 
+function ensureLocalStorage(): Storage {
+  if (window.localStorage) return window.localStorage;
+
+  const data = new Map<string, string>();
+  const mockStorage = {
+    get length() {
+      return data.size;
+    },
+    clear() {
+      data.clear();
+    },
+    getItem(key: string) {
+      return data.has(key) ? data.get(key)! : null;
+    },
+    key(index: number) {
+      return [...data.keys()][index] ?? null;
+    },
+    removeItem(key: string) {
+      data.delete(key);
+    },
+    setItem(key: string, value: string) {
+      data.set(key, value);
+    },
+  } satisfies Storage;
+
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: mockStorage,
+  });
+
+  return mockStorage;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 測試資料
 // ─────────────────────────────────────────────────────────────────────────────
@@ -120,6 +153,7 @@ function trustedRegistryPayload(entries: Record<string, Record<string, unknown>>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  ensureLocalStorage().removeItem("aire-mock-store");
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1067,6 +1101,43 @@ describe("assembleDossierData — 封面品牌資訊", () => {
       brokerageLicenseNo: "經紀業字第654321號",
       companyAddress: "台南市永康區勝利街58巷4號",
       companyPhone: "06-1234567",
+    });
+  });
+
+  it("browser mock 設定頁 storage 也會回填 PDF 封面欄位", async () => {
+    window.localStorage.setItem(
+      "aire-mock-store",
+      JSON.stringify({
+        branding: {
+          agentName: "王承辦",
+          realtorName: "陳經紀",
+          agentCertNo: "南市經紀人字第 000001 號",
+          companyName: "裕農安居不動產經紀有限公司",
+          companyLicenseNo: "南市經紀業字第 000001 號",
+          companyAddress: "台南市東區裕農路1號",
+          companyPhone: "06-123-4567",
+        },
+      }),
+    );
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "land_registry_pull_data") return mockPullResultLand;
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData(landCaseRow);
+
+    expect(result.cover).toMatchObject({
+      handlingAgent: "王承辦",
+      licensedAgentName: "陳經紀",
+      licensedAgentCertNo: "南市經紀人字第 000001 號",
+      brokerageCompanyName: "裕農安居不動產經紀有限公司",
+      brokerageLicenseNo: "南市經紀業字第 000001 號",
+      companyAddress: "台南市東區裕農路1號",
+      companyPhone: "06-123-4567",
     });
   });
 
