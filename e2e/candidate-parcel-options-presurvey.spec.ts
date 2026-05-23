@@ -93,8 +93,11 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   expect(pdfText).toContain("住家用");
   expect(pdfText).toContain("083/10/18");
   expect(pdfText).toContain("8樓之1");
+  expect(pdfText).toMatch(/103\.31|103\.32/);
   expect(pdfText).toContain("DC-1556-00165000");
   expect(pdfText).toContain("推測資料");
+  expect(pdfText).toContain("附近地段實價登錄成交行情");
+  expect(pdfText).toContain("台南市東區裕農路123號");
 
   const imageList = execFileSync("pdfimages", ["-list", DOWNLOAD_PATH], { encoding: "utf8" });
   const imageRows = imageList.split("\n").filter((line) => /\bimage\b/.test(line));

@@ -848,6 +848,9 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.propertySheet?.constructionDate).toBe("083/10/18");
     expect(result.propertySheet?.floor).toBe("8樓之1");
     expect(result.propertySheet?.buildingAge).toBeTruthy();
+    expect(result.buildingArea).toBeCloseTo(103.31, 2);
+    expect(result.buildingPurpose).toBe("住家用");
+    expect(result.constructionDate).toBe("083/10/18");
     expect(result.propertySheetSources).toMatchObject({
       registeredArea: "候選資料，待屋主/權狀確認",
       mainBuildingArea: "候選資料，待屋主/權狀確認",

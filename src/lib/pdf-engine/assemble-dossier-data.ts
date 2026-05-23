@@ -93,6 +93,7 @@ export const ZONING_RESTRICTIONS: Record<
 };
 
 const ZONING_FALLBACK = "依主管機關規定辦理";
+const PING_TO_SQUARE_METER = 3.305785;
 const LEGAL_LAW_IDS = [
   "real-estate-broker-act",
   "consumer-protection-relevant",
@@ -108,6 +109,11 @@ function getZoningRestrictions(zoningType?: string) {
       buildingLineNote: ZONING_FALLBACK,
     };
   return entry;
+}
+
+function pingToSquareMeters(value?: number): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  return Math.round(value * PING_TO_SQUARE_METER * 100) / 100;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1177,9 +1183,11 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     return {
       ...base,
-      buildingArea: firstNumber(buildingReg, ["area", "building_area", "AREA"]),
-      buildingPurpose: firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]),
-      constructionDate: firstString(buildingReg, ["construction_date", "COMPLETEDATE"]),
+      buildingArea:
+        firstNumber(buildingReg, ["area", "building_area", "AREA"]) ??
+        pingToSquareMeters(resolvedRegisteredArea),
+      buildingPurpose: resolvedLegalUse,
+      constructionDate: resolvedConstructionDate,
       buildingCertificateNo: cleanKnownPlaceholderText(
         firstString(buildingOwnership, ["certificate_no", "CERTIFICATENO"]),
       ),
