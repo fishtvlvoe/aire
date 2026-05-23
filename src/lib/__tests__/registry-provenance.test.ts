@@ -167,17 +167,76 @@ describe("registry-provenance", () => {
 
     expect(payload.entries.building_ownership).toMatchObject({
       source: "moi_api",
-      status: "failed",
+      status: "unauthorized",
       trustedForPdf: false,
-      error: "授權不足，請補授權或改由屋主提供謄本",
+      error: "缺少屋主授權或授權不足",
     });
     expect(payload.totalCost).toBe(0);
     expect(extractRegistryFailureReasons(payload)).toEqual([
       {
         apiId: "building_ownership",
-        status: "failed",
-        reason: "授權不足，請補授權或改由屋主提供謄本",
+        status: "unauthorized",
+        reason: "缺少屋主授權或授權不足",
       },
     ]);
+  });
+
+  it("classifies common formal pull failures into actionable customer-facing states", () => {
+    const payload = createRegistryProvenancePayload({
+      totalCost: 0,
+      results: {
+        api_key: {
+          success: false,
+          source: "api",
+          error: "ApiKeyNotConfigured",
+        },
+        ownership: {
+          success: false,
+          source: "api",
+          error: "ConsentRequired",
+        },
+        balance: {
+          success: false,
+          source: "api",
+          error: "InsufficientBalance",
+        },
+        permission: {
+          success: false,
+          source: "api",
+          error: "NlscPermissionDenied",
+        },
+        not_found: {
+          success: false,
+          source: "api",
+          error: "NoDataFound",
+        },
+      },
+    });
+
+    expect(payload.entries.api_key).toMatchObject({
+      status: "failed",
+      error: "未設定地政 API 金鑰",
+      sourceNote: "請到設定頁設定地政 API 金鑰後重試",
+    });
+    expect(payload.entries.ownership).toMatchObject({
+      status: "unauthorized",
+      error: "缺少屋主授權或授權不足",
+      sourceNote: "請補屋主授權或改由屋主提供正式文件",
+    });
+    expect(payload.entries.balance).toMatchObject({
+      status: "failed",
+      error: "地政 API 餘額不足",
+      sourceNote: "請補值或改由人工補件後再產出客戶版 PDF",
+    });
+    expect(payload.entries.permission).toMatchObject({
+      status: "unauthorized",
+      error: "API 權限不足",
+      sourceNote: "請確認服務權限已開通，或改走人工補件",
+    });
+    expect(payload.entries.not_found).toMatchObject({
+      status: "failed",
+      error: "查無正式地政資料",
+      sourceNote: "請確認地號/建號後重試，或由屋主提供謄本補件",
+    });
   });
 });

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { OwnerAuthorizationDialog } from "@/components/OwnerAuthorizationDialog";
 import { PreChargeConfirmDialog } from "@/components/PreChargeConfirmDialog";
 import { ManualFallbackInput } from "@/components/ManualFallbackInput";
-import { pullData, type ApiResult } from "@/lib/land-registry-api";
+import { mapErrorToMessage, pullData, type ApiResult } from "@/lib/land-registry-api";
 import { casesApi } from "@/lib/cases-api";
 import {
   buildRegistryPreviewSections,
@@ -101,7 +101,7 @@ export function PullParcelDataButton({
 
       setStep("done");
     } catch (err) {
-      setPullError(err instanceof Error ? err.message : "查詢失敗，請稍後再試");
+      setPullError(mapErrorToMessage(err));
       setStep("done");
     }
   }

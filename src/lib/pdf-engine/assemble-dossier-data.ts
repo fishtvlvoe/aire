@@ -210,6 +210,37 @@ function parseSupplementNumber(value?: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function isPlaceholderParcelId(value?: string | null): boolean {
+  const trimmed = value?.trim();
+  if (!trimmed) return true;
+  return trimmed === "0001" || trimmed === "00001" || /候選|待確認|待補/.test(trimmed);
+}
+
+function resolveFormalPullParcelId(caseRow: CaseRow, trustedPersisted: Record<string, unknown>) {
+  const manualSupplement = trustedPersisted.manual_registry_supplement;
+  const manualBuildingNumber = firstString(manualSupplement, ["buildingNumberCandidate"]);
+  const candidates = [
+    caseRow.building_lot_no,
+    manualBuildingNumber,
+    caseRow.land_lot_no,
+  ];
+  return candidates.find((candidate) => !isPlaceholderParcelId(candidate))?.trim();
+}
+
+function extractTrustedOfficialRegistryData(payload: unknown): Record<string, unknown> {
+  if (!isRegistryProvenancePayload(payload)) return {};
+  return Object.fromEntries(
+    Object.entries(payload.entries)
+      .filter(([, entry]) =>
+        entry.trustedForPdf &&
+        entry.status === "success" &&
+        entry.source === "moi_api" &&
+        hasRegistryData(entry.data),
+      )
+      .map(([apiId, entry]) => [apiId, entry.data]),
+  );
+}
+
 function buildRegistrySupplementLookup(payload?: WorkbenchSupplementPayload) {
   const valueByField = new Map<string, string>();
   const sourceByField = new Map<string, string>();
@@ -392,10 +423,15 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     persisted && typeof persisted === "object" && !Array.isArray(persisted)
       ? extractTrustedRegistryData(persisted)
       : {};
-  const hasTrustedPersisted = Object.keys(trustedPersisted).length > 0;
+  const trustedOfficialPersisted = extractTrustedOfficialRegistryData(persisted);
+  const hasTrustedPersisted = Object.keys(trustedOfficialPersisted).length > 0;
+  const formalPullParcelId = resolveFormalPullParcelId(caseRow, trustedPersisted);
   const shouldAttemptFormalPull =
     !persisted ||
-    (isRegistryProvenancePayload(persisted) && !hasTrustedPersisted && Boolean(caseRow.owner_name?.trim()));
+    (isRegistryProvenancePayload(persisted) &&
+      !hasTrustedPersisted &&
+      Boolean(caseRow.owner_name?.trim()) &&
+      Boolean(formalPullParcelId));
 
   if (hasTrustedPersisted) {
     apiData = Object.fromEntries(
@@ -411,7 +447,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     let pullResult: PullResult | undefined;
     try {
       pullResult = await safeInvoke<PullResult>("land_registry_pull_data", {
-        parcelId: caseRow.land_lot_no,
+        parcelId: formalPullParcelId,
         apiIds,
       });
     } catch {
@@ -447,6 +483,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         }
       }
     }
+  }
+  if (trustedPersisted.manual_registry_supplement && !apiData.manual_registry_supplement) {
+    apiData.manual_registry_supplement = { data: trustedPersisted.manual_registry_supplement };
   }
 
   // ── 法規條文 ──────────────────────────────────────────────────────────────

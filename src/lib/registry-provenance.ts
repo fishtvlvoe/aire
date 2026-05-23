@@ -60,6 +60,61 @@ function trustedSourceForApiResult(source?: string): RegistrySource {
   return "unknown";
 }
 
+function classifyRegistryFailure(error?: string): {
+  status: Extract<RegistryStatus, "failed" | "unauthorized">;
+  reason: string;
+  action: string;
+} {
+  const message = error ?? "";
+  if (/ApiKeyNotConfigured|API key not set|未設定.*API/i.test(message)) {
+    return {
+      status: "failed",
+      reason: "未設定地政 API 金鑰",
+      action: "請到設定頁設定地政 API 金鑰後重試",
+    };
+  }
+  if (/AuthenticationFailed|認證失敗/i.test(message)) {
+    return {
+      status: "unauthorized",
+      reason: "API 認證失敗",
+      action: "請確認地政 API 金鑰或授權設定",
+    };
+  }
+  if (/ConsentRequired|授權不足|屋主授權/i.test(message)) {
+    return {
+      status: "unauthorized",
+      reason: "缺少屋主授權或授權不足",
+      action: "請補屋主授權或改由屋主提供正式文件",
+    };
+  }
+  if (/InsufficientBalance|餘額不足/i.test(message)) {
+    return {
+      status: "failed",
+      reason: "地政 API 餘額不足",
+      action: "請補值或改由人工補件後再產出客戶版 PDF",
+    };
+  }
+  if (/PermissionDenied|權限不足|NlscPermissionDenied/i.test(message)) {
+    return {
+      status: "unauthorized",
+      reason: "API 權限不足",
+      action: "請確認服務權限已開通，或改走人工補件",
+    };
+  }
+  if (/NoData|NotFound|查無資料|查無正式/i.test(message)) {
+    return {
+      status: "failed",
+      reason: "查無正式地政資料",
+      action: "請確認地號/建號後重試，或由屋主提供謄本補件",
+    };
+  }
+  return {
+    status: "failed",
+    reason: message.trim() || "查詢未成功",
+    action: "請確認資料來源後重試，或改由人工補件",
+  };
+}
+
 export function createRegistryProvenancePayload(input: {
   parcelId?: string;
   totalCost?: number;
@@ -105,12 +160,14 @@ export function createRegistryProvenancePayload(input: {
       continue;
     }
     if (!result.success) {
+      const failure = classifyRegistryFailure(result.error);
       entries[apiId] = {
         apiId,
         source,
-        status: "failed",
+        status: failure.status,
         trustedForPdf: false,
-        error: result.error,
+        error: failure.reason,
+        sourceNote: failure.action,
       };
     }
   }

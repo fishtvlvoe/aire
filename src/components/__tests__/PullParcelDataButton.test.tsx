@@ -15,6 +15,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/land-registry-api", () => ({
   pullData: mocks.pullData,
+  mapErrorToMessage: (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("ApiKeyNotConfigured")) return "請先在設定頁設定地政 API 金鑰";
+    return `查詢失敗：${message}`;
+  },
 }));
 
 vi.mock("@/lib/cases-api", () => ({
@@ -193,5 +198,25 @@ describe("PullParcelDataButton", () => {
 
     expect(mocks.updateCase).not.toHaveBeenCalled();
     expect(mocks.safeInvoke).not.toHaveBeenCalled();
+  });
+
+  it("shows actionable mapped error messages when formal pull cannot start", async () => {
+    mocks.pullData.mockRejectedValueOnce(new Error("ApiKeyNotConfigured"));
+
+    render(
+      <PullParcelDataButton
+        apiIds={["land_registry", "building_registry"]}
+        caseId="case-001"
+        parcelId="大安段一小段 123-4"
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /拉謄本/ }));
+    await userEvent.click(screen.getByRole("button", { name: "授權確認" }));
+    await userEvent.click(screen.getByRole("button", { name: "扣款確認" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("請先在設定頁設定地政 API 金鑰")).toBeInTheDocument();
+    });
   });
 });

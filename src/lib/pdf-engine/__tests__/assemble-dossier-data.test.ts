@@ -724,6 +724,54 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     );
   });
 
+  it("地址候選只有 placeholder 地號且無建號時，不用 0001 進正式 pull", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "land_registry_pull_data") {
+        throw new Error("land_registry_pull_data should not be called with placeholder parcel id");
+      }
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_lot_no: "0001",
+      land_lots: ["0001"],
+      building_lot_no: null,
+      owner_name: "王建國",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "public_candidate",
+            status: "candidate",
+            trustedForPdf: false,
+            data: { building_number: "0001", lot_number: "0001" },
+          },
+          building_ownership: {
+            apiId: "building_ownership",
+            source: "moi_api",
+            status: "failed",
+            trustedForPdf: false,
+            error: "尚未取得正式建物所有權資料",
+          },
+        },
+      },
+    });
+
+    expect(result.buildingArea).toBeUndefined();
+    expect(result.propertySheet?.landNumber).toBe("0001");
+    expect(mockInvoke).not.toHaveBeenCalledWith(
+      "land_registry_pull_data",
+      expect.objectContaining({ parcelId: "0001" }),
+    );
+  });
+
   it("建物案件正式 pull 會包含土地、分區與地價資料鏈", async () => {
     mockInvoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
       if (cmd === "get_brand_text_settings") return {};

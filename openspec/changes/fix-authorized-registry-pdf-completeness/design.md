@@ -188,3 +188,4 @@ mock -> 不得進客戶 PDF
 - PDF assembly 對只有 `candidate`/`failed` provenance 且已有屋主姓名的案件，會重新嘗試正式 `land_registry_pull_data`，並把 trusted `moi_api` 結果寫回案件 `land_registry_data`，避免候選資料阻斷正式資料。
 - Provenance schema 保留 `public_candidate`、`moi_api`、`manual`、`mock/raw_probe` 邊界；正式 API 回傳的陣列資料（例如抵押權/他項權利清單）也可被保存與讀取，不再被物件型別過濾掉。
 - 工作台補件欄位除了 browser-dev `get_workbench_supplement` 之外，會同步寫回 `manual_registry_supplement`；PDF assembly 可從案件權威資料讀取格局、座向、管理費與建物現況，並標示人工來源。
+- 正式 pull 失敗會拆成 API key、授權/認證、餘額、權限與查無資料等可處理狀態；地址候選只有 `0001` 這類 placeholder 且沒有建號/地號時，PDF assembly 不會拿 placeholder 去打正式 API。

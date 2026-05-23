@@ -10,9 +10,9 @@
 - [x] 2.2 實作 Authorized cases SHALL use formal registry pull before client PDF output：有屋主授權與姓名時，執行正式地政 pull，使用正式 API pull building/land ownership、registry、rights、mortgage、zoning/value 等資料。
 - [x] 2.3 實作 Candidate registry data SHALL NOT block formal pull 與 Disclosure PDF SHALL use trusted registry data when available：persisted payload 只有 candidate/failed 時，仍可正式 pull；trusted payload 才可直接使用。
 - [x] 2.4 修正 provenance schema：清楚分離 candidate、trusted、manual、mock，避免 candidate 覆蓋 trusted。
-- [ ] 2.5 修正錯誤與補件狀態：API key、授權、餘額、查無資料、權限不足要顯示不同處理方式。
+- [x] 2.5 修正錯誤與補件狀態：API key、授權、餘額、查無資料、權限不足要顯示不同處理方式。
 - [x] 2.6 建物案件正式 pull SHALL 包含土地/分區資料鏈：`land_registry`、土地所有權/共同所有人、`zoning`、地價或可取得的建蔽率/容積率來源，避免建物 PDF 的土地區塊全空。
-- [ ] 2.7 地址 lookup 回傳若沒有正式建號/地號，工作台 SHALL 要求補建號/地號後再正式 pull，不得只用 `0001` 產正式 PDF。
+- [x] 2.7 地址 lookup 回傳若沒有正式建號/地號，工作台 SHALL 要求補建號/地號後再正式 pull，不得只用 `0001` 產正式 PDF。
 
 ## 3. PDF 謄本與圖資完整性
 
