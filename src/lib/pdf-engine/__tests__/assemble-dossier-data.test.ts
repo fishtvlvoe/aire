@@ -223,6 +223,45 @@ describe("assembleDossierData — 土地版成功路徑", () => {
       transactionDate: "2024-02-18",
     });
   });
+
+  it("優先使用 list_legal_clauses 快取組成完整法規告知", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "land_registry_pull_data") return mockPullResultLand;
+      if (cmd === "list_legal_clauses") {
+        return [
+          {
+            law_id: "real-estate-broker-act",
+            title: "不動產經紀業管理條例",
+            content_markdown: "第二十三條 經紀人員應以不動產說明書向交易相對人解說。",
+            version_date: "2024-08-15",
+            fetched_at: "2026-05-23T00:00:00.000Z",
+            source_url: "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0060013",
+          },
+          {
+            law_id: "consumer-protection-relevant",
+            title: "消費者保護法相關條款",
+            content_markdown: "重要消費資訊不得隱匿。",
+            version_date: "2024-08-15",
+            fetched_at: "2026-05-23T00:00:00.000Z",
+            source_url: "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=J0170001",
+          },
+        ];
+      }
+      if (cmd === "get_legal_clause") {
+        throw new Error("get_legal_clause should not be called when list cache is available");
+      }
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData(landCaseRow);
+
+    expect(result.legalClauses).toHaveLength(2);
+    expect(result.legalClauses?.[0]).toContain("不動產經紀業管理條例");
+    expect(result.legalClauses?.[0]).toContain("第二十三條");
+    expect(result.legalClauses?.[0]).toContain("資料來源：");
+  });
 });
 
 describe("assembleDossierData — 建物謄本自動帶入", () => {

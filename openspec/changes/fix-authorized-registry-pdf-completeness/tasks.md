@@ -48,9 +48,9 @@
 
 ## 7. 法規內容補全
 
-- [ ] 7.1 實作 Legal clauses PDF block SHALL render the complete configured legal set：盤點目前 PDF 法規來源與缺漏，定義法規 source of truth。
-- [ ] 7.2 補齊 legal clauses cache / sync / fallback，使 PDF 法規告知不只列目前少量條文。
-- [ ] 7.3 法規頁顯示版本或同步狀態，避免少列卻沒有警示。
+- [x] 7.1 實作 Legal clauses PDF block SHALL render the complete configured legal set：盤點目前 PDF 法規來源與缺漏，定義法規 source of truth。
+- [x] 7.2 補齊 legal clauses cache / sync / fallback，使 PDF 法規告知不只列目前少量條文。
+- [x] 7.3 法規頁顯示版本或同步狀態，避免少列卻沒有警示。
 
 ## 8. 驗收
 

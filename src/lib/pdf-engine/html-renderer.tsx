@@ -21,13 +21,7 @@ import { HtmlSignatureBlockFull } from "./html-blocks/signature-block";
 import { HtmlLandConditionSurvey } from "./html-blocks/land-condition-survey";
 import { HtmlBuildingConditionSurvey } from "./html-blocks/building-condition-survey";
 import type { CaseDossierData } from "./document";
-
-const REGULATIONS = [
-  "一、依不動產經紀業管理條例第二十二條至二十六條規定，經紀業應於買方簽訂要約書後三十日內，向當地主管機關請領不動產說明書，並交付買方。",
-  "二、本說明書為經紀業依法製作之重要文件，買賣雙方應詳閱內容，確認無誤後始得簽章。說明事項有虛偽不實或隱匿情事者，經紀業與其從業人員應負賠償責任。",
-  "三、買方於簽章前，得請求出示不動產說明書，已閱讀全部內容。經紀人員不得拒絕。",
-  "四、本說明書之內容如有增減或修改，應由買賣雙方及經紀人員共同簽章確認。",
-];
+import { COMPLETE_DEFAULT_LEGAL_CLAUSES } from "@/lib/legal-clauses-defaults";
 
 const BASE_CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,6 +42,10 @@ export function renderDisclosureHtml(
 ): string {
   const tokens = getHtmlThemeTokens(options.themeId);
   const d = data as any;
+  const legalClauses =
+    Array.isArray(data.legalClauses) && data.legalClauses.length >= 4
+      ? data.legalClauses
+      : COMPLETE_DEFAULT_LEGAL_CLAUSES;
 
   const landRows: Array<[string, string]> = [
     ["地段", val(d.landMark?.section ?? d.section)],
@@ -259,9 +257,9 @@ export function renderDisclosureHtml(
         <HtmlPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={2} />
         <HtmlSection tokens={tokens} title="說明（法規告知事項）">
           <ol style={{ paddingLeft: "1.2em", lineHeight: "2", fontSize: "13px" }}>
-            {REGULATIONS.map((reg, i) => (
+            {legalClauses.map((reg, i) => (
               <li key={i} style={{ marginBottom: "12px", listStyle: "none", textIndent: "-1.2em", paddingLeft: "1.2em" }}>
-                {reg}
+                {`${i + 1}. ${reg}`}
               </li>
             ))}
           </ol>

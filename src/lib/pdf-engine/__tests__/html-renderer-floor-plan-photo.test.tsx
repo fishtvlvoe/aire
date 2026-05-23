@@ -62,6 +62,24 @@ describe("renderDisclosureHtml — floor-plan photo preview", () => {
     expect(html).toContain("data:image/png;base64,");
   });
 
+  it("renders complete configured legal clauses instead of the short hardcoded list", () => {
+    const html = renderDisclosureHtml(
+      baseDossier({
+        legalClauses: [
+          "不動產經紀業管理條例第二十二條來源：OPCOS cache",
+          "不動產經紀業管理條例第二十三條來源：OPCOS cache",
+          "消費者保護法相關條款來源：OPCOS cache",
+          "公平交易法相關條款來源：OPCOS cache",
+          "土地使用分區與建築限制來源：OPCOS cache",
+        ],
+      }),
+      { themeId: "theme-a-minimal", generatedAt: "2026-05-20" },
+    );
+
+    expect(html).toContain("土地使用分區與建築限制來源：OPCOS cache");
+    expect(html.match(/OPCOS cache/g)?.length).toBe(5);
+  });
+
   it("renders a blank planning-map frame when no upload exists", () => {
     const html = renderDisclosureHtml(
       baseDossier({

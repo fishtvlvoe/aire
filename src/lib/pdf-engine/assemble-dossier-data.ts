@@ -18,6 +18,13 @@ type PullResult = {
   results: Record<string, { data: unknown; source?: string; success?: boolean; error?: string }>;
   total_cost: number;
 };
+type LegalClauseRecord = {
+  law_id?: string;
+  title?: string;
+  content_markdown?: string;
+  version_date?: string;
+  source_url?: string;
+};
 type WorkbenchSupplementPayload = {
   registrySupplements?: Array<{
     fieldName?: string;
@@ -65,6 +72,11 @@ export const ZONING_RESTRICTIONS: Record<
 };
 
 const ZONING_FALLBACK = "依主管機關規定辦理";
+const LEGAL_LAW_IDS = [
+  "real-estate-broker-act",
+  "consumer-protection-relevant",
+  "fair-trade-relevant",
+] as const;
 
 function getZoningRestrictions(zoningType?: string) {
   if (!zoningType) return { soilConservation: undefined, buildingLineNote: undefined };
@@ -302,6 +314,61 @@ function normalizePullResultsForProvenance(
   );
 }
 
+function normalizeLegalClauseRecord(clause: unknown): string | null {
+  if (typeof clause === "string" && clause.trim()) return clause.trim();
+  if (!isPlainRecord(clause)) return null;
+  const record = clause as LegalClauseRecord;
+  const title = record.title?.trim();
+  const content = record.content_markdown?.trim();
+  if (!title || !content) return null;
+  const meta = [
+    record.version_date?.trim() ? `版本日期：${record.version_date.trim()}` : null,
+    record.source_url?.trim() ? `資料來源：${record.source_url.trim()}` : null,
+  ].filter(Boolean);
+  return `${title}：${content}${meta.length > 0 ? `（${meta.join("；")}）` : ""}`;
+}
+
+async function resolveLegalClauses(): Promise<string[]> {
+  try {
+    const clauses = await safeInvoke<unknown[]>("list_legal_clauses");
+    if (Array.isArray(clauses)) {
+      const normalized = clauses
+        .map(normalizeLegalClauseRecord)
+        .filter((item): item is string => Boolean(item));
+      if (normalized.length > 0) return normalized;
+    }
+  } catch {
+    // Fallback to fixed law ids below.
+  }
+
+  try {
+    const clauses = await Promise.all(
+      LEGAL_LAW_IDS.map(async (lawId) =>
+        safeInvoke<unknown>("get_legal_clause", { law_id: lawId }),
+      ),
+    );
+    const normalized = clauses
+      .map(normalizeLegalClauseRecord)
+      .filter((item): item is string => Boolean(item));
+    if (normalized.length > 0) return normalized;
+  } catch {
+    // Legacy browser-dev mocks used to return string[] from get_legal_clause without law_id.
+  }
+
+  try {
+    const clauses = await safeInvoke<unknown[]>("get_legal_clause");
+    if (Array.isArray(clauses)) {
+      return clauses
+        .map(normalizeLegalClauseRecord)
+        .filter((item): item is string => Boolean(item));
+    }
+  } catch {
+    // 失敗時回退至空陣列，由 PDF renderer 使用完整 fallback 法規集合。
+  }
+
+  return [];
+}
+
 function isMockRegistryPullData(results: Record<string, { data: unknown }>): boolean {
   const entries = Object.values(results) as Array<{ data: unknown; source?: unknown }>;
   return entries.length > 0 && entries.every((entry) => entry.source === "mock");
@@ -490,13 +557,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   // ── 法規條文 ──────────────────────────────────────────────────────────────
 
-  let legalClauses: string[] = [];
-  try {
-    const clauses = await safeInvoke<string[]>("get_legal_clause");
-    if (Array.isArray(clauses)) legalClauses = clauses;
-  } catch {
-    // 失敗時回退至空陣列
-  }
+  const legalClauses = await resolveLegalClauses();
 
   // ── 格局圖（現場手稿整理圖）───────────────────────────────────────────────
 

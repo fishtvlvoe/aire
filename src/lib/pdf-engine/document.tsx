@@ -24,6 +24,7 @@ import { AerialPhotoPage } from "@/lib/pdf-blocks/aerial-photo-page";
 import { ExteriorPhotoPage } from "@/lib/pdf-blocks/exterior-photo-page";
 import FieldSketchFloorPlanPage from "@/lib/pdf-blocks/field-sketch-floor-plan-page";
 import { FloorPlanPhotoPage } from "@/lib/pdf-blocks/floor-plan-photo-page";
+import { COMPLETE_DEFAULT_LEGAL_CLAUSES } from "@/lib/legal-clauses-defaults";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CaseDossierData
@@ -211,13 +212,6 @@ const PAGE_STYLE = {
 // 輔助：法規告知頁
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DEFAULT_LEGAL_CLAUSES = [
-  "依不動產經紀業管理條例第二十三條規定，經紀人員在執行業務過程中，應以不動產說明書向與委託人交易之相對人解說。",
-  "依不動產經紀業管理條例第二十四條規定，雙方當事人簽訂租賃或買賣契約書時，經紀人應將不動產說明書交付與委託人交易之相對人，並由相對人在不動產說明書上簽章。",
-  "依不動產經紀業管理條例第二十四條之一規定，經紀業或經紀人員不得收取差價或其他報酬，其經營仲介業務者，並應依實際成交價金或租金按中央主管機關規定之報酬標準計收。",
-  "本說明書內容如有不實，經紀業應負損害賠償責任。前項損害賠償責任，經紀業已盡相當之注意義務者，得減輕之。",
-];
-
 function LegalPage({
   tokens,
   header,
@@ -229,7 +223,7 @@ function LegalPage({
   footer: React.ReactElement;
   legalClauses: string[];
 }) {
-  const clauses = legalClauses.length >= 4 ? legalClauses : DEFAULT_LEGAL_CLAUSES;
+  const clauses = legalClauses.length >= 4 ? legalClauses : COMPLETE_DEFAULT_LEGAL_CLAUSES;
   return (
     <Page size="A4" style={PAGE_STYLE}>
       {header}
