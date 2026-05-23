@@ -16,6 +16,11 @@ function val(
   return String(v);
 }
 
+function sourced(value: string, source?: string): string {
+  if (!value || !source) return value;
+  return `${value}（來源：${source}）`;
+}
+
 export interface HtmlPropertyDataSheetProps {
   propertyType: "land" | "building";
   data: CaseDossierData;
@@ -28,45 +33,51 @@ export function HtmlPropertyDataSheet({
   tokens,
 }: HtmlPropertyDataSheetProps): React.ReactElement {
   const ps = data.propertySheet;
+  const display = (
+    key: string,
+    value: string | number | boolean | undefined | null,
+    formatter?: (v: string | number | boolean) => string,
+  ) => sourced(val(value, formatter), data.propertySheetSources?.[key]);
 
   // 土地與建物共用欄位
   const commonRows: Array<[string, string]> = [
-    ["委託總價（元）", val(ps?.askingPrice, (v) => Number(v).toLocaleString("zh-TW"))],
-    ["地段", val(ps?.landSection)],
-    ["地號", val(ps?.landNumber)],
-    ["使用分區", val(ps?.zoning)],
-    ["土地面積（㎡）", val(ps?.landArea, (v) => Number(v).toFixed(2))],
-    ["權利範圍", val(ps?.ownershipRatio)],
-    ["持分面積（㎡）", val(ps?.shareArea, (v) => Number(v).toFixed(2))],
-    ["建蔽率", val(ps?.buildingCoverage)],
-    ["容積率", val(ps?.floorAreaRatio)],
-    ["所有權人", val(ps?.owner)],
-    ["取得日期", val(ps?.acquisitionDate)],
+    ["委託總價（元）", display("askingPrice", ps?.askingPrice, (v) => Number(v).toLocaleString("zh-TW"))],
+    ["地段", display("landSection", ps?.landSection)],
+    ["地號", display("landNumber", ps?.landNumber)],
+    ["使用分區", display("zoning", ps?.zoning)],
+    ["土地面積（㎡）", display("landArea", ps?.landArea, (v) => Number(v).toFixed(2))],
+    ["權利範圍", display("ownershipRatio", ps?.ownershipRatio)],
+    ["持分面積（㎡）", display("shareArea", ps?.shareArea, (v) => Number(v).toFixed(2))],
+    ["建蔽率", display("buildingCoverage", ps?.buildingCoverage)],
+    ["容積率", display("floorAreaRatio", ps?.floorAreaRatio)],
+    ["所有權人", display("owner", ps?.owner)],
+    ["取得日期", display("acquisitionDate", ps?.acquisitionDate)],
   ];
 
   // 建物面積（坪）欄位，僅 building 顯示
   const areaRows: Array<[string, string]> = [
-    ["登記坪數", val(ps?.registeredArea, (v) => Number(v).toFixed(2))],
-    ["主建坪數", val(ps?.mainBuildingArea, (v) => Number(v).toFixed(2))],
-    ["附屬建物", val(ps?.auxiliaryArea, (v) => Number(v).toFixed(2))],
-    ["公共設施", val(ps?.commonArea, (v) => Number(v).toFixed(2))],
-    ["車位坪數", val(ps?.parkingArea, (v) => Number(v).toFixed(2))],
+    ["登記坪數", display("registeredArea", ps?.registeredArea, (v) => Number(v).toFixed(2))],
+    ["主建坪數", display("mainBuildingArea", ps?.mainBuildingArea, (v) => Number(v).toFixed(2))],
+    ["附屬建物", display("auxiliaryArea", ps?.auxiliaryArea, (v) => Number(v).toFixed(2))],
+    ["公共設施", display("commonArea", ps?.commonArea, (v) => Number(v).toFixed(2))],
+    ["車位坪數", display("parkingArea", ps?.parkingArea, (v) => Number(v).toFixed(2))],
   ];
 
   // 建物現況欄位，僅 building 顯示
   const conditionRows: Array<[string, string]> = [
-    ["法定用途", val(ps?.legalUse)],
-    ["主要建材", val(ps?.material)],
-    ["建築完成日", val(ps?.constructionDate)],
-    ["屋齡", val(ps?.buildingAge)],
-    ["樓層", val(ps?.floor)],
-    ["權利範圍", val(ps?.ownershipScope)],
-    ["格局", val(ps?.rooms)],
-    ["座向", val(ps?.direction)],
-    ["管理費（元/月）", val(ps?.managementFee, (v) => Number(v).toLocaleString("zh-TW"))],
+    ["法定用途", display("legalUse", ps?.legalUse)],
+    ["主要建材", display("material", ps?.material)],
+    ["建築完成日", display("constructionDate", ps?.constructionDate)],
+    ["屋齡", display("buildingAge", ps?.buildingAge)],
+    ["樓層", display("floor", ps?.floor)],
+    ["權利範圍", display("ownershipScope", ps?.ownershipScope)],
+    ["建物現況", display("buildingStatus", ps?.buildingStatus)],
+    ["格局", display("rooms", ps?.rooms)],
+    ["座向", display("direction", ps?.direction)],
+    ["管理費（元/月）", display("managementFee", ps?.managementFee, (v) => Number(v).toLocaleString("zh-TW"))],
     ["電梯", ps?.hasElevator === true ? "有" : ps?.hasElevator === false ? "無" : BLANK],
-    ["建設公司", val(ps?.constructionCompany)],
-    ["社區名稱", val(ps?.communityName)],
+    ["建設公司", display("constructionCompany", ps?.constructionCompany)],
+    ["社區名稱", display("communityName", ps?.communityName)],
   ];
 
   return (

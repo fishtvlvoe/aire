@@ -111,13 +111,13 @@ export interface CaseDossierData {
 
   // ─── 物件資料表 ───
   propertySheet?: {
-    askingPrice: number;
+    askingPrice?: number;
     landSection: string;
     landNumber: string;
     zoning: string;
-    landArea: number;
+    landArea?: number;
     ownershipRatio: string;
-    shareArea: number;
+    shareArea?: number;
     buildingCoverage: string;
     floorAreaRatio: string;
     owner: string;
@@ -133,6 +133,7 @@ export interface CaseDossierData {
     constructionDate?: string;
     buildingAge?: string;
     ownershipScope?: string;
+    buildingStatus?: string;
     rooms?: string;
     direction?: string;
     managementFee?: number;
@@ -140,6 +141,7 @@ export interface CaseDossierData {
     constructionCompany?: string;
     communityName?: string;
   };
+  propertySheetSources?: Record<string, string>;
 
   // ─── 建物面積分欄 ───
   buildingAreaBreakdown?: {

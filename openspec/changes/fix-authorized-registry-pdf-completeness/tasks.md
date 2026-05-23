@@ -18,19 +18,19 @@
 
 - [ ] 3.1 PDF 物件資料表、建物標示、所有權及他項權利頁使用 trusted registry 資料填入。
 - [ ] 3.2 實作 Client PDF SHALL contain images when image bytes are available：有圖資 bytes 或使用者上傳圖資時，位置圖、空拍圖、街景/外觀圖必須嵌入 PDF。
-- [ ] 3.3 實作 Client PDF SHALL expose missing data honestly：無圖資或部分 API 失敗時，PDF 保留空白框、補件說明與失敗原因，不得默默沒有圖片頁或用假圖。
+- [x] 3.3 實作 Client PDF SHALL expose missing data honestly：無圖資或部分 API 失敗時，PDF 保留空白框、補件說明與失敗原因，不得默默沒有圖片頁或用假圖。
 - [ ] 3.4 實價登錄與周邊資料沿用可查結果，但不得混入錯地址或 mock 測試資料。
 - [ ] 3.5 實作 Property sheet SHALL map complete registry and manual fields：地段、地號、使用分區、土地面積、權利範圍、持分面積、建蔽率、容積率、所有權人、取得日期、建物面積、登記坪數、主建坪數、附屬建物、公共設施、車位坪數、法定用途、主要建材、建築完成日、屋齡、樓層都要從 trusted/manual 來源映射。
-- [ ] 3.6 對建物現況、格局、座向、管理費等非地政必回欄位，PDF SHALL 讀取補件/現場確認資料並標示來源。
+- [x] 3.6 對建物現況、格局、座向、管理費等非地政必回欄位，PDF SHALL 讀取補件/現場確認資料並標示來源。
 
 ## 4. 補件欄位與資料狀態
 
-- [ ] 4.1 實作 Missing registry items SHALL become actionable supplement fields：`需人工提供`、`待資料`、`查詢未成功` 來源列要生成可填欄位。
-- [ ] 4.2 補件欄位支援屋主提供/人工輸入/重新查詢三種來源，並把來源與時間寫回案件。
+- [x] 4.1 實作 Missing registry items SHALL become actionable supplement fields：`需人工提供`、`待資料`、`查詢未成功` 來源列要生成可填欄位。
+- [x] 4.2 補件欄位支援屋主提供/人工輸入/重新查詢三種來源，並把來源與時間寫回案件。
 - [ ] 4.3 補件儲存不得只寫入單一瀏覽器 localStorage；正式 path 需寫回案件權威資料 store。
-- [ ] 4.4 補件值 SHALL 回填工作台預覽、JSON export 與 PDF；PDF 需標示來源，不偽裝為 API 回傳。
+- [x] 4.4 補件值 SHALL 回填工作台預覽、JSON export 與 PDF；PDF 需標示來源，不偽裝為 API 回傳。
 - [x] 4.5 修正工作台欄位「修改/完成」：完成時要寫回案件或補件 store；屋主姓名修改 SHALL 更新 `owner_name` 並觸發姓名比對狀態重新計算。
-- [ ] 4.6 資料來源表格與補件表單 SHALL 使用同一份欄位 definition，避免資料來源顯示缺口但補件頁沒有對應欄位。
+- [x] 4.6 資料來源表格與補件表單 SHALL 使用同一份欄位 definition，避免資料來源顯示缺口但補件頁沒有對應欄位。
 
 ## 5. 設定與品牌欄位
 

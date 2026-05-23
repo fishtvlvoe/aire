@@ -34,6 +34,21 @@ describe("renderDisclosureHtml — floor-plan photo preview", () => {
     expect((html.match(/key=\"life-amenities\"/g) ?? []).length).toBeLessThanOrEqual(1);
   });
 
+  it("keeps the location and life amenities page with placeholders when map data is missing", () => {
+    const html = renderDisclosureHtml(
+      baseDossier({
+        locationMapImage: null,
+        nearbyAmenities: [],
+      }),
+      { themeId: "theme-a-minimal", generatedAt: "2026-05-20" },
+    );
+
+    expect(html).toContain("位置圖與生活機能");
+    expect(html).toContain("自動產生失敗時可手動上傳覆蓋");
+    expect(html).toContain("尚未查詢周邊設施");
+  });
+
+
   it("renders residential floor-plan photo as a data URL image", () => {
     const html = renderDisclosureHtml(
       baseDossier({

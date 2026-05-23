@@ -145,8 +145,8 @@ export function renderDisclosureHtml(
     );
   }
 
-  // Page 6: 位置圖與生活機能（合併成一頁）
-  if ((data.nearbyAmenities && data.nearbyAmenities.length > 0) || data.locationMapImage) {
+  // Page 6: 位置圖與生活機能（合併成一頁）；無圖資時保留空白框，避免 PDF 頁面默默消失。
+  {
     const pn = ++pageNum;
     pages.push(
       <div className="page" key="location-and-life-amenities">

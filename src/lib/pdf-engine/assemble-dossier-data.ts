@@ -12,6 +12,21 @@ import {
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
+type WorkbenchSupplementPayload = {
+  registrySupplements?: Array<{
+    fieldName?: string;
+    value?: string;
+    source?: string;
+    status?: string;
+    updatedAt?: string;
+  }>;
+  fieldVisitAnswers?: Array<{
+    topic?: string;
+    answer?: string;
+    status?: string;
+    updatedAt?: string;
+  }>;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 使用分區 → 法規限制 lookup table
@@ -179,6 +194,36 @@ function resolveBuildingFloor(registryFloor?: string, address?: string): string 
   return floor;
 }
 
+function parseSupplementNumber(value?: string): number | undefined {
+  if (!value?.trim()) return undefined;
+  const parsed = Number(value.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function buildRegistrySupplementLookup(payload?: WorkbenchSupplementPayload) {
+  const valueByField = new Map<string, string>();
+  const sourceByField = new Map<string, string>();
+  for (const row of payload?.registrySupplements ?? []) {
+    const fieldName = row.fieldName?.trim();
+    const value = row.value?.trim();
+    if (!fieldName || !value) continue;
+    valueByField.set(fieldName, value);
+    sourceByField.set(fieldName, row.source?.trim() || "補件");
+  }
+  return { valueByField, sourceByField };
+}
+
+function buildFieldVisitLookup(payload?: WorkbenchSupplementPayload) {
+  const answerByTopic = new Map<string, string>();
+  for (const row of payload?.fieldVisitAnswers ?? []) {
+    const topic = row.topic?.trim();
+    const answer = row.answer?.trim();
+    if (!topic || !answer) continue;
+    answerByTopic.set(topic, answer);
+  }
+  return answerByTopic;
+}
+
 function isMockRegistryPullData(results: Record<string, { data: unknown }>): boolean {
   const entries = Object.values(results) as Array<{ data: unknown; source?: unknown }>;
   return entries.length > 0 && entries.every((entry) => entry.source === "mock");
@@ -252,6 +297,17 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   try {
     brandText = (await safeInvoke<Record<string, string>>("get_brand_text_settings")) ?? {};
   } catch { /* dev fallback */ }
+
+  let workbenchSupplement: WorkbenchSupplementPayload | undefined;
+  try {
+    workbenchSupplement = await safeInvoke<WorkbenchSupplementPayload>("get_workbench_supplement", {
+      caseId: caseRow.id,
+    });
+  } catch {
+    workbenchSupplement = undefined;
+  }
+  const registrySupplement = buildRegistrySupplementLookup(workbenchSupplement);
+  const fieldVisitAnswers = buildFieldVisitLookup(workbenchSupplement);
 
   const base: CaseDossierData = {
     caseNo: caseRow.case_no ?? caseRow.id.slice(0, 8),
@@ -586,9 +642,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         landSection: safeGet(landReg, "section", isString) ?? "",
         landNumber: caseRow.land_lot_no ?? "",
         zoning: safeGet(zoning, "zoning_type", isString) ?? "",
-        landArea: safeGet(landReg, "area", isNumber) ?? 0,
+        landArea: safeGet(landReg, "area", isNumber),
         ownershipRatio: "",
-        shareArea: 0,
+        shareArea: undefined,
         buildingCoverage: safeGet(dossierPreview, "building_coverage_ratio", isString) ?? "",
         floorAreaRatio: safeGet(dossierPreview, "floor_area_ratio", isString) ?? "",
         owner: caseRow.owner_name ?? "",
@@ -646,6 +702,22 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     // ── 稅費試算（建物）──────────────────────────────────────────────────────
     base.taxCalculation = null; // 建物版：askingPrice 未填前為 null
+    const manualManagementFee = parseSupplementNumber(
+      registrySupplement.valueByField.get("管理費（元/月）") ??
+        registrySupplement.valueByField.get("管理費"),
+    );
+    const propertySheetSources: Record<string, string> = {};
+    const setSource = (key: string, fieldName: string) => {
+      const source = registrySupplement.sourceByField.get(fieldName);
+      if (source) propertySheetSources[key] = source;
+    };
+    setSource("rooms", "格局");
+    setSource("direction", "座向");
+    setSource("managementFee", "管理費（元/月）");
+    setSource("managementFee", "管理費");
+    if (fieldVisitAnswers.has("建物現況")) {
+      propertySheetSources.buildingStatus = "現場確認";
+    }
 
     return {
       ...base,
@@ -682,9 +754,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
           firstString(landReg, ["zoning", "ZONING", "purpose", "land_purpose"]) ??
           firstString(zoning, ["zoning_type", "ZONING", "usage_category"]) ??
           "",
-        landArea: firstNumber(landReg, ["area", "land_area", "AREA"]) ?? 0,
+        landArea: firstNumber(landReg, ["area", "land_area", "AREA"]),
         ownershipRatio: ratioText(landOwnership) || ratioText(buildingOwnership),
-        shareArea: 0,
+        shareArea: undefined,
         buildingCoverage:
           firstString(zoning, ["building_coverage_ratio", "BUILDING_COVERAGE_RATIO"]) ?? "",
         floorAreaRatio:
@@ -711,8 +783,14 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
           firstString(buildingReg, ["construction_date", "COMPLETEDATE"]) ?? "",
         ),
         ownershipScope: ratioText(buildingOwnership),
+        buildingStatus: fieldVisitAnswers.get("建物現況"),
+        rooms: registrySupplement.valueByField.get("格局"),
+        direction: registrySupplement.valueByField.get("座向"),
+        managementFee: manualManagementFee,
         constructionCompany: safeGet(buildingReg, "construction_company", isString),
       },
+      propertySheetSources:
+        Object.keys(propertySheetSources).length > 0 ? propertySheetSources : undefined,
       buildingAreaBreakdown: {
         main: firstNumber(buildingReg, ["main_building_area", "MAINAREA"]) ?? 0,
         auxiliary: firstNumber(buildingReg, ["auxiliary_area", "ATTAREA"]) ?? 0,

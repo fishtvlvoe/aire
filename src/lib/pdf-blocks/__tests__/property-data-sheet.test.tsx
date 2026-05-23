@@ -50,4 +50,43 @@ describe("PropertyDataSheetPage", () => {
     expect(text).toContain("查詢未成功");
     expect(text).toContain("授權不足，請補授權或改由屋主提供謄本");
   });
+
+  it("marks manual supplement sources on property sheet values", () => {
+    const data: CaseDossierData = {
+      caseNo: "AIRE-YUNONG",
+      address: "台南市東區裕農路288巷17號8樓之1",
+      propertyType: "building",
+      landLotNo: "裕農段候選地號",
+      ownerName: "余啟彰",
+      companyName: "",
+      generatedAt: "2026/05/23",
+      propertySheet: {
+        landSection: "",
+        landNumber: "",
+        zoning: "",
+        ownershipRatio: "",
+        buildingCoverage: "",
+        floorAreaRatio: "",
+        owner: "余啟彰",
+        acquisitionDate: "",
+        rooms: "3房2廳2衛",
+        direction: "坐東朝西",
+        managementFee: 2500,
+        buildingStatus: "現況自住",
+      },
+      propertySheetSources: {
+        rooms: "人工輸入",
+        direction: "屋主提供",
+        managementFee: "屋主提供",
+        buildingStatus: "現場確認",
+      },
+    };
+
+    const text = collectText(PropertyDataSheetPage({ propertyType: "building", data }));
+
+    expect(text).toContain("3房2廳2衛（來源：人工輸入）");
+    expect(text).toContain("坐東朝西（來源：屋主提供）");
+    expect(text).toContain("2,500（來源：屋主提供）");
+    expect(text).toContain("現況自住（來源：現場確認）");
+  });
 });

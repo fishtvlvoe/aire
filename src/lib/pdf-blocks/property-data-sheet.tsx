@@ -18,6 +18,11 @@ function val(v: string | number | boolean | undefined | null, formatter?: (v: st
   return String(v);
 }
 
+function sourced(value: string, source?: string): string {
+  if (!value || !source) return value;
+  return `${value}（來源：${source}）`;
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: "#E5E7EB", paddingVertical: 5 }}>
@@ -35,22 +40,27 @@ export function PropertyDataSheetPage({
   data: CaseDossierData;
 }): React.ReactElement {
   const ps = data.propertySheet;
+  const display = (
+    key: string,
+    value: string | number | boolean | undefined | null,
+    formatter?: (v: string | number | boolean) => string,
+  ) => sourced(val(value, formatter), data.propertySheetSources?.[key]);
 
   return (
     <Page size="A4" style={PAGE_STYLE}>
       <Text style={{ fontSize: 13, fontWeight: 700, marginBottom: 14, color: "#111827" }}>物件資料表</Text>
 
-      <Row label="委託總價（元）" value={val(ps?.askingPrice, (v) => Number(v).toLocaleString("zh-TW"))} />
-      <Row label="地段" value={val(ps?.landSection)} />
-      <Row label="地號" value={val(ps?.landNumber)} />
-      <Row label="使用分區" value={val(ps?.zoning)} />
-      <Row label="土地面積（㎡）" value={val(ps?.landArea, (v) => Number(v).toFixed(2))} />
-      <Row label="權利範圍" value={val(ps?.ownershipRatio)} />
-      <Row label="持分面積（㎡）" value={val(ps?.shareArea, (v) => Number(v).toFixed(2))} />
-      <Row label="建蔽率" value={val(ps?.buildingCoverage)} />
-      <Row label="容積率" value={val(ps?.floorAreaRatio)} />
-      <Row label="所有權人" value={val(ps?.owner)} />
-      <Row label="取得日期" value={val(ps?.acquisitionDate)} />
+      <Row label="委託總價（元）" value={display("askingPrice", ps?.askingPrice, (v) => Number(v).toLocaleString("zh-TW"))} />
+      <Row label="地段" value={display("landSection", ps?.landSection)} />
+      <Row label="地號" value={display("landNumber", ps?.landNumber)} />
+      <Row label="使用分區" value={display("zoning", ps?.zoning)} />
+      <Row label="土地面積（㎡）" value={display("landArea", ps?.landArea, (v) => Number(v).toFixed(2))} />
+      <Row label="權利範圍" value={display("ownershipRatio", ps?.ownershipRatio)} />
+      <Row label="持分面積（㎡）" value={display("shareArea", ps?.shareArea, (v) => Number(v).toFixed(2))} />
+      <Row label="建蔽率" value={display("buildingCoverage", ps?.buildingCoverage)} />
+      <Row label="容積率" value={display("floorAreaRatio", ps?.floorAreaRatio)} />
+      <Row label="所有權人" value={display("owner", ps?.owner)} />
+      <Row label="取得日期" value={display("acquisitionDate", ps?.acquisitionDate)} />
 
       {data.preSurvey ? (
         <>
@@ -78,25 +88,26 @@ export function PropertyDataSheetPage({
       {propertyType === "building" && (
         <>
           <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 14, marginBottom: 8, color: "#111827" }}>建物面積（坪）</Text>
-          <Row label="登記坪數" value={val(ps?.registeredArea, (v) => Number(v).toFixed(2))} />
-          <Row label="主建坪數" value={val(ps?.mainBuildingArea, (v) => Number(v).toFixed(2))} />
-          <Row label="附屬建物" value={val(ps?.auxiliaryArea, (v) => Number(v).toFixed(2))} />
-          <Row label="公共設施" value={val(ps?.commonArea, (v) => Number(v).toFixed(2))} />
-          <Row label="車位坪數" value={val(ps?.parkingArea, (v) => Number(v).toFixed(2))} />
+          <Row label="登記坪數" value={display("registeredArea", ps?.registeredArea, (v) => Number(v).toFixed(2))} />
+          <Row label="主建坪數" value={display("mainBuildingArea", ps?.mainBuildingArea, (v) => Number(v).toFixed(2))} />
+          <Row label="附屬建物" value={display("auxiliaryArea", ps?.auxiliaryArea, (v) => Number(v).toFixed(2))} />
+          <Row label="公共設施" value={display("commonArea", ps?.commonArea, (v) => Number(v).toFixed(2))} />
+          <Row label="車位坪數" value={display("parkingArea", ps?.parkingArea, (v) => Number(v).toFixed(2))} />
 
           <Text style={{ fontSize: 11, fontWeight: 700, marginTop: 14, marginBottom: 8, color: "#111827" }}>建物現況</Text>
-          <Row label="法定用途" value={val(ps?.legalUse)} />
-          <Row label="主要建材" value={val(ps?.material)} />
-          <Row label="建築完成日" value={val(ps?.constructionDate)} />
-          <Row label="屋齡" value={val(ps?.buildingAge)} />
-          <Row label="樓層" value={val(ps?.floor)} />
-          <Row label="權利範圍" value={val(ps?.ownershipScope)} />
-          <Row label="格局" value={val(ps?.rooms)} />
-          <Row label="座向" value={val(ps?.direction)} />
-          <Row label="管理費（元/月）" value={val(ps?.managementFee, (v) => Number(v).toLocaleString("zh-TW"))} />
+          <Row label="法定用途" value={display("legalUse", ps?.legalUse)} />
+          <Row label="主要建材" value={display("material", ps?.material)} />
+          <Row label="建築完成日" value={display("constructionDate", ps?.constructionDate)} />
+          <Row label="屋齡" value={display("buildingAge", ps?.buildingAge)} />
+          <Row label="樓層" value={display("floor", ps?.floor)} />
+          <Row label="權利範圍" value={display("ownershipScope", ps?.ownershipScope)} />
+          <Row label="建物現況" value={display("buildingStatus", ps?.buildingStatus)} />
+          <Row label="格局" value={display("rooms", ps?.rooms)} />
+          <Row label="座向" value={display("direction", ps?.direction)} />
+          <Row label="管理費（元/月）" value={display("managementFee", ps?.managementFee, (v) => Number(v).toLocaleString("zh-TW"))} />
           <Row label="電梯" value={ps?.hasElevator === true ? "有" : ps?.hasElevator === false ? "無" : BLANK} />
-          <Row label="建設公司" value={val(ps?.constructionCompany)} />
-          <Row label="社區名稱" value={val(ps?.communityName)} />
+          <Row label="建設公司" value={display("constructionCompany", ps?.constructionCompany)} />
+          <Row label="社區名稱" value={display("communityName", ps?.communityName)} />
         </>
       )}
     </Page>

@@ -312,7 +312,77 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.mortgages).toBeUndefined();
     expect(result.propertySheet?.registeredArea).toBeUndefined();
     expect(result.propertySheet?.constructionDate).toBeUndefined();
+    expect(result.propertySheet?.landArea).toBeUndefined();
+    expect(result.propertySheet?.shareArea).toBeUndefined();
     expect(result.propertySheet?.owner).toBe("余啟彰");
+  });
+
+  it("讀取補件 store，將人工格局、座向、管理費與建物現況回填物件資料表並標示來源", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_workbench_supplement") {
+        return {
+          caseId: buildingCaseRow.id,
+          registrySupplements: [
+            {
+              fieldName: "格局",
+              value: "3房2廳2衛",
+              source: "人工輸入",
+              status: "已補",
+              updatedAt: "2026-05-23T03:00:00.000Z",
+            },
+            {
+              fieldName: "座向",
+              value: "坐東朝西",
+              source: "屋主提供",
+              status: "已補",
+              updatedAt: "2026-05-23T03:01:00.000Z",
+            },
+            {
+              fieldName: "管理費（元/月）",
+              value: "2500",
+              source: "屋主提供",
+              status: "已補",
+              updatedAt: "2026-05-23T03:02:00.000Z",
+            },
+          ],
+          fieldVisitAnswers: [
+            {
+              topic: "建物現況",
+              answer: "現況自住，屋況待現場復核",
+              status: "已確認",
+              updatedAt: "2026-05-23T03:03:00.000Z",
+            },
+          ],
+          uploads: [],
+          supplementAdded: true,
+          updatedAt: "2026-05-23T03:03:00.000Z",
+        };
+      }
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: trustedRegistryPayload({
+        building_registry: { building_purpose: "住家用" },
+        building_ownership: { owner_name: "王建國", numerator: "1", denominator: "1" },
+      }),
+    });
+
+    expect(result.propertySheet?.rooms).toBe("3房2廳2衛");
+    expect(result.propertySheet?.direction).toBe("坐東朝西");
+    expect(result.propertySheet?.managementFee).toBe(2500);
+    expect(result.propertySheet?.buildingStatus).toBe("現況自住，屋況待現場復核");
+    expect(result.propertySheetSources).toMatchObject({
+      rooms: "人工輸入",
+      direction: "屋主提供",
+      managementFee: "屋主提供",
+      buildingStatus: "現場確認",
+    });
   });
 
   it("舊版未標記來源的地政 payload 不進正式 PDF 欄位", async () => {

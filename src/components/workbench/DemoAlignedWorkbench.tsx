@@ -18,9 +18,20 @@ interface DemoAlignedWorkbenchProps {
 
 type WorkbenchTab = "fields" | "sources" | "supplements" | "pdf";
 type FieldVisitDraftByTopic = Record<string, { answer: string; status: string }>;
+type RegistrySupplementDraftByField = Record<
+  string,
+  { value: string; source: string; status: string }
+>;
 
 interface WorkbenchSupplementDraft {
   caseId: string;
+  registrySupplements?: Array<{
+    fieldName: string;
+    value: string;
+    source: string;
+    status: string;
+    updatedAt?: string;
+  }>;
   fieldVisitAnswers: Array<{
     topic: string;
     answer: string;
@@ -50,6 +61,41 @@ const WORKBENCH_TABS: Array<{ id: WorkbenchTab; label: string }> = [
 ];
 
 const ASSET_UPLOAD_SLOTS = ["地籍圖", "空拍圖", "格局圖", "地標圖", "LINE 照片"];
+const ACTIONABLE_SOURCE_STATUSES = ["需人工提供", "待資料", "查詢未成功"];
+const PROPERTY_SHEET_SUPPLEMENT_FIELDS = [
+  {
+    fieldName: "建物現況",
+    helper: "現場或屋主確認",
+    value: "待現場確認",
+    serviceName: "現場確認資料",
+    statusLabel: "需人工提供",
+    amountLabel: "0 元",
+  },
+  {
+    fieldName: "格局",
+    helper: "由屋主、現場或格局圖確認",
+    value: "待補格局",
+    serviceName: "屋主提供資料",
+    statusLabel: "需人工提供",
+    amountLabel: "0 元",
+  },
+  {
+    fieldName: "座向",
+    helper: "由屋主或現場確認",
+    value: "待補座向",
+    serviceName: "屋主提供資料",
+    statusLabel: "需人工提供",
+    amountLabel: "0 元",
+  },
+  {
+    fieldName: "管理費（元/月）",
+    helper: "由屋主或管委會確認",
+    value: "待補管理費",
+    serviceName: "屋主提供資料",
+    statusLabel: "需人工提供",
+    amountLabel: "0 元",
+  },
+];
 
 const FIELD_VISIT_QUESTIONS = [
   {
@@ -79,6 +125,8 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const [supplementAdded, setSupplementAdded] = useState(false);
   const [assetUploads, setAssetUploads] = useState<Record<string, string>>({});
   const [fieldVisitDrafts, setFieldVisitDrafts] = useState<FieldVisitDraftByTopic>({});
+  const [registrySupplementDrafts, setRegistrySupplementDrafts] =
+    useState<RegistrySupplementDraftByField>({});
   const [editingField, setEditingField] = useState<string | null>(null);
   const [caseDraft, setCaseDraft] = useState(caseData);
   const [fieldCorrections, setFieldCorrections] = useState<Record<string, string>>({});
@@ -88,6 +136,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     fieldCorrections[field.fieldName]
       ? { ...field, value: fieldCorrections[field.fieldName] }
       : field,
+  );
+  const sourceFields = [...fields, ...PROPERTY_SHEET_SUPPLEMENT_FIELDS].map((field) =>
+    fieldCorrections[field.fieldName]
+      ? { ...field, value: fieldCorrections[field.fieldName] }
+      : field,
+  );
+  const actionableRegistryFields = sourceFields.filter((field) =>
+    ACTIONABLE_SOURCE_STATUSES.some((status) => field.statusLabel.includes(status)),
   );
   const usageRows = getUsageLedgerRows();
   const lookupCost =
@@ -112,12 +168,20 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       landCount: classification.landCount,
       buildingCount: classification.buildingCount,
     },
-    importedFields: fields.map((field) => ({
+    importedFields: sourceFields.map((field) => ({
       fieldName: field.fieldName,
       value: field.value,
       source: field.serviceName,
       status: field.statusLabel,
     })),
+    supplementFields: Object.entries(registrySupplementDrafts)
+      .filter(([, draft]) => Boolean(draft.value.trim()))
+      .map(([fieldName, draft]) => ({
+        fieldName,
+        value: draft.value,
+        source: draft.source === "人工輸入" ? "manual" : draft.source,
+        status: draft.status,
+      })),
     usageRows: usageRows.map((row) => ({
       serviceName: row.serviceName,
       outcome: row.outcomeLabel,
@@ -133,6 +197,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     setCaseDraft(caseData);
     setFieldCorrections({});
     setEditingValues({});
+    setRegistrySupplementDrafts({});
   }, [caseData]);
 
   useEffect(() => {
@@ -153,6 +218,29 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
             ),
           );
         }
+        const registrySupplements = draft.registrySupplements ?? [];
+        if (registrySupplements.length > 0) {
+          setRegistrySupplementDrafts(
+            Object.fromEntries(
+              registrySupplements.map((row) => [
+                row.fieldName,
+                {
+                  value: row.value,
+                  source: row.source,
+                  status: row.status,
+                },
+              ]),
+            ),
+          );
+          setFieldCorrections((current) => ({
+            ...current,
+            ...Object.fromEntries(
+              registrySupplements
+                .filter((row) => Boolean(row.value.trim()))
+                .map((row) => [row.fieldName, row.value]),
+            ),
+          }));
+        }
         if (draft.uploads.length > 0) {
           setAssetUploads(
             Object.fromEntries(draft.uploads.map((row) => [row.slot, row.fileName])),
@@ -172,10 +260,12 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
 
   function persistSupplementDraft({
     drafts = fieldVisitDrafts,
+    registryDrafts = registrySupplementDrafts,
     uploads = assetUploads,
     added = supplementAdded,
   }: {
     drafts?: FieldVisitDraftByTopic;
+    registryDrafts?: RegistrySupplementDraftByField;
     uploads?: Record<string, string>;
     added?: boolean;
   } = {}) {
@@ -186,6 +276,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
         answer: draft.answer,
         status: draft.status,
       })),
+      registrySupplements: Object.entries(registryDrafts)
+        .filter(([, draft]) => Boolean(draft.value.trim()))
+        .map(([fieldName, draft]) => ({
+          fieldName,
+          value: draft.value,
+          source: draft.source,
+          status: draft.status,
+        })),
       uploads: Object.entries(uploads)
         .filter(([, fileName]) => Boolean(fileName))
         .map(([slot, fileName]) => ({ slot, fileName })),
@@ -209,6 +307,30 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     };
     setFieldVisitDrafts(nextDrafts);
     persistSupplementDraft({ drafts: nextDrafts });
+  }
+
+  function updateRegistrySupplementDraft(
+    fieldName: string,
+    patch: Partial<{ value: string; source: string; status: string }>,
+  ) {
+    const nextDrafts = {
+      ...registrySupplementDrafts,
+      [fieldName]: {
+        value: registrySupplementDrafts[fieldName]?.value ?? "",
+        source: registrySupplementDrafts[fieldName]?.source ?? "屋主提供",
+        status: registrySupplementDrafts[fieldName]?.status ?? "待確認",
+        ...patch,
+      },
+    };
+    const nextValue = nextDrafts[fieldName].value;
+    setRegistrySupplementDrafts(nextDrafts);
+    if (nextValue.trim()) {
+      setFieldCorrections((current) => ({ ...current, [fieldName]: nextValue }));
+      if (fieldName === "屋主姓名" || fieldName === "姓名比對結果") {
+        setCaseDraft((current) => ({ ...current, owner_name: nextValue }));
+      }
+    }
+    persistSupplementDraft({ registryDrafts: nextDrafts });
   }
 
   async function finishFieldEdit(fieldName: string, currentValue: string) {
@@ -432,7 +554,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   </tr>
                 </thead>
                 <tbody>
-                  {fields.map((field) => (
+                  {sourceFields.map((field) => (
                     <tr key={field.fieldName} className="border-b last:border-b-0">
                       <th className="px-3 py-3 text-left font-medium" scope="row">
                         {field.fieldName}
@@ -459,6 +581,83 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               <p className="mt-1 text-sm text-muted-foreground">
                 客戶來電、現場看屋或 LINE 傳照片時，都在這裡直接填寫與上傳；答不出來的項目再留在補件清單。
               </p>
+              {actionableRegistryFields.length > 0 ? (
+                <div className="mt-3 overflow-hidden rounded-lg border" aria-label="資料來源補件表單">
+                  {actionableRegistryFields.map((field) => {
+                    const draft = registrySupplementDrafts[field.fieldName] ?? {
+                      value: "",
+                      source: "屋主提供",
+                      status: "待確認",
+                    };
+                    return (
+                      <article
+                        key={field.fieldName}
+                        className="grid gap-3 border-b p-3 last:border-b-0 md:grid-cols-[150px_minmax(0,1fr)_150px_140px]"
+                      >
+                        <div>
+                          <strong className="block text-sm">{field.fieldName}</strong>
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            {field.statusLabel}
+                          </span>
+                        </div>
+                        <label className="text-sm">
+                          <span className="font-medium">{field.fieldName}補件值</span>
+                          <input
+                            aria-label={`${field.fieldName}補件值`}
+                            className="mt-2 min-h-10 w-full rounded-md border px-3 py-2"
+                            placeholder={field.value || "輸入補件內容"}
+                            value={draft.value}
+                            onChange={(event) =>
+                              updateRegistrySupplementDraft(field.fieldName, {
+                                value: event.target.value,
+                              })
+                            }
+                          />
+                          {draft.value.trim() ? (
+                            <span className="mt-2 block text-xs font-medium text-emerald-700">
+                              已補：{draft.value}
+                            </span>
+                          ) : null}
+                        </label>
+                        <label className="text-sm">
+                          <span className="font-medium">來源</span>
+                          <select
+                            aria-label={`${field.fieldName}補件來源`}
+                            className="mt-2 min-h-10 w-full rounded-md border px-3 py-2"
+                            value={draft.source}
+                            onChange={(event) =>
+                              updateRegistrySupplementDraft(field.fieldName, {
+                                source: event.target.value,
+                              })
+                            }
+                          >
+                            <option>屋主提供</option>
+                            <option>人工輸入</option>
+                            <option>重新查詢</option>
+                          </select>
+                        </label>
+                        <label className="text-sm">
+                          <span className="font-medium">狀態</span>
+                          <select
+                            aria-label={`${field.fieldName}補件狀態`}
+                            className="mt-2 min-h-10 w-full rounded-md border px-3 py-2"
+                            value={draft.status}
+                            onChange={(event) =>
+                              updateRegistrySupplementDraft(field.fieldName, {
+                                status: event.target.value,
+                              })
+                            }
+                          >
+                            <option>待確認</option>
+                            <option>已補</option>
+                            <option>待重新查詢</option>
+                          </select>
+                        </label>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : null}
               <div className="mt-3 overflow-hidden rounded-lg border" aria-label="現場必問表單">
                 {FIELD_VISIT_QUESTIONS.map((item) => (
                   <article key={item.topic} className="grid gap-3 border-b p-3 last:border-b-0 md:grid-cols-[150px_minmax(0,1fr)_180px]">

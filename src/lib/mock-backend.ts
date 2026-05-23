@@ -131,8 +131,17 @@ interface WorkbenchSupplementUpload {
   savedAt: string;
 }
 
+interface WorkbenchRegistrySupplement {
+  fieldName: string;
+  value: string;
+  source: string;
+  status: string;
+  updatedAt: string;
+}
+
 interface WorkbenchSupplementDraft {
   caseId: string;
+  registrySupplements: WorkbenchRegistrySupplement[];
   fieldVisitAnswers: WorkbenchFieldVisitAnswer[];
   uploads: WorkbenchSupplementUpload[];
   supplementAdded: boolean;
@@ -1162,6 +1171,22 @@ export class MockStore {
     const now = new Date().toISOString();
     const existing =
       this.workbenchSupplements.get(caseId) ?? this.makeEmptyWorkbenchSupplement(caseId);
+    const registrySupplements = Array.isArray(payload.registrySupplements)
+      ? payload.registrySupplements
+          .map((raw) => {
+            const row = toRecord(raw);
+            const fieldName = readString(row.fieldName) ?? readString(row.field_name);
+            if (!fieldName) return null;
+            return {
+              fieldName,
+              value: typeof row.value === "string" ? row.value : "",
+              source: typeof row.source === "string" ? row.source : "屋主提供",
+              status: typeof row.status === "string" ? row.status : "待確認",
+              updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : now,
+            } satisfies WorkbenchRegistrySupplement;
+          })
+          .filter((row): row is WorkbenchRegistrySupplement => Boolean(row))
+      : existing.registrySupplements;
     const fieldVisitAnswers = Array.isArray(payload.fieldVisitAnswers)
       ? payload.fieldVisitAnswers
           .map((raw) => {
@@ -1200,6 +1225,7 @@ export class MockStore {
 
     this.workbenchSupplements.set(caseId, {
       caseId,
+      registrySupplements,
       fieldVisitAnswers,
       uploads,
       supplementAdded:
@@ -1217,6 +1243,7 @@ export class MockStore {
   private makeEmptyWorkbenchSupplement(caseId: string): WorkbenchSupplementDraft {
     return {
       caseId,
+      registrySupplements: [],
       fieldVisitAnswers: [],
       uploads: [],
       supplementAdded: false,
@@ -1227,6 +1254,7 @@ export class MockStore {
   private cloneWorkbenchSupplement(draft: WorkbenchSupplementDraft): WorkbenchSupplementDraft {
     return {
       caseId: draft.caseId,
+      registrySupplements: draft.registrySupplements.map((row) => ({ ...row })),
       fieldVisitAnswers: draft.fieldVisitAnswers.map((row) => ({ ...row })),
       uploads: draft.uploads.map((row) => ({ ...row })),
       supplementAdded: draft.supplementAdded,
@@ -1963,10 +1991,40 @@ export class MockStore {
                     })
                     .filter((upload): upload is WorkbenchSupplementUpload => Boolean(upload))
                 : [];
+              const registrySupplements = Array.isArray(row.registrySupplements)
+                ? row.registrySupplements
+                    .map((supplementRaw) => {
+                      const supplement = toRecord(supplementRaw);
+                      const fieldName =
+                        readString(supplement.fieldName) ?? readString(supplement.field_name);
+                      if (!fieldName) return null;
+                      return {
+                        fieldName,
+                        value: typeof supplement.value === "string" ? supplement.value : "",
+                        source:
+                          typeof supplement.source === "string"
+                            ? supplement.source
+                            : "屋主提供",
+                        status:
+                          typeof supplement.status === "string"
+                            ? supplement.status
+                            : "待確認",
+                        updatedAt:
+                          typeof supplement.updatedAt === "string"
+                            ? supplement.updatedAt
+                            : new Date().toISOString(),
+                      } satisfies WorkbenchRegistrySupplement;
+                    })
+                    .filter(
+                      (supplement): supplement is WorkbenchRegistrySupplement =>
+                        Boolean(supplement),
+                    )
+                : [];
               return [
                 caseId,
                 {
                   caseId,
+                  registrySupplements,
                   fieldVisitAnswers,
                   uploads,
                   supplementAdded: Boolean(row.supplementAdded),

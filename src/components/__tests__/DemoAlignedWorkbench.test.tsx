@@ -115,6 +115,44 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(supplementRegion).getByText("已加入補件清單")).toBeInTheDocument();
   });
 
+  it("turns missing source rows into actionable supplement fields and reflects values in source JSON", async () => {
+    render(<DemoAlignedWorkbench caseData={{ ...caseRow, owner_name: null }} initialTab="sources" />);
+
+    const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
+    expect(within(sourceRegion).getByText("屋主姓名")).toBeInTheDocument();
+    expect(within(sourceRegion).getAllByText("需人工提供").length).toBeGreaterThan(0);
+    expect(within(sourceRegion).getByText("姓名比對結果")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("待資料")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("門牌查詢建號")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("查詢未成功")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "補件/現場" }));
+    const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
+
+    expect(within(supplementRegion).getByLabelText("屋主姓名補件值")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("姓名比對結果補件值")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("門牌查詢建號補件值")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("格局補件值")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("座向補件值")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("管理費（元/月）補件值")).toBeInTheDocument();
+
+    fireEvent.change(within(supplementRegion).getByLabelText("門牌查詢建號補件值"), {
+      target: { value: "勝利段 58 建號" },
+    });
+    fireEvent.change(within(supplementRegion).getByLabelText("門牌查詢建號補件來源"), {
+      target: { value: "人工輸入" },
+    });
+
+    await waitFor(() => {
+      expect(within(supplementRegion).getByText("已補：勝利段 58 建號")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
+    expect(screen.getByText("JSON 預覽")).toBeInTheDocument();
+    expect(screen.getByText(/勝利段 58 建號/)).toBeInTheDocument();
+    expect(screen.getByText(/manual/)).toBeInTheDocument();
+  });
+
   it("uses case provenance cost instead of demo billing when available", () => {
     render(
       <DemoAlignedWorkbench

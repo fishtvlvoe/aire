@@ -516,6 +516,14 @@ describe("MockStore", () => {
             status: "已確認",
           },
         ],
+        registrySupplements: [
+          {
+            fieldName: "門牌查詢建號",
+            value: "勝利段 58 建號",
+            source: "人工輸入",
+            status: "已補",
+          },
+        ],
         uploads: [{ slot: "地籍圖", fileName: "cadastral-map.pdf" }],
         supplementAdded: true,
       }),
@@ -531,6 +539,15 @@ describe("MockStore", () => {
           topic: "建物現況",
           answer: "屋主表示客廳牆角曾有滲水，已修繕。",
           status: "已確認",
+        }),
+      ],
+      registrySupplements: [
+        expect.objectContaining({
+          fieldName: "門牌查詢建號",
+          value: "勝利段 58 建號",
+          source: "人工輸入",
+          status: "已補",
+          updatedAt: expect.any(String),
         }),
       ],
       uploads: [expect.objectContaining({ slot: "地籍圖", fileName: "cadastral-map.pdf" })],

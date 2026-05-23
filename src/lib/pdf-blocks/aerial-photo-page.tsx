@@ -34,6 +34,7 @@ export function AerialPhotoPage({
 }: AerialPhotoPageProps): React.ReactElement {
   const { tokens } = useTheme();
   const headingColor = tokens.colors?.primary ?? tokens.primaryColor;
+  const textColor = tokens.colors?.text ?? tokens.textColor ?? "#111827";
 
   return (
     <Page size="A4" style={{ padding: 24, paddingTop: 120, fontFamily: "NotoSansTC" }}>
@@ -48,7 +49,14 @@ export function AerialPhotoPage({
             src={uint8ToDataUrl(aerialPhoto)}
           />
         ) : (
-          <View style={{ alignItems: "center" }} />
+          <View style={{ alignItems: "center" }}>
+            <Text style={{ color: textColor, fontSize: 14, fontFamily: "NotoSansTC", marginBottom: 8 }}>
+              空拍圖
+            </Text>
+            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "NotoSansTC" }}>
+              待取得空拍圖資料後自動填入
+            </Text>
+          </View>
         )}
       </View>
       <PageFooter />
