@@ -385,6 +385,71 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     });
   });
 
+  it("讀取案件權威資料中的人工補件，不依賴單一瀏覽器補件 store", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_workbench_supplement") {
+        return {
+          registrySupplements: [],
+          fieldVisitAnswers: [],
+          uploads: [],
+          supplementAdded: false,
+          updatedAt: null,
+        };
+      }
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-23T00:00:00.000Z",
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "moi_api",
+            status: "success",
+            trustedForPdf: true,
+            data: { building_purpose: "住家用" },
+          },
+          manual_registry_supplement: {
+            apiId: "manual_registry_supplement",
+            source: "manual",
+            status: "manual_confirmed",
+            trustedForPdf: true,
+            data: {
+              rooms: "2房1廳1衛",
+              direction: "坐北朝南",
+              managementFee: "3200",
+              buildingStatus: "屋主自住，屋況待現場復核",
+              sources: {
+                rooms: "人工輸入",
+                direction: "屋主提供",
+                managementFee: "管委會提供",
+                buildingStatus: "現場確認",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(result.propertySheet?.rooms).toBe("2房1廳1衛");
+    expect(result.propertySheet?.direction).toBe("坐北朝南");
+    expect(result.propertySheet?.managementFee).toBe(3200);
+    expect(result.propertySheet?.buildingStatus).toBe("屋主自住，屋況待現場復核");
+    expect(result.propertySheetSources).toMatchObject({
+      rooms: "人工輸入",
+      direction: "屋主提供",
+      managementFee: "管委會提供",
+      buildingStatus: "現場確認",
+    });
+  });
+
   it("舊版未標記來源的地政 payload 不進正式 PDF 欄位", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};
@@ -536,6 +601,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
       if (cmd === "get_legal_clause") return [];
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       if (cmd === "query_real_price") return [];
+      if (cmd === "update_case") return {};
       if (cmd === "land_registry_pull_data") {
         expect(args?.apiIds).toEqual(
           expect.arrayContaining([
@@ -626,6 +692,36 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.buildingArea).toBe(84.13);
     expect(result.propertySheet?.landSection).toBe("勝利段");
     expect(result.propertySheet?.zoning).toBe("住宅區");
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "update_case",
+      expect.objectContaining({
+        id: "test-id-002",
+        input: expect.objectContaining({
+          land_registry_data: expect.objectContaining({
+            schema: "aire.registry-provenance.v1",
+            entries: expect.objectContaining({
+              building_registry: expect.objectContaining({
+                source: "moi_api",
+                status: "success",
+                trustedForPdf: true,
+                data: expect.objectContaining({
+                  building_area: 84.13,
+                  building_purpose: "住家用",
+                }),
+              }),
+              land_registry: expect.objectContaining({
+                source: "moi_api",
+                status: "success",
+                trustedForPdf: true,
+                data: expect.objectContaining({
+                  section: "勝利段",
+                }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    );
   });
 
   it("建物案件正式 pull 會包含土地、分區與地價資料鏈", async () => {

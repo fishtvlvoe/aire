@@ -16,7 +16,7 @@ export interface RegistryProvenanceEntry {
   source: RegistrySource;
   status: RegistryStatus;
   trustedForPdf: boolean;
-  data?: Record<string, unknown>;
+  data?: Record<string, unknown> | unknown[];
   error?: string;
   sourceNote?: string;
 }
@@ -31,13 +31,17 @@ export interface RegistryProvenancePayload extends Record<string, unknown> {
 
 type ApiLikeResult = {
   success: boolean;
-  data?: Record<string, unknown>;
+  data?: Record<string, unknown> | unknown[];
   error?: string;
   source?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasRegistryData(value: unknown): value is Record<string, unknown> | unknown[] {
+  return isRecord(value) || Array.isArray(value);
 }
 
 export function isRegistryProvenancePayload(value: unknown): value is RegistryProvenancePayload {
@@ -67,7 +71,7 @@ export function createRegistryProvenancePayload(input: {
 
   for (const [apiId, result] of Object.entries(input.results ?? {})) {
     const source = trustedSourceForApiResult(result.source);
-    const trustedForPdf = result.success && source === "moi_api" && isRecord(result.data);
+    const trustedForPdf = result.success && source === "moi_api" && hasRegistryData(result.data);
     if (trustedForPdf) {
       entries[apiId] = {
         apiId,
@@ -78,7 +82,7 @@ export function createRegistryProvenancePayload(input: {
       };
       continue;
     }
-    if (result.success && source === "public_candidate" && isRecord(result.data)) {
+    if (result.success && source === "public_candidate" && hasRegistryData(result.data)) {
       entries[apiId] = {
         apiId,
         source,
@@ -89,7 +93,7 @@ export function createRegistryProvenancePayload(input: {
       };
       continue;
     }
-    if (result.success && source === "raw_probe" && isRecord(result.data)) {
+    if (result.success && source === "raw_probe" && hasRegistryData(result.data)) {
       entries[apiId] = {
         apiId,
         source,
@@ -138,7 +142,7 @@ export function extractTrustedRegistryData(payload: unknown): Record<string, unk
   for (const [apiId, entry] of Object.entries(payload.entries)) {
     const validStatus = entry.status === "success" || entry.status === "manual_confirmed";
     const validSource = entry.source === "moi_api" || entry.source === "manual";
-    if (!entry.trustedForPdf || !validStatus || !validSource || !isRecord(entry.data)) continue;
+    if (!entry.trustedForPdf || !validStatus || !validSource || !hasRegistryData(entry.data)) continue;
     trusted[apiId] = entry.data;
   }
   return trusted;
@@ -155,7 +159,7 @@ export function extractPreSurveyRegistryData(payload: unknown): Record<string, u
       (entry.source === "moi_api" || entry.source === "manual");
     const candidateEntry =
       entry.status === "candidate" && entry.source === "public_candidate";
-    if ((!trustedEntry && !candidateEntry) || !isRecord(entry.data)) continue;
+    if ((!trustedEntry && !candidateEntry) || !hasRegistryData(entry.data)) continue;
     preview[apiId] = entry.data;
   }
   return preview;

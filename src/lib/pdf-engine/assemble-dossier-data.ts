@@ -5,13 +5,19 @@ import { calculateTaxFees } from "@/lib/tax-calculator";
 import { queryNearbyAmenities, summarizeNearbyAmenities } from "@/lib/overpass-client";
 import { calculateBuildingAge } from "@/lib/registry-preview";
 import {
+  createRegistryProvenancePayload,
   extractRegistryFailureReasons,
   extractTrustedRegistryData,
   isRegistryProvenancePayload,
+  type RegistryProvenancePayload,
 } from "@/lib/registry-provenance";
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
+type PullResult = {
+  results: Record<string, { data: unknown; source?: string; success?: boolean; error?: string }>;
+  total_cost: number;
+};
 type WorkbenchSupplementPayload = {
   registrySupplements?: Array<{
     fieldName?: string;
@@ -124,6 +130,10 @@ function safeGet<T>(
 
 const isNumber = (v: unknown): v is number => typeof v === "number" && isFinite(v);
 const isString = (v: unknown): v is string => typeof v === "string";
+const isPlainRecord = (v: unknown): v is Record<string, unknown> =>
+  Boolean(v) && typeof v === "object" && !Array.isArray(v);
+const hasRegistryData = (v: unknown): v is Record<string, unknown> | unknown[] =>
+  isPlainRecord(v) || Array.isArray(v);
 
 function firstString(obj: unknown, keys: string[]): string | undefined {
   for (const key of keys) {
@@ -222,6 +232,43 @@ function buildFieldVisitLookup(payload?: WorkbenchSupplementPayload) {
     answerByTopic.set(topic, answer);
   }
   return answerByTopic;
+}
+
+function mergeRegistryProvenancePayload(
+  existing: unknown,
+  next: RegistryProvenancePayload,
+): RegistryProvenancePayload {
+  if (!isRegistryProvenancePayload(existing)) return next;
+  return {
+    ...next,
+    entries: {
+      ...existing.entries,
+      ...next.entries,
+    },
+  };
+}
+
+function normalizePullResultsForProvenance(
+  results: PullResult["results"],
+): Parameters<typeof createRegistryProvenancePayload>[0]["results"] {
+  return Object.fromEntries(
+    Object.entries(results).map(([apiId, value]) => {
+      const success =
+        typeof value.success === "boolean"
+          ? value.success
+          : (value.source === "api" || value.source === "cache" || value.source === "moi_api") &&
+            hasRegistryData(value.data);
+      return [
+        apiId,
+        {
+          success,
+          source: value.source,
+          data: hasRegistryData(value.data) ? value.data : undefined,
+          error: typeof value.error === "string" ? value.error : undefined,
+        },
+      ];
+    }),
+  );
 }
 
 function isMockRegistryPullData(results: Record<string, { data: unknown }>): boolean {
@@ -340,12 +387,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         "land_value",
       ];
 
-  type PullResult = {
-    results: Record<string, { data: unknown; source?: string }>;
-    total_cost: number;
-  };
-
-  let apiData: Record<string, { data: unknown }> = {};
+  let apiData: Record<string, { data: unknown; source?: string }> = {};
   const trustedPersisted =
     persisted && typeof persisted === "object" && !Array.isArray(persisted)
       ? extractTrustedRegistryData(persisted)
@@ -382,9 +424,28 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       apiData = Object.fromEntries(
         Object.entries(apiData).filter(([, value]) => {
           const source = (value as { source?: unknown }).source;
-          return source === "api" || source === "cache";
+          return (source === "api" || source === "cache" || source === "moi_api") &&
+            hasRegistryData(value.data);
         }),
       );
+      if (Object.keys(apiData).length > 0 && pullResult?.results) {
+        const trustedPayload = createRegistryProvenancePayload({
+          parcelId: caseRow.land_lot_no,
+          totalCost: pullResult.total_cost,
+          results: normalizePullResultsForProvenance(pullResult.results),
+        });
+        const mergedPayload = mergeRegistryProvenancePayload(persisted, trustedPayload);
+        try {
+          await safeInvoke("update_case", {
+            id: caseRow.id,
+            input: {
+              land_registry_data: mergedPayload,
+            },
+          });
+        } catch {
+          // PDF assembly can still proceed with the freshly pulled trusted payload.
+        }
+      }
     }
   }
 
@@ -686,6 +747,16 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const landReg = apiData["land_registry"]?.data;
     const landOwnership = apiData["co_owners"]?.data;
     const zoning = apiData["zoning"]?.data;
+    const manualSupplement = apiData["manual_registry_supplement"]?.data;
+    const manualSources =
+      isPlainRecord(manualSupplement) && isPlainRecord(manualSupplement.sources)
+        ? manualSupplement.sources
+        : {};
+    const manualSourceFor = (key: string) => {
+      const source = manualSources[key];
+      if (typeof source === "string" && source.trim()) return source;
+      return firstString(manualSupplement, ["sourceLabel"]) ?? "人工補件";
+    };
 
     const mortgages = Array.isArray(mortgagesRaw)
       ? (mortgagesRaw as unknown[]).map((m) => ({
@@ -702,21 +773,39 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     // ── 稅費試算（建物）──────────────────────────────────────────────────────
     base.taxCalculation = null; // 建物版：askingPrice 未填前為 null
+    const manualRooms = registrySupplement.valueByField.get("格局") ??
+      firstString(manualSupplement, ["rooms"]);
+    const manualDirection = registrySupplement.valueByField.get("座向") ??
+      firstString(manualSupplement, ["direction"]);
+    const manualBuildingStatus = fieldVisitAnswers.get("建物現況") ??
+      firstString(manualSupplement, ["buildingStatus"]);
     const manualManagementFee = parseSupplementNumber(
       registrySupplement.valueByField.get("管理費（元/月）") ??
-        registrySupplement.valueByField.get("管理費"),
+        registrySupplement.valueByField.get("管理費") ??
+        firstText(manualSupplement, ["managementFee"]),
     );
     const propertySheetSources: Record<string, string> = {};
-    const setSource = (key: string, fieldName: string) => {
+    const setWorkbenchSource = (key: string, fieldName: string) => {
       const source = registrySupplement.sourceByField.get(fieldName);
       if (source) propertySheetSources[key] = source;
     };
-    setSource("rooms", "格局");
-    setSource("direction", "座向");
-    setSource("managementFee", "管理費（元/月）");
-    setSource("managementFee", "管理費");
+    setWorkbenchSource("rooms", "格局");
+    setWorkbenchSource("direction", "座向");
+    setWorkbenchSource("managementFee", "管理費（元/月）");
+    setWorkbenchSource("managementFee", "管理費");
+    if (!propertySheetSources.rooms && manualRooms) {
+      propertySheetSources.rooms = manualSourceFor("rooms");
+    }
+    if (!propertySheetSources.direction && manualDirection) {
+      propertySheetSources.direction = manualSourceFor("direction");
+    }
+    if (!propertySheetSources.managementFee && manualManagementFee !== undefined) {
+      propertySheetSources.managementFee = manualSourceFor("managementFee");
+    }
     if (fieldVisitAnswers.has("建物現況")) {
       propertySheetSources.buildingStatus = "現場確認";
+    } else if (manualBuildingStatus) {
+      propertySheetSources.buildingStatus = manualSourceFor("buildingStatus");
     }
 
     return {
@@ -783,9 +872,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
           firstString(buildingReg, ["construction_date", "COMPLETEDATE"]) ?? "",
         ),
         ownershipScope: ratioText(buildingOwnership),
-        buildingStatus: fieldVisitAnswers.get("建物現況"),
-        rooms: registrySupplement.valueByField.get("格局"),
-        direction: registrySupplement.valueByField.get("座向"),
+        buildingStatus: manualBuildingStatus,
+        rooms: manualRooms,
+        direction: manualDirection,
         managementFee: manualManagementFee,
         constructionCompany: safeGet(buildingReg, "construction_company", isString),
       },

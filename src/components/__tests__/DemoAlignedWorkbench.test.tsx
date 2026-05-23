@@ -146,6 +146,27 @@ describe("DemoAlignedWorkbench", () => {
     await waitFor(() => {
       expect(within(supplementRegion).getByText("已補：勝利段 58 建號")).toBeInTheDocument();
     });
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(
+        caseRow.id,
+        expect.objectContaining({
+          land_registry_data: expect.objectContaining({
+            schema: "aire.registry-provenance.v1",
+            entries: expect.objectContaining({
+              manual_registry_supplement: expect.objectContaining({
+                source: "manual",
+                status: "manual_confirmed",
+                trustedForPdf: true,
+                data: expect.objectContaining({
+                  buildingNumberCandidate: "勝利段 58 建號",
+                  sourceLabel: "人工輸入",
+                }),
+              }),
+            }),
+          }),
+        }),
+      );
+    });
 
     fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
     expect(screen.getByText("JSON 預覽")).toBeInTheDocument();

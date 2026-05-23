@@ -182,3 +182,9 @@ mock -> 不得進客戶 PDF
 5. 用 `pdftotext` 檢查謄本欄位、法規、公司/經紀資訊。
 6. 用 `pdfimages -list` 檢查圖資是否真的嵌入。
 7. 用 Playwright headed E2E 驗 UI，但只作為使用流程驗收，不作為 API 真實性證據。
+
+## Implementation Notes
+
+- PDF assembly 對只有 `candidate`/`failed` provenance 且已有屋主姓名的案件，會重新嘗試正式 `land_registry_pull_data`，並把 trusted `moi_api` 結果寫回案件 `land_registry_data`，避免候選資料阻斷正式資料。
+- Provenance schema 保留 `public_candidate`、`moi_api`、`manual`、`mock/raw_probe` 邊界；正式 API 回傳的陣列資料（例如抵押權/他項權利清單）也可被保存與讀取，不再被物件型別過濾掉。
+- 工作台補件欄位除了 browser-dev `get_workbench_supplement` 之外，會同步寫回 `manual_registry_supplement`；PDF assembly 可從案件權威資料讀取格局、座向、管理費與建物現況，並標示人工來源。

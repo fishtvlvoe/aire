@@ -9,7 +9,11 @@ import {
   getDemoFieldReviewRows,
   getUsageLedgerRows,
 } from "@/lib/product-ui-demo-alignment";
-import { isRegistryProvenancePayload } from "@/lib/registry-provenance";
+import {
+  createRegistryProvenancePayload,
+  isRegistryProvenancePayload,
+  type RegistryProvenancePayload,
+} from "@/lib/registry-provenance";
 
 interface DemoAlignedWorkbenchProps {
   caseData: CaseRow;
@@ -97,6 +101,16 @@ const PROPERTY_SHEET_SUPPLEMENT_FIELDS = [
   },
 ];
 
+const MANUAL_SUPPLEMENT_FIELD_MAP: Record<string, string> = {
+  屋主姓名: "ownerName",
+  姓名比對結果: "ownerNameComparison",
+  門牌查詢建號: "buildingNumberCandidate",
+  建物現況: "buildingStatus",
+  格局: "rooms",
+  座向: "direction",
+  "管理費（元/月）": "managementFee",
+};
+
 const FIELD_VISIT_QUESTIONS = [
   {
     topic: "建物現況",
@@ -119,6 +133,58 @@ const FIELD_VISIT_QUESTIONS = [
     source: "現場拍攝或檔案上傳",
   },
 ];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function mergeManualSupplementIntoRegistryData(
+  existing: CaseRow["land_registry_data"],
+  fieldName: string,
+  value: string,
+  sourceLabel: string,
+): RegistryProvenancePayload {
+  const key = MANUAL_SUPPLEMENT_FIELD_MAP[fieldName] ?? fieldName;
+  const existingManualEntry = isRegistryProvenancePayload(existing)
+    ? existing.entries.manual_registry_supplement
+    : undefined;
+  const existingManualData = isRecord(existingManualEntry?.data)
+    ? existingManualEntry.data
+    : {};
+  const existingSources = isRecord(existingManualData.sources)
+    ? existingManualData.sources
+    : {};
+  const existingUpdatedFields = isRecord(existingManualData.updatedFields)
+    ? existingManualData.updatedFields
+    : {};
+  const data = {
+    ...existingManualData,
+    [key]: value,
+    sourceLabel,
+    sources: {
+      ...existingSources,
+      [key]: sourceLabel,
+    },
+    updatedFields: {
+      ...existingUpdatedFields,
+      [fieldName]: value,
+    },
+  };
+  const manualPayload = createRegistryProvenancePayload({
+    manualEntries: [{ apiId: "manual_registry_supplement", data }],
+  });
+
+  if (!isRegistryProvenancePayload(existing)) return manualPayload;
+  return {
+    ...manualPayload,
+    parcelId: existing.parcelId,
+    totalCost: existing.totalCost,
+    entries: {
+      ...existing.entries,
+      ...manualPayload.entries,
+    },
+  };
+}
 
 export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbenchProps) {
   const [activeTab, setActiveTab] = useState<WorkbenchTab>(() => normalizeWorkbenchTab(initialTab));
@@ -326,6 +392,24 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     setRegistrySupplementDrafts(nextDrafts);
     if (nextValue.trim()) {
       setFieldCorrections((current) => ({ ...current, [fieldName]: nextValue }));
+      const nextLandRegistryData = mergeManualSupplementIntoRegistryData(
+        caseDraft.land_registry_data,
+        fieldName,
+        nextValue,
+        nextDrafts[fieldName].source,
+      );
+      void casesApi.update(caseDraft.id, { land_registry_data: nextLandRegistryData }).then(
+        (updated) => {
+          setCaseDraft((current) => ({
+            ...current,
+            land_registry_data: updated.land_registry_data ?? nextLandRegistryData,
+            updated_at: updated.updated_at ?? current.updated_at,
+          }));
+        },
+        () => {
+          // Browser-dev still keeps the visible draft; authoritative persistence is tested separately.
+        },
+      );
       if (fieldName === "屋主姓名" || fieldName === "姓名比對結果") {
         setCaseDraft((current) => ({ ...current, owner_name: nextValue }));
       }

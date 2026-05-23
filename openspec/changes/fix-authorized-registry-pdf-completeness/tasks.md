@@ -7,9 +7,9 @@
 ## 2. 授權後正式地政 API 資料鏈
 
 - [x] 2.1 實作 Create case flow：新增案件只保存地址候選資料，不寫入會阻斷正式 pull 的 failed ownership 終局狀態。
-- [ ] 2.2 實作 Authorized cases SHALL use formal registry pull before client PDF output：有屋主授權與姓名時，執行正式地政 pull，使用正式 API pull building/land ownership、registry、rights、mortgage、zoning/value 等資料。
+- [x] 2.2 實作 Authorized cases SHALL use formal registry pull before client PDF output：有屋主授權與姓名時，執行正式地政 pull，使用正式 API pull building/land ownership、registry、rights、mortgage、zoning/value 等資料。
 - [x] 2.3 實作 Candidate registry data SHALL NOT block formal pull 與 Disclosure PDF SHALL use trusted registry data when available：persisted payload 只有 candidate/failed 時，仍可正式 pull；trusted payload 才可直接使用。
-- [ ] 2.4 修正 provenance schema：清楚分離 candidate、trusted、manual、mock，避免 candidate 覆蓋 trusted。
+- [x] 2.4 修正 provenance schema：清楚分離 candidate、trusted、manual、mock，避免 candidate 覆蓋 trusted。
 - [ ] 2.5 修正錯誤與補件狀態：API key、授權、餘額、查無資料、權限不足要顯示不同處理方式。
 - [x] 2.6 建物案件正式 pull SHALL 包含土地/分區資料鏈：`land_registry`、土地所有權/共同所有人、`zoning`、地價或可取得的建蔽率/容積率來源，避免建物 PDF 的土地區塊全空。
 - [ ] 2.7 地址 lookup 回傳若沒有正式建號/地號，工作台 SHALL 要求補建號/地號後再正式 pull，不得只用 `0001` 產正式 PDF。
@@ -27,7 +27,7 @@
 
 - [x] 4.1 實作 Missing registry items SHALL become actionable supplement fields：`需人工提供`、`待資料`、`查詢未成功` 來源列要生成可填欄位。
 - [x] 4.2 補件欄位支援屋主提供/人工輸入/重新查詢三種來源，並把來源與時間寫回案件。
-- [ ] 4.3 補件儲存不得只寫入單一瀏覽器 localStorage；正式 path 需寫回案件權威資料 store。
+- [x] 4.3 補件儲存不得只寫入單一瀏覽器 localStorage；正式 path 需寫回案件權威資料 store。
 - [x] 4.4 補件值 SHALL 回填工作台預覽、JSON export 與 PDF；PDF 需標示來源，不偽裝為 API 回傳。
 - [x] 4.5 修正工作台欄位「修改/完成」：完成時要寫回案件或補件 store；屋主姓名修改 SHALL 更新 `owner_name` 並觸發姓名比對狀態重新計算。
 - [x] 4.6 資料來源表格與補件表單 SHALL 使用同一份欄位 definition，避免資料來源顯示缺口但補件頁沒有對應欄位。
