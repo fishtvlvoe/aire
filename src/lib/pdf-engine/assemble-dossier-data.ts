@@ -127,6 +127,20 @@ function extractDistrict(address: string): string {
   return address.slice(0, 6);
 }
 
+function normalizeTaiwanAddress(value: string): string {
+  return value.replace(/臺/g, "台").replace(/\s+/g, "");
+}
+
+function filterComparableRealPriceRecords(records: unknown[], district: string): unknown[] {
+  const normalizedDistrict = normalizeTaiwanAddress(district);
+  if (!normalizedDistrict) return records;
+  return records.filter((record) => {
+    const address = (record as Record<string, unknown> | undefined)?.address;
+    if (typeof address !== "string" || !address.trim()) return true;
+    return normalizeTaiwanAddress(address).includes(normalizedDistrict);
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 安全取 JSON 欄位
 // ─────────────────────────────────────────────────────────────────────────────
@@ -190,6 +204,29 @@ function ratioText(obj: unknown): string {
   const direct = firstText(obj, ["RIGHT", "right", "ownership_scope", "right_scope"]);
   if (numerator && denominator) return `${numerator}/${denominator}`;
   return direct ?? "";
+}
+
+function ratioValue(obj: unknown): number | undefined {
+  const numerator = firstNumber(obj, ["NUMERATOR", "numerator"]);
+  const denominator = firstNumber(obj, ["DENOMINATOR", "denominator"]);
+  if (numerator !== undefined && denominator && denominator !== 0) {
+    return numerator / denominator;
+  }
+  const direct = firstText(obj, ["RIGHT", "right", "ownership_scope", "right_scope"]);
+  const match = direct?.match(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
+  if (!match) return undefined;
+  const directNumerator = Number(match[1]);
+  const directDenominator = Number(match[2]);
+  if (!Number.isFinite(directNumerator) || !Number.isFinite(directDenominator) || directDenominator === 0) {
+    return undefined;
+  }
+  return directNumerator / directDenominator;
+}
+
+function shareArea(area?: number, ratio?: number): number | undefined {
+  if (area === undefined || ratio === undefined) return undefined;
+  if (!Number.isFinite(area) || !Number.isFinite(ratio)) return undefined;
+  return Math.round(area * ratio * 100) / 100;
 }
 
 const KNOWN_PLACEHOLDER_CERTIFICATE_NUMBERS = new Set(["北松字第012345號"]);
@@ -610,8 +647,11 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       keyword,
       limit: 5,
     });
-    const stats = computeRecentSaleStats(Array.isArray(records) ? records : []);
-    transactionHistory = Array.isArray(records) ? records.map((r) => {
+    const comparableRecords = Array.isArray(records)
+      ? filterComparableRealPriceRecords(records, extractDistrict(caseRow.address ?? ""))
+      : [];
+    const stats = computeRecentSaleStats(comparableRecords);
+    transactionHistory = comparableRecords.map((r) => {
       const rec = r as Record<string, unknown>;
       return {
         address: typeof rec.address === "string" ? rec.address : "",
@@ -625,7 +665,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
               ? rec.date
               : "",
       };
-    }) : [];
+    });
     recentSalePricePerSqm = stats.avg;
     recentSaleCount = stats.count;
   } catch {
@@ -873,6 +913,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     // ── 稅費試算（建物）──────────────────────────────────────────────────────
     base.taxCalculation = null; // 建物版：askingPrice 未填前為 null
+    const landArea = firstNumber(landReg, ["area", "land_area", "AREA"]);
+    const ownershipRatio = ratioText(landOwnership) || ratioText(buildingOwnership);
+    const ownershipRatioNumber = ratioValue(landOwnership) ?? ratioValue(buildingOwnership);
     const manualRooms = registrySupplement.valueByField.get("格局") ??
       firstString(manualSupplement, ["rooms"]);
     const manualDirection = registrySupplement.valueByField.get("座向") ??
@@ -938,14 +981,17 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       propertySheet: {
         askingPrice: 0,
         landSection: firstString(landReg, ["section", "SECTION", "SUBSECTION"]) ?? "",
-        landNumber: caseRow.land_lot_no ?? "",
+        landNumber:
+          firstString(landReg, ["lot_number", "land_lot_no", "NO", "LOTNO"]) ??
+          caseRow.land_lot_no ??
+          "",
         zoning:
           firstString(landReg, ["zoning", "ZONING", "purpose", "land_purpose"]) ??
           firstString(zoning, ["zoning_type", "ZONING", "usage_category"]) ??
           "",
-        landArea: firstNumber(landReg, ["area", "land_area", "AREA"]),
-        ownershipRatio: ratioText(landOwnership) || ratioText(buildingOwnership),
-        shareArea: undefined,
+        landArea,
+        ownershipRatio,
+        shareArea: shareArea(landArea, ownershipRatioNumber),
         buildingCoverage:
           firstString(zoning, ["building_coverage_ratio", "BUILDING_COVERAGE_RATIO"]) ?? "",
         floorAreaRatio:

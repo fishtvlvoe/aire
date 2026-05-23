@@ -224,6 +224,43 @@ describe("assembleDossierData — 土地版成功路徑", () => {
     });
   });
 
+  it("實價登錄只採用同行政區或無地址摘要資料，避免混入錯地址", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "land_registry_pull_data") return mockPullResultLand;
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") {
+        return [
+          {
+            address: "台南市永康區勝利街58巷6號",
+            area: 30.2,
+            total_price: 11800000,
+            unit_price: 390728,
+            date: "2024-02-18",
+          },
+          {
+            address: "台北市大安區和平東路一段88號",
+            area: 36.2,
+            total_price: 42800000,
+            unit_price: 1182320,
+            date: "2025-10-12",
+          },
+        ];
+      }
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      address: "台南市永康區勝利街58巷4號1樓",
+    });
+
+    expect(result.recentSalePricePerSqm).toBe(390728);
+    expect(result.recentSaleCount).toBe(1);
+    expect(result.transactionHistory).toHaveLength(1);
+    expect(result.transactionHistory?.[0].address).toBe("台南市永康區勝利街58巷6號");
+  });
+
   it("優先使用 list_legal_clauses 快取組成完整法規告知", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
@@ -534,6 +571,12 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
         land_registry: {
           area: 1223,
           ZONING: "住宅區",
+          section: "勝利段",
+          lot_number: "58-4",
+        },
+        zoning: {
+          building_coverage_ratio: "60%",
+          floor_area_ratio: "200%",
         },
         co_owners: {
           owner_name: "陳小美",
@@ -560,6 +603,14 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     });
 
     expect(result.propertySheet?.registeredArea).toBe(25.45);
+    expect(result.propertySheet?.landSection).toBe("勝利段");
+    expect(result.propertySheet?.landNumber).toBe("58-4");
+    expect(result.propertySheet?.zoning).toBe("住宅區");
+    expect(result.propertySheet?.landArea).toBe(1223);
+    expect(result.propertySheet?.ownershipRatio).toBe("91/10000");
+    expect(result.propertySheet?.shareArea).toBe(11.13);
+    expect(result.propertySheet?.buildingCoverage).toBe("60%");
+    expect(result.propertySheet?.floorAreaRatio).toBe("200%");
     expect(result.propertySheet?.mainBuildingArea).toBe(25.45);
     expect(result.propertySheet?.auxiliaryArea).toBe(3.35);
     expect(result.propertySheet?.commonArea).toBe(9.45);

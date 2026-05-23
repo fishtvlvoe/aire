@@ -190,3 +190,5 @@ mock -> 不得進客戶 PDF
 - 工作台補件欄位除了 browser-dev `get_workbench_supplement` 之外，會同步寫回 `manual_registry_supplement`；PDF assembly 可從案件權威資料讀取格局、座向、管理費與建物現況，並標示人工來源。
 - 正式 pull 失敗會拆成 API key、授權/認證、餘額、權限與查無資料等可處理狀態；地址候選只有 `0001` 這類 placeholder 且沒有建號/地號時，PDF assembly 不會拿 placeholder 去打正式 API。
 - Graphify 檢查確認法規有 `LegalNoticeBlock`、`list_legal_clauses`、HTML renderer 三條路徑；主說明書已改為優先讀取 `list_legal_clauses` cache，HTML/PDF 共用完整 fallback 法規集合，設定頁同步狀態既有測試通過。
+- 物件資料表已補齊 trusted registry mapping：土地地段/地號/分區、土地面積、權利範圍、持分面積、建蔽率、容積率、所有權人、取得日期與建物面積/用途/建材/完成日/屋齡/樓層等欄位；實價登錄會過濾不同行政區地址。
+- PDF 圖頁已有 bytes 時會嵌入位置圖、空拍圖、外觀與格局/規劃圖；browser mock banner 已加上 JSON 對齊與 `aire-mock-store` reset 指引，並明確標示 mock-only 不作正式交付證據。

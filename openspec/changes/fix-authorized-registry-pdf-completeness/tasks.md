@@ -2,7 +2,7 @@
 
 - [x] 1.1 建立 failing tests：有 `public_candidate` 但有屋主授權時，PDF assembly 必須嘗試正式 `land_registry_pull_data`，不得直接輸出空白。
 - [ ] 1.2 建立 `0005` PDF artifact regression：檢查 PDF 不得只有候選地號與查詢失敗文字，且 `pdfimages -list` 對有圖資案件需有圖片。
-- [ ] 1.3 建立 mock/native 邊界測試：browser mock 成功不得被視為正式 API 驗收。
+- [x] 1.3 建立 mock/native 邊界測試：browser mock 成功不得被視為正式 API 驗收。
 
 ## 2. 授權後正式地政 API 資料鏈
 
@@ -16,11 +16,11 @@
 
 ## 3. PDF 謄本與圖資完整性
 
-- [ ] 3.1 PDF 物件資料表、建物標示、所有權及他項權利頁使用 trusted registry 資料填入。
-- [ ] 3.2 實作 Client PDF SHALL contain images when image bytes are available：有圖資 bytes 或使用者上傳圖資時，位置圖、空拍圖、街景/外觀圖必須嵌入 PDF。
+- [x] 3.1 PDF 物件資料表、建物標示、所有權及他項權利頁使用 trusted registry 資料填入。
+- [x] 3.2 實作 Client PDF SHALL contain images when image bytes are available：有圖資 bytes 或使用者上傳圖資時，位置圖、空拍圖、街景/外觀圖必須嵌入 PDF。
 - [x] 3.3 實作 Client PDF SHALL expose missing data honestly：無圖資或部分 API 失敗時，PDF 保留空白框、補件說明與失敗原因，不得默默沒有圖片頁或用假圖。
-- [ ] 3.4 實價登錄與周邊資料沿用可查結果，但不得混入錯地址或 mock 測試資料。
-- [ ] 3.5 實作 Property sheet SHALL map complete registry and manual fields：地段、地號、使用分區、土地面積、權利範圍、持分面積、建蔽率、容積率、所有權人、取得日期、建物面積、登記坪數、主建坪數、附屬建物、公共設施、車位坪數、法定用途、主要建材、建築完成日、屋齡、樓層都要從 trusted/manual 來源映射。
+- [x] 3.4 實價登錄與周邊資料沿用可查結果，但不得混入錯地址或 mock 測試資料。
+- [x] 3.5 實作 Property sheet SHALL map complete registry and manual fields：地段、地號、使用分區、土地面積、權利範圍、持分面積、建蔽率、容積率、所有權人、取得日期、建物面積、登記坪數、主建坪數、附屬建物、公共設施、車位坪數、法定用途、主要建材、建築完成日、屋齡、樓層都要從 trusted/manual 來源映射。
 - [x] 3.6 對建物現況、格局、座向、管理費等非地政必回欄位，PDF SHALL 讀取補件/現場確認資料並標示來源。
 
 ## 4. 補件欄位與資料狀態
@@ -43,8 +43,8 @@
 ## 6. Browser dev mock 邊界
 
 - [x] 6.1 實作 Browser dev mock state SHALL be clearly disclosed：localhost browser mock mode 顯示「本瀏覽器本機測試資料」。
-- [ ] 6.2 補上 browser mock 匯出/匯入或 reset 指引，協助兩個瀏覽器對齊測試資料。
-- [ ] 6.3 驗收文件明確區分 browser mock、Tauri SQLite、共享 SaaS backend，避免用 mock-only 結果交付。
+- [x] 6.2 補上 browser mock 匯出/匯入或 reset 指引，協助兩個瀏覽器對齊測試資料。
+- [x] 6.3 驗收文件明確區分 browser mock、Tauri SQLite、共享 SaaS backend，避免用 mock-only 結果交付。
 
 ## 7. 法規內容補全
 
