@@ -33,3 +33,10 @@
 - [x] 5.2 PDF 值驗收：對輸出 PDF 跑 `pdftotext`，確認登記坪數、主建坪、用途、完成日、屋齡或推測參考值不是空白，且固定文案存在；跑 `pdfimages -list` 確認位置圖與航拍圖存在。
 - [x] 5.3 Review 任務：指派 kimi MCP 或等效多檔 review 檢查候選資料不會混成正式資料，並用 `spectra analyze list-candidate-parcel-options-for-presurvey --json` 與 `spectra validate list-candidate-parcel-options-for-presurvey` 確認 CR 乾淨。
 - [x] 5.4 commit + push：提交候選清單與 PDF 候選版實作，推送正確 branch，並列出仍未處理的既有 dirty files。
+
+## 6. 2026-05-23 圖資回歸修正記錄
+
+- [x] 6.1 Root cause：`e2e/candidate-parcel-options-presurvey.spec.ts` 與 `scripts/gen-yunong-candidate-pdf.mjs` 曾把 `src/assets/icon-light.png` 當成位置圖/航拍圖 fixture，導致 `/Users/fishtv/Downloads/AIRE-YUNONG-CANDIDATE-20260523-說明書.pdf` 第 14/15 頁顯示 logo 而非地圖。
+- [x] 6.2 Fix：移除 E2E 的圖資 API 攔截，讓 `/api/location-map`、`/api/aerial-photo`、`/api/street-view` 走真實本機 API；手動 PDF 腳本改從同一組 API 取圖，並用 `jiti` 正式載入 TS/TSX PDF engine。
+- [x] 6.3 Guardrail：E2E 新增 `pdfimages -list` 斷言，要求 PDF 內至少兩張非 logo 的 600x400 圖資；PDF image page 單元測試不再使用產品 logo 當測試圖。
+- [x] 6.4 Verification：`pnpm vitest run src/lib/pdf-blocks/__tests__/registry-image-pages.test.tsx src/lib/pdf-blocks/__tests__/life-amenities.test.tsx`、`pnpm type-check`、`E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/candidate-parcel-options-presurvey.spec.ts --project=chromium-tauri --reporter=line`、`E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/complete-presurvey-property-sheet-flow.spec.ts --project=chromium-tauri --reporter=line`、`pdfimages -list /Users/fishtv/Downloads/AIRE-YUNONG-CANDIDATE-20260523-說明書.pdf` 均通過；PDF 第 14/15/16 頁為 600x400 位置圖、航拍圖、建物外觀圖。
