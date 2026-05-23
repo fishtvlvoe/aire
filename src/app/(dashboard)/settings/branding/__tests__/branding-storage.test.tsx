@@ -51,9 +51,25 @@ describe("BrandingContent — Bug#5 持久化", () => {
     });
     render(<BrandingContent />);
     await waitFor(() => {
-      const input = screen.getByLabelText("公司名稱") as HTMLInputElement;
+      const input = screen.getByLabelText("不動產經紀業") as HTMLInputElement;
       expect(input.value).toBe("大安不動產");
     });
+  });
+
+  it("顯示固定交付資訊需要的七個欄位", async () => {
+    render(<BrandingContent />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("承辦人")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("經紀人")).toBeInTheDocument();
+    expect(screen.getByLabelText("經紀人證號")).toBeInTheDocument();
+    expect(screen.getByLabelText("不動產經紀業")).toBeInTheDocument();
+    expect(screen.getByLabelText("經紀業證號")).toBeInTheDocument();
+    expect(screen.getByLabelText("公司地址")).toBeInTheDocument();
+    expect(screen.getByLabelText("公司電話")).toBeInTheDocument();
+    expect(screen.queryByLabelText("業務員證號")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("公司名稱")).not.toBeInTheDocument();
   });
 
   it("點儲存後呼叫 storage.saveBranding()", async () => {

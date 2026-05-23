@@ -56,6 +56,7 @@ const SECONDARY_NAVIGATION: ProductNavigationItem[] = [
   { level: "secondary", label: "資料來源", href: "/settings?section=registry-rules", scope: "module", parentLabel: "地政資料" },
   { level: "secondary", label: "費用紀錄", href: "/settings?section=billing", scope: "module", parentLabel: "地政資料" },
   { level: "secondary", label: "個人設定", href: "/settings", scope: "module", parentLabel: "系統設定" },
+  { level: "secondary", label: "品牌與交付資訊", href: "/settings/branding", scope: "module", parentLabel: "系統設定" },
   { level: "secondary", label: "地政授權", href: "/settings?section=registry-auth", scope: "module", parentLabel: "系統設定" },
   { level: "secondary", label: "方案與升級", href: "/settings?section=plans", scope: "module", parentLabel: "系統設定" },
 ];

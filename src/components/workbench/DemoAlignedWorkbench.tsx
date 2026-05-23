@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { CaseRow } from "@/lib/cases-api";
+import { casesApi, type CaseRow } from "@/lib/cases-api";
 import { mockInvoke } from "@/lib/mock-backend";
 import {
   getAddressFirstClassification,
@@ -80,13 +80,20 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const [assetUploads, setAssetUploads] = useState<Record<string, string>>({});
   const [fieldVisitDrafts, setFieldVisitDrafts] = useState<FieldVisitDraftByTopic>({});
   const [editingField, setEditingField] = useState<string | null>(null);
-  const classification = getAddressFirstClassification(caseData.address);
-  const fields = getDemoFieldReviewRows(caseData);
+  const [caseDraft, setCaseDraft] = useState(caseData);
+  const [fieldCorrections, setFieldCorrections] = useState<Record<string, string>>({});
+  const [editingValues, setEditingValues] = useState<Record<string, string>>({});
+  const classification = getAddressFirstClassification(caseDraft.address);
+  const fields = getDemoFieldReviewRows(caseDraft).map((field) =>
+    fieldCorrections[field.fieldName]
+      ? { ...field, value: fieldCorrections[field.fieldName] }
+      : field,
+  );
   const usageRows = getUsageLedgerRows();
   const lookupCost =
-    isRegistryProvenancePayload(caseData.land_registry_data) &&
-    typeof caseData.land_registry_data.totalCost === "number"
-      ? caseData.land_registry_data.totalCost
+    isRegistryProvenancePayload(caseDraft.land_registry_data) &&
+    typeof caseDraft.land_registry_data.totalCost === "number"
+      ? caseDraft.land_registry_data.totalCost
       : 27;
   const lookupCostNote =
     lookupCost === 0
@@ -97,8 +104,9 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const activeTabIndex = WORKBENCH_TABS.findIndex((tab) => tab.id === activeTab);
   const nextTab = WORKBENCH_TABS[activeTabIndex + 1];
   const registrySnapshot = {
-    caseNo: caseData.case_no,
-    address: caseData.address,
+    caseNo: caseDraft.case_no,
+    address: caseDraft.address,
+    ownerName: caseDraft.owner_name,
     registrySummary: {
       propertyType: classification.displayType,
       landCount: classification.landCount,
@@ -122,11 +130,17 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const uploadedAssetCount = Object.values(assetUploads).filter(Boolean).length;
 
   useEffect(() => {
+    setCaseDraft(caseData);
+    setFieldCorrections({});
+    setEditingValues({});
+  }, [caseData]);
+
+  useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
         const draft = await mockInvoke<WorkbenchSupplementDraft>("get_workbench_supplement", {
-          caseId: caseData.id,
+          caseId: caseDraft.id,
         });
         if (cancelled) return;
         if (draft.fieldVisitAnswers.length > 0) {
@@ -154,7 +168,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     return () => {
       cancelled = true;
     };
-  }, [caseData.id]);
+  }, [caseDraft.id]);
 
   function persistSupplementDraft({
     drafts = fieldVisitDrafts,
@@ -166,7 +180,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     added?: boolean;
   } = {}) {
     void mockInvoke("save_workbench_supplement", {
-      caseId: caseData.id,
+      caseId: caseDraft.id,
       fieldVisitAnswers: Object.entries(drafts).map(([topic, draft]) => ({
         topic,
         answer: draft.answer,
@@ -197,6 +211,21 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     persistSupplementDraft({ drafts: nextDrafts });
   }
 
+  async function finishFieldEdit(fieldName: string, currentValue: string) {
+    const nextValue = editingValues[fieldName] ?? currentValue;
+    setFieldCorrections((current) => ({ ...current, [fieldName]: nextValue }));
+    setEditingField(null);
+
+    if (fieldName === "屋主姓名" || fieldName === "姓名比對結果") {
+      const updated = await casesApi.update(caseDraft.id, { owner_name: nextValue });
+      setCaseDraft((current) => ({
+        ...current,
+        owner_name: updated.owner_name ?? nextValue,
+        updated_at: updated.updated_at ?? current.updated_at,
+      }));
+    }
+  }
+
   return (
     <section
       data-testid="demo-aligned-workbench"
@@ -207,12 +236,12 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">物件審核</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            案號 {caseData.case_no ?? "未編號"} · {classification.displayType} · 基本方案 ·
+            案號 {caseDraft.case_no ?? "未編號"} · {classification.displayType} · 基本方案 ·
             地政查詢費由客戶的地政帳號負擔
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm" aria-label="審核操作">
-          <Link className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseData.id}/preview`}>
+          <Link className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseDraft.id}/preview`}>
             預覽 PDF
           </Link>
         </div>
@@ -230,9 +259,9 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
           </div>
 
           <article className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
-            <strong className="block">{caseData.case_name ?? "宜蘭五結農舍"}</strong>
+            <strong className="block">{caseDraft.case_name ?? "宜蘭五結農舍"}</strong>
             <span className="mt-1 block text-sm text-muted-foreground">
-              {caseData.address}
+              {caseDraft.address}
             </span>
             <dl className="mt-3 grid gap-2 text-sm">
               <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-md bg-white/80 px-3 py-2">
@@ -329,7 +358,13 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         <input
                           aria-label={`${field.fieldName}修改值`}
                           className="min-h-10 w-full rounded-md border px-3 py-2"
-                          defaultValue={field.value}
+                          value={editingValues[field.fieldName] ?? field.value}
+                          onChange={(event) =>
+                            setEditingValues((current) => ({
+                              ...current,
+                              [field.fieldName]: event.target.value,
+                            }))
+                          }
                         />
                       ) : (
                         <span className="block">{field.value}</span>
@@ -345,7 +380,17 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       <button
                         className="w-fit rounded-md border px-3 py-2 text-sm"
                         type="button"
-                        onClick={() => setEditingField((current) => (current === field.fieldName ? null : field.fieldName))}
+                        onClick={() => {
+                          if (editingField === field.fieldName) {
+                            void finishFieldEdit(field.fieldName, field.value);
+                          } else {
+                            setEditingValues((current) => ({
+                              ...current,
+                              [field.fieldName]: fieldCorrections[field.fieldName] ?? field.value,
+                            }));
+                            setEditingField(field.fieldName);
+                          }
+                        }}
                       >
                         {editingField === field.fieldName ? "完成" : "修改"}
                       </button>
@@ -367,7 +412,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 </div>
                 <a
                   className="w-fit rounded-md border px-3 py-2 text-sm"
-                  download={`${caseData.case_no ?? caseData.id}-registry-source.json`}
+                  download={`${caseDraft.case_no ?? caseDraft.id}-registry-source.json`}
                   href={registryJsonHref}
                 >
                   下載 JSON
@@ -496,7 +541,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 <div className="rounded-md bg-slate-50 p-3">待確認欄位：23 欄</div>
                 <div className="rounded-md bg-slate-50 p-3">已上傳圖資：{uploadedAssetCount} 項</div>
               </div>
-              <Link className="mt-3 inline-flex rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseData.id}/preview`}>
+              <Link className="mt-3 inline-flex rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseDraft.id}/preview`}>
                 開啟 PDF 預覽
               </Link>
             </section>
@@ -512,7 +557,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 下一步：{nextTab.label}
               </button>
             ) : (
-              <Link className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white" href={`/cases/${caseData.id}/preview`}>
+              <Link className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white" href={`/cases/${caseDraft.id}/preview`}>
                 完成並預覽 PDF
               </Link>
             )}

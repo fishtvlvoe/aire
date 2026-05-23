@@ -309,6 +309,7 @@ export function getDemoSidebarFolders(): DemoSidebarFolder[] {
 export function getSettingsCategories(): SettingsCategory[] {
   return [
     { id: "profile", label: "個人設定" },
+    { id: "delivery-profile", label: "品牌與交付資訊" },
     { id: "registry-auth", label: "地政授權" },
     { id: "plans", label: "方案與升級" },
   ];

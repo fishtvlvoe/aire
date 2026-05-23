@@ -55,13 +55,13 @@ function BrandTextForm() {
   }
 
   const FIELDS: { key: keyof BrandTextSettings; label: string }[] = [
-    { key: "agent_name", label: "業務員姓名" },
-    { key: "agent_cert_no", label: "業務員證號" },
-    { key: "company_name", label: "公司名稱" },
-    { key: "company_license_no", label: "公司牌照號" },
+    { key: "agent_name", label: "承辦人" },
+    { key: "realtor_name", label: "經紀人" },
+    { key: "agent_cert_no", label: "經紀人證號" },
+    { key: "company_name", label: "不動產經紀業" },
+    { key: "company_license_no", label: "經紀業證號" },
     { key: "company_address", label: "公司地址" },
     { key: "company_phone", label: "公司電話" },
-    { key: "realtor_name", label: "不動產經紀人" },
   ];
 
   return (
@@ -113,9 +113,9 @@ export default function BrandingContent() {
     <ThemeProvider initialThemeId="theme-a-minimal">
       <div className="space-y-6">
         <header className="space-y-1">
-          <h2 className="text-2xl font-semibold">品牌設定</h2>
+          <h2 className="text-2xl font-semibold">品牌與交付資訊</h2>
           <p className="text-sm text-muted-foreground">
-            上傳公司 Logo 並切換 PDF 主題風格。
+            設定每份不動產說明書共用的公司、經紀人與承辦資訊。
           </p>
         </header>
 

@@ -20,7 +20,7 @@ describe("Branding settings page", () => {
     render(<BrandingSettingsPage />);
 
     expect(screen.getByRole("link", { name: "一般設定" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "品牌設定" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "品牌與交付資訊" })).toHaveAttribute(
       "aria-current",
       "page",
     );

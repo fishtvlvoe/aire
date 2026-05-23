@@ -55,11 +55,13 @@ describe("product-ui-demo-alignment contract", () => {
     ]);
     expect(getSettingsCategories().map((category) => category.label)).toEqual([
       "個人設定",
+      "品牌與交付資訊",
       "地政授權",
       "方案與升級",
     ]);
     expect(getDemoSidebarFolders()[2].items.map((item) => item.label)).toEqual([
       "個人設定",
+      "品牌與交付資訊",
       "地政授權",
       "方案與升級",
     ]);

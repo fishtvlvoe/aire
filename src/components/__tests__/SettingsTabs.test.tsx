@@ -19,7 +19,7 @@ describe("SettingsTabs", () => {
       "href",
       "/settings",
     );
-    expect(screen.getByRole("link", { name: "品牌設定" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "品牌與交付資訊" })).toHaveAttribute(
       "href",
       "/settings/branding",
     );
@@ -39,7 +39,7 @@ describe("SettingsTabs", () => {
 
     mockPathname = "/settings/branding";
     rerender(<SettingsTabs />);
-    expect(screen.getByRole("link", { name: "品牌設定" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "品牌與交付資訊" })).toHaveAttribute(
       "aria-current",
       "page",
     );

@@ -50,13 +50,17 @@ describe("AppSidebar", () => {
     expect(within(navigation).getByRole("link", { name: "費用紀錄" })).toBeInTheDocument();
   });
 
-  it("系統設定只顯示個人設定、地政授權、方案與升級", () => {
+  it("系統設定顯示固定交付資訊入口", () => {
     mockPathname = "/settings";
 
     render(<AppSidebar collapsed={false} onToggle={vi.fn()} />);
 
     const navigation = screen.getByRole("navigation", { name: "主要選單" });
     expect(within(navigation).getByRole("link", { name: "個人設定" })).toBeInTheDocument();
+    expect(within(navigation).getByRole("link", { name: "品牌與交付資訊" })).toHaveAttribute(
+      "href",
+      "/settings/branding",
+    );
     expect(within(navigation).getByRole("link", { name: "地政授權" })).toBeInTheDocument();
     expect(within(navigation).getByRole("link", { name: "方案與升級" })).toBeInTheDocument();
     expect(within(navigation).queryByRole("link", { name: "功能開關" })).not.toBeInTheDocument();
@@ -72,8 +76,10 @@ describe("AppSidebar", () => {
     const navigation = screen.getByRole("navigation", { name: "主要選單" });
     const profile = within(navigation).getByRole("link", { name: "個人設定" });
     const plans = within(navigation).getByRole("link", { name: "方案與升級" });
+    const delivery = within(navigation).getByRole("link", { name: "品牌與交付資訊" });
 
     expect(profile).not.toHaveClass("bg-blue-50");
+    expect(delivery).not.toHaveClass("bg-blue-50");
     expect(plans).toHaveClass("bg-blue-50");
   });
 

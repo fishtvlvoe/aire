@@ -302,11 +302,6 @@ function buildAddressLookupProvenance(
           building_number: primaryParcel.building_number,
         },
       };
-      results.building_ownership = {
-        success: false,
-        source: "moi_api",
-        error: "尚未取得正式建物所有權資料，請補謄本或屋主授權後確認權利範圍",
-      };
     }
   }
 

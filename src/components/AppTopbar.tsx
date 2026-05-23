@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 const pageTitles: Record<string, string> = {
   "/cases": "案件管理",
-  "/settings/branding": "品牌設定",
+  "/settings/branding": "品牌與交付資訊",
   "/settings/logs": "操作日誌",
 };
 
@@ -16,7 +16,7 @@ function getPageTitle(pathname: string): string {
 
   // 前綴匹配
   if (pathname.startsWith("/cases")) return "案件管理";
-  if (pathname.startsWith("/settings/branding")) return "品牌設定";
+  if (pathname.startsWith("/settings/branding")) return "品牌與交付資訊";
   if (pathname.startsWith("/settings/logs")) return "操作日誌";
 
   return "AIRE";

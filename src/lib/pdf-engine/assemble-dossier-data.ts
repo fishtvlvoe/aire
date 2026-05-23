@@ -274,7 +274,15 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   const apiIds = isLand
     ? ["land_registry", "zoning", "land_value", "mortgages"]
-    : ["building_registry", "building_ownership", "mortgages"];
+    : [
+        "building_registry",
+        "building_ownership",
+        "mortgages",
+        "land_registry",
+        "co_owners",
+        "zoning",
+        "land_value",
+      ];
 
   type PullResult = {
     results: Record<string, { data: unknown; source?: string }>;
@@ -282,8 +290,16 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   };
 
   let apiData: Record<string, { data: unknown }> = {};
-  if (persisted && typeof persisted === "object" && !Array.isArray(persisted)) {
-    const trustedPersisted = extractTrustedRegistryData(persisted);
+  const trustedPersisted =
+    persisted && typeof persisted === "object" && !Array.isArray(persisted)
+      ? extractTrustedRegistryData(persisted)
+      : {};
+  const hasTrustedPersisted = Object.keys(trustedPersisted).length > 0;
+  const shouldAttemptFormalPull =
+    !persisted ||
+    (isRegistryProvenancePayload(persisted) && !hasTrustedPersisted && Boolean(caseRow.owner_name?.trim()));
+
+  if (hasTrustedPersisted) {
     apiData = Object.fromEntries(
       Object.entries(trustedPersisted).map(([apiId, value]) => {
         const wrapped =
@@ -293,7 +309,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         return [apiId, wrapped];
       }),
     );
-  } else {
+  } else if (shouldAttemptFormalPull) {
     let pullResult: PullResult | undefined;
     try {
       pullResult = await safeInvoke<PullResult>("land_registry_pull_data", {
@@ -613,6 +629,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const mortgagesRaw = apiData["mortgages"]?.data;
     const landReg = apiData["land_registry"]?.data;
     const landOwnership = apiData["co_owners"]?.data;
+    const zoning = apiData["zoning"]?.data;
 
     const mortgages = Array.isArray(mortgagesRaw)
       ? (mortgagesRaw as unknown[]).map((m) => ({
@@ -661,12 +678,17 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         askingPrice: 0,
         landSection: firstString(landReg, ["section", "SECTION", "SUBSECTION"]) ?? "",
         landNumber: caseRow.land_lot_no ?? "",
-        zoning: firstString(landReg, ["zoning", "ZONING", "purpose", "land_purpose"]) ?? "",
+        zoning:
+          firstString(landReg, ["zoning", "ZONING", "purpose", "land_purpose"]) ??
+          firstString(zoning, ["zoning_type", "ZONING", "usage_category"]) ??
+          "",
         landArea: firstNumber(landReg, ["area", "land_area", "AREA"]) ?? 0,
         ownershipRatio: ratioText(landOwnership) || ratioText(buildingOwnership),
         shareArea: 0,
-        buildingCoverage: "",
-        floorAreaRatio: "",
+        buildingCoverage:
+          firstString(zoning, ["building_coverage_ratio", "BUILDING_COVERAGE_RATIO"]) ?? "",
+        floorAreaRatio:
+          firstString(zoning, ["floor_area_ratio", "FLOOR_AREA_RATIO"]) ?? "",
         owner:
           firstString(buildingOwnership, ["owner_name", "LNAME"]) ??
           firstString(landOwnership, ["owner_name", "LNAME"]) ??

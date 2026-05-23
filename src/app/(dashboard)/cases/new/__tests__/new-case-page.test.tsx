@@ -89,7 +89,7 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByRole("button", { name: "建立案件" })).toBeInTheDocument();
   });
 
-  it("persists address lookup provenance when creating the case", async () => {
+  it("persists address lookup provenance without terminal failed ownership when creating the case", async () => {
     render(<NewCasePage />);
 
     fireEvent.change(screen.getByLabelText("地址 *"), {
@@ -128,14 +128,13 @@ describe("NewCasePage address-first flow", () => {
               status: "candidate",
               trustedForPdf: false,
             }),
-            building_ownership: expect.objectContaining({
-              status: "failed",
-              trustedForPdf: false,
-            }),
           }),
         }),
       }),
     );
+    const createdPayload = mockCreateCase.mock.calls[0]?.[0];
+    const entries = createdPayload?.land_registry_data?.entries;
+    expect(entries).not.toHaveProperty("building_ownership");
   });
 
   it("shows manual fallback when registry returns multiple candidates", async () => {

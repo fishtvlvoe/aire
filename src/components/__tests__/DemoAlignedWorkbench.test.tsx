@@ -1,7 +1,20 @@
 import "@testing-library/jest-dom/vitest";
 import { fireEvent } from "@testing-library/dom";
 import { render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockUpdateCase = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/cases-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/cases-api")>();
+  return {
+    ...actual,
+    casesApi: {
+      ...actual.casesApi,
+      update: mockUpdateCase,
+    },
+  };
+});
 
 import { DemoAlignedWorkbench } from "../workbench/DemoAlignedWorkbench";
 import type { CaseRow } from "@/lib/cases-api";
@@ -27,6 +40,8 @@ const caseRow: CaseRow = {
 describe("DemoAlignedWorkbench", () => {
   beforeEach(() => {
     __resetMockStoreForTests();
+    mockUpdateCase.mockReset();
+    mockUpdateCase.mockResolvedValue({ ...caseRow, owner_name: "蔡國卿" });
   });
 
   it("renders the two-column case/chapter and field review workbench", () => {
@@ -152,6 +167,24 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "下載 JSON" })).toBeInTheDocument();
     expect(screen.getByText("JSON 預覽")).toBeInTheDocument();
+  });
+
+  it("saves owner name correction to the case and reflects it in source JSON", async () => {
+    render(<DemoAlignedWorkbench caseData={{ ...caseRow, owner_name: "余啟彰" }} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "修改" })[0]);
+    fireEvent.change(screen.getByLabelText("屋主姓名修改值"), {
+      target: { value: "蔡國卿" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(caseRow.id, { owner_name: "蔡國卿" });
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
+    expect(screen.getByText("JSON 預覽")).toBeInTheDocument();
+    expect(screen.getByText(/蔡國卿/)).toBeInTheDocument();
   });
 
   it("persists supplement answers, statuses, upload names, and PDF upload count across remounts", async () => {

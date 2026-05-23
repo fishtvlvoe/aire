@@ -460,6 +460,132 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.propertySheet?.owner).toBe("王建國");
   });
 
+  it("只有 candidate/failed provenance 且有屋主姓名時，PDF assembly 會嘗試正式 pull", async () => {
+    mockInvoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "land_registry_pull_data") {
+        expect(args?.apiIds).toEqual(
+          expect.arrayContaining([
+            "building_registry",
+            "building_ownership",
+            "land_registry",
+            "zoning",
+          ]),
+        );
+        return {
+          total_cost: 36,
+          results: {
+            building_registry: {
+              source: "api",
+              data: {
+                building_area: 84.13,
+                building_purpose: "住家用",
+                construction_date: "083/10/18",
+              },
+            },
+            building_ownership: {
+              source: "api",
+              data: {
+                owner_name: "王建國",
+                ownership_date: "083/12/13",
+                numerator: "1",
+                denominator: "1",
+              },
+            },
+            land_registry: {
+              source: "api",
+              data: {
+                section: "勝利段",
+                lot_number: "0005",
+                area: 120.5,
+              },
+            },
+            zoning: {
+              source: "api",
+              data: {
+                zoning_type: "住宅區",
+                building_coverage_ratio: "60%",
+                floor_area_ratio: "200%",
+              },
+            },
+          },
+        };
+      }
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-22T00:00:00.000Z",
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "public_candidate",
+            status: "candidate",
+            trustedForPdf: false,
+            data: { area: 84.13 },
+          },
+          building_ownership: {
+            apiId: "building_ownership",
+            source: "moi_api",
+            status: "failed",
+            trustedForPdf: false,
+            error: "尚未取得正式建物所有權資料",
+          },
+        },
+      },
+    });
+
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "land_registry_pull_data",
+      expect.objectContaining({
+        parcelId: "板橋段100-2",
+        apiIds: expect.arrayContaining([
+          "building_registry",
+          "building_ownership",
+          "land_registry",
+          "zoning",
+        ]),
+      }),
+    );
+    expect(result.buildingArea).toBe(84.13);
+    expect(result.propertySheet?.landSection).toBe("勝利段");
+    expect(result.propertySheet?.zoning).toBe("住宅區");
+  });
+
+  it("建物案件正式 pull 會包含土地、分區與地價資料鏈", async () => {
+    mockInvoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "land_registry_pull_data") {
+        expect(args?.apiIds).toEqual(
+          expect.arrayContaining([
+            "building_registry",
+            "building_ownership",
+            "mortgages",
+            "land_registry",
+            "zoning",
+            "land_value",
+          ]),
+        );
+        return { results: {}, total_cost: 0 };
+      }
+      return {};
+    });
+
+    await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: null,
+    });
+  });
+
   it("物調表 PDF assembly 保留本次費用與查詢失敗原因", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};
@@ -605,6 +731,39 @@ describe("assembleDossierData — 封面品牌資訊", () => {
 
     const result = await assembleDossierData(landCaseRow);
     expect(result.cover?.brokerageCompanyName).toBe("大安不動產");
+  });
+
+  it("固定交付資訊完整回填 PDF 封面欄位", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") {
+        return {
+          agent_name: "余啟彰",
+          realtor_name: "王經紀",
+          agent_cert_no: "經紀人字第123456號",
+          company_name: "大安不動產經紀有限公司",
+          company_license_no: "經紀業字第654321號",
+          company_address: "台南市永康區勝利街58巷4號",
+          company_phone: "06-1234567",
+        };
+      }
+      if (cmd === "land_registry_pull_data") return mockPullResultLand;
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      throw new Error(`Unexpected invoke: ${cmd}`);
+    });
+
+    const result = await assembleDossierData(landCaseRow);
+
+    expect(result.cover).toMatchObject({
+      handlingAgent: "余啟彰",
+      licensedAgentName: "王經紀",
+      licensedAgentCertNo: "經紀人字第123456號",
+      brokerageCompanyName: "大安不動產經紀有限公司",
+      brokerageLicenseNo: "經紀業字第654321號",
+      companyAddress: "台南市永康區勝利街58巷4號",
+      companyPhone: "06-1234567",
+    });
   });
 
   it("get_brand_text_settings 失敗時 cover.brokerageCompanyName 為空字串", async () => {
