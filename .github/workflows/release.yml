@@ -53,6 +53,10 @@ jobs:
       - name: Type check
         run: pnpm type-check
 
+      - name: Ensure Windows temp output directory
+        if: runner.os == 'Windows'
+        run: New-Item -ItemType Directory -Force D:\tmp
+
       - name: Test
         run: pnpm test
 
