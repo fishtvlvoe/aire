@@ -1,0 +1,6 @@
+- [ ] 1.1 建立 NLSC CAD client behavior 與 parser，覆蓋 CAD_009 XML、CAD_011 JSON、PERMISSION DENIED 分類，並明確滿足 Requirement: NLSC CAD fallback SHALL be observable and permission-safe。驗證：`cd src-tauri && cargo test nlsc_cadastral --lib`
+- [ ] 1.2 新增裕農路最小 live probe verification，輸出 CAD_009/CAD_011 結果與 blocked reason，並明確滿足 Requirement: NLSC CAD fallback SHALL be observable and permission-safe。驗證：`cd src-tauri && cargo test --test nlsc_cadastral_yunong_live -- --ignored --nocapture`
+- [ ] 1.3 修改 address lookup behavior，COP 優先、NLSC CAD 僅作可觀測 fallback，權限不足不得被吞成空結果，並明確滿足 Requirement: NLSC CAD fallback SHALL be observable and permission-safe。驗證：`cd src-tauri && cargo test land_registry_address_lookup --lib`
+- [ ] 1.4 更新前端型別與文案，讓 UI 能顯示 `nlsc_permission_denied` 與「需申請/補件」狀態，不把 CAD 當作已正式串接。驗證：`pnpm type-check`
+- [ ] 1.5 更新文件，記錄 CAD_009/CAD_011 端點、live probe 結果、產品限制與 pdf safety behavior。驗證：人工確認文件包含 PERMISSION DENIED 證據與不可進 PDF 規則。
+- [ ] 1.6 執行完整 verification 與 SR gate：`pnpm vitest run src/lib/__tests__/registry-provenance.test.ts src/lib/__tests__/registry-preview.test.ts src/components/__tests__/PullParcelDataButton.test.tsx src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts`、`pnpm type-check`、`spectra analyze add-nlsc-cadastral-fallback-probe --json`、`spectra validate add-nlsc-cadastral-fallback-probe`。
