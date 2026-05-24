@@ -21,6 +21,23 @@ describe("moi-outcome-and-cost-ledger", () => {
     ).toBe("domain_failure");
   });
 
+  it("does not require parseOk for successful responses and keeps restricted failures explicit", () => {
+    expect(
+      classifyMoiOutcome({
+        httpStatus: 200,
+        moiStatus: 1,
+        returnRows: 1,
+      }),
+    ).toBe("moi_success");
+
+    expect(
+      classifyMoiOutcome({
+        httpStatus: 200,
+        restricted: true,
+      }),
+    ).toBe("restricted_failure");
+  });
+
   it("calculates row-based cost and keeps failed calls at zero", () => {
     const catalogEntry = getMoiServiceCatalogEntry("MOI_API_005");
     expect(catalogEntry).toBeTruthy();

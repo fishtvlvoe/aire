@@ -185,12 +185,23 @@ export function getCoverageDecision(serviceCodes: string[]): CoverageDecision {
     .map((serviceCode) => getMoiServiceCatalogEntry(serviceCode))
     .filter((entry): entry is ServiceCatalogEntry => Boolean(entry));
 
-  if (catalogEntries.length === 0) {
+  if (serviceCodes.length > 0 && catalogEntries.length !== serviceCodes.length) {
+    const knownCodes = new Set(catalogEntries.map((entry) => entry.serviceCode));
+    const missingCodes = serviceCodes.filter((serviceCode) => !knownCodes.has(serviceCode));
     return {
       status: "missing",
       serviceCodes,
       pricePolicies: [],
-      reason: "service code not found in local catalog",
+      reason: `service code not found in local catalog: ${missingCodes.join(", ")}`,
+    };
+  }
+
+  if (catalogEntries.length === 0) {
+    return {
+      status: "deferred",
+      serviceCodes,
+      pricePolicies: [],
+      reason: "no service dependency",
     };
   }
 

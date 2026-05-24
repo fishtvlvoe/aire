@@ -1,8 +1,6 @@
 import type { PropertyTypeId } from "@/lib/property-type-registry";
 import type { ServiceCatalogEntry } from "@/lib/moi-service-catalog";
 import {
-  getDisclosureFieldSourceRow,
-  getFieldGapResolution,
   type AutomationState,
   type DisclosureFieldSourceMatrixRow,
   type FieldGapResolution,
@@ -60,13 +58,13 @@ const MANUAL_IDENTITY_FIELDS = new Set(["owner_name", "owner_id", "owner_birth_d
 export function autofillDisclosureDraft(input: AutofillEngineInput): AutofillEngineOutput {
   const lookupByServiceCode = new Map(input.lookupResults.map((result) => [result.serviceCode, result]));
   const fields = input.draftFields.map((draftField) => {
-    const matrixRow = getDisclosureFieldSourceRow(draftField.fieldKey, input.propertyType);
+    const matrixRow = getInputMatrixRow(input.matrixRows, draftField.fieldKey, input.propertyType);
     if (!matrixRow) {
-      const gapReason: FieldGapResolution = getFieldGapResolution({
+      const gapReason = buildGapResolution({
         fieldKey: draftField.fieldKey,
-        propertyType: input.propertyType,
-        value: draftField.value,
-        lookupStatus: "not_run",
+        automationState: "not_supported",
+        serviceCodes: [],
+        reason: "field is not supported by the current disclosure matrix",
       });
       return {
         fieldKey: draftField.fieldKey,
@@ -92,11 +90,11 @@ export function autofillDisclosureDraft(input: AutofillEngineInput): AutofillEng
           appliedFrom: "manual",
         },
         gapReason: matrixRow.sourceKind === "manual_document" || matrixRow.sourceKind === "field_visit"
-          ? getFieldGapResolution({
+          ? buildGapResolution({
               fieldKey: draftField.fieldKey,
-              propertyType: input.propertyType,
-              value: draftField.value,
-              lookupStatus: "not_run",
+              automationState: "manual_required",
+              serviceCodes: matrixRow.serviceCodes,
+              reason: matrixRow.reviewNote,
             })
           : undefined,
       } satisfies AutofillFieldResult;
@@ -111,30 +109,30 @@ export function autofillDisclosureDraft(input: AutofillEngineInput): AutofillEng
         confidence: "low",
         serviceCodes: matrixRow.serviceCodes,
         sourceMetadata: {},
-        gapReason: getFieldGapResolution({
+        gapReason: buildGapResolution({
           fieldKey: draftField.fieldKey,
-          propertyType: input.propertyType,
-          value: draftField.value,
-          lookupStatus: "not_run",
+          automationState: "manual_required",
+          serviceCodes: matrixRow.serviceCodes,
+          reason: matrixRow.reviewNote,
         }),
       } satisfies AutofillFieldResult;
     }
 
-    const serviceCode = matrixRow.serviceCodes[0];
-    const lookup = serviceCode ? lookupByServiceCode.get(serviceCode) : undefined;
-    const resolvedValue = lookup ? resolveValueFromPayload(lookup.payload, matrixRow) : undefined;
+    const lookup = firstLookupForRow(matrixRow, lookupByServiceCode);
+    const serviceCode = lookup?.serviceCode ?? matrixRow.serviceCodes[0];
+    const resolved = lookup ? resolveValueFromPayload(lookup.payload, matrixRow) : undefined;
+    const resolvedValue = resolved?.value;
     const lookupStatus = lookup?.success
       ? resolvedValue === undefined || resolvedValue === null || `${resolvedValue}`.trim() === ""
         ? "empty_success"
         : "success"
       : "failure";
-    const gapReason = getFieldGapResolution({
-      fieldKey: draftField.fieldKey,
-      propertyType: input.propertyType,
+    const gapReason = resolveGapForRow({
+      row: matrixRow,
       value: draftField.value ?? resolvedValue,
       lookupStatus,
-      sourcePayloadPath: matrixRow.sourcePayloadPaths?.[0],
-      mappedSourceField: matrixRow.sourcePayloadPaths?.[0],
+      catalog: input.catalog,
+      mappedSourceField: resolved?.payloadPath,
     });
 
     if (draftField.value !== undefined && draftField.value !== null && `${draftField.value}`.trim() !== "") {
@@ -147,7 +145,7 @@ export function autofillDisclosureDraft(input: AutofillEngineInput): AutofillEng
         serviceCodes: matrixRow.serviceCodes,
         sourceMetadata: {
           serviceCode,
-          payloadPath: matrixRow.sourcePayloadPaths?.[0],
+          payloadPath: resolved?.payloadPath ?? matrixRow.sourcePayloadPaths?.[0],
           appliedFrom: "manual",
         },
         gapReason,
@@ -164,7 +162,7 @@ export function autofillDisclosureDraft(input: AutofillEngineInput): AutofillEng
         serviceCodes: matrixRow.serviceCodes,
         sourceMetadata: {
           serviceCode,
-          payloadPath: matrixRow.sourcePayloadPaths?.[0],
+          payloadPath: resolved?.payloadPath,
           appliedFrom: lookup?.source === "candidate" ? "candidate" : "registry",
         },
       } satisfies AutofillFieldResult;
@@ -196,13 +194,13 @@ export function autofillDisclosureDraft(input: AutofillEngineInput): AutofillEng
 function resolveValueFromPayload(
   payload: Record<string, unknown> | undefined,
   row: DisclosureFieldSourceMatrixRow,
-): unknown {
+): { value: unknown; payloadPath: string } | undefined {
   if (!payload) return undefined;
   const paths = row.sourcePayloadPaths ?? [];
   for (const path of paths) {
     const value = resolveJsonPath(payload, path);
     if (value !== undefined && value !== null && `${value}`.trim() !== "") {
-      return value;
+      return { value, payloadPath: path };
     }
   }
   return undefined;
@@ -214,4 +212,118 @@ function resolveJsonPath(payload: Record<string, unknown>, path: string): unknow
     if (!current || typeof current !== "object" || Array.isArray(current)) return undefined;
     return (current as Record<string, unknown>)[segment];
   }, payload);
+}
+
+function getInputMatrixRow(
+  rows: DisclosureFieldSourceMatrixRow[],
+  fieldKey: string,
+  propertyType: PropertyTypeId,
+): DisclosureFieldSourceMatrixRow | undefined {
+  return rows.find((row) => row.fieldKey === fieldKey && row.propertyTypes.includes(propertyType));
+}
+
+function firstLookupForRow(
+  row: DisclosureFieldSourceMatrixRow,
+  lookupByServiceCode: Map<string, RegistryLookupResult>,
+): RegistryLookupResult | undefined {
+  for (const serviceCode of row.serviceCodes) {
+    const lookup = lookupByServiceCode.get(serviceCode);
+    if (lookup) return lookup;
+  }
+  return undefined;
+}
+
+function resolveGapForRow(input: {
+  row: DisclosureFieldSourceMatrixRow;
+  value: unknown;
+  lookupStatus: "success" | "empty_success" | "failure" | "not_run";
+  catalog: ServiceCatalogEntry[];
+  mappedSourceField?: string;
+}): FieldGapResolution {
+  const row = input.row;
+  if (input.value !== undefined && input.value !== null && `${input.value}`.trim() !== "") {
+    return buildGapResolution({
+      fieldKey: row.fieldKey,
+      automationState: "filled_from_registry",
+      serviceCodes: row.serviceCodes,
+      reason: "field already has a value",
+      gapDetail: "filled",
+    });
+  }
+
+  if (row.sourceKind === "manual_document" || row.sourceKind === "field_visit") {
+    return buildGapResolution({
+      fieldKey: row.fieldKey,
+      automationState: "manual_required",
+      serviceCodes: row.serviceCodes,
+      reason: row.reviewNote,
+      gapDetail: "manual_confirmation",
+    });
+  }
+
+  if (row.sourceKind === "unsupported") {
+    return buildGapResolution({
+      fieldKey: row.fieldKey,
+      automationState: "not_supported",
+      serviceCodes: row.serviceCodes,
+      reason: row.reviewNote,
+      gapDetail: "unsupported_source",
+    });
+  }
+
+  const knownServiceCodes = new Set(input.catalog.map((entry) => entry.serviceCode));
+  const missingServiceCode = row.serviceCodes.find((serviceCode) => !knownServiceCodes.has(serviceCode));
+  if (missingServiceCode) {
+    return buildGapResolution({
+      fieldKey: row.fieldKey,
+      automationState: "integration_gap",
+      serviceCodes: row.serviceCodes,
+      reason: `service code not found in local catalog: ${missingServiceCode}`,
+      gapDetail: "missing_client",
+    });
+  }
+
+  if (input.lookupStatus === "empty_success") {
+    return buildGapResolution({
+      fieldKey: row.fieldKey,
+      automationState: "mapping_gap",
+      serviceCodes: row.serviceCodes,
+      reason: `successful lookup returned no data for ${row.fieldKey}`,
+      gapDetail: "empty_success",
+    });
+  }
+
+  if (!input.mappedSourceField) {
+    return buildGapResolution({
+      fieldKey: row.fieldKey,
+      automationState: "mapping_gap",
+      serviceCodes: row.serviceCodes,
+      reason: `registry payload exists but ${row.fieldKey} is not mapped`,
+      gapDetail: "unmapped",
+    });
+  }
+
+  return buildGapResolution({
+    fieldKey: row.fieldKey,
+    automationState: row.automationState,
+    serviceCodes: row.serviceCodes,
+    reason: row.reviewNote,
+    gapDetail: "unmapped",
+  });
+}
+
+function buildGapResolution(input: {
+  fieldKey: string;
+  automationState: AutomationState;
+  serviceCodes: string[];
+  reason: string;
+  gapDetail?: FieldGapResolution["gapDetail"];
+}): FieldGapResolution {
+  return {
+    fieldKey: input.fieldKey,
+    automationState: input.automationState,
+    gapDetail: input.gapDetail ?? "unsupported_source",
+    reason: input.reason,
+    serviceCodes: input.serviceCodes,
+  };
 }
