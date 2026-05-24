@@ -5,7 +5,7 @@
 mod tests {
     use crate::land_registry::errors::LandRegistryError;
     use crate::land_registry::field_mapping::{
-        resolve_json_path, ApiFieldSchema, FieldMapper, FieldMappingConfig,
+        resolve_json_path, ApiFieldSchema, AutomationState, FieldMapper, FieldMappingConfig,
     };
 
     // LRF-001: config 檔案不存在時回 error（不 panic）
@@ -187,5 +187,69 @@ mod tests {
             result.is_err(),
             "Duplicate target_field names in config must be detected and rejected"
         );
+    }
+
+    // LRF-009: schema_version = 2 必須支援 service_code + payload path 的 config-driven mapping
+    #[test]
+    fn should_translate_response_with_service_code_mapping() {
+        let config = FieldMappingConfig::from_toml_str(
+            r#"
+            schema_version = 2
+            [mappings.moi_api_004]
+            service_code = "MOI_API_004"
+            source_payload_path = "$.building.area"
+            target_field_key = "floor_area"
+            field_source_matrix_row = "building.identification.floor_area"
+            automation_state = "filled_from_registry"
+        "#,
+        )
+        .expect("Config parse must succeed");
+
+        let mapper = FieldMapper::new(config);
+        let payload = serde_json::json!({
+            "building": {
+                "area": 83.61
+            }
+        });
+
+        let translation = mapper.translate_response("MOI_API_004", &payload);
+        assert_eq!(
+            translation.mapped_fields.get("floor_area").unwrap(),
+            &serde_json::json!(83.61)
+        );
+        assert!(
+            translation.gaps.is_empty(),
+            "Successful mapping should not produce gaps"
+        );
+    }
+
+    // LRF-010: service_code 有 catalog 但本地 client 尚未接上時，必須回 integration gap
+    #[test]
+    fn should_surface_integration_gap_when_service_code_has_no_local_client() {
+        let config = FieldMappingConfig::from_toml_str(
+            r#"
+            schema_version = 2
+            [mappings.moi_api_018]
+            service_code = "MOI_API_018"
+            source_payload_path = "$.restriction.note"
+            target_field_key = "land_category"
+            field_source_matrix_row = "land.identification.land_category"
+            automation_state = "integration_gap"
+        "#,
+        )
+        .expect("Config parse must succeed");
+
+        let mapper = FieldMapper::new(config);
+        let translation = mapper.translate_response("MOI_API_018", &serde_json::json!({}));
+
+        assert!(
+            translation.mapped_fields.is_empty(),
+            "Missing payload should not map fields"
+        );
+        assert_eq!(translation.gaps.len(), 1);
+        assert!(matches!(
+            translation.gaps[0].automation_state,
+            AutomationState::IntegrationGap
+        ));
     }
 }
