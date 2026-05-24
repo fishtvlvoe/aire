@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+export const dynamic = "force-static";
+
 interface StreetViewBody {
   lat?: number;
   lng?: number;

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fetchAerialMap } from "@/lib/nlsc-aerial-map";
 
+export const dynamic = "force-static";
+
 interface AerialPhotoBody {
   lat?: number;
   lng?: number;

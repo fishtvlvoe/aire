@@ -9,6 +9,7 @@ AIRE 目前已具備地政 API 設定、COP 查詢、快取、費用紀錄、物
 **Goals:**
 
 - 地址輸入能收束到地址、地段、地號、建號，正式查詢前提供人工確認關卡。
+- 當 SaaS 無法直接查 EasyMap R02 時，Mac/Windows AIRE App 或 Helper 能在本機瀏覽器/WebView 查 R02，擷取候選地段地號建號並同步回 SaaS。
 - 土地輸入能收束到地政事務所、地段、地號，直接判斷土地用途分類與是否需要建號。
 - COP 查詢前能估算費用，COP 查詢後能保存每支 API 的費用、錯誤與 JSON。
 - 後台設定頁能搜尋查詢紀錄、檢視 JSON、費用、錯誤 Log，並匯出 JSON/CSV。
@@ -42,6 +43,25 @@ Alternatives Considered:
 
 - 直接把 EasyMap 資料寫入正式說明書：EasyMap 是查詢與候選來源，非正式謄本資料來源，正式文件風險過高。
 - 地址一進來就直接打 COP：地址不完整或候選不唯一時會浪費付費 API，且查到錯物件仍會有成本。
+
+### Desktop App is the R02 execution boundary
+
+已驗證純 SaaS / 雲端 server-to-server 可能被 EasyMap R02 擋掉，因此正式產品不能把「SaaS 直接抓 R02」當作唯一成功路徑。AIRE 桌面 App / Helper 以使用者本機瀏覽器或 WebView 開啟 R02，從 DOM 或頁面結果擷取候選地段、地號、建號與建物摘要，再把結構化 JSON 同步到 SaaS 案件。SaaS 負責保存紀錄、顯示候選、人工確認、快取與 COP 正式查詢關卡。
+
+Alternatives Considered:
+
+- 只做 SaaS R02 proxy：R02 對雲端來源可能回 access denied，客戶線上操作會卡住且難以保證穩定。
+- 只要求人工輸入地段地號建號：最穩但操作門檻高，不符合客戶「輸入地址先找候選」的體驗。
+- 用 AI 讀頁面或猜候選：候選資料是地政 key discovery，不需要 AI 記錄，也不能用模型猜測正式 key。
+
+### SaaS sync keeps candidate data separate from official data
+
+桌面 Helper 同步到 SaaS 的 R02 結果一律標示為 candidate/reference。只有使用者確認 office、section、landNo、buildingNo 與地址對標後，SaaS 才能開啟正式 COP 查詢。同步資料必須帶 `adapter`、`parserVersion`、`sourceRunId`、`cacheHit`、`totalCostCents` 與錯誤摘要，讓後台 UI 可追溯，不需要翻本機檔案。
+
+Alternatives Considered:
+
+- Helper 直接在本機完成 COP 並只上傳 PDF：SaaS 無法追蹤 JSON、費用、錯誤與 cache 來源，也不利於客戶測試期迭代。
+- SaaS 收到 candidate 就自動打 COP：候選不穩時會浪費客戶自己的 COP API 費用。
 
 ### Query ledger is product data
 
@@ -149,6 +169,8 @@ CREATE INDEX idx_registry_query_api_calls_cop_code ON registry_query_api_calls(c
 ### Runtime interfaces
 
 - `resolve_registry_candidates(input)` returns address, section, land and building candidates from EasyMap/public sources without billing COP.
+- `resolve_r02_with_desktop_helper(input)` opens R02 from the local desktop browser/WebView context and returns candidate JSON with adapter diagnostics.
+- `sync_desktop_registry_run(run)` uploads desktop helper candidate, confirmation and diagnostic data to the SaaS case without exposing COP secrets.
 - `confirm_registry_match(runId, confirmedKey)` stores the user-confirmed key and unlocks formal COP queries.
 - `pull_confirmed_registry_data(runId)` checks cache first, then calls COP only when no valid JSON exists or the user confirms refresh.
 - `list_registry_query_runs(filters)` backs the Settings query-record UI.
@@ -160,6 +182,8 @@ CREATE INDEX idx_registry_query_api_calls_cop_code ON registry_query_api_calls(c
 - Multiple candidates return `confirmation_status = needs_selection` and block formal disclosure.
 - No candidate returns `status = no_candidate` and records the input JSON without COP cost.
 - COP authorization errors return `status = cop_error`, preserve COP code/message, and display the next action in Settings.
+- EasyMap R02 cloud access denial returns `status = r02_cloud_access_denied`, creates a zero-cost run, and asks the user to continue through desktop helper discovery.
+- Desktop DOM extraction failures return `status = r02_parse_failed`, preserve parser version and redacted raw summary, and require manual registry key input or parser update.
 - Payload summaries MUST NOT contain client secret, access token, owner personal identifiers outside returned registry JSON, or raw authentication headers.
 - Candidate data can generate pre-survey reference output only. Formal disclosure generation rejects unconfirmed registry keys.
 
@@ -168,11 +192,15 @@ CREATE INDEX idx_registry_query_api_calls_cop_code ON registry_query_api_calls(c
 - Unit tests cover address fixtures, land fixtures, classifier rules, cache hit behavior, cost aggregation and error logging.
 - UI tests cover Settings query-record search, detail drawer JSON rendering, export actions and cache-hit zero-cost row.
 - E2E tests cover the seven fixtures from this CR and assert every run leaves JSON, cost and status data.
+- Desktop helper tests cover one successful R02 extraction fixture, one cloud access-denied fallback, one parse-failed diagnostic run, and one SaaS sync confirmation.
+- macOS and Windows release verification cover the R02 helper path before customer testing handoff.
 - `spectra analyze address-first-registry-match-and-query-ledger --json` and `spectra validate address-first-registry-match-and-query-ledger` pass with no Critical or Warning findings.
 
 ## Risks / Trade-offs
 
 - [Risk] EasyMap R02 DOM or response contract changes → Mitigation: isolate the adapter, store raw discovery JSON, record parser version and fail into `needs_manual_key_input`.
+- [Risk] SaaS cannot access R02 directly from cloud infrastructure → Mitigation: make desktop App / Helper the required R02 execution boundary and record access-denied runs as zero-cost diagnostics.
+- [Risk] Mac helper works but Windows customer build fails → Mitigation: require Windows native runner, VM or CI installer smoke verification before customer handoff.
 - [Risk] Candidate list contains multiple plausible building numbers → Mitigation: require user confirmation before COP formal pull and mark pre-survey output as reference only.
 - [Risk] COP error payload contains sensitive data → Mitigation: store request summaries with redaction and preserve raw response only in encrypted local SQLite.
 - [Risk] Cache returns stale official data → Mitigation: store `expires_at`, show fetched date, require explicit paid refresh with reason.

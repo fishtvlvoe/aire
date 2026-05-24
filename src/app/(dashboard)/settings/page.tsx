@@ -10,7 +10,17 @@ import {
 } from "@/lib/product-ui-demo-alignment";
 import { LandApiSection } from "@/components/settings/LandApiSection";
 import { BalanceMonitor } from "@/components/BalanceMonitor";
-import { listBillingEntries, type BillingLineItem } from "@/lib/land-registry-api";
+import {
+  getRegistryQueryRunDetail,
+  getTrialStatus,
+  listBillingEntries,
+  listRegistryQueryRuns,
+  recordR02ResultText,
+  syncRegistryQueryRunToSaas,
+  type BillingLineItem,
+  type RegistryQueryRun,
+  type TrialStatusInfo,
+} from "@/lib/land-registry-api";
 import { mockInvoke } from "@/lib/mock-backend";
 
 type SessionResponse =
@@ -37,12 +47,17 @@ export default function SettingsPage() {
   const slots = getPdfAssetSlots();
   const plans = getUpgradePlans();
   const selectedSection = searchParams?.get("section") ?? "profile";
-  const isLandDataPage = selectedSection === "registry-rules" || selectedSection === "billing";
+  const isLandDataPage =
+    selectedSection === "registry-rules" ||
+    selectedSection === "billing" ||
+    selectedSection === "registry-records";
   const pageTitle = selectedSection === "registry-rules"
     ? "資料來源"
-    : selectedSection === "billing"
-      ? "費用紀錄"
-      : selectedSection === "registry-auth"
+      : selectedSection === "billing"
+        ? "費用紀錄"
+        : selectedSection === "registry-records"
+          ? "查詢紀錄"
+        : selectedSection === "registry-auth"
         ? "地政授權"
         : selectedSection === "plans"
           ? "方案與升級"
@@ -51,8 +66,10 @@ export default function SettingsPage() {
             : "個人設定";
   const pageDescription = selectedSection === "registry-rules"
     ? "查看地政資料可帶入、不可查與需要人工補件的邊界。"
-    : selectedSection === "billing"
+      : selectedSection === "billing"
       ? "查看地政查詢費用、失敗不計費原因與帳務歸屬。"
+      : selectedSection === "registry-records"
+        ? "查看每次候選查詢、正式查詢、cache 命中與錯誤紀錄。"
       : selectedSection === "plans"
         ? "目前方案、可用功能與升級入口集中在這裡。"
         : selectedSection === "registry-auth"
@@ -89,6 +106,7 @@ function isKnownSettingsSection(section: string) {
     "profile",
     "registry-rules",
     "billing",
+    "registry-records",
     "pdf-assets",
     "registry-auth",
     "plans",
@@ -421,8 +439,189 @@ function getFeatureStates(features: EntitlementFeature[], flags: FeatureFlag[]) 
 }
 
 function LandDataSection({ section, slots }: { section: string; slots: ReturnType<typeof getPdfAssetSlots> }) {
+  if (section === "registry-records") return <RegistryQueryRecordsPanel />;
   if (section === "billing") return <BillingPanel />;
   return <RegistryRulesPanel slots={slots} />;
+}
+
+function RegistryQueryRecordsPanel() {
+  const [rows, setRows] = useState<RegistryQueryRun[] | null>(null);
+  const [selected, setSelected] = useState<RegistryQueryRun | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [trial, setTrial] = useState<TrialStatusInfo | null>(null);
+  const [r02CaseId, setR02CaseId] = useState("");
+  const [r02Address, setR02Address] = useState("");
+  const [r02Text, setR02Text] = useState("");
+  const [r02Status, setR02Status] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const [queryRuns, trialStatus] = await Promise.all([
+        listRegistryQueryRuns(""),
+        getTrialStatus(),
+      ]);
+      if (cancelled) return;
+      setRows(queryRuns);
+      setTrial(trialStatus);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function refresh(nextKeyword = keyword) {
+    const data = await listRegistryQueryRuns(nextKeyword);
+    setRows(data);
+  }
+
+  async function openDetail(runId: string) {
+    const detail = await getRegistryQueryRunDetail(runId);
+    setSelected(detail);
+  }
+
+  async function recordR02Run() {
+    setR02Status(null);
+    const recorded = await recordR02ResultText({
+      caseId: r02CaseId.trim() || null,
+      inputAddress: r02Address,
+      textOrHtml: r02Text,
+    });
+    const detail = await getRegistryQueryRunDetail(recorded.run_id);
+    setSelected(detail);
+    await refresh(keyword);
+    setR02Status(recorded.ok ? "R02 候選資料已寫入查詢紀錄" : "R02 解析失敗，已留下錯誤紀錄");
+  }
+
+  async function syncSelectedRun() {
+    if (!selected) return;
+    setSyncStatus(null);
+    const result = await syncRegistryQueryRunToSaas(selected.id);
+    setSyncStatus(result.remote_run_id ? `已同步 SaaS：${result.remote_run_id}` : "已同步 SaaS");
+  }
+
+  return (
+    <div className="space-y-4">
+      <article className="rounded-lg border p-4">
+        <h2 className="text-base font-semibold">SaaS 試用狀態</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          方案：{trial?.plan ?? "-"} ・ 狀態：{trial?.status ?? "-"} ・ 到期：{trial?.endsAt ?? "-"}
+        </p>
+      </article>
+      <article className="rounded-lg border p-4">
+        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-base font-semibold">R02 便民系統 Helper</h2>
+            <p className="text-sm text-muted-foreground">
+              用本機瀏覽器或 WebView 查 R02 後，把查詢結果文字貼回來，系統會留下候選 JSON 與 0 元紀錄。
+            </p>
+          </div>
+          <button
+            type="button"
+            className="w-fit rounded-md border px-3 py-2 text-sm"
+            onClick={() => window.open("https://easymap.moi.gov.tw/R02/Index#", "_blank", "noopener,noreferrer")}
+          >
+            開啟 R02
+          </button>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <label className="text-sm">
+            <span className="font-medium">案件 ID</span>
+            <input
+              className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
+              value={r02CaseId}
+              onChange={(event) => setR02CaseId(event.target.value)}
+              placeholder="可空白"
+              aria-label="R02 案件 ID"
+            />
+          </label>
+          <label className="text-sm">
+            <span className="font-medium">地址</span>
+            <input
+              className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
+              value={r02Address}
+              onChange={(event) => setR02Address(event.target.value)}
+              placeholder="台南市東區裕農路288巷17號8樓之1"
+              aria-label="R02 地址"
+            />
+          </label>
+        </div>
+        <label className="mt-3 block text-sm">
+          <span className="font-medium">R02 查詢結果文字</span>
+          <textarea
+            className="mt-1 min-h-36 w-full rounded-md border px-3 py-2 font-mono text-xs"
+            value={r02Text}
+            onChange={(event) => setR02Text(event.target.value)}
+            placeholder="貼上 R02 查詢結果，例如：行政區、地政事務所、地段、建號、建物面積、樓層數、樓層別、建物完成日期、主要用途"
+            aria-label="R02 查詢結果文字"
+          />
+        </label>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className="rounded-md bg-slate-950 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+            disabled={!r02Address.trim() || !r02Text.trim()}
+            onClick={() => void recordR02Run()}
+          >
+            寫入 R02 紀錄
+          </button>
+          {r02Status ? <span className="text-sm font-medium text-emerald-700">{r02Status}</span> : null}
+        </div>
+      </article>
+      <article className="rounded-lg border p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            className="min-h-10 flex-1 rounded-md border px-3 text-sm"
+            placeholder="搜尋地址、地號、建號、錯誤碼"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+          />
+          <button
+            type="button"
+            className="rounded-md border px-3 py-2 text-sm"
+            onClick={() => void refresh(keyword)}
+          >
+            搜尋
+          </button>
+        </div>
+        <div className="mt-3 space-y-2">
+          {(rows ?? []).map((row) => (
+            <button
+              key={row.id}
+              type="button"
+              className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm"
+              onClick={() => void openDetail(row.id)}
+            >
+              <span className="truncate">{row.source_input}</span>
+              <span className="ml-3 shrink-0 text-xs text-muted-foreground">
+                {row.cache_hit ? "cache-hit" : "paid"} / {Math.round(row.total_cost_cents / 100)} 元
+                {row.error_code ? ` / ${row.error_code}` : ""}
+              </span>
+            </button>
+          ))}
+        </div>
+      </article>
+      {selected ? (
+        <article className="rounded-lg border p-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-base font-semibold">紀錄明細</h2>
+            <button
+              type="button"
+              className="w-fit rounded-md border px-3 py-2 text-sm"
+              onClick={() => void syncSelectedRun()}
+            >
+              同步 SaaS
+            </button>
+          </div>
+          {syncStatus ? <p className="mt-2 text-sm font-medium text-emerald-700">{syncStatus}</p> : null}
+          <pre className="mt-3 overflow-auto rounded-md bg-slate-50 p-3 text-xs">
+            {JSON.stringify(selected, null, 2)}
+          </pre>
+        </article>
+      ) : null}
+    </div>
+  );
 }
 
 function RegistryRulesPanel({ slots = [] }: { slots?: ReturnType<typeof getPdfAssetSlots> }) {

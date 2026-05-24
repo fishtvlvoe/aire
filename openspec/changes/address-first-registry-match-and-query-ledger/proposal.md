@@ -5,6 +5,7 @@
 ## What Changes
 
 - 新增地址優先對標流程：輸入地址時先透過 EasyMap R02 / 便民系統尋找地段、地號、建號與候選資料，正式 COP 查詢前必須完成地址、地段、地號、建號對標確認。
+- 新增 AIRE 桌面 App / Helper 反查流程：當 SaaS 無法直接存取 EasyMap R02 時，由 Mac/Windows 本機 App 以使用者本機瀏覽器或 WebView 開啟 R02、擷取候選地段地號建號，再同步回 AIRE SaaS 案件。
 - 新增查詢 run 紀錄：每一次地址反查、候選比對、COP 呼叫、快取命中、人工確認與 PDF 輸出都留下可追溯資料。
 - 新增後台查詢紀錄 UI：設定頁可搜尋、檢視、展開 JSON、查看費用、查看 COP 錯誤、匯出 JSON/CSV，不需要靠本機檔案或 AI 翻資料。
 - 修改地政快取策略：同一 registry key 已有有效 COP JSON 時自動帶入舊資料，本次費用為 0，只有使用者確認重新查詢後才再打 COP。
@@ -17,6 +18,7 @@
 
 - 不記錄 AI prompt、AI 推理、chain-of-thought 或任何模型內部過程。
 - 不把 EasyMap R02 / 便民系統資料當成正式謄本資料；它只用於 key discovery、候選與對標。
+- 不假裝純 SaaS 可以穩定直接抓取 EasyMap R02；若 R02 擋掉雲端請求，正式產品路徑必須走本機 App / Helper 或人工輸入確認資料。
 - 不繞過 COP 權限限制；權限不足、COP 錯誤與查無資料都必須如實記錄並顯示。
 - 不重做 AIRE 既有 UI 骨架；本次只補地址對標、分類、查詢紀錄、補件與預覽流程。
 - 不把未確認候選資料直接輸出為正式不動產說明書。
@@ -26,6 +28,7 @@
 ### New Capabilities
 
 - `address-first-registry-match`: 地址或土地輸入先對標到地址、地段、地號、建號，再進入正式 COP 查詢。
+- `desktop-r02-helper-saas-sync`: AIRE 本機 App / Helper 從本機 R02 頁面擷取候選資料，將 JSON、費用、錯誤與確認結果同步到 SaaS。
 - `registry-query-records`: 每次查詢、快取、費用、錯誤、JSON 與人工確認都形成可在後台查詢的產品紀錄。
 
 ### Modified Capabilities
@@ -39,9 +42,9 @@
 
 ## Impact
 
-- Affected specs: address-first-registry-match, registry-query-records, land-registry-cache, land-registry-billing-log, settings-land-api-section, property-type-registry, case-supplement, disclosure-document-generation
+- Affected specs: address-first-registry-match, desktop-r02-helper-saas-sync, registry-query-records, land-registry-cache, land-registry-billing-log, settings-land-api-section, property-type-registry, case-supplement, disclosure-document-generation
 - Affected code:
-  - New: src-tauri/src/land_registry/easymap_r02.rs, src-tauri/migrations/013_registry_query_runs.sql, src/app/(dashboard)/settings/land-registry-records/page.tsx, src/lib/property-classifier.ts, src/lib/question-bank/import-0417-old.ts
+  - New: src-tauri/src/land_registry/easymap_r02.rs, src-tauri/src/land_registry/r02_webview.rs, src-tauri/src/land_registry/saas_sync.rs, src-tauri/migrations/013_registry_query_runs.sql, src/app/(dashboard)/settings/land-registry-records/page.tsx, src/lib/property-classifier.ts, src/lib/question-bank/import-0417-old.ts
   - Modified: src-tauri/src/land_registry/pull.rs, src-tauri/src/land_registry/cache/mod.rs, src-tauri/src/land_registry/billing_log/mod.rs, src/lib/land-registry-api.ts, src/lib/cases-api.ts, src/components/PullParcelDataButton.tsx, src/components/case-wizard/CaseWizardStep2.tsx, src/components/HouseMvpWorkbench.tsx, src/lib/pdf-engine/assemble-dossier-data.ts
   - Removed: none
 - Dependencies 新增: none

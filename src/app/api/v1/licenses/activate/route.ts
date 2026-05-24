@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { evaluateLicenseActivation } from "./license-activation";
 
+export const dynamic = "force-static";
+
 export async function POST(request: NextRequest) {
   let body: { serialKey?: unknown; deviceId?: unknown };
   try {

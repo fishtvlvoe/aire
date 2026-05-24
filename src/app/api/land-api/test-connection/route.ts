@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-static";
+
 const LAND_API_AUTH_ENDPOINT = "https://cop.land.moi.gov.tw/Landing/api/Auth/Token";
 const TIMEOUT_MS = 8000;
 

@@ -9,11 +9,13 @@ pub mod cache;
 pub mod client;
 pub mod consent;
 pub mod disk_resilience;
+pub mod easymap_r02;
 pub mod errors;
 pub mod field_mapping;
 pub mod migration_rollback;
 pub mod opcos_offline_grace;
 pub mod pull;
+pub mod saas_sync;
 pub mod time_sync;
 
 #[cfg(test)]

@@ -389,6 +389,160 @@ describe("MockStore", () => {
     ).rejects.toThrow("ACCOUNT_EXPIRED");
   });
 
+  it("supports web trial gate, registry confirmation, formal lookup, and cache-hit query runs", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+      },
+    });
+
+    await expect(
+      mockInvoke("confirm_case_registry_match", {
+        caseId: created.id,
+        sectionName: "富強段",
+        landNo: "00700000",
+        buildingNo: "00165000",
+      }),
+    ).resolves.toMatchObject({ success: true });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).resolves.toMatchObject({
+      cache_hit: false,
+      total_cost: 20,
+      source_run_id: null,
+    });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).resolves.toMatchObject({
+      cache_hit: true,
+      total_cost: 0,
+    });
+
+    const runs = await mockInvoke<Array<{ id: string; cache_hit: boolean; source_run_id: string | null }>>(
+      "list_registry_query_runs",
+      {},
+    );
+    expect(runs.length).toBeGreaterThanOrEqual(2);
+    expect(runs.some((run) => run.cache_hit)).toBe(true);
+    const detail = await mockInvoke<{ id: string; api_calls: Array<{ service_code: string }> }>(
+      "get_registry_query_run_detail",
+      { runId: runs[0].id },
+    );
+    expect(detail.id).toBe(runs[0].id);
+    expect(Array.isArray(detail.api_calls)).toBe(true);
+  });
+
+  it("parses R02 desktop helper text into zero-cost candidate JSON", async () => {
+    const run = await mockInvoke<{
+      adapter: string;
+      parser_version: string;
+      total_cost_cents: number;
+      candidates: Array<{
+        section_code: string | null;
+        section_name: string | null;
+        building_no: string | null;
+        building_area_sqm: string | null;
+        main_use: string | null;
+      }>;
+    }>("land_registry_parse_r02_result_text", {
+      inputAddress: "台南市東區裕農路288巷17號8樓之1",
+      textOrHtml: `
+        查詢結果
+        行政區 臺南市 東區
+        地政事務所 東南地政事務所
+        地段 1556 富強段
+        建號 00204000
+        建物面積 83.61 平方公尺
+        樓層數 012
+        樓層別 八層
+        建物完成日期 0800829 (屋齡:約 34年)
+        主要用途 住家用
+      `,
+    });
+
+    expect(run.adapter).toBe("easymap_r02_desktop");
+    expect(run.parser_version).toBe("r02-text-v1");
+    expect(run.total_cost_cents).toBe(0);
+    expect(run.candidates[0]).toMatchObject({
+      section_code: "1556",
+      section_name: "富強段",
+      building_no: "00204000",
+      building_area_sqm: "83.61",
+      main_use: "住家用",
+    });
+  });
+
+  it("records R02 desktop helper parse results into query runs", async () => {
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+      },
+    });
+
+    const recorded = await mockInvoke<{ run_id: string; ok: boolean }>(
+      "land_registry_record_r02_result_text",
+      {
+        caseId: created.id,
+        inputAddress: "台南市東區裕農路288巷17號8樓之1",
+        textOrHtml: `
+          行政區 臺南市 東區
+          地政事務所 東南地政事務所
+          地段 1556 富強段
+          建號 00204000
+          主要用途 住家用
+        `,
+      },
+    );
+
+    expect(recorded.ok).toBe(true);
+
+    const detail = await mockInvoke<{
+      id: string;
+      case_id: string | null;
+      total_cost_cents: number;
+      candidate_json: Record<string, unknown> | null;
+    }>("get_registry_query_run_detail", { runId: recorded.run_id });
+
+    expect(detail).toMatchObject({
+      id: recorded.run_id,
+      case_id: created.id,
+      total_cost_cents: 0,
+    });
+    expect(detail.candidate_json).toMatchObject({
+      adapter: "easymap_r02_desktop",
+    });
+  });
+
+  it("blocks formal lookup when trial is expired", async () => {
+    await expect(
+      mockInvoke("set_trial_status", {
+        status: "expired",
+      }),
+    ).resolves.toMatchObject({ success: true });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: "11111111-1111-4111-8111-111111111111",
+        apiIds: ["building_registry"],
+      }),
+    ).rejects.toThrow("trial_expired");
+  });
+
   it("supports get_app_settings and save_app_settings merging", async () => {
     await expect(mockInvoke("get_app_settings")).resolves.toEqual({
       license: { status: "none", serialKey: null },

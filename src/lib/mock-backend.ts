@@ -166,6 +166,99 @@ interface PersistedMockState {
   cases?: CaseRow[];
   caseAssets?: CaseAssetRow[];
   caseAssetBytes?: Record<string, number[]>;
+  trialState?: TrialState;
+  registryQueryRuns?: RegistryQueryRun[];
+  registryQueryCache?: Record<string, string>;
+  registryMatchByCase?: Record<string, ConfirmedRegistryMatch>;
+}
+
+type TrialPlan = "trial" | "basic" | "pro" | "vip";
+type TrialStatus = "active" | "expired" | "disabled";
+
+interface TrialState {
+  plan: TrialPlan;
+  status: TrialStatus;
+  startedAt: string | null;
+  endsAt: string | null;
+}
+
+type RegistryRunMatchStatus = "candidate" | "confirmed" | "rejected";
+type RegistryRunInputType = "address" | "land" | "registry_key";
+
+interface RegistryQueryApiCall {
+  id: string;
+  service_code: string;
+  transaction_id: string | null;
+  http_status: number;
+  moi_code: string | null;
+  moi_message: string | null;
+  return_rows: number;
+  cost_cents: number;
+  started_at: string;
+  finished_at: string;
+}
+
+interface RegistryQueryRun {
+  id: string;
+  organization_id: string;
+  case_id: string | null;
+  input_type: RegistryRunInputType;
+  source_input: string;
+  match_status: RegistryRunMatchStatus;
+  candidate_json: Record<string, unknown> | null;
+  cop_response_json: Record<string, unknown> | null;
+  raw_response_json: Record<string, unknown> | null;
+  total_cost_cents: number;
+  cache_hit: boolean;
+  source_run_id: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  api_calls: RegistryQueryApiCall[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface ConfirmedRegistryMatch {
+  case_id: string;
+  section_name: string;
+  land_no: string;
+  building_no: string | null;
+  confirmed_at: string;
+}
+
+interface R02BuildingCandidate {
+  administrative_district: string | null;
+  land_office: string | null;
+  section_code: string | null;
+  section_name: string | null;
+  land_no: string | null;
+  building_no: string | null;
+  building_area_sqm: string | null;
+  total_floor_count: string | null;
+  floor_label: string | null;
+  completion_date_roc: string | null;
+  age_years: string | null;
+  main_use: string | null;
+}
+
+interface R02DiscoveryRun {
+  adapter: "easymap_r02_desktop";
+  parser_version: "r02-text-v1";
+  input_address: string;
+  status: "candidate_unconfirmed";
+  total_cost_cents: 0;
+  candidates: R02BuildingCandidate[];
+  raw_summary: string;
+  missing_fields: string[];
+  error_code: null;
+  next_action: null;
+}
+
+interface R02RecordedDiscoveryRun {
+  run_id: string;
+  ok: boolean;
+  discovery: R02DiscoveryRun | null;
+  error: Record<string, unknown> | null;
 }
 
 const MOCK_STORAGE_KEY = "aire-mock-store";
@@ -219,6 +312,13 @@ const DEFAULT_PROFILE_SETTINGS: ProfileSettingsState = {
   brandColor: "#174d36",
   logoName: "",
   passwordUpdatedAt: null,
+};
+
+const DEFAULT_TRIAL_STATE: TrialState = {
+  plan: "trial",
+  status: "active",
+  startedAt: "2026-05-25T00:00:00.000Z",
+  endsAt: "2026-06-24T23:59:59.000Z",
 };
 
 const DEFAULT_THEMES = [
@@ -412,6 +512,55 @@ function pickString(record: Record<string, unknown>, keys: string[]): string | n
   return null;
 }
 
+function normalizeR02Text(input: string): string {
+  return input
+    .replace(/<[^>]+>/g, "\n")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function extractR02Label(text: string, label: string): string | null {
+  const labels = [
+    "行政區",
+    "地政事務所",
+    "地段",
+    "地號",
+    "建號",
+    "建物面積",
+    "樓層數",
+    "樓層別",
+    "建物完成日期",
+    "主要用途",
+  ];
+  const lines = text.split(/\r?\n/);
+
+  for (const [index, rawLine] of lines.entries()) {
+    const line = rawLine.replace(/：/g, ":").trim();
+    if (line === label) {
+      return lines[index + 1]?.trim() || null;
+    }
+    if (line.startsWith(label)) {
+      const value = line.slice(label.length).replace(/^:/, "").trim();
+      if (value) return value.replace(/\s+/g, " ");
+    }
+    const labelIndex = line.indexOf(label);
+    if (labelIndex >= 0) {
+      const after = line.slice(labelIndex + label.length).replace(/^:/, "").trim();
+      if (!after) continue;
+      const nextLabelIndex = labels
+        .filter((candidate) => candidate !== label)
+        .map((candidate) => after.indexOf(candidate))
+        .filter((position) => position >= 0)
+        .sort((a, b) => a - b)[0];
+      return after.slice(0, nextLabelIndex ?? after.length).trim().replace(/\s+/g, " ");
+    }
+  }
+
+  return null;
+}
+
 function toRecord(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object") {
     return value as Record<string, unknown>;
@@ -537,6 +686,11 @@ export class MockStore {
   private floorPlanConversions: unknown[] = [];
   private caseAssets: CaseAssetRow[] = [];
   private caseAssetBytes = new Map<string, number[]>();
+  private organizationId = "org-demo-001";
+  private trialState: TrialState = { ...DEFAULT_TRIAL_STATE };
+  private registryQueryRuns: RegistryQueryRun[] = [];
+  private registryQueryCache = new Map<string, string>();
+  private registryMatchByCase = new Map<string, ConfirmedRegistryMatch>();
 
   constructor() {
     this.reset();
@@ -544,6 +698,10 @@ export class MockStore {
     this.floorPlanConversions = [];
     this.caseAssets = [];
     this.caseAssetBytes = new Map<string, number[]>();
+    this.trialState = { ...DEFAULT_TRIAL_STATE };
+    this.registryQueryRuns = [];
+    this.registryQueryCache = new Map<string, string>();
+    this.registryMatchByCase = new Map<string, ConfirmedRegistryMatch>();
     this.restorePersistedState();
   }
 
@@ -580,6 +738,10 @@ export class MockStore {
     this.workbenchSupplements = new Map<string, WorkbenchSupplementDraft>();
     this.floorPlanSketches = [];
     this.floorPlanConversions = [];
+    this.trialState = { ...DEFAULT_TRIAL_STATE };
+    this.registryQueryRuns = [];
+    this.registryQueryCache = new Map<string, string>();
+    this.registryMatchByCase = new Map<string, ConfirmedRegistryMatch>();
   }
 
   async invoke<T>(cmd: string, args?: CommandArgs): Promise<T> {
@@ -695,8 +857,14 @@ export class MockStore {
 
         case "land_registry_address_lookup":
           return this.landRegistryAddressLookup(args) as T;
+        case "land_registry_parse_r02_result_text":
+          return this.landRegistryParseR02ResultText(args) as T;
+        case "land_registry_record_r02_result_text":
+          return this.landRegistryRecordR02ResultText(args) as T;
         case "land_registry_pull_data":
           return this.landRegistryPullData(args) as T;
+        case "land_registry_formal_pull_data":
+          return this.landRegistryFormalPullData(args) as T;
         case "query_real_price":
           return this.queryRealPrice(args) as T;
         case "land_registry_set_api_key":
@@ -711,6 +879,18 @@ export class MockStore {
           return this.landRegistryListBillingEntries() as T;
         case "land_registry_record_consent":
           return this.landRegistryRecordConsent(args) as T;
+        case "list_registry_query_runs":
+          return this.listRegistryQueryRuns(args) as T;
+        case "get_registry_query_run_detail":
+          return this.getRegistryQueryRunDetail(args) as T;
+        case "land_registry_sync_query_run_to_saas":
+          return this.syncRegistryQueryRunToSaas(args) as T;
+        case "confirm_case_registry_match":
+          return this.confirmCaseRegistryMatch(args) as T;
+        case "get_trial_status":
+          return this.getTrialStatus() as T;
+        case "set_trial_status":
+          return this.setTrialStatus(args) as T;
 
         case "import_case_asset":
           return this.importCaseAsset(args) as T;
@@ -1511,30 +1691,124 @@ export class MockStore {
     args?: CommandArgs,
   ): Array<{ parcel_id: string; address: string; lot_number: string; building_number: string }> {
     const addr = (args?.address as string) || "未知地址";
+    let candidates: Array<{ parcel_id: string; address: string; lot_number: string; building_number: string }> = [];
     if (!addr.trim() || /查無|不存在/.test(addr)) {
-      return [];
-    }
-    if (/裕農路288巷17號/.test(addr)) {
-      return [
+      candidates = [];
+    } else if (/裕農路288巷17號/.test(addr)) {
+      candidates = [
         { parcel_id: "DC-1556-00700000", address: addr, lot_number: "00700000", building_number: "" },
         { parcel_id: "DC-1556-00165000", address: addr, lot_number: "00700000", building_number: "00165000" },
         { parcel_id: "DC-1556-00167000", address: addr, lot_number: "00700000", building_number: "00167000" },
         { parcel_id: "DC-1556-00229000", address: addr, lot_number: "00700000", building_number: "00229000" },
         { parcel_id: "DC-1556-00230000", address: addr, lot_number: "00700000", building_number: "00230000" },
       ];
-    }
-    if (/候選|多筆|結果不明確/.test(addr)) {
-      return [
+    } else if (/候選|多筆|結果不明確/.test(addr)) {
+      candidates = [
         { parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "0000" },
         { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
       ];
+    } else if (/農地|土地|地號/.test(addr)) {
+      candidates = [{ parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "" }];
+    } else {
+      candidates = [
+        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
+      ];
     }
-    if (/農地|土地|地號/.test(addr)) {
-      return [{ parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "" }];
+    this.registryQueryRuns.unshift(this.makeQueryRun({
+      inputType: "address",
+      sourceInput: addr,
+      matchStatus: "candidate",
+      candidateJson: { candidates },
+      totalCostCents: 0,
+    }));
+    return candidates;
+  }
+
+  private landRegistryParseR02ResultText(args?: CommandArgs): R02DiscoveryRun {
+    const payload = toRecord(args);
+    const inputAddress = pickString(payload, ["inputAddress", "input_address"]) ?? "";
+    const text = normalizeR02Text(pickString(payload, ["textOrHtml", "text_or_html", "text"]) ?? "");
+    const candidate: R02BuildingCandidate = {
+      administrative_district: extractR02Label(text, "行政區"),
+      land_office: extractR02Label(text, "地政事務所"),
+      section_code: extractR02Label(text, "地段")?.split(/\s+/)[0] ?? null,
+      section_name: extractR02Label(text, "地段")?.split(/\s+/).slice(1).join(" ") || null,
+      land_no: extractR02Label(text, "地號"),
+      building_no: extractR02Label(text, "建號")?.replace(/\D/g, "") || null,
+      building_area_sqm: extractR02Label(text, "建物面積")?.replace("平方公尺", "").trim() ?? null,
+      total_floor_count: extractR02Label(text, "樓層數"),
+      floor_label: extractR02Label(text, "樓層別"),
+      completion_date_roc: extractR02Label(text, "建物完成日期")?.split(/\s+/)[0] ?? null,
+      age_years: extractR02Label(text, "建物完成日期")?.match(/屋齡[^)）]*/)?.[0] ?? null,
+      main_use: extractR02Label(text, "主要用途"),
+    };
+    const missingFields = [
+      candidate.section_code ? null : "section_code",
+      candidate.section_name ? null : "section_name",
+      candidate.building_no ? null : "building_no",
+    ].filter((field): field is string => Boolean(field));
+    if (missingFields.length > 0) {
+      throw new Error(`r02_required_fields_missing:${missingFields.join(",")}`);
     }
-    return [
-      { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
-    ];
+    return {
+      adapter: "easymap_r02_desktop",
+      parser_version: "r02-text-v1",
+      input_address: inputAddress,
+      status: "candidate_unconfirmed",
+      total_cost_cents: 0,
+      candidates: [candidate],
+      raw_summary: text.slice(0, 1200),
+      missing_fields: [],
+      error_code: null,
+      next_action: null,
+    };
+  }
+
+  private landRegistryRecordR02ResultText(args?: CommandArgs): R02RecordedDiscoveryRun {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    const inputAddress = pickString(payload, ["inputAddress", "input_address"]) ?? "";
+    try {
+      const discovery = this.landRegistryParseR02ResultText(args);
+      const candidate = discovery.candidates[0];
+      const run = this.makeQueryRun({
+        inputType: "address",
+        sourceInput: inputAddress,
+        matchStatus: "candidate",
+        candidateJson: discovery as unknown as Record<string, unknown>,
+        rawResponseJson: discovery as unknown as Record<string, unknown>,
+        totalCostCents: 0,
+        caseId,
+      });
+      this.registryQueryRuns.unshift(run);
+      this.persistState();
+      return { run_id: run.id, ok: true, discovery, error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const missingFields = message.startsWith("r02_required_fields_missing:")
+        ? message.split(":")[1]?.split(",").filter(Boolean) ?? []
+        : [];
+      const errorSummary = {
+        adapter: "easymap_r02_desktop",
+        parserVersion: "r02-text-v1",
+        errorCode: "r02_required_fields_missing",
+        missingFields,
+        nextAction: "manual_registry_key_required",
+      };
+      const run = this.makeQueryRun({
+        inputType: "address",
+        sourceInput: inputAddress,
+        matchStatus: "candidate",
+        totalCostCents: 0,
+        caseId,
+        errorCode: "r02_required_fields_missing",
+        errorMessage: message,
+        rawResponseJson: errorSummary,
+      });
+      this.registryQueryRuns.unshift(run);
+      this.persistState();
+      return { run_id: run.id, ok: false, discovery: null, error: errorSummary };
+    }
   }
 
   private landRegistryPullData(
@@ -1600,6 +1874,73 @@ export class MockStore {
       totalCost += 10;
     }
     return { results, total_cost: totalCost };
+  }
+
+  private landRegistryFormalPullData(
+    args?: CommandArgs,
+  ): {
+    run_id: string;
+    results: Record<string, unknown>;
+    total_cost: number;
+    cache_hit: boolean;
+    source_run_id: string | null;
+  } {
+    if (this.trialState.status !== "active") {
+      throw new Error("trial_expired");
+    }
+    if (!this.appSettings.landApi.clientId.trim() || !this.appSettings.landApi.secret.trim()) {
+      throw new Error("cop_credential_required");
+    }
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    const confirmed = caseId ? this.registryMatchByCase.get(caseId) : null;
+    if (!confirmed) {
+      throw new Error("registry_match_required");
+    }
+    const apiIds = Array.isArray(payload.apiIds) ? (payload.apiIds as string[]) : [];
+    const cacheKey = `${this.organizationId}:${confirmed.section_name}:${confirmed.land_no}:${confirmed.building_no ?? "land-only"}:${apiIds.join(",")}`;
+    const cachedRunId = this.registryQueryCache.get(cacheKey);
+    if (cachedRunId) {
+      const run = this.makeQueryRun({
+        inputType: "registry_key",
+        sourceInput: cacheKey,
+        matchStatus: "confirmed",
+        candidateJson: { cache: "hit" },
+        totalCostCents: 0,
+        cacheHit: true,
+        sourceRunId: cachedRunId,
+        caseId,
+      });
+      this.registryQueryRuns.unshift(run);
+      return { run_id: run.id, results: {}, total_cost: 0, cache_hit: true, source_run_id: cachedRunId };
+    }
+    const pulled = this.landRegistryPullData({ ...payload, apiIds });
+    const nowIso = new Date().toISOString();
+    const apiCalls: RegistryQueryApiCall[] = apiIds.map((apiId, index) => ({
+      id: makeUuid(),
+      service_code: apiId,
+      transaction_id: `tx-${Date.now()}-${index + 1}`,
+      http_status: 200,
+      moi_code: null,
+      moi_message: "OK",
+      return_rows: 1,
+      cost_cents: 1000,
+      started_at: nowIso,
+      finished_at: nowIso,
+    }));
+    const run = this.makeQueryRun({
+      inputType: "registry_key",
+      sourceInput: cacheKey,
+      matchStatus: "confirmed",
+      copResponseJson: pulled.results as Record<string, unknown>,
+      rawResponseJson: pulled.results as Record<string, unknown>,
+      totalCostCents: pulled.total_cost * 100,
+      caseId,
+      apiCalls,
+    });
+    this.registryQueryRuns.unshift(run);
+    this.registryQueryCache.set(cacheKey, run.id);
+    return { run_id: run.id, results: pulled.results, total_cost: pulled.total_cost, cache_hit: false, source_run_id: null };
   }
 
   private queryRealPrice(args?: CommandArgs): Array<{
@@ -1755,6 +2096,18 @@ export class MockStore {
     cost: number;
     charged_at: string;
   }> {
+    const fromRuns = this.registryQueryRuns.flatMap((run) =>
+      run.api_calls.map((call) => ({
+        service_name: call.service_code,
+        target: run.case_id ? `${run.case_id} / ${run.source_input}` : run.source_input,
+        status_label: call.http_status >= 400 ? "查詢失敗" : "查詢成功",
+        transaction_id: call.transaction_id ?? "N/A",
+        cost: Math.round(call.cost_cents / 100),
+        charged_at: call.finished_at,
+      })),
+    );
+    if (fromRuns.length > 0) return fromRuns;
+
     return [
       {
         service_name: "建物所有權資料",
@@ -1790,6 +2143,111 @@ export class MockStore {
       this.consentedCases.add(caseId);
     }
     return undefined;
+  }
+
+  private listRegistryQueryRuns(args?: CommandArgs): RegistryQueryRun[] {
+    const payload = toRecord(args);
+    const keyword = pickString(payload, ["keyword"])?.toLowerCase() ?? "";
+    return this.registryQueryRuns
+      .filter((run) => run.organization_id === this.organizationId)
+      .filter((run) => (keyword ? JSON.stringify(run).toLowerCase().includes(keyword) : true))
+      .map((run) => ({ ...run, api_calls: run.api_calls.map((call) => ({ ...call })) }));
+  }
+
+  private getRegistryQueryRunDetail(args?: CommandArgs): RegistryQueryRun {
+    const payload = toRecord(args);
+    const runId = pickString(payload, ["runId", "run_id", "id"]);
+    if (!runId) throw new Error("run_id_required");
+    const run = this.registryQueryRuns.find(
+      (item) => item.id === runId && item.organization_id === this.organizationId,
+    );
+    if (!run) throw new Error("run_not_found");
+    return { ...run, api_calls: run.api_calls.map((call) => ({ ...call })) };
+  }
+
+  private syncRegistryQueryRunToSaas(args?: CommandArgs): { synced: true; remote_run_id: string } {
+    const payload = toRecord(args);
+    const runId = pickString(payload, ["runId", "run_id", "id"]);
+    if (!runId) throw new Error("run_id_required");
+    const run = this.registryQueryRuns.find((item) => item.id === runId);
+    if (!run) throw new Error("run_not_found");
+    return { synced: true, remote_run_id: `mock-remote-${run.id}` };
+  }
+
+  private confirmCaseRegistryMatch(args?: CommandArgs): { success: true; match: ConfirmedRegistryMatch } {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    const sectionName = pickString(payload, ["sectionName", "section_name"]);
+    const landNo = pickString(payload, ["landNo", "land_no"]);
+    const buildingNo = pickString(payload, ["buildingNo", "building_no"]);
+    if (!caseId || !sectionName || !landNo) throw new Error("registry_match_required");
+    const match: ConfirmedRegistryMatch = {
+      case_id: caseId,
+      section_name: sectionName,
+      land_no: landNo,
+      building_no: buildingNo,
+      confirmed_at: new Date().toISOString(),
+    };
+    this.registryMatchByCase.set(caseId, match);
+    return { success: true, match };
+  }
+
+  private getTrialStatus(): TrialState {
+    return { ...this.trialState };
+  }
+
+  private setTrialStatus(args?: CommandArgs): { success: true; trial: TrialState } {
+    const payload = toRecord(args);
+    const status = pickString(payload, ["status"]) as TrialStatus | null;
+    const plan = pickString(payload, ["plan"]) as TrialPlan | null;
+    if (status && (status === "active" || status === "expired" || status === "disabled")) {
+      this.trialState.status = status;
+    }
+    if (plan && (plan === "trial" || plan === "basic" || plan === "pro" || plan === "vip")) {
+      this.trialState.plan = plan;
+    }
+    const startedAt = pickString(payload, ["startedAt", "started_at"]);
+    const endsAt = pickString(payload, ["endsAt", "ends_at"]);
+    if (startedAt !== null) this.trialState.startedAt = startedAt;
+    if (endsAt !== null) this.trialState.endsAt = endsAt;
+    return { success: true, trial: { ...this.trialState } };
+  }
+
+  private makeQueryRun(input: {
+    inputType: RegistryRunInputType;
+    sourceInput: string;
+    matchStatus: RegistryRunMatchStatus;
+    candidateJson?: Record<string, unknown>;
+    copResponseJson?: Record<string, unknown>;
+    rawResponseJson?: Record<string, unknown>;
+    totalCostCents: number;
+    cacheHit?: boolean;
+    sourceRunId?: string;
+    errorCode?: string;
+    errorMessage?: string;
+    caseId?: string | null;
+    apiCalls?: RegistryQueryApiCall[];
+  }): RegistryQueryRun {
+    const now = new Date().toISOString();
+    return {
+      id: makeUuid(),
+      organization_id: this.organizationId,
+      case_id: input.caseId ?? null,
+      input_type: input.inputType,
+      source_input: input.sourceInput,
+      match_status: input.matchStatus,
+      candidate_json: input.candidateJson ?? null,
+      cop_response_json: input.copResponseJson ?? null,
+      raw_response_json: input.rawResponseJson ?? null,
+      total_cost_cents: input.totalCostCents,
+      cache_hit: input.cacheHit ?? false,
+      source_run_id: input.sourceRunId ?? null,
+      error_code: input.errorCode ?? null,
+      error_message: input.errorMessage ?? null,
+      api_calls: input.apiCalls ?? [],
+      created_at: now,
+      updated_at: now,
+    };
   }
 
   private uploadFloorPlanSketch(args?: CommandArgs): FloorPlanSketchRow {
@@ -1923,6 +2381,7 @@ export class MockStore {
       const persistedSession = parsed.sessionUser;
       const persistedSettings = parsed.appSettings;
       const persistedCases = parsed.cases;
+      const persistedTrial = parsed.trialState;
 
       if (
         persistedLicense &&
@@ -2102,6 +2561,40 @@ export class MockStore {
             .map((row) => [row.id, { ...row }]),
         );
       }
+      if (
+        persistedTrial &&
+        (persistedTrial.plan === "trial" ||
+          persistedTrial.plan === "basic" ||
+          persistedTrial.plan === "pro" ||
+          persistedTrial.plan === "vip") &&
+        (persistedTrial.status === "active" ||
+          persistedTrial.status === "expired" ||
+          persistedTrial.status === "disabled")
+      ) {
+        this.trialState = { ...persistedTrial };
+      }
+      if (Array.isArray(parsed.registryQueryRuns)) {
+        this.registryQueryRuns = parsed.registryQueryRuns.map((run) => ({
+          ...run,
+          api_calls: Array.isArray(run.api_calls) ? run.api_calls.map((call) => ({ ...call })) : [],
+        }));
+      }
+      if (parsed.registryQueryCache && typeof parsed.registryQueryCache === "object") {
+        this.registryQueryCache = new Map(
+          Object.entries(parsed.registryQueryCache).filter(
+            (entry): entry is [string, string] =>
+              typeof entry[0] === "string" && typeof entry[1] === "string",
+          ),
+        );
+      }
+      if (parsed.registryMatchByCase && typeof parsed.registryMatchByCase === "object") {
+        this.registryMatchByCase = new Map(
+          Object.entries(parsed.registryMatchByCase).filter(
+            (entry): entry is [string, ConfirmedRegistryMatch] =>
+              typeof entry[0] === "string" && typeof entry[1] === "object" && entry[1] !== null,
+          ),
+        );
+      }
       if (Array.isArray(parsed.caseAssets)) {
         this.caseAssets = parsed.caseAssets
           .filter((asset): asset is CaseAssetRow => Boolean(asset) && typeof asset.id === "string")
@@ -2169,6 +2662,13 @@ export class MockStore {
       cases: [...this.cases.values()].map((row) => ({ ...row })),
       caseAssets: this.caseAssets.map((asset) => ({ ...asset })),
       caseAssetBytes: Object.fromEntries(this.caseAssetBytes.entries()),
+      trialState: { ...this.trialState },
+      registryQueryRuns: this.registryQueryRuns.map((run) => ({
+        ...run,
+        api_calls: run.api_calls.map((call) => ({ ...call })),
+      })),
+      registryQueryCache: Object.fromEntries(this.registryQueryCache.entries()),
+      registryMatchByCase: Object.fromEntries(this.registryMatchByCase.entries()),
     };
 
     try {

@@ -21,7 +21,7 @@ let mockProfileSettings = {
 
 // Mock mockInvoke（所有子元件透過 mockInvoke 存取資料）
 vi.mock("@/lib/mock-backend", () => ({
-  mockInvoke: vi.fn(async (cmd: string, args?: { id?: string; name?: string; email?: string; brandColor?: string; logoName?: string }) => {
+  mockInvoke: vi.fn(async (cmd: string, args?: Record<string, unknown>) => {
     if (cmd === "get_session") {
       return {
         authenticated: true,
@@ -52,10 +52,10 @@ vi.mock("@/lib/mock-backend", () => ({
     if (cmd === "save_profile_settings") {
       mockProfileSettings = {
         ...mockProfileSettings,
-        name: args?.name ?? mockProfileSettings.name,
-        email: args?.email ?? mockProfileSettings.email,
-        brandColor: args?.brandColor ?? mockProfileSettings.brandColor,
-        logoName: args?.logoName ?? mockProfileSettings.logoName,
+        name: typeof args?.name === "string" ? args.name : mockProfileSettings.name,
+        email: typeof args?.email === "string" ? args.email : mockProfileSettings.email,
+        brandColor: typeof args?.brandColor === "string" ? args.brandColor : mockProfileSettings.brandColor,
+        logoName: typeof args?.logoName === "string" ? args.logoName : mockProfileSettings.logoName,
       };
       return { success: true };
     }
@@ -88,6 +88,44 @@ vi.mock("@/lib/mock-backend", () => ({
           charged_at: "2026-05-18T22:52:20+08:00",
         },
       ];
+    }
+    if (cmd === "list_registry_query_runs") {
+      return [];
+    }
+    if (cmd === "get_registry_query_run_detail") {
+      return {
+        id: args?.runId ?? args?.run_id ?? "run-r02-001",
+        organization_id: "local-device",
+        case_id: "case-r02-001",
+        input_type: "address",
+        source_input: "台南市東區裕農路288巷17號8樓之1",
+        match_status: "candidate",
+        candidate_json: { adapter: "easymap_r02_desktop" },
+        cop_response_json: null,
+        raw_response_json: { adapter: "easymap_r02_desktop" },
+        total_cost_cents: 0,
+        cache_hit: false,
+        source_run_id: null,
+        error_code: null,
+        error_message: null,
+        api_calls: [],
+        created_at: "2026-05-25T00:00:00.000Z",
+        updated_at: "2026-05-25T00:00:00.000Z",
+      };
+    }
+    if (cmd === "get_trial_status") {
+      return {
+        plan: "trial",
+        status: "active",
+        startedAt: "2026-05-25T00:00:00.000Z",
+        endsAt: "2026-06-24T23:59:59.000Z",
+      };
+    }
+    if (cmd === "land_registry_record_r02_result_text") {
+      return { run_id: "run-r02-001", ok: true, discovery: { adapter: "easymap_r02_desktop" }, error: null };
+    }
+    if (cmd === "land_registry_sync_query_run_to_saas") {
+      return { synced: true, remote_run_id: "remote-r02-001" };
     }
     return { success: true };
   }),
@@ -287,6 +325,54 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByText("門牌建號查詢")).toBeInTheDocument();
     expect(screen.getByText("地政費用合計 27 元")).toBeInTheDocument();
     expect(screen.getByText("AIRE 方案功能")).toBeInTheDocument();
+  });
+
+  it("查詢紀錄頁可以寫入 R02 Helper 結果並同步 SaaS", async () => {
+    const mockedInvoke = vi.mocked(mockInvoke);
+    mockSection = "registry-records";
+    render(<SettingsPage />);
+
+    expect(screen.getByRole("heading", { name: "查詢紀錄" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "R02 便民系統 Helper" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("R02 案件 ID"), {
+      target: { value: "case-r02-001" },
+    });
+    fireEvent.change(screen.getByLabelText("R02 地址"), {
+      target: { value: "台南市東區裕農路288巷17號8樓之1" },
+    });
+    fireEvent.change(screen.getByLabelText("R02 查詢結果文字"), {
+      target: {
+        value: `
+          行政區 臺南市 東區
+          地政事務所 東南地政事務所
+          地段 1556 富強段
+          建號 00204000
+          建物面積 83.61 平方公尺
+          主要用途 住家用
+        `,
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "寫入 R02 紀錄" }));
+
+    await waitFor(() => {
+      expect(mockedInvoke).toHaveBeenCalledWith("land_registry_record_r02_result_text", expect.objectContaining({
+        caseId: "case-r02-001",
+        inputAddress: "台南市東區裕農路288巷17號8樓之1",
+      }));
+      expect(screen.getByText("R02 候選資料已寫入查詢紀錄")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "紀錄明細" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "同步 SaaS" }));
+
+    await waitFor(() => {
+      expect(mockedInvoke).toHaveBeenCalledWith("land_registry_sync_query_run_to_saas", expect.objectContaining({
+        runId: "run-r02-001",
+      }));
+      expect(screen.getByText("已同步 SaaS：remote-r02-001")).toBeInTheDocument();
+    });
   });
 
   it("DevSuperAdmin 在 test 環境不渲染（僅 development 環境可見）", () => {
