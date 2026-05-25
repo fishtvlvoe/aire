@@ -16,6 +16,7 @@ import {
   type RegistryProvenancePayload,
   type CandidateParcelOption,
 } from "@/lib/registry-provenance";
+import { casePreviewHref } from "@/lib/case-routes";
 
 interface DemoAlignedWorkbenchProps {
   caseData: CaseRow;
@@ -545,7 +546,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm" aria-label="審核操作">
-          <Link className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseDraft.id}/preview`}>
+          <Link className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={casePreviewHref(caseDraft.id)}>
             預覽 PDF
           </Link>
         </div>
@@ -977,7 +978,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 <div className="rounded-md bg-slate-50 p-3">待確認欄位：23 欄</div>
                 <div className="rounded-md bg-slate-50 p-3">已上傳圖資：{uploadedAssetCount} 項</div>
               </div>
-              <Link className="mt-3 inline-flex rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={`/cases/${caseDraft.id}/preview`}>
+              <Link className="mt-3 inline-flex rounded-md bg-slate-950 px-3 py-2 text-sm text-white" href={casePreviewHref(caseDraft.id)}>
                 開啟 PDF 預覽
               </Link>
             </section>
@@ -993,7 +994,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 下一步：{nextTab.label}
               </button>
             ) : (
-              <Link className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white" href={`/cases/${caseDraft.id}/preview`}>
+              <Link className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white" href={casePreviewHref(caseDraft.id)}>
                 完成並預覽 PDF
               </Link>
             )}

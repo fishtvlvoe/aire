@@ -5,7 +5,7 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 
 ## Result
 
-`desktop-fullflow-r02-cop-parity` implementation is functionally validated on web/E2E and macOS build/launch smoke. The release gate is not complete until Windows installer and fullflow smoke evidence is collected for this commit.
+`desktop-fullflow-r02-cop-parity` implementation is functionally validated on web/E2E and macOS Desktop App `0.1.1` fullflow smoke. The release gate is not complete until Windows installer and fullflow smoke evidence is collected for this commit.
 
 ## Implementation Summary
 
@@ -17,23 +17,36 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 - Formal lookup cache hits record zero cost and preserve `sourceRunId`.
 - PDF assembly uses saved trusted registry data and does not start paid lookup during preview/export.
 - A separate SR was opened for Desktop auth credential fulfillment and persistent device sessions: `desktop-auth-credential-fulfillment-smoke`.
+- macOS installed-app ambiguity was fixed by bumping the package to `0.1.1`; the old `/Applications/AIRE.app` was preserved as `/Applications/AIRE-0.1.0-old-20260525-162121.app`, and `/Applications/AIRE.app` now points to the rebuilt `0.1.1` app.
+- Native Desktop auth now uses one auth adapter for login/session guard, avoiding the previous loop back to `/login`.
+- Tauri static-export case routes now use `/cases/_?caseId=...` and `/cases/_/preview?caseId=...`, so runtime case IDs work in the installed App.
 
 ## Verification
 
-- `pnpm test`: passed, 122 files / 645 tests.
+- `pnpm test`: passed, 122 files / 646 tests.
 - `pnpm type-check`: passed.
 - `pnpm build`: passed.
 - `pnpm tauri:build`: passed with Rust warnings only.
+- macOS Desktop App `0.1.1` smoke: installed, launched, opened authenticated session, created address-first case, entered workbench, generated PDF preview and exported PDF.
 - `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/product-auth-functional-flow.spec.ts --reporter=line --timeout=90000`: passed.
 - `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/product-ui-demo-alignment.spec.ts --reporter=line --timeout=90000`: passed.
 - `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/aire-disclosure-registry-ux.spec.ts e2e/candidate-parcel-options-presurvey.spec.ts e2e/complete-presurvey-property-sheet-flow.spec.ts --reporter=line --timeout=120000`: passed.
+- `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/product-auth-functional-flow.spec.ts e2e/product-ui-demo-alignment.spec.ts e2e/product-navigation-ia.spec.ts e2e/full-product-flow-ia-ux-acceptance.spec.ts --reporter=line --timeout=120000`: 12 passed, 1 locator strictness failure fixed.
+- `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/full-product-flow-ia-ux-acceptance.spec.ts --reporter=line --timeout=120000`: passed.
+- `spectra analyze desktop-fullflow-r02-cop-parity --json`: Critical 0 / Warning 0; 14 Suggestions remain for example-level spec clarity.
+- `spectra validate desktop-fullflow-r02-cop-parity`: valid.
+- `spectra analyze desktop-fullflow-release-acceptance-gate --json`: Critical 0 / Warning 0 / Suggestions 0.
+- `spectra validate desktop-fullflow-release-acceptance-gate`: valid.
 
 ## Artifacts
 
 - macOS app: `src-tauri/target/release/bundle/macos/AIRE.app`
-- macOS DMG: `src-tauri/target/release/bundle/dmg/AIRE_0.1.0_aarch64.dmg`
+- macOS DMG: `src-tauri/target/release/bundle/dmg/AIRE_0.1.1_aarch64.dmg`
 - macOS launch screenshot: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-clean-v2-launch.png`
+- macOS PDF preview screenshot: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-0.1.1-pdf-preview.png`
+- macOS PDF artifact: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-0.1.1-export.pdf` (`PDF document, version 1.3, 18 pages`)
 - Playwright screenshots: `e2e/results/demo-alignment/*.png`
+- Playwright navigation screenshots: `e2e/results/navigation-ia/*.png`
 - Playwright report: `e2e/results/playwright-report/index.html`
 
 ## Known Gap

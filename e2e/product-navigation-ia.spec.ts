@@ -41,7 +41,7 @@ test("case row enters the selected case and exposes case-level workbench tools",
   await page.goto("/cases");
 
   await page.locator('article[role="link"]').filter({ hasText: "和平東路案" }).click();
-  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/_\\?caseId=${CASE_ID}$`));
   await expect(page.getByRole("heading", { name: "物件審核" })).toBeVisible();
   await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "補件/現場" })).toBeVisible();

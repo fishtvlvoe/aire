@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { casePreviewHref } from "@/lib/case-routes";
 import { AutosaveIndicator } from "@/components/ux/AutosaveIndicator";
 import {
   landFormTabs,
@@ -288,7 +289,7 @@ export function DisclosureFormLand({
           type="button"
           variant="outline"
           disabled={!draftLoaded}
-          onClick={() => router.push(`/cases/${caseId}/preview`)}
+          onClick={() => router.push(casePreviewHref(caseId))}
         >
           前往 PDF 預覽
         </Button>

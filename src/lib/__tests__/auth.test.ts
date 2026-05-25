@@ -4,10 +4,16 @@ vi.mock("@/lib/tauri-bridge", () => ({
   safeInvoke: vi.fn(),
 }));
 
+vi.mock("@/lib/mock-backend", () => ({
+  mockInvoke: vi.fn(),
+}));
+
 import { safeInvoke } from "@/lib/tauri-bridge";
+import { mockInvoke } from "@/lib/mock-backend";
 import { getSession, isAuthenticated, login, logout } from "@/lib/auth";
 
 const mockSafeInvoke = vi.mocked(safeInvoke);
+const mockLocalInvoke = vi.mocked(mockInvoke);
 
 describe("auth helpers", () => {
   beforeEach(() => {
@@ -54,5 +60,27 @@ describe("auth helpers", () => {
 
     expect(mockSafeInvoke).toHaveBeenNthCalledWith(1, "get_session");
     expect(mockSafeInvoke).toHaveBeenNthCalledWith(2, "get_session");
+  });
+
+  it("falls back to local desktop auth when native auth commands are missing", async () => {
+    mockSafeInvoke.mockRejectedValue(new Error("Command login not found"));
+    mockLocalInvoke.mockResolvedValue({
+      success: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
+
+    await expect(login("admin@test.aire", "password")).resolves.toEqual({
+      success: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
+
+    expect(mockSafeInvoke).toHaveBeenCalledWith("login", {
+      email: "admin@test.aire",
+      password: "password",
+    });
+    expect(mockLocalInvoke).toHaveBeenCalledWith("login", {
+      email: "admin@test.aire",
+      password: "password",
+    });
   });
 });

@@ -8,14 +8,14 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-vi.mock("@/lib/mock-backend", () => ({
-  mockInvoke: vi.fn(),
+vi.mock("@/lib/auth", () => ({
+  login: vi.fn(),
 }));
 
 import LoginPage from "../page";
-import { mockInvoke } from "@/lib/mock-backend";
+import { login } from "@/lib/auth";
 
-const mockInvokeFn = vi.mocked(mockInvoke);
+const mockLogin = vi.mocked(login);
 
 describe("Login page", () => {
   beforeEach(() => {
@@ -52,8 +52,8 @@ describe("Login page", () => {
     expect(screen.queryByText(/license/i)).not.toBeInTheDocument();
   });
 
-  it("successful login — calls mockInvoke and redirects to /cases/new", async () => {
-    mockInvokeFn.mockResolvedValue({
+  it("successful login — calls auth login and redirects to /cases/new", async () => {
+    mockLogin.mockResolvedValue({
       success: true,
       user: { email: "admin@test.aire", role: "admin" },
     });
@@ -71,10 +71,7 @@ describe("Login page", () => {
     fireEvent.click(screen.getByRole("button", { name: /登入/ }));
 
     await waitFor(() => {
-      expect(mockInvokeFn).toHaveBeenCalledWith("login", {
-        email: "admin@test.aire",
-        password: "password",
-      });
+      expect(mockLogin).toHaveBeenCalledWith("admin@test.aire", "password");
       expect(mockPush).toHaveBeenCalledWith("/cases/new");
     });
   });
@@ -85,11 +82,11 @@ describe("Login page", () => {
     fireEvent.click(screen.getByRole("button", { name: /登入/ }));
 
     expect(screen.getByText("請輸入 AIRE 桌面版帳號與密碼")).toBeInTheDocument();
-    expect(mockInvokeFn).not.toHaveBeenCalled();
+    expect(mockLogin).not.toHaveBeenCalled();
   });
 
   it("failed login — INVALID_CREDENTIALS shows 帳號或密碼錯誤", async () => {
-    mockInvokeFn.mockRejectedValue(new Error("INVALID_CREDENTIALS"));
+    mockLogin.mockRejectedValue(new Error("INVALID_CREDENTIALS"));
 
     render(<LoginPage />);
 
@@ -109,7 +106,7 @@ describe("Login page", () => {
   });
 
   it("failed login — ACCOUNT_EXPIRED shows 帳號已過期", async () => {
-    mockInvokeFn.mockRejectedValue(new Error("ACCOUNT_EXPIRED"));
+    mockLogin.mockRejectedValue(new Error("ACCOUNT_EXPIRED"));
 
     render(<LoginPage />);
 

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { caseDetailHref } from "@/lib/case-routes";
 
 interface CaseListActionsProps {
   caseId: string;
@@ -38,7 +39,7 @@ export function CaseListActions({
 
   function handleSupplement(event: React.MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
-    router.push(`/cases/${caseId}?tab=supplements`);
+    router.push(caseDetailHref(caseId, "supplements"));
   }
 
   return (

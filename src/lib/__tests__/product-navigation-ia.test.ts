@@ -60,8 +60,8 @@ describe("product navigation IA", () => {
   });
 
   it("routes case rows according to the selected workflow scope", () => {
-    expect(getCaseRowDestination("overview", "case-1")).toBe("/cases/case-1");
-    expect(getCaseRowDestination("workbench", "case-1")).toBe("/cases/case-1");
-    expect(getCaseRowDestination("supplements", "case-1")).toBe("/cases/case-1?tab=supplements");
+    expect(getCaseRowDestination("overview", "case-1")).toBe("/cases/_?caseId=case-1");
+    expect(getCaseRowDestination("workbench", "case-1")).toBe("/cases/_?caseId=case-1");
+    expect(getCaseRowDestination("supplements", "case-1")).toBe("/cases/_?caseId=case-1&tab=supplements");
   });
 });

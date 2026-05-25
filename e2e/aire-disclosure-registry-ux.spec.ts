@@ -67,7 +67,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("registry-aligned workbench stays readable", async ({ page }) => {
-  await page.goto(`/cases/${CASE_ID}`);
+  await page.goto(`/cases/_?caseId=${CASE_ID}`);
 
   await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
   await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();

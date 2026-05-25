@@ -1,6 +1,6 @@
 {
   "name": "aire",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "AIRE 不動產說明書桌面 App（Tauri + Next.js）",
   "scripts": {

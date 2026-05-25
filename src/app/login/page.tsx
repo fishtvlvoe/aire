@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { mockInvoke } from "@/lib/mock-backend";
+import { login } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      await mockInvoke("login", { email, password });
+      await login(email, password);
       router.push("/cases/new");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

@@ -1,11 +1,13 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { CaseWizard } from "@/components/case-wizard/CaseWizard";
+import { resolveRuntimeCaseId } from "@/lib/case-routes";
 
 export default function LegacyCaseWizardPage() {
   const params = useParams<{ id: string }>();
-  const id = params?.id;
+  const searchParams = useSearchParams();
+  const id = resolveRuntimeCaseId(params?.id, searchParams);
 
   if (!id) {
     return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   casesApi,
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isTauriEnv, safeInvoke } from "@/lib/safe-invoke";
+import { caseDetailHref, resolveRuntimeCaseId } from "@/lib/case-routes";
 
 interface LoadedLogo {
   bytes: number[];
@@ -32,7 +33,8 @@ function bytesToObjectUrl(bytes: number[], mime: string): string {
 export default function CasePreviewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const id = params?.id;
+  const searchParams = useSearchParams();
+  const id = resolveRuntimeCaseId(params?.id, searchParams);
 
   const [c, setCase] = useState<CaseRow | null>(null);
   const [themeId, setThemeId] = useState("theme-a-minimal");
@@ -199,7 +201,7 @@ export default function CasePreviewPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
               type="button"
-              onClick={() => router.push(`/cases/${c.id}`)}
+              onClick={() => router.push(caseDetailHref(c.id))}
               style={{
                 padding: "4px 12px",
                 background: "white",

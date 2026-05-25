@@ -1,3 +1,5 @@
+import { caseDetailHref } from "@/lib/case-routes";
+
 export type ProductNavigationLevel = "primary" | "secondary" | "case-workbench";
 export type ProductNavigationScope = "global" | "module" | "case";
 export type CaseManagementViewId = "overview" | "workbench" | "supplements";
@@ -137,10 +139,10 @@ export function getVisibleCaseManagementScope(value: string | null): CaseManagem
 export function getCaseRowDestination(view: CaseManagementViewId, caseId: string): string {
   switch (view) {
     case "supplements":
-      return `/cases/${caseId}?tab=supplements`;
+      return caseDetailHref(caseId, "supplements");
     case "workbench":
     case "overview":
     default:
-      return `/cases/${caseId}`;
+      return caseDetailHref(caseId);
   }
 }

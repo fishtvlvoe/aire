@@ -36,7 +36,7 @@ for (const viewport of viewports) {
       fullPage: true,
     });
 
-    await page.goto(`/cases/${CASE_ID}`);
+    await page.goto(`/cases/_?caseId=${CASE_ID}`);
     const primaryNavigation = page.getByRole("navigation", { name: "主要選單" });
     if (await primaryNavigation.count()) {
       await expect(primaryNavigation).toBeVisible();
@@ -153,7 +153,7 @@ test("cases overview uses sidebar scope navigation without duplicating page tabs
   await expect(page.getByRole("button", { name: "匯出 PDF" })).toBeVisible();
 
   await page.getByRole("button", { name: "預覽 PDF" }).click();
-  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}/preview$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/_/preview\\?caseId=${CASE_ID}$`));
 
   await expectNoHorizontalOverflow(page);
   await page.screenshot({

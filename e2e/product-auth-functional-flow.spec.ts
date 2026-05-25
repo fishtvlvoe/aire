@@ -21,7 +21,7 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await expect(page.getByRole("navigation", { name: "主要選單" })).toBeVisible();
 
   await page.getByText("宜蘭五結農舍").click();
-  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/_\\?caseId=${CASE_ID}$`));
   await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
   await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
   await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();

@@ -13,6 +13,7 @@ import {
 } from "@/lib/product-ui-demo-alignment";
 import { addressLookup, confirmCaseRegistryMatch, type ParcelInfo } from "@/lib/land-registry-api";
 import { createRegistryProvenancePayload } from "@/lib/registry-provenance";
+import { caseDetailHref } from "@/lib/case-routes";
 
 const schema = z.object({
   property_type: z.enum(["residential", "land"]).optional(),
@@ -156,7 +157,7 @@ export default function NewCasePage() {
         landNo: registryMatch.landNo,
         buildingNo: registryMatch.buildingNo || null,
       });
-      router.push(`/cases/${created.id}`);
+      router.push(caseDetailHref(created.id));
     } catch (err) {
       handleError(err);
       setSubmitError(err instanceof Error ? err.message : String(err));

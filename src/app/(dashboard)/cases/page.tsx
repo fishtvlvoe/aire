@@ -27,6 +27,7 @@ import { safeInvoke } from "@/lib/safe-invoke";
 import { toast } from "sonner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getCaseRowDestination, getVisibleCaseManagementScope } from "@/lib/product-navigation-ia";
+import { caseDetailHref, casePreviewHref } from "@/lib/case-routes";
 
 export default function CasesPage() {
   const router = useRouter();
@@ -236,8 +237,8 @@ export default function CasesPage() {
                 <div className="flex flex-wrap items-center justify-start gap-1 xl:justify-end">
                   <CaseListActions
                     caseId={c.id}
-                    onPreview={() => router.push(`/cases/${c.id}/preview`)}
-                    onEdit={() => router.push(`/cases/${c.id}`)}
+                    onPreview={() => router.push(casePreviewHref(c.id))}
+                    onEdit={() => router.push(caseDetailHref(c.id))}
                     onDelete={() => setDeletingCase(c)}
                     onDownload={() => void handleDownload(c.id)}
                   />
