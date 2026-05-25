@@ -7,14 +7,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PullParcelDataButton } from "@/components/PullParcelDataButton";
 
 const mocks = vi.hoisted(() => ({
-  pullData: vi.fn(),
+  formalPullData: vi.fn(),
   updateCase: vi.fn(),
   isTauriEnv: vi.fn(),
   safeInvoke: vi.fn(),
 }));
 
 vi.mock("@/lib/land-registry-api", () => ({
-  pullData: mocks.pullData,
+  formalPullData: mocks.formalPullData,
   mapErrorToMessage: (error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes("ApiKeyNotConfigured")) return "請先在設定頁設定地政 API 金鑰";
@@ -103,7 +103,12 @@ const registryResult = {
 describe("PullParcelDataButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.pullData.mockResolvedValue(registryResult);
+    mocks.formalPullData.mockResolvedValue({
+      ...registryResult,
+      run_id: "run-001",
+      cache_hit: false,
+      source_run_id: null,
+    });
     mocks.updateCase.mockResolvedValue({ id: "case-001" });
     mocks.isTauriEnv.mockResolvedValue(false);
     mocks.safeInvoke.mockResolvedValue("/tmp/registry.json");
@@ -127,7 +132,7 @@ describe("PullParcelDataButton", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /拉謄本/ }));
+    await userEvent.click(screen.getByRole("button", { name: /正式查詢/ }));
     await userEvent.click(screen.getByRole("button", { name: "授權確認" }));
     await userEvent.click(screen.getByRole("button", { name: "扣款確認" }));
 
@@ -181,7 +186,7 @@ describe("PullParcelDataButton", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /拉謄本/ }));
+    await userEvent.click(screen.getByRole("button", { name: /正式查詢/ }));
     await userEvent.click(screen.getByRole("button", { name: "授權確認" }));
     await userEvent.click(screen.getByRole("button", { name: "扣款確認" }));
 
@@ -201,7 +206,7 @@ describe("PullParcelDataButton", () => {
   });
 
   it("shows actionable mapped error messages when formal pull cannot start", async () => {
-    mocks.pullData.mockRejectedValueOnce(new Error("ApiKeyNotConfigured"));
+    mocks.formalPullData.mockRejectedValueOnce(new Error("ApiKeyNotConfigured"));
 
     render(
       <PullParcelDataButton
@@ -211,7 +216,7 @@ describe("PullParcelDataButton", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /拉謄本/ }));
+    await userEvent.click(screen.getByRole("button", { name: /正式查詢/ }));
     await userEvent.click(screen.getByRole("button", { name: "授權確認" }));
     await userEvent.click(screen.getByRole("button", { name: "扣款確認" }));
 

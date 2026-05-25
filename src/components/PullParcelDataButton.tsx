@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { OwnerAuthorizationDialog } from "@/components/OwnerAuthorizationDialog";
 import { PreChargeConfirmDialog } from "@/components/PreChargeConfirmDialog";
 import { ManualFallbackInput } from "@/components/ManualFallbackInput";
-import { mapErrorToMessage, pullData, type ApiResult } from "@/lib/land-registry-api";
+import { formalPullData, mapErrorToMessage, type ApiResult } from "@/lib/land-registry-api";
 import { casesApi } from "@/lib/cases-api";
 import {
   buildRegistryPreviewSections,
@@ -22,12 +22,12 @@ import { isTauriEnv, safeInvoke } from "@/lib/tauri-bridge";
 const COST_PER_API = 30;
 
 /**
- * PullParcelDataButton — 拉謄本按鈕（整合所有授權/確認/查詢流程）
+ * PullParcelDataButton — 正式查詢按鈕（整合所有授權/確認/查詢流程）
  *
  * 點擊流程：
  *   1. OwnerAuthorizationDialog（所有權人授權）
  *   2. PreChargeConfirmDialog（扣款確認）
- *   3. 呼叫 pullData → 顯示結果
+ *   3. 呼叫 formalPullData → 顯示結果
  *   4. 失敗的 API 項目 → 顯示 ManualFallbackInput
  */
 interface PullParcelDataButtonProps {
@@ -56,6 +56,8 @@ export function PullParcelDataButton({
   const [results, setResults] = React.useState<Record<string, ApiResult> | null>(null);
   const [totalCost, setTotalCost] = React.useState<number>(0);
   const [pullError, setPullError] = React.useState<string | null>(null);
+  const [cacheHit, setCacheHit] = React.useState(false);
+  const [sourceRunId, setSourceRunId] = React.useState<string | null>(null);
   // 需要手動填入的 API 列表（apiId → 已填資料 or null）
   const [manualEntries, setManualEntries] = React.useState<ManualEntry[]>([]);
   const [savingResult, setSavingResult] = React.useState(false);
@@ -72,6 +74,8 @@ export function PullParcelDataButton({
     setPullError(null);
     setManualEntries([]);
     setSaveMessage(null);
+    setCacheHit(false);
+    setSourceRunId(null);
   }
 
   // 步驟 2：授權確認後 → 打開扣款確認 Dialog
@@ -84,20 +88,23 @@ export function PullParcelDataButton({
     setStep("idle");
   }
 
-  // 步驟 3：扣款確認後 → 呼叫 pullData
+  // 步驟 3：扣款確認後 → 呼叫正式查詢
   async function handleChargeConfirm() {
     setStep("pulling");
     try {
-      const result = await pullData(parcelId, apiIds);
-      setResults(result.results);
+      const result = await formalPullData(caseId, apiIds);
+      const normalizedResults = result.results as Record<string, ApiResult>;
+      setResults(normalizedResults);
       setTotalCost(result.total_cost);
+      setCacheHit(result.cache_hit);
+      setSourceRunId(result.source_run_id);
 
       // 找出失敗的 API，建立手動填入清單
-      const failed: ManualEntry[] = Object.entries(result.results)
+      const failed: ManualEntry[] = Object.entries(normalizedResults)
         .filter(([, r]) => !r.success)
         .map(([apiId]) => ({ apiId, data: null }));
       setManualEntries(failed);
-      onPreview?.(buildPreviewData(result.results, failed));
+      onPreview?.(buildPreviewData(normalizedResults, failed));
 
       setStep("done");
     } catch (err) {
@@ -255,7 +262,7 @@ export function PullParcelDataButton({
           ? "查詢中…"
           : step === "done"
             ? "已完成"
-            : "拉謄本"}
+            : "正式查詢"}
         {step !== "pulling" && step !== "done" && (
           <ChevronRight className="h-4 w-4 ml-auto opacity-60" />
         )}
@@ -280,6 +287,10 @@ export function PullParcelDataButton({
           </div>
           <p className="text-xs text-muted-foreground">
             實際扣款：NT${totalCost.toLocaleString()}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {cacheHit ? "本次使用既有紀錄，不重複計費。" : "本次已建立正式查詢紀錄。"}
+            {cacheHit && sourceRunId ? `（來源紀錄 ${sourceRunId.slice(0, 8)}）` : ""}
           </p>
           {previewSections.length > 0 ? (
             <div className="rounded-md border bg-muted/20 p-3 text-sm">

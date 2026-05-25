@@ -25,6 +25,12 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+type RegistryMatchDraft = {
+  sectionName: string;
+  landNo: string;
+  buildingNo: string;
+};
+
 export default function NewCasePage() {
   const router = useRouter();
   const { handleError } = useIpcErrorToast();
@@ -43,6 +49,11 @@ export default function NewCasePage() {
   const [detectedParcels, setDetectedParcels] = useState<ParcelInfo[]>([]);
   const [detectingRegistry, setDetectingRegistry] = useState(false);
   const [registryDetectMessage, setRegistryDetectMessage] = useState<string | null>(null);
+  const [registryMatch, setRegistryMatch] = useState<RegistryMatchDraft>({
+    sectionName: "",
+    landNo: "",
+    buildingNo: "",
+  });
   const [loading, setLoading] = useState(false);
 
   function update<K extends keyof FormValues>(k: K, v: FormValues[K]) {
@@ -64,6 +75,7 @@ export default function NewCasePage() {
         const primaryLot = parcels[0]?.lot_number?.trim();
         if (primaryLot) setLandLots([primaryLot]);
       }
+      setRegistryMatch(buildRegistryMatchDraft(parcels[0]));
       return result;
     } catch (error) {
       const result = getAddressFirstClassification(values.address);
@@ -77,6 +89,7 @@ export default function NewCasePage() {
       if (!result.manualSelectionRequired) {
         update("property_type", result.propertyType);
       }
+      setRegistryMatch({ sectionName: "", landNo: "", buildingNo: "" });
       return result;
     } finally {
       setDetectingRegistry(false);
@@ -115,13 +128,22 @@ export default function NewCasePage() {
           : [parsed.data.land_lot_no || ""];
       const created = await casesApi.create({
         property_type: propertyType,
-        land_lot_no: lots[0],
+        land_lot_no: registryMatch.landNo || lots[0],
         land_lots: lots,
+        building_lot_no: registryMatch.buildingNo || null,
         address: parsed.data.address,
         owner_name: parsed.data.owner_name || null,
         case_no: parsed.data.case_no || null,
         case_name: parsed.data.case_name || null,
-        land_registry_data: buildAddressLookupProvenance(detected, detectedParcels),
+        land_registry_data: {
+          ...buildAddressLookupProvenance(detected, detectedParcels),
+          confirmed_registry_match: {
+            section_name: registryMatch.sectionName || null,
+            land_no: registryMatch.landNo || null,
+            building_no: registryMatch.buildingNo || null,
+            status: registryMatch.landNo ? "confirmed" : "candidate",
+          },
+        },
       });
       router.push(`/cases/${created.id}`);
     } catch (err) {
@@ -153,6 +175,7 @@ export default function NewCasePage() {
                 setClassification(null);
                 setDetectedParcels([]);
                 setSubmitError(null);
+                setRegistryMatch({ sectionName: "", landNo: "", buildingNo: "" });
               }}
               className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
               placeholder="例：宜蘭縣五結鄉協和村親河路二段 1 號"
@@ -183,6 +206,40 @@ export default function NewCasePage() {
               </div>
             </dl>
             <p className="mt-3 text-sm text-muted-foreground">{classification.note}</p>
+          </section>
+        ) : null}
+
+        {classification ? (
+          <section className="rounded-lg border p-4">
+            <strong className="block">地址資料補齊</strong>
+            <p className="mt-1 text-sm text-muted-foreground">請確認地段、地號、建號後再進入正式查詢。</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <label className="text-sm">
+                <span className="mb-1 block">地段</span>
+                <input
+                  className="min-h-10 w-full rounded-md border px-3 py-2"
+                  value={registryMatch.sectionName}
+                  onChange={(event) => setRegistryMatch((prev) => ({ ...prev, sectionName: event.target.value }))}
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block">地號</span>
+                <input
+                  className="min-h-10 w-full rounded-md border px-3 py-2"
+                  value={registryMatch.landNo}
+                  onChange={(event) => setRegistryMatch((prev) => ({ ...prev, landNo: event.target.value }))}
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block">建號</span>
+                <input
+                  className="min-h-10 w-full rounded-md border px-3 py-2"
+                  value={registryMatch.buildingNo}
+                  onChange={(event) => setRegistryMatch((prev) => ({ ...prev, buildingNo: event.target.value }))}
+                  placeholder="無建號可留空"
+                />
+              </label>
+            </div>
           </section>
         ) : null}
 
@@ -409,6 +466,18 @@ function buildAddressLookupProvenance(
     coordinateSource,
     inferredReference,
   });
+}
+
+function buildRegistryMatchDraft(primaryParcel?: ParcelInfo): RegistryMatchDraft {
+  if (!primaryParcel) {
+    return { sectionName: "", landNo: "", buildingNo: "" };
+  }
+  const sectionCode = primaryParcel.parcel_id.split("-")[1] ?? "";
+  return {
+    sectionName: sectionCode === "1556" ? "富強段" : sectionCode,
+    landNo: primaryParcel.lot_number?.trim() ?? "",
+    buildingNo: primaryParcel.building_number?.trim() ?? "",
+  };
 }
 
 function extractTargetUnit(address: string): string | undefined {

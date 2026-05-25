@@ -327,52 +327,15 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByText("AIRE 方案功能")).toBeInTheDocument();
   });
 
-  it("查詢紀錄頁可以寫入 R02 Helper 結果並同步 SaaS", async () => {
-    const mockedInvoke = vi.mocked(mockInvoke);
+  it("查詢紀錄頁僅顯示追溯資訊且不出現技術操作區", async () => {
     mockSection = "registry-records";
     render(<SettingsPage />);
 
     expect(screen.getByRole("heading", { name: "查詢紀錄" })).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "R02 便民系統 Helper" })).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("R02 案件 ID"), {
-      target: { value: "case-r02-001" },
-    });
-    fireEvent.change(screen.getByLabelText("R02 地址"), {
-      target: { value: "台南市東區裕農路288巷17號8樓之1" },
-    });
-    fireEvent.change(screen.getByLabelText("R02 查詢結果文字"), {
-      target: {
-        value: `
-          行政區 臺南市 東區
-          地政事務所 東南地政事務所
-          地段 1556 富強段
-          建號 00204000
-          建物面積 83.61 平方公尺
-          主要用途 住家用
-        `,
-      },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "寫入 R02 紀錄" }));
-
-    await waitFor(() => {
-      expect(mockedInvoke).toHaveBeenCalledWith("land_registry_record_r02_result_text", expect.objectContaining({
-        caseId: "case-r02-001",
-        inputAddress: "台南市東區裕農路288巷17號8樓之1",
-      }));
-      expect(screen.getByText("R02 候選資料已寫入查詢紀錄")).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "紀錄明細" })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "同步 SaaS" }));
-
-    await waitFor(() => {
-      expect(mockedInvoke).toHaveBeenCalledWith("land_registry_sync_query_run_to_saas", expect.objectContaining({
-        runId: "run-r02-001",
-      }));
-      expect(screen.getByText("已同步 SaaS：remote-r02-001")).toBeInTheDocument();
-    });
+    expect(screen.queryByText("試用")).not.toBeInTheDocument();
+    expect(screen.queryByText("Helper")).not.toBeInTheDocument();
+    expect(screen.queryByText("R02")).not.toBeInTheDocument();
+    expect(screen.queryByText("SaaS")).not.toBeInTheDocument();
   });
 
   it("DevSuperAdmin 在 test 環境不渲染（僅 development 環境可見）", () => {

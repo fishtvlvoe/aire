@@ -12,14 +12,10 @@ import { LandApiSection } from "@/components/settings/LandApiSection";
 import { BalanceMonitor } from "@/components/BalanceMonitor";
 import {
   getRegistryQueryRunDetail,
-  getTrialStatus,
   listBillingEntries,
   listRegistryQueryRuns,
-  recordR02ResultText,
-  syncRegistryQueryRunToSaas,
   type BillingLineItem,
   type RegistryQueryRun,
-  type TrialStatusInfo,
 } from "@/lib/land-registry-api";
 import { mockInvoke } from "@/lib/mock-backend";
 
@@ -448,23 +444,14 @@ function RegistryQueryRecordsPanel() {
   const [rows, setRows] = useState<RegistryQueryRun[] | null>(null);
   const [selected, setSelected] = useState<RegistryQueryRun | null>(null);
   const [keyword, setKeyword] = useState("");
-  const [trial, setTrial] = useState<TrialStatusInfo | null>(null);
-  const [r02CaseId, setR02CaseId] = useState("");
-  const [r02Address, setR02Address] = useState("");
-  const [r02Text, setR02Text] = useState("");
-  const [r02Status, setR02Status] = useState<string | null>(null);
-  const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [queryRuns, trialStatus] = await Promise.all([
-        listRegistryQueryRuns(""),
-        getTrialStatus(),
-      ]);
+      const queryRuns = await listRegistryQueryRuns("");
       if (cancelled) return;
       setRows(queryRuns);
-      setTrial(trialStatus);
     })();
     return () => {
       cancelled = true;
@@ -481,94 +468,8 @@ function RegistryQueryRecordsPanel() {
     setSelected(detail);
   }
 
-  async function recordR02Run() {
-    setR02Status(null);
-    const recorded = await recordR02ResultText({
-      caseId: r02CaseId.trim() || null,
-      inputAddress: r02Address,
-      textOrHtml: r02Text,
-    });
-    const detail = await getRegistryQueryRunDetail(recorded.run_id);
-    setSelected(detail);
-    await refresh(keyword);
-    setR02Status(recorded.ok ? "R02 候選資料已寫入查詢紀錄" : "R02 解析失敗，已留下錯誤紀錄");
-  }
-
-  async function syncSelectedRun() {
-    if (!selected) return;
-    setSyncStatus(null);
-    const result = await syncRegistryQueryRunToSaas(selected.id);
-    setSyncStatus(result.remote_run_id ? `已同步 SaaS：${result.remote_run_id}` : "已同步 SaaS");
-  }
-
   return (
     <div className="space-y-4">
-      <article className="rounded-lg border p-4">
-        <h2 className="text-base font-semibold">SaaS 試用狀態</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          方案：{trial?.plan ?? "-"} ・ 狀態：{trial?.status ?? "-"} ・ 到期：{trial?.endsAt ?? "-"}
-        </p>
-      </article>
-      <article className="rounded-lg border p-4">
-        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h2 className="text-base font-semibold">R02 便民系統 Helper</h2>
-            <p className="text-sm text-muted-foreground">
-              用本機瀏覽器或 WebView 查 R02 後，把查詢結果文字貼回來，系統會留下候選 JSON 與 0 元紀錄。
-            </p>
-          </div>
-          <button
-            type="button"
-            className="w-fit rounded-md border px-3 py-2 text-sm"
-            onClick={() => window.open("https://easymap.moi.gov.tw/R02/Index#", "_blank", "noopener,noreferrer")}
-          >
-            開啟 R02
-          </button>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <label className="text-sm">
-            <span className="font-medium">案件 ID</span>
-            <input
-              className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
-              value={r02CaseId}
-              onChange={(event) => setR02CaseId(event.target.value)}
-              placeholder="可空白"
-              aria-label="R02 案件 ID"
-            />
-          </label>
-          <label className="text-sm">
-            <span className="font-medium">地址</span>
-            <input
-              className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
-              value={r02Address}
-              onChange={(event) => setR02Address(event.target.value)}
-              placeholder="台南市東區裕農路288巷17號8樓之1"
-              aria-label="R02 地址"
-            />
-          </label>
-        </div>
-        <label className="mt-3 block text-sm">
-          <span className="font-medium">R02 查詢結果文字</span>
-          <textarea
-            className="mt-1 min-h-36 w-full rounded-md border px-3 py-2 font-mono text-xs"
-            value={r02Text}
-            onChange={(event) => setR02Text(event.target.value)}
-            placeholder="貼上 R02 查詢結果，例如：行政區、地政事務所、地段、建號、建物面積、樓層數、樓層別、建物完成日期、主要用途"
-            aria-label="R02 查詢結果文字"
-          />
-        </label>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            className="rounded-md bg-slate-950 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-            disabled={!r02Address.trim() || !r02Text.trim()}
-            onClick={() => void recordR02Run()}
-          >
-            寫入 R02 紀錄
-          </button>
-          {r02Status ? <span className="text-sm font-medium text-emerald-700">{r02Status}</span> : null}
-        </div>
-      </article>
       <article className="rounded-lg border p-4">
         <div className="flex flex-wrap items-center gap-2">
           <input
@@ -595,7 +496,7 @@ function RegistryQueryRecordsPanel() {
             >
               <span className="truncate">{row.source_input}</span>
               <span className="ml-3 shrink-0 text-xs text-muted-foreground">
-                {row.cache_hit ? "cache-hit" : "paid"} / {Math.round(row.total_cost_cents / 100)} 元
+                {row.cache_hit ? "快取命中" : "正式查詢"} / {Math.round(row.total_cost_cents / 100)} 元
                 {row.error_code ? ` / ${row.error_code}` : ""}
               </span>
             </button>
@@ -604,20 +505,29 @@ function RegistryQueryRecordsPanel() {
       </article>
       {selected ? (
         <article className="rounded-lg border p-4">
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <h2 className="text-base font-semibold">紀錄明細</h2>
             <button
               type="button"
               className="w-fit rounded-md border px-3 py-2 text-sm"
-              onClick={() => void syncSelectedRun()}
+              onClick={() => setShowRaw((current) => !current)}
             >
-              同步 SaaS
+              {showRaw ? "隱藏管理明細" : "展開管理明細"}
             </button>
           </div>
-          {syncStatus ? <p className="mt-2 text-sm font-medium text-emerald-700">{syncStatus}</p> : null}
-          <pre className="mt-3 overflow-auto rounded-md bg-slate-50 p-3 text-xs">
-            {JSON.stringify(selected, null, 2)}
-          </pre>
+          <dl className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+            <SettingKv label="查詢狀態" value={selected.error_code ? "失敗" : "成功"} />
+            <SettingKv label="費用" value={`${Math.round(selected.total_cost_cents / 100)} 元`} />
+            <SettingKv label="快取" value={selected.cache_hit ? "命中" : "未命中"} />
+            <SettingKv label="來源紀錄" value={selected.source_run_id ?? "-"} />
+            <SettingKv label="錯誤代碼" value={selected.error_code ?? "-"} />
+            <SettingKv label="錯誤訊息" value={selected.error_message ?? "-"} />
+          </dl>
+          {showRaw ? (
+            <pre className="mt-3 overflow-auto rounded-md bg-slate-50 p-3 text-xs">
+              {JSON.stringify(selected, null, 2)}
+            </pre>
+          ) : null}
         </article>
       ) : null}
     </div>
