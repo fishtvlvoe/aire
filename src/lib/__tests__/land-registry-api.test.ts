@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   safeInvoke: vi.fn(),
@@ -19,11 +19,29 @@ vi.mock("../tauri-bridge", () => ({
 import { addressLookup } from "../land-registry-api";
 
 describe("land-registry-api addressLookup", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
-  it("rejects browser mode instead of falling back to mock address data", async () => {
+  afterEach(() => {
+    vi.stubEnv("NODE_ENV", originalNodeEnv);
+  });
+
+  it("uses the local backend in development browser mode instead of blocking local E2E", async () => {
+    mocks.isTauriEnv.mockResolvedValue(false);
+    mocks.safeInvoke.mockResolvedValue([]);
+
+    await expect(addressLookup("台南市永康區勝利街58巷4號")).resolves.toEqual([]);
+    expect(mocks.safeInvoke).toHaveBeenCalledWith("land_registry_address_lookup", {
+      address: "台南市永康區勝利街58巷4號",
+    });
+  });
+
+  it("rejects production browser mode instead of falling back to mock address data", async () => {
+    vi.stubEnv("NODE_ENV", "production");
     mocks.isTauriEnv.mockResolvedValue(false);
 
     await expect(addressLookup("台南市永康區勝利街58巷4號")).rejects.toThrow(

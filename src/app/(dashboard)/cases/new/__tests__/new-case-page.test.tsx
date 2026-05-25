@@ -116,35 +116,40 @@ describe("NewCasePage address-first flow", () => {
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "",
-        source: "cop_moi",
+        source: "dev_fixture",
+        trusted_for_pdf: false,
       },
       {
         parcel_id: "DC-1556-00165000",
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "00165000",
-        source: "cop_moi",
+        source: "dev_fixture",
+        trusted_for_pdf: false,
       },
       {
         parcel_id: "DC-1556-00167000",
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "00167000",
-        source: "cop_moi",
+        source: "dev_fixture",
+        trusted_for_pdf: false,
       },
       {
         parcel_id: "DC-1556-00229000",
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "00229000",
-        source: "cop_moi",
+        source: "dev_fixture",
+        trusted_for_pdf: false,
       },
       {
         parcel_id: "DC-1556-00230000",
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "00230000",
-        source: "cop_moi",
+        source: "dev_fixture",
+        trusted_for_pdf: false,
       },
     ]);
     render(<NewCasePage />);
@@ -297,6 +302,49 @@ describe("NewCasePage address-first flow", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("請先確認地段、地號");
     expect(mockCreateCase).not.toHaveBeenCalled();
+  });
+
+  it("allows manual registry confirmation after discovery returns no trusted candidate", async () => {
+    mockAddressLookup.mockResolvedValue([]);
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "判斷地政資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("需要人工補填資料")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("地段"), { target: { value: "勝利段" } });
+    fireEvent.change(screen.getByLabelText("地號"), { target: { value: "1043-0002" } });
+    fireEvent.change(screen.getByLabelText("建號"), { target: { value: "00000000" } });
+    fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
+
+    await waitFor(() => {
+      expect(mockCreateCase).toHaveBeenCalledWith(
+        expect.objectContaining({
+          address: "台南市永康區勝利街58巷4號",
+          land_lot_no: "1043-0002",
+          building_lot_no: "00000000",
+          land_registry_data: expect.objectContaining({
+            confirmed_registry_match: {
+              section_name: "勝利段",
+              land_no: "1043-0002",
+              building_no: "00000000",
+              status: "confirmed",
+            },
+          }),
+        }),
+      );
+    });
+    expect(mockConfirmCaseRegistryMatch).toHaveBeenCalledWith({
+      caseId: "case-1",
+      sectionName: "勝利段",
+      landNo: "1043-0002",
+      buildingNo: "00000000",
+    });
   });
 
   it("does not treat mock placeholder parcels as confirmed address completion", async () => {

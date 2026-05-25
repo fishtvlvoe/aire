@@ -9,7 +9,7 @@ export interface ParcelInfo {
   address: string;
   lot_number: string;
   building_number: string;
-  source?: "cop_moi" | "nlsc_cad" | "mock";
+  source?: "cop_moi" | "nlsc_cad" | "dev_fixture" | "mock";
   trusted_for_pdf?: boolean;
 }
 
@@ -133,6 +133,9 @@ export interface RegistryRunSyncResult {
 
 export async function addressLookup(address: string): Promise<ParcelInfo[]> {
   if (!(await isTauriEnv())) {
+    if (process.env.NODE_ENV !== "production") {
+      return invoke<ParcelInfo[]>("land_registry_address_lookup", { address });
+    }
     throw new NotInTauriError("請使用 AIRE 桌面版完成地址資料補齊");
   }
   return invoke<ParcelInfo[]>("land_registry_address_lookup", { address });

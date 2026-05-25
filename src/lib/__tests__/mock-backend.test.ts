@@ -458,6 +458,64 @@ describe("MockStore", () => {
     );
     expect(detail.id).toBe(runs[0].id);
     expect(Array.isArray(detail.api_calls)).toBe(true);
+
+    const saved = await mockInvoke<{ land_registry_data?: Record<string, unknown> }>("get_case", {
+      id: created.id,
+    });
+    expect(saved.land_registry_data).toMatchObject({
+      formal_registry_run_id: expect.any(String),
+      formal_registry_json: expect.objectContaining({
+        building_registry: expect.objectContaining({ success: true }),
+      }),
+      confirmed_registry_match: expect.objectContaining({
+        section_name: "富強段",
+        land_no: "00700000",
+        building_no: "00165000",
+      }),
+    });
+  });
+
+  it("records local Web discovery diagnostics without treating 勝利街 as fake success", async () => {
+    const result = await mockInvoke<Array<{ source: string }>>("land_registry_address_lookup", {
+      address: "台南市永康區勝利街58巷4號",
+    });
+
+    expect(result).toEqual([]);
+    const runs = await mockInvoke<Array<{
+      source_input: string;
+      candidate_json: Record<string, unknown>;
+      total_cost_cents: number;
+      error_code: string | null;
+    }>>("list_registry_query_runs", {});
+    expect(runs[0]).toMatchObject({
+      source_input: "台南市永康區勝利街58巷4號",
+      total_cost_cents: 0,
+      error_code: "address_discovery_unavailable",
+      candidate_json: expect.objectContaining({
+        status: "manual_required",
+        candidates: [],
+      }),
+    });
+  });
+
+  it("returns explicit dev fixture candidates for local E2E without marking them PDF-trusted", async () => {
+    const result = await mockInvoke<Array<{
+      parcel_id: string;
+      source: string;
+      trusted_for_pdf: boolean;
+    }>>("land_registry_address_lookup", {
+      address: "台南市東區裕農路288巷17號8樓之1",
+    });
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          parcel_id: "DC-1556-00165000",
+          source: "dev_fixture",
+          trusted_for_pdf: false,
+        }),
+      ]),
+    );
   });
 
   it("parses R02 desktop helper text into zero-cost candidate JSON", async () => {

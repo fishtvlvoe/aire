@@ -1367,6 +1367,7 @@ export class MockStore {
 
     this.cases.set(id, row);
     this.addLog("建立案件", `建立案件：${row.address}`);
+    this.persistState();
     return { ...row };
   }
 
@@ -1768,38 +1769,80 @@ export class MockStore {
 
   private landRegistryAddressLookup(
     args?: CommandArgs,
-  ): Array<{ parcel_id: string; address: string; lot_number: string; building_number: string }> {
+  ): Array<{
+    parcel_id: string;
+    address: string;
+    lot_number: string;
+    building_number: string;
+    source: "dev_fixture" | "mock";
+    trusted_for_pdf: boolean;
+  }> {
     const addr = (args?.address as string) || "未知地址";
-    let candidates: Array<{ parcel_id: string; address: string; lot_number: string; building_number: string }> = [];
+    let candidates: Array<{
+      parcel_id: string;
+      address: string;
+      lot_number: string;
+      building_number: string;
+      source: "dev_fixture" | "mock";
+      trusted_for_pdf: boolean;
+    }> = [];
+    let errorCode: string | undefined;
+    let errorMessage: string | undefined;
+    let discoveryStatus = "candidate_found";
     if (!addr.trim() || /查無|不存在/.test(addr)) {
       candidates = [];
+      discoveryStatus = "manual_required";
+      errorCode = "address_no_match";
+      errorMessage = "地址查無可用候選，請人工確認地段、地號、建號";
+    } else if (/勝利街58巷4號/.test(addr)) {
+      candidates = [];
+      discoveryStatus = "manual_required";
+      errorCode = "address_discovery_unavailable";
+      errorMessage = "本機測試環境未取得勝利街地址的可信地政候選，請人工確認地段、地號、建號";
     } else if (/裕農路288巷17號/.test(addr)) {
       candidates = [
-        { parcel_id: "DC-1556-00700000", address: addr, lot_number: "00700000", building_number: "" },
-        { parcel_id: "DC-1556-00165000", address: addr, lot_number: "00700000", building_number: "00165000" },
-        { parcel_id: "DC-1556-00167000", address: addr, lot_number: "00700000", building_number: "00167000" },
-        { parcel_id: "DC-1556-00229000", address: addr, lot_number: "00700000", building_number: "00229000" },
-        { parcel_id: "DC-1556-00230000", address: addr, lot_number: "00700000", building_number: "00230000" },
+        { parcel_id: "DC-1556-00700000", address: addr, lot_number: "00700000", building_number: "", source: "dev_fixture", trusted_for_pdf: false },
+        { parcel_id: "DC-1556-00165000", address: addr, lot_number: "00700000", building_number: "00165000", source: "dev_fixture", trusted_for_pdf: false },
+        { parcel_id: "DC-1556-00167000", address: addr, lot_number: "00700000", building_number: "00167000", source: "dev_fixture", trusted_for_pdf: false },
+        { parcel_id: "DC-1556-00229000", address: addr, lot_number: "00700000", building_number: "00229000", source: "dev_fixture", trusted_for_pdf: false },
+        { parcel_id: "DC-1556-00230000", address: addr, lot_number: "00700000", building_number: "00230000", source: "dev_fixture", trusted_for_pdf: false },
       ];
     } else if (/候選|多筆|結果不明確/.test(addr)) {
       candidates = [
-        { parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "0000" },
-        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
+        { parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "0000", source: "mock", trusted_for_pdf: false },
+        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001", source: "mock", trusted_for_pdf: false },
       ];
+      discoveryStatus = "manual_required";
+      errorCode = "mock_placeholder_untrusted";
+      errorMessage = "本機 mock placeholder 不可視為可信地政候選";
     } else if (/農地|土地|地號/.test(addr)) {
-      candidates = [{ parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "" }];
+      candidates = [{ parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "", source: "mock", trusted_for_pdf: false }];
+      discoveryStatus = "manual_required";
+      errorCode = "mock_placeholder_untrusted";
+      errorMessage = "本機 mock placeholder 不可視為可信地政候選";
     } else {
       candidates = [
-        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
+        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001", source: "mock", trusted_for_pdf: false },
       ];
+      discoveryStatus = "manual_required";
+      errorCode = "mock_placeholder_untrusted";
+      errorMessage = "本機 mock placeholder 不可視為可信地政候選";
     }
     this.registryQueryRuns.unshift(this.makeQueryRun({
       inputType: "address",
       sourceInput: addr,
       matchStatus: "candidate",
-      candidateJson: { candidates },
+      candidateJson: {
+        status: discoveryStatus,
+        total_cost_cents: 0,
+        candidates,
+        errors: errorCode ? [{ source: "local_dev_discovery", code: errorCode, message: errorMessage }] : [],
+      },
       totalCostCents: 0,
+      errorCode,
+      errorMessage,
     }));
+    this.persistState();
     return candidates;
   }
 
@@ -1973,9 +2016,10 @@ export class MockStore {
     const payload = toRecord(args);
     const caseId = pickString(payload, ["caseId", "case_id"]);
     const confirmed = caseId ? this.registryMatchByCase.get(caseId) : null;
-    if (!confirmed) {
+    if (!caseId || !confirmed) {
       throw new Error("registry_match_required");
     }
+    const confirmedCaseId = caseId;
     const apiIds = Array.isArray(payload.apiIds) ? (payload.apiIds as string[]) : [];
     const cacheKey = `${this.organizationId}:${confirmed.section_name}:${confirmed.land_no}:${confirmed.building_no ?? "land-only"}:${apiIds.join(",")}`;
     const cachedRunId = this.registryQueryCache.get(cacheKey);
@@ -1991,6 +2035,7 @@ export class MockStore {
         caseId,
       });
       this.registryQueryRuns.unshift(run);
+      this.persistState();
       return { run_id: run.id, results: {}, total_cost: 0, cache_hit: true, source_run_id: cachedRunId };
     }
     const pulled = this.landRegistryPullData({ ...payload, apiIds });
@@ -2014,11 +2059,31 @@ export class MockStore {
       copResponseJson: pulled.results as Record<string, unknown>,
       rawResponseJson: pulled.results as Record<string, unknown>,
       totalCostCents: pulled.total_cost * 100,
-      caseId,
+      caseId: confirmedCaseId,
       apiCalls,
     });
     this.registryQueryRuns.unshift(run);
     this.registryQueryCache.set(cacheKey, run.id);
+    const existing = this.cases.get(confirmedCaseId);
+    if (existing) {
+      const next: CaseRow = {
+        ...existing,
+        land_registry_data: {
+          ...(existing.land_registry_data ?? {}),
+          formal_registry_run_id: run.id,
+          formal_registry_json: pulled.results,
+          confirmed_registry_match: {
+            section_name: confirmed.section_name,
+            land_no: confirmed.land_no,
+            building_no: confirmed.building_no,
+            status: "confirmed",
+          },
+        },
+        updated_at: unixNow(),
+      };
+      this.cases.set(confirmedCaseId, next);
+    }
+    this.persistState();
     return { run_id: run.id, results: pulled.results, total_cost: pulled.total_cost, cache_hit: false, source_run_id: null };
   }
 
@@ -2268,6 +2333,23 @@ export class MockStore {
       confirmed_at: new Date().toISOString(),
     };
     this.registryMatchByCase.set(caseId, match);
+    const existing = this.cases.get(caseId);
+    if (existing) {
+      this.cases.set(caseId, {
+        ...existing,
+        land_registry_data: {
+          ...(existing.land_registry_data ?? {}),
+          confirmed_registry_match: {
+            section_name: sectionName,
+            land_no: landNo,
+            building_no: buildingNo ?? null,
+            status: "confirmed",
+          },
+        },
+        updated_at: unixNow(),
+      });
+    }
+    this.persistState();
     return { success: true, match };
   }
 
