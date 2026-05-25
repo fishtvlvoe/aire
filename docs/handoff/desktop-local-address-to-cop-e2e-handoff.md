@@ -109,3 +109,54 @@ spectra validate desktop-local-address-to-cop-e2e
 ## 給下一個 Agent 的重點
 
 這不是 UI 問題，是資料流沒有打通。請不要先改視覺，也不要先打包 App。先把外部 discovery 失敗、人工確認、formal pull 成功、費用與保存 JSON 全部做成可觀測、可重跑、可驗收的流程。
+
+## 2026-05-25 WIP 補充：未提交程式改動
+
+注意：以下是 Codex 在被 Fish 糾正分工前誤開始的 WIP，尚未 commit，不能視為已完成實作，也不要直接當成產品行為。若另一個 Agent 要規劃，請只把它當成可能的技術方向與風險清單。
+
+目前未提交程式檔：
+
+- `src/lib/land-registry-api.ts`
+- `src/lib/mock-backend.ts`
+- `src/app/(dashboard)/cases/new/page.tsx`
+- `src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx`
+- `src/lib/__tests__/land-registry-api.test.ts`
+- `src/lib/__tests__/mock-backend.test.ts`
+
+WIP 嘗試方向：
+
+1. `addressLookup()` 在 development browser mode 不再直接丟 `NotInTauriError`，而是走 local mock backend 的 `land_registry_address_lookup`。
+2. production browser mode 仍拒絕，不回到泛用 mock 假成功。
+3. `mock-backend` 把裕農路候選標成 `dev_fixture` 且 `trusted_for_pdf=false`。
+4. `mock-backend` 對勝利街回 `manual_required`，保存 `address_discovery_unavailable`，不塞 `0001/0001/0001`。
+5. `confirm_case_registry_match` WIP 嘗試把 confirmed key 回寫到 case `land_registry_data`。
+6. `land_registry_formal_pull_data` WIP 嘗試把 formal pull JSON、run id、confirmed key 回寫到 case `land_registry_data`。
+
+已跑過的窄測試：
+
+```bash
+pnpm vitest run src/lib/__tests__/land-registry-api.test.ts src/app/'(dashboard)'/cases/new/__tests__/new-case-page.test.tsx src/lib/__tests__/mock-backend.test.ts
+pnpm type-check
+```
+
+當時結果：上述 targeted vitest 與 type-check 通過。但這不是 E2E 完成證據，因為：
+
+- 未完成 local Web Playwright smoke。
+- 未完成 Desktop App/Tauri E2E。
+- 未完成真實 COP formal pull 回寫到 SQLite 的驗證。
+- 未完成 PDF 不重打 paid COP 的端到端證據。
+- 未完成 Windows/macOS App 驗收。
+
+WIP 主要風險：
+
+- `dev_fixture` 是否應被前端視為 trusted candidate 需要重新設計；目前 WIP 讓它能自動帶欄位，但 `trusted_for_pdf=false`，兩者語意可能衝突。
+- 勝利街測試用 `勝利段 / 1043-0002 / 00000000` 只是人工確認流程測試值，不可視為真實建號。
+- browser development 直接走 mock backend 有助本機驗收，但必須與 production browser refusal 清楚分離。
+- Tauri/Rust 端尚未同步同一 discovery result shape，不能只修 TypeScript mock。
+
+建議下一個 Agent 先做：
+
+1. 決定 discovery result 的正式 TypeScript/Rust schema。
+2. 決定 `dev_fixture` 與 `trusted_for_pdf` 的語意，不要讓「可供本機 E2E」被誤解成「正式謄本可信」。
+3. 把 WIP 拆成 TDD 小步，不要一次接受所有改動。
+4. 如果要清掉 WIP，先保存 patch：`git diff > /tmp/aire-local-address-to-cop-wip.patch`。
