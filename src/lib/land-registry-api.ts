@@ -48,6 +48,7 @@ export interface ApiKeyInfo {
 export interface ConnectionTestResult {
   success: boolean;
   message: string;
+  latency_ms?: number;
 }
 
 export interface TrialStatusInfo {

@@ -13,20 +13,24 @@ vi.mock("@/lib/mock-backend", () => ({
   mockInvoke: vi.fn(),
 }));
 
+vi.mock("@/lib/land-registry-api", () => ({
+  setApiKey: vi.fn(),
+  testConnection: vi.fn(),
+}));
+
 import { mockInvoke } from "@/lib/mock-backend";
+import { setApiKey, testConnection } from "@/lib/land-registry-api";
 
 const mockInvokeFn = vi.mocked(mockInvoke);
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock);
+const mockSetApiKey = vi.mocked(setApiKey);
+const mockTestConnection = vi.mocked(testConnection);
 
 describe("LandApiSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockInvokeFn.mockResolvedValueOnce({ clientId: "", secret: "" });
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true, latency_ms: 123 }),
-    });
+    mockSetApiKey.mockResolvedValue(undefined);
+    mockTestConnection.mockResolvedValue({ success: true, message: "連線成功", latency_ms: 123 } as never);
   });
 
   it("預設空值時儲存和測試連線按鈕 disabled", async () => {
@@ -75,6 +79,7 @@ describe("LandApiSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "儲存" }));
 
     await waitFor(() => {
+      expect(mockSetApiKey).toHaveBeenCalledWith("my-client-id", "my-secret");
       expect(mockInvokeFn).toHaveBeenCalledWith("save_land_api_settings", {
         clientId: "my-client-id",
         secret: "my-secret",
@@ -102,10 +107,7 @@ describe("LandApiSection", () => {
   });
 
   it("測試連線失敗顯示連線失敗", async () => {
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ success: false, latency_ms: 50, error: "認證失敗" }),
-    });
+    mockTestConnection.mockResolvedValueOnce({ success: false, message: "認證失敗" });
 
     render(<LandApiSection />);
 
