@@ -5,7 +5,7 @@ Current live evidence:
 - `cargo test --manifest-path src-tauri/Cargo.toml --test cop_api_live -- --ignored --nocapture` succeeded and wrote `/tmp/criterion2-cop-live.json`; known registry key formal COP pull works.
 - NLSC/便民 `AddressQueryLand` for 勝利街 and 裕農路 returned `PERMISSION DENIED` from this environment.
 - `cop_api_yunong_live` reported `address_to_parcel count=0`; COP address lookup did not produce registry keys for the tested address.
-- Browser `localhost:1420` currently rejects `addressLookup()` outside Tauri, so local Web cannot perform real address discovery.
+- Browser `localhost:1420` currently only reaches dev fixtures/mock-backend. It does not have a real localhost proxy to perform address discovery for arbitrary addresses.
 
 The product therefore has a partial backend capability but not a completed customer workflow. The correction is to make each stage explicit, saved, and testable instead of treating address lookup, manual confirmation, and formal COP pull as one opaque action.
 
@@ -29,6 +29,26 @@ The product therefore has a partial backend capability but not a completed custo
 ### Decision: Split discovery from formal COP pull
 
 Address discovery returns candidates, failure diagnostics, or manual-required state. It never means formal transcript data. Formal COP pull requires a confirmed registry key.
+
+### Decision: Local Web gets a localhost discovery proxy, not direct browser scraping
+
+本機 Web 可以查，但瀏覽器不得直接呼叫便民/NLSC/COP 外部服務。正式做法是：
+
+```text
+/cases/new browser
+  -> same-origin /api/local/address-discovery
+  -> server-side local discovery proxy
+  -> COP address lookup and/or public cadastral adapter
+  -> DiscoveryResult + saved run diagnostics
+```
+
+原因：
+
+- Browser 直接打外部服務容易被 CORS、來源限制、Referer、Cookie 與權限策略擋下。
+- 客戶 COP 憑證不能暴露在 browser bundle、localStorage 或 network payload。
+- 外部錯誤必須被 server-side proxy 正規化後保存為 product-visible diagnostics。
+
+`/api/local/address-discovery` 只在 development/local desktop preview 啟用。Production browser build SHALL reject this route with `local_proxy_unavailable` and instruct the user to use Desktop App or manual confirmation. Tauri/Desktop 可共用同一 discovery service contract，但由 Rust command 進入，不經 browser route。
 
 ### Decision: Local Web gets a safe dev path, not fake success
 
@@ -97,6 +117,17 @@ pub struct DiscoveryResult {
 
 漸進策略：新增 `land_registry_address_discover() -> DiscoveryResult` 包既有 `land_registry_address_lookup`（回 `Vec<ParcelInfo>`），映射為 candidates + 包狀態/錯誤，不破壞既有簽名。
 
+### Decision: Local proxy source order and failure contract
+
+本機 proxy source order:
+
+1. Explicit dev fixture：只用於固定測試地址，`source=dev_fixture`、`trustedForPdf=false`、`totalCostCents=0`。
+2. COP address lookup adapter：若有客戶憑證且環境允許，查地址候選；回 0 時記 `cop_address_no_match`。
+3. Public cadastral adapter：若外部回 permission denied，記 `public_cadastral_denied`。
+4. Manual required：所有 source 都失敗或未設定時，回 `manual_required`、候選空、欄位空白。
+
+Generic mock placeholder `0001/0001/0001` 在 local Web discovery proxy 中視為錯誤資料，禁止作為 candidate 回 UI。若 mock-backend 仍需保留舊測試 fixture，必須限定在測試專用輸入，不得成為任意未知地址 fallback。
+
 ### Decision: dev_fixture vs trusted_for_pdf semantics
 
 `trusted_for_pdf` 是唯一可信判準，禁止用 `source` 字串判 trusted。`dev_fixture` 僅供本機 E2E，`trustedForPdf` 永遠 false，仍須走 confirm，formal pull 仍要 confirmed key。`nlsc_cad` 候選預設 untrusted。只有 `source=cop_address` 或 `manual` 經 confirm 且 formal pull 成功回寫的 entry 才 `trustedForPdf=true`。勝利街測試值 `勝利段 / 1043-0002 / 00000000` 是人工流程測試值，非真實建號。
@@ -126,6 +157,9 @@ discovery diagnostics、cache hit、billing rows、error log 全部寫入既有 
   - `errors`: source, code, message, http status, raw summary
   - `totalCostCents`: always 0 for discovery
 - `/cases/new` shall save discovery attempts before case creation when possible, and shall save `confirmed_registry_match` on case creation.
+- Local Web shall call a same-origin localhost discovery proxy in development, not external services directly from the browser.
+- Local Web proxy shall return manual-required diagnostics for unsupported/uncovered addresses instead of returning generic mock placeholders.
+- Production browser builds shall not expose the localhost discovery proxy as a SaaS/public endpoint.
 - `confirm_case_registry_match` shall persist confirmed key state and unblock formal pull.
 - `land_registry_formal_pull_data` shall reject raw address and unconfirmed candidate data with `registry_match_required` and zero cost.
 - PDF assembly shall read saved formal JSON first; if only candidate/dev/manual data exists, it may show pre-survey reference data with mandatory warning but must not populate formal transcript fields as trusted.

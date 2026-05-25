@@ -22,6 +22,28 @@ The system SHALL represent address discovery as a zero-cost discovery run with e
 
 Development browser mode SHALL support local E2E by saving discovery attempts and explicit dev fixtures, but SHALL NOT use generic mock placeholder values as confirmed registry data. Dev fixture candidates SHALL be marked untrusted for PDF until user confirmation and formal COP pull succeed.
 
+#### Scenario: Local Web uses localhost proxy
+
+- **GIVEN** the user opens `/cases/new` on `localhost:1420` in development mode
+- **WHEN** the user requests address discovery
+- **THEN** the browser SHALL call a same-origin localhost discovery proxy or Tauri bridge
+- **AND** the browser SHALL NOT call COP, NLSC, or public cadastral external services directly.
+
+#### Scenario: Local proxy has no source for address
+
+- **GIVEN** local Web discovery has no explicit fixture and no available external discovery source for an address
+- **WHEN** the user requests address discovery
+- **THEN** the discovery result SHALL be saved as `manual_required` with `totalCostCents = 0`
+- **AND** the confirmation fields SHALL remain blank
+- **AND** the UI SHALL explain that local discovery could not find covered data and manual confirmation or Desktop App lookup is required.
+
+#### Scenario: Production browser cannot use local proxy
+
+- **GIVEN** the app is running as a production browser build outside Desktop App
+- **WHEN** address discovery is requested
+- **THEN** the local discovery proxy SHALL return `local_proxy_unavailable` or equivalent
+- **AND** no external COP/NLSC request SHALL be sent from the browser.
+
 #### Scenario: Generic mock placeholder appears
 
 - **GIVEN** address lookup returns parcel `0001-0001` with land number `0001`, building number `0001`, and source `mock`

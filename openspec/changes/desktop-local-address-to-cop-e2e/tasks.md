@@ -31,10 +31,16 @@ WIP patch 已備份 `/tmp/aire-local-address-to-cop-wip.patch`。逐檔處置見
   - schema：見 design.md「Decision: Discovery result schema (TS + Rust)」
   - 漸進：新增 Rust `land_registry_address_discover() -> DiscoveryResult` 包既有 lookup，不破壞 `land_registry_address_lookup` 簽名
   - 紅燈：`discovery_cop_zero_manual_required`、`discovery_nlsc_denied_manual_required`、`discovery_dev_fixture_untrusted`、`discovery_generic_mock_kept_blank`
-- [ ] 2.2 實作 Requirement: Local Web uses safe discovery path 與 decision: local Web gets a safe dev path, not fake success，讓 `localhost:1420` 可保存 discovery attempt，但不得把 mock placeholder 當成功；以 `/cases/new` component test 與 Playwright smoke 驗證。
+- [ ] 2.2 實作 Requirement: Local Web SHALL use a localhost discovery proxy 與 decision: Local Web gets a localhost discovery proxy, not direct browser scraping，新增 same-origin local discovery route，讓 `localhost:1420` 的 browser 只呼叫本機 API，不直接打 COP/NLSC/便民外部服務；以 server unit test 與 component test 驗證。
+  - 檔案：`src/app/api/local/address-discovery/route.ts`、`src/lib/server/local-address-discovery-proxy.ts`、`src/lib/land-registry-api.ts`
+  - 行為：development/local preview 啟用；production browser 回 `local_proxy_unavailable`；Tauri/Desktop 仍優先走 bridge command
+  - source order 對齊 decision: Local proxy source order and failure contract：dev fixture → COP address adapter → public cadastral adapter → manual_required
+  - 紅燈：`local_proxy_called_by_development_browser`、`production_browser_proxy_unavailable`、`browser_does_not_call_external_discovery_directly`
+- [ ] 2.3 實作 Requirement: Local Web uses safe discovery path 與 decision: local Web gets a safe dev path, not fake success，讓 `localhost:1420` 可保存 discovery attempt，但不得把 mock placeholder 當成功；以 `/cases/new` component test 與 Playwright smoke 驗證。
   - 檔案：`src/lib/mock-backend.ts`（保留 WIP）、`src/lib/land-registry-api.ts`（guard 收緊 `!== "production"` → `=== "development"`）
-  - 紅燈：`discovery_victory_st_manual_required_no_fake_parcel`（候選空、不含 `0001/0001/0001`）
-- [ ] 2.3 實作 decision: every failed external source is product-visible in records，讓 Tauri discovery 保存 COP/NLSC 來源、錯誤與候選；以 Rust integration test 與 query record detail 驗證。
+  - 行為：未知地址如 `新竹市東區興學街14號5樓之3` 回 `manual_required` + `local_fixture_not_found`，候選空、欄位空白；裕農路 fixture 可以顯示候選但 `trustedForPdf=false`
+  - 紅燈：`discovery_victory_st_manual_required_no_fake_parcel`、`discovery_unknown_address_local_fixture_not_found`（候選空、不含 `0001/0001/0001`）
+- [ ] 2.4 實作 decision: every failed external source is product-visible in records，讓 Tauri discovery 保存 COP/NLSC 來源、錯誤與候選；以 Rust integration test 與 query record detail 驗證。
   - 檔案：`src-tauri/src/land_registry/pull.rs`（discovery 寫 `registry_query_runs`）
   - 存法：重用 013 表，`confirmation_status="discovery"`、`total_cost_cents=0`、`error_summary_json` 記 `cop_address_no_match` / `public_cadastral_denied`、`generated_json` 記 candidates（依 design.md decision: Reuse 013 ledger tables for discovery/cache/billing/error）
   - 紅燈：`address_discover_saves_run_on_no_match`、`address_discover_saves_nlsc_denied`、`address_discover_never_creates_paid_call`

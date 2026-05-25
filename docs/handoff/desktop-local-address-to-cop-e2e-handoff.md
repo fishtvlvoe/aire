@@ -33,7 +33,7 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 
 已失敗或未打通：
 
-- 本機 Web `localhost:1420` 非 Tauri，`addressLookup()` 目前直接拒絕，不會做真實地址 discovery。
+- 本機 Web `localhost:1420` 目前只命中 dev fixture/mock-backend，沒有真正的 localhost discovery proxy；因此只有裕農路 fixture 會出現候選，勝利街、新竹地址會進人工補填。
 - COP `/BuildingNo/1.0/QueryByAddress` 對裕農路 live probe 回 `address_to_parcel count=0`。
 - NLSC/便民 `AddressQueryLand` 對勝利街與裕農路從此環境回 `PERMISSION DENIED`。
 - 地址 discovery 與 formal COP pull 沒有串成單一可驗收產品流程。
@@ -45,9 +45,10 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 3. 已知地政鍵 formal COP 可用，但使用者不會一開始就知道地政鍵。
 4. discovery failure 沒有完整產品化保存為 query record。
 5. 本機 Web 若完全不查，Fish 無法先本機驗收。
-6. 若直接壓 App，會把同樣斷點帶到 App。
-7. 多次 live COP 測試會產生費用，必須加 cache 和費用 guard。
-8. 物調/PDF 必須讀保存 JSON，不可在文件產出時重新打 COP。
+6. 本機 Web 不能讓 browser 直接打便民/NLSC/COP；必須補 same-origin localhost proxy，由本機後端做代理、保存診斷、避免憑證外洩。
+7. 若直接壓 App，會把同樣斷點帶到 App。
+8. 多次 live COP 測試會產生費用，必須加 cache 和費用 guard。
+9. 物調/PDF 必須讀保存 JSON，不可在文件產出時重新打 COP。
 
 ## 禁止事項
 
@@ -71,15 +72,16 @@ Change id: `desktop-local-address-to-cop-e2e`
 ## 實作順序
 
 1. 定義 discovery result/status 型別。
-2. 讓 local Web 可以保存 safe discovery attempt，不假成功。
-3. 讓 Tauri discovery 保存 COP/NLSC 診斷。
-4. 保存 confirmed registry match。
-5. formal COP 僅吃 confirmed key。
-6. 實作 billing/cache/error/sourceRunId。
-7. PDF/物調只讀 saved JSON。
-8. 跑 local Web E2E。
-9. 跑 Desktop App E2E。
-10. 再回 Desktop fullflow release acceptance。
+2. 新增 local Web same-origin discovery proxy：browser 只打 localhost API，不直接打便民/NLSC/COP。
+3. 讓 local Web 可以保存 safe discovery attempt，不假成功。
+4. 讓 Tauri discovery 保存 COP/NLSC 診斷。
+5. 保存 confirmed registry match。
+6. formal COP 僅吃 confirmed key。
+7. 實作 billing/cache/error/sourceRunId。
+8. PDF/物調只讀 saved JSON。
+9. 跑 local Web E2E。
+10. 跑 Desktop App E2E。
+11. 再回 Desktop fullflow release acceptance。
 
 ## 驗收指令與證據
 
@@ -109,6 +111,19 @@ spectra validate desktop-local-address-to-cop-e2e
 ## 給下一個 Agent 的重點
 
 這不是 UI 問題，是資料流沒有打通。請不要先改視覺，也不要先打包 App。先把外部 discovery 失敗、人工確認、formal pull 成功、費用與保存 JSON 全部做成可觀測、可重跑、可驗收的流程。
+
+Fish 追問「本機 Web 不能用便民服務嗎？」的結論：可以，但不能由 browser 直接打便民服務。必須補一層 localhost discovery proxy：
+
+```text
+localhost:1420 /cases/new
+  -> /api/local/address-discovery
+  -> server-side local proxy
+  -> COP address adapter / public cadastral adapter / dev fixture
+  -> DiscoveryResult
+  -> query run diagnostics
+```
+
+若沒有 proxy，local Web 只能吃 fixture，所以目前「只有裕農路查得到」是設計未完成，不是 Fish 操作錯。
 
 ## 2026-05-25 WIP 補充：未提交程式改動
 
