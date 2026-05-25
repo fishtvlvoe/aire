@@ -10,18 +10,20 @@
 | --- | --- | --- | --- | --- |
 | 0 | `desktop-system-flow-blueprint-html` | 已建立 | 內部圖表式 HTML 藍圖：整理本機、Desktop App、驗收、授權、OO 串接與自動更新的完整路線。 | 接手前先看 `docs/aire-desktop-system-blueprint-2026-05-25.html`。 |
 | 1 | `desktop-fullflow-r02-cop-parity` | 進行中 | 本期主線：把 AIRE 做成 Mac/Windows 桌面完整版，從地址輸入、地段地號建號對標、客戶 COP 查詢、物調補件、HTML 預覽到 PDF。 | 先實作與驗收這個 SR。 |
-| 2 | `desktop-auto-update-macos-windows` | 排隊 | 下一期：本期桌面完整版通過 macOS 與 Windows 實機驗收後，再補自動更新通知、下載、重啟更新與發版流程。 | 完成第 1 項後才開始。 |
+| 2 | `desktop-fullflow-release-acceptance-gate` | 排隊 | 驗收門檻：確認 Desktop fullflow、macOS/Windows、OO 授權、客戶 COP、JSON、費用、cache、error log、PDF 都有證據。 | 完成第 1 項後立刻跑驗收。 |
+| 3 | `desktop-auto-update-macos-windows` | 排隊 | 下一期：本期桌面完整版通過 macOS 與 Windows 實機驗收後，再補自動更新通知、下載、重啟更新與發版流程。 | 完成第 2 項後才開始。 |
 
 ## 接手規則
 
 1. 預設先讀 `docs/aire-desktop-system-blueprint-2026-05-25.html`，再讀上表 SR。
-2. `desktop-fullflow-r02-cop-parity` 未完成前，不要實作自動更新。
-3. 客戶前台 UI 不顯示 R02、便民系統、COP、API、Helper、JSON、payload、adapter、parser 等技術詞。
-4. `/cases/new` 是客戶唯一的地址查詢入口；底層候選查詢與正式地政查詢都藏在系統流程中。
-5. `查詢紀錄` 只看費用、cache、錯誤、JSON 與追溯，不放查詢表單或試用狀態。
-6. `系統設定` 承接方案、授權、試用、客戶 COP 憑證狀態與未來更新設定。
-7. 完成任何 SR 前都要跑 `spectra analyze <change> --json` 與 `spectra validate <change>`。
-8. 涉及桌面 app 時，不能只跑 build；macOS 與 Windows 都要能安裝、啟動、跑通主流程並留下驗收紀錄。
+2. `desktop-fullflow-r02-cop-parity` 未完成前，不要跑 release acceptance gate。
+3. `desktop-fullflow-release-acceptance-gate` 未通過前，不要實作自動更新。
+4. 客戶前台 UI 不顯示 R02、便民系統、COP、API、Helper、JSON、payload、adapter、parser 等技術詞。
+5. `/cases/new` 是客戶唯一的地址查詢入口；底層候選查詢與正式地政查詢都藏在系統流程中。
+6. `查詢紀錄` 只看費用、cache、錯誤、JSON 與追溯，不放查詢表單或試用狀態。
+7. `系統設定` 承接方案、授權、試用、客戶 COP 憑證狀態與未來更新設定。
+8. 完成任何 SR 前都要跑 `spectra analyze <change> --json` 與 `spectra validate <change>`。
+9. 涉及桌面 app 時，不能只跑 build；macOS 與 Windows 都要能安裝、啟動、跑通主流程並留下驗收紀錄。
 
 ## 歷史或暫停 SR
 
@@ -56,6 +58,11 @@ desktop-fullflow-r02-cop-parity
   |  macOS 實機可用
   |  Windows 實機可用
   |  地址 -> 對標 -> COP -> 物調 -> PDF 跑通
+  v
+desktop-fullflow-release-acceptance-gate
+  |  JSON / 費用 / cache / error log 可追
+  |  OO 授權 / 客戶 COP 設定可驗
+  |  macOS + Windows 驗收報告完整
   v
 驗收通過後
   |
