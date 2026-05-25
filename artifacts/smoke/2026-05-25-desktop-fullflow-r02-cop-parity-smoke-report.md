@@ -39,6 +39,33 @@
 - Job metadata snapshot:
   - `artifacts/smoke/windows-ci-run-26385943003.json`
 
+## 2a) Windows CI installer smoke validation
+
+- Workflow: `Tauri Release` (`.github/workflows/release.yml`)
+- Run URL: <https://github.com/fishtvlvoe/aire/actions/runs/26386786309>
+- Result: `success`
+- Windows job: `build (windows-latest, windows-x64)` completed successfully.
+- Successful Windows smoke steps:
+  - `Locate Windows installer`
+  - `Smoke installed Windows app`
+  - `Run complete product fullflow`
+  - `Upload Windows smoke evidence`
+- Installed executable captured by smoke:
+  - `C:\Program Files\AIRE\AIRE.exe`
+- Window evidence:
+  - process name: `aire`
+  - main window title: `AIRE`
+  - `windowSeen: true`
+- Evidence snapshot files:
+  - `artifacts/smoke/windows-install-smoke-run-26386786309.json`
+  - `artifacts/smoke/windows-install-smoke-artifacts-26386786309.json`
+  - `artifacts/smoke/windows-ci-download/artifacts/smoke/windows-vm/install.log`
+  - `artifacts/smoke/windows-ci-download/artifacts/smoke/windows-vm/process.json`
+  - `artifacts/smoke/windows-ci-download/artifacts/smoke/windows-vm/window.json`
+  - `artifacts/smoke/windows-ci-download/artifacts/smoke/windows-vm/launch.png`
+  - `artifacts/smoke/windows-ci-download/e2e/results/playwright-report/index.html`
+  - `artifacts/smoke/windows-ci-download/e2e/results/results.json`
+
 ## 3) Release artifacts (macOS + Windows)
 
 - Release snapshot:
@@ -54,4 +81,5 @@
 ## 4) Scope/gap note
 
 - This run completed macOS local smoke and Windows CI packaging smoke.
-- Windows physical machine / VM interactive install-and-run evidence is not executed in this terminal session.
+- Windows CI/VM installer smoke is complete through GitHub-hosted `windows-latest`.
+- Separate human-operated physical Windows UAT can be added later, but is not required for this CI installer smoke acceptance.

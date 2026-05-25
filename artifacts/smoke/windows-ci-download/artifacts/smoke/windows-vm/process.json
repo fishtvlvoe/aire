@@ -1,0 +1,9 @@
+{
+  "installerPath": "D:\\a\\aire\\aire\\src-tauri\\target\\release\\bundle\\msi\\AIRE_0.1.0_x64_en-US.msi",
+  "executablePath": "C:\\Program Files\\AIRE\\AIRE.exe",
+  "processId": 7384,
+  "processName": "aire",
+  "mainWindowHandle": 459092,
+  "mainWindowTitle": "AIRE",
+  "startedAt": "2026-05-25T06:44:16.6569486+00:00"
+}
