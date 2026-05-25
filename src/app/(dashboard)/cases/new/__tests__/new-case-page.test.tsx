@@ -38,6 +38,7 @@ describe("NewCasePage address-first flow", () => {
         address: "宜蘭縣五結鄉協和村親河路二段 1 號",
         lot_number: "0001",
         building_number: "0001",
+        source: "cop_moi",
       },
     ]);
   });
@@ -115,30 +116,35 @@ describe("NewCasePage address-first flow", () => {
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "",
+        source: "cop_moi",
       },
       {
         parcel_id: "DC-1556-00165000",
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "00165000",
+        source: "cop_moi",
       },
       {
         parcel_id: "DC-1556-00167000",
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "00167000",
+        source: "cop_moi",
       },
       {
         parcel_id: "DC-1556-00229000",
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "00229000",
+        source: "cop_moi",
       },
       {
         parcel_id: "DC-1556-00230000",
         address: "台南市東區裕農路288巷17號8樓之1",
         lot_number: "00700000",
         building_number: "00230000",
+        source: "cop_moi",
       },
     ]);
     render(<NewCasePage />);
@@ -251,12 +257,14 @@ describe("NewCasePage address-first flow", () => {
         address: "宜蘭縣五結鄉協和村親河路二段 候選多筆",
         lot_number: "0001",
         building_number: "0000",
+        source: "cop_moi",
       },
       {
         parcel_id: "0001-0001",
         address: "宜蘭縣五結鄉協和村親河路二段 候選多筆",
         lot_number: "0001",
         building_number: "0001",
+        source: "cop_moi",
       },
     ]);
     render(<NewCasePage />);
@@ -289,5 +297,50 @@ describe("NewCasePage address-first flow", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("請先確認地段、地號");
     expect(mockCreateCase).not.toHaveBeenCalled();
+  });
+
+  it("does not treat mock placeholder parcels as confirmed address completion", async () => {
+    mockAddressLookup.mockResolvedValue([
+      {
+        parcel_id: "0001-0001",
+        address: "台南市永康區勝利街58巷4號",
+        lot_number: "0001",
+        building_number: "0001",
+        source: "mock",
+      },
+    ]);
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "判斷地政資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("需要人工補填資料")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("已自動補齊，請確認資料")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("地段")).toHaveValue("");
+    expect(screen.getByLabelText("地號")).toHaveValue("");
+    expect(screen.getByLabelText("建號")).toHaveValue("");
+  });
+
+  it("keeps registry fields blank when desktop lookup is unavailable", async () => {
+    mockAddressLookup.mockRejectedValue(new Error("此功能需在 AIRE 桌面 App 中使用"));
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "判斷地政資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("需要人工補填資料")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/請使用 AIRE 桌面版/)).toBeInTheDocument();
+    expect(screen.queryByText("已自動補齊，請確認資料")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("地段")).toHaveValue("");
+    expect(screen.getByLabelText("地號")).toHaveValue("");
+    expect(screen.getByLabelText("建號")).toHaveValue("");
   });
 });

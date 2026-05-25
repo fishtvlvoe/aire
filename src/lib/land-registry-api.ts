@@ -1,15 +1,7 @@
-import { mockInvoke } from "./mock-backend";
-
-function isTauri(): boolean {
-  return typeof window !== "undefined" && "__TAURI__" in window;
-}
+import { isTauriEnv, NotInTauriError, safeInvoke } from "./tauri-bridge";
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
-  if (isTauri()) {
-    const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
-    return tauriInvoke<T>(cmd, args);
-  }
-  return mockInvoke<T>(cmd, args);
+  return safeInvoke<T>(cmd, args);
 }
 
 export interface ParcelInfo {
@@ -139,6 +131,9 @@ export interface RegistryRunSyncResult {
 }
 
 export async function addressLookup(address: string): Promise<ParcelInfo[]> {
+  if (!(await isTauriEnv())) {
+    throw new NotInTauriError("請使用 AIRE 桌面版完成地址資料補齊");
+  }
   return invoke<ParcelInfo[]>("land_registry_address_lookup", { address });
 }
 

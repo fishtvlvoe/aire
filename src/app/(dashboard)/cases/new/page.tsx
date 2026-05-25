@@ -68,28 +68,31 @@ export default function NewCasePage() {
     setRegistryDetectMessage(null);
     try {
       const parcels = values.address.trim() ? await addressLookup(values.address) : [];
-      const result = classifyAddressLookupResult(values.address, parcels);
-      setDetectedParcels(parcels);
+      const trustedParcels = parcels.filter(isTrustedAddressLookupParcel);
+      const result = trustedParcels.length > 0
+        ? classifyAddressLookupResult(values.address, trustedParcels)
+        : buildManualRegistryClassification(
+            values.address,
+            parcels.length > 0 ? "未取得可信的地址補齊資料，請人工確認土地或建物" : undefined,
+          );
+      setDetectedParcels(trustedParcels);
       setClassification(result);
       if (!result.manualSelectionRequired) {
         update("property_type", result.propertyType);
-        const primaryLot = parcels[0]?.lot_number?.trim();
+        const primaryLot = trustedParcels[0]?.lot_number?.trim();
         if (primaryLot) setLandLots([primaryLot]);
       }
-      setRegistryMatch(buildRegistryMatchDraft(parcels));
+      setRegistryMatch(buildRegistryMatchDraft(trustedParcels));
       return result;
     } catch (error) {
-      const result = getAddressFirstClassification(values.address);
+      const result = buildManualRegistryClassification(values.address);
       setDetectedParcels([]);
       setClassification(result);
       setRegistryDetectMessage(
         error instanceof Error
-          ? `資料補齊暫時無法使用，已改用本機判斷：${error.message}`
-          : "資料補齊暫時無法使用，已改用本機判斷。",
+          ? `請使用 AIRE 桌面版完成資料補齊，或先人工填寫地段、地號、建號。${error.message ? `（${error.message}）` : ""}`
+          : "請使用 AIRE 桌面版完成資料補齊，或先人工填寫地段、地號、建號。",
       );
-      if (!result.manualSelectionRequired) {
-        update("property_type", result.propertyType);
-      }
       setRegistryMatch({ sectionName: "", landNo: "", buildingNo: "" });
       return result;
     } finally {
@@ -481,6 +484,27 @@ function buildAddressLookupProvenance(
     coordinateSource,
     inferredReference,
   });
+}
+
+function isTrustedAddressLookupParcel(parcel: ParcelInfo): boolean {
+  return parcel.source === "cop_moi" || parcel.source === "nlsc_cad";
+}
+
+function buildManualRegistryClassification(
+  address: string,
+  summary = "地政查無可判斷資料，請人工確認土地或建物",
+): AddressFirstClassification {
+  const fallback = getAddressFirstClassification(address);
+  return {
+    ...fallback,
+    status: "manual_required",
+    displayType: "需要人工確認",
+    summary,
+    manualSelectionRequired: true,
+    landCount: 0,
+    buildingCount: 0,
+    note: "查不到可信候選資料時，請先人工確認後再建立案件。",
+  };
 }
 
 function buildRegistryMatchDraft(parcels: ParcelInfo[]): RegistryMatchDraft {
