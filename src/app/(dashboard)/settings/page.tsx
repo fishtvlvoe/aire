@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  type EntitlementFeature,
   getCustomerServiceLabel,
-  getEntitlementFeatures,
   getPdfAssetSlots,
   getUpgradePlans,
 } from "@/lib/product-ui-demo-alignment";
@@ -19,16 +17,6 @@ import {
   type RegistryQueryRun,
 } from "@/lib/land-registry-api";
 import { mockInvoke } from "@/lib/mock-backend";
-
-type SessionResponse =
-  | { authenticated: true; user: { email: string; role: "admin" | "user" } }
-  | { authenticated: false; user: null };
-
-type FeatureFlag = {
-  id: string;
-  name: string;
-  enabled: boolean;
-};
 
 type ProfileSettingsResponse = {
   name: string;
@@ -60,9 +48,8 @@ type LandApiSettingsResponse = {
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
-  const features = getEntitlementFeatures();
   const slots = getPdfAssetSlots();
-  const plans = getUpgradePlans();
+  const plans = getUpgradePlans().filter((plan) => plan.id === "basic");
   const selectedSection = searchParams?.get("section") ?? "profile";
   const isLandDataPage =
     selectedSection === "registry-rules" ||
@@ -91,7 +78,7 @@ export default function SettingsPage() {
         ? "目前方案、可用功能與升級入口集中在這裡。"
         : selectedSection === "registry-auth"
           ? "管理客戶自己的地政查詢帳號與連線測試。"
-          : "管理個人名稱、Email、密碼、品牌色與 Logo。";
+          : "管理個人名稱、Email 與 PDF 開啟密碼。";
 
   return (
     <div className="space-y-6">
@@ -110,7 +97,7 @@ export default function SettingsPage() {
         <section className="rounded-lg border bg-white p-4 shadow-sm" aria-label={pageTitle}>
           {selectedSection === "profile" || !isKnownSettingsSection(selectedSection) ? <ProfileSettingsPanel /> : null}
           {selectedSection === "registry-auth" ? <LandApiSection /> : null}
-          {selectedSection === "plans" ? <PlansAndUpgradePanel features={features} plans={plans} /> : null}
+          {selectedSection === "plans" ? <PlansAndUpgradePanel plans={plans} /> : null}
           {selectedSection === "pdf-assets" ? <PdfAssetPanel slots={slots} /> : null}
         </section>
       )}
@@ -133,11 +120,8 @@ function isKnownSettingsSection(section: string) {
 function ProfileSettingsPanel() {
   const [name, setName] = useState("余啟彰");
   const [email, setEmail] = useState("fish.myfb@gmail.com");
-  const [brandColor, setBrandColor] = useState("#174d36");
-  const [logoName, setLogoName] = useState("");
   const [profileSaved, setProfileSaved] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
-  const [brandSaved, setBrandSaved] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -149,8 +133,6 @@ function ProfileSettingsPanel() {
         if (cancelled) return;
         setName(profile.name);
         setEmail(profile.email);
-        setBrandColor(profile.brandColor);
-        setLogoName(profile.logoName);
       } catch {
         // Keep defaults when profile persistence is unavailable.
       }
@@ -164,8 +146,8 @@ function ProfileSettingsPanel() {
     const payload = {
       name: next?.name ?? name,
       email: next?.email ?? email,
-      brandColor: next?.brandColor ?? brandColor,
-      logoName: next?.logoName ?? logoName,
+      brandColor: next?.brandColor ?? "",
+      logoName: next?.logoName ?? "",
     };
     await mockInvoke("save_profile_settings", payload);
     return payload;
@@ -231,90 +213,38 @@ function ProfileSettingsPanel() {
           })();
         }}
       >
-        <h2 className="text-base font-semibold">更新密碼</h2>
-        <p className="mt-2 text-sm text-muted-foreground">用於登入 AIRE 與開啟加密 PDF。</p>
+        <h2 className="text-base font-semibold">PDF 開啟密碼</h2>
+        <p className="mt-2 text-sm text-muted-foreground">用於開啟加密 PDF，與登入密碼分開。首次未設定時可直接建立。</p>
         <div className="mt-3 grid gap-3 text-sm">
           <label>
-            <span className="font-medium">目前密碼</span>
+            <span className="font-medium">目前 PDF 密碼（首次可留空）</span>
             <input
               className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
               type="password"
-              aria-label="目前密碼"
+              aria-label="目前 PDF 密碼（首次可留空）"
               value={currentPassword}
               onChange={(event) => setCurrentPassword(event.target.value)}
             />
           </label>
           <label>
-            <span className="font-medium">新密碼</span>
+            <span className="font-medium">新 PDF 密碼</span>
             <input
               className="mt-1 min-h-10 w-full rounded-md border px-3 py-2"
               type="password"
-              aria-label="新密碼"
+              aria-label="新 PDF 密碼"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
             />
           </label>
         </div>
-        <button className="mt-4 rounded-md border px-3 py-2 text-sm" type="submit">更新密碼</button>
-        {passwordSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">密碼已更新</p> : null}
-      </form>
-
-      <form
-        className="rounded-lg border p-4 xl:col-span-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void (async () => {
-            await saveProfileSettings();
-            setBrandSaved(true);
-          })();
-        }}
-      >
-        <h2 className="text-base font-semibold">品牌色與 Logo</h2>
-        <p className="mt-2 text-sm text-muted-foreground">會套用在 PDF 封面、頁首與系統識別。</p>
-        <div className="mt-3 grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
-          <label className="text-sm">
-            <span className="font-medium">品牌色</span>
-            <div className="mt-2 flex items-center gap-3">
-              <input
-                className="h-10 w-14 rounded-md border"
-                type="color"
-                value={brandColor}
-                onChange={(event) => setBrandColor(event.target.value)}
-                aria-label="品牌色"
-              />
-              <span className="text-muted-foreground">{brandColor}</span>
-            </div>
-          </label>
-          <label className="text-sm">
-            <span className="font-medium">品牌 Logo</span>
-            <input
-              className="mt-2 block w-full text-sm"
-              type="file"
-              accept="image/*"
-              aria-label="品牌 Logo 上傳"
-              onChange={(event) => setLogoName(event.currentTarget.files?.[0]?.name ?? "")}
-            />
-            <span className="mt-2 block text-xs text-muted-foreground">
-              {logoName ? `已選擇：${logoName}` : "尚未上傳"}
-            </span>
-          </label>
-        </div>
-        <button className="mt-4 rounded-md border px-3 py-2 text-sm" type="submit">儲存品牌設定</button>
-        {brandSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">品牌設定已儲存</p> : null}
+        <button className="mt-4 rounded-md border px-3 py-2 text-sm" type="submit">儲存 PDF 密碼</button>
+        {passwordSaved ? <p className="mt-2 text-sm font-medium text-emerald-700">PDF 密碼已更新</p> : null}
       </form>
     </div>
   );
 }
 
-function PlansAndUpgradePanel({
-  features,
-  plans,
-}: {
-  features: ReturnType<typeof getEntitlementFeatures>;
-  plans: ReturnType<typeof getUpgradePlans>;
-}) {
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [featureStates, setFeatureStates] = useState(() => getFeatureStates(features, []));
+function PlansAndUpgradePanel({ plans }: { plans: ReturnType<typeof getUpgradePlans> }) {
   const [accountStatus, setAccountStatus] = useState<{
     trial: TrialStatusResponse | null;
     license: LicenseStatusResponse | null;
@@ -329,17 +259,12 @@ function PlansAndUpgradePanel({
     let cancelled = false;
     void (async () => {
       try {
-        const [session, flags, trial, license, landSettings] = await Promise.all([
-          mockInvoke<SessionResponse>("get_session"),
-          mockInvoke<FeatureFlag[]>("get_feature_flags"),
+        const [trial, license, landSettings] = await Promise.all([
           mockInvoke<TrialStatusResponse>("get_trial_status"),
           mockInvoke<LicenseStatusResponse>("get_license_status"),
           mockInvoke<LandApiSettingsResponse>("get_land_api_settings"),
         ]);
         if (cancelled) return;
-        const canToggle = Boolean(session.authenticated && session.user.role === "admin");
-        setIsSuperAdmin(canToggle);
-        setFeatureStates(getFeatureStates(features, canToggle ? flags : []));
         setAccountStatus({
           trial,
           license,
@@ -348,34 +273,13 @@ function PlansAndUpgradePanel({
         });
       } catch {
         if (cancelled) return;
-        setIsSuperAdmin(false);
-        setFeatureStates(getFeatureStates(features, []));
         setAccountStatus({ trial: null, license: null, landCredential: "not-configured" });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [features]);
-
-  async function toggleFeature(feature: EntitlementFeature) {
-    if (!isSuperAdmin) return;
-    const res = await mockInvoke<{ success: true; enabled: boolean }>("toggle_feature_flag", {
-      id: feature.id,
-    });
-    setFeatureStates((prev) =>
-      prev.map((row) =>
-        row.id === feature.id
-          ? {
-              ...row,
-              enabled: res.enabled,
-              description: res.enabled ? "已啟用" : "未啟用",
-              ariaLabel: `${row.label}${res.enabled ? "已啟用" : "未啟用"}`,
-            }
-          : row,
-      ),
-    );
-  }
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -406,12 +310,8 @@ function PlansAndUpgradePanel({
             <p className="mt-3 min-h-12 text-sm text-muted-foreground">{plan.description}</p>
             <button
               type="button"
-              className={`mt-5 w-full rounded-md px-3 py-2 text-sm font-medium ${
-                plan.current ? "border text-muted-foreground" : "bg-blue-600 text-white"
-              }`}
-              onClick={() => {
-                if (!plan.current) window.open("https://opcos.me", "_blank", "noopener,noreferrer");
-              }}
+              disabled
+              className="mt-5 w-full rounded-md border px-3 py-2 text-sm font-medium text-muted-foreground"
             >
               {plan.ctaLabel}
             </button>
@@ -426,54 +326,8 @@ function PlansAndUpgradePanel({
           </article>
         ))}
       </section>
-
-      <section>
-        <h2 className="text-base font-semibold">預留功能</h2>
-        <p className="text-sm text-muted-foreground">目前正在開發中。</p>
-        <div className="mt-4 divide-y rounded-lg border">
-          {featureStates.map((feature) => (
-            <div key={feature.label} className="flex items-center justify-between gap-4 p-4">
-              <div>
-                <strong>{feature.label}</strong>
-                <span className="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                  {feature.description}
-                </span>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-label={feature.ariaLabel}
-                aria-checked={feature.enabled}
-                disabled={!isSuperAdmin}
-                onClick={() => {
-                  void toggleFeature(feature);
-                }}
-                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-                  feature.enabled ? "bg-teal-700" : "bg-slate-300"
-                } disabled:cursor-not-allowed disabled:bg-slate-300`}
-              >
-                <span
-                  className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                    feature.enabled ? "translate-x-5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
-}
-
-function getFeatureStates(features: EntitlementFeature[], flags: FeatureFlag[]) {
-  const flagMap = new Map(flags.map((flag) => [flag.id, flag.enabled]));
-  return features.map((feature) => ({
-    ...feature,
-    enabled: flagMap.get(feature.id) ?? false,
-    description: flagMap.get(feature.id) ? "已啟用" : "未啟用",
-    ariaLabel: `${feature.label}${flagMap.get(feature.id) ? "已啟用" : "未啟用"}`,
-  }));
 }
 
 function formatPlanName(plan: TrialStatusResponse["plan"]): string {
