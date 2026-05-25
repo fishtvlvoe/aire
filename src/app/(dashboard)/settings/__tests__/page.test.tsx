@@ -19,6 +19,24 @@ let mockProfileSettings = {
   passwordUpdatedAt: null as string | null,
 };
 let mockRegistryRows: Array<Record<string, unknown>> = [];
+let mockBillingEntries = [
+  {
+    service_name: "建物所有權資料",
+    target: "AIRE-2026-001 / 建號 88-1",
+    status_label: "查詢成功",
+    transaction_id: "TXN-001",
+    cost: 27,
+    charged_at: "2026-05-18T22:52:20+08:00",
+  },
+  {
+    service_name: "門牌建號查詢",
+    target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
+    status_label: "查詢失敗",
+    transaction_id: "COP309",
+    cost: 0,
+    charged_at: "2026-05-18T22:52:20+08:00",
+  },
+];
 let mockLicenseStatus: Record<string, unknown> = { status: "none", serial_key: null };
 let mockLandApiSettings = { clientId: "", secret: "" };
 let mockTrialStatus = {
@@ -78,26 +96,7 @@ vi.mock("@/lib/mock-backend", () => ({
     if (cmd === "land_registry_get_balance") {
       return { month_total_cost: 27, month_query_count: 2, low_balance_warning: false };
     }
-    if (cmd === "land_registry_list_billing_entries") {
-      return [
-        {
-          service_name: "建物所有權資料",
-          target: "AIRE-2026-001 / 建號 88-1",
-          status_label: "查詢成功",
-          transaction_id: "TXN-001",
-          cost: 27,
-          charged_at: "2026-05-18T22:52:20+08:00",
-        },
-        {
-          service_name: "門牌建號查詢",
-          target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
-          status_label: "查詢失敗",
-          transaction_id: "COP309",
-          cost: 0,
-          charged_at: "2026-05-18T22:52:20+08:00",
-        },
-      ];
-    }
+    if (cmd === "land_registry_list_billing_entries") return mockBillingEntries;
     if (cmd === "list_registry_query_runs") {
       return mockRegistryRows;
     }
@@ -135,6 +134,30 @@ vi.mock("@/lib/mock-backend", () => ({
   }),
 }));
 
+vi.mock("@/lib/land-registry-api", () => ({
+  listBillingEntries: vi.fn(async () => mockBillingEntries),
+  listRegistryQueryRuns: vi.fn(async () => mockRegistryRows),
+  getRegistryQueryRunDetail: vi.fn(async (runId: string) => ({
+    id: runId ?? "run-r02-001",
+    organization_id: "local-device",
+    case_id: "case-r02-001",
+    input_type: "address",
+    source_input: "台南市東區裕農路288巷17號8樓之1",
+    match_status: "candidate",
+    candidate_json: { adapter: "easymap_r02_desktop" },
+    cop_response_json: null,
+    raw_response_json: { adapter: "easymap_r02_desktop" },
+    total_cost_cents: 0,
+    cache_hit: false,
+    source_run_id: null,
+    error_code: null,
+    error_message: null,
+    api_calls: [],
+    created_at: "2026-05-25T00:00:00.000Z",
+    updated_at: "2026-05-25T00:00:00.000Z",
+  })),
+}));
+
 import SettingsPage from "../page";
 import { mockInvoke } from "@/lib/mock-backend";
 
@@ -168,6 +191,24 @@ describe("Settings page（重組後）", () => {
       passwordUpdatedAt: null,
     };
     mockRegistryRows = [];
+    mockBillingEntries = [
+      {
+        service_name: "建物所有權資料",
+        target: "AIRE-2026-001 / 建號 88-1",
+        status_label: "查詢成功",
+        transaction_id: "TXN-001",
+        cost: 27,
+        charged_at: "2026-05-18T22:52:20+08:00",
+      },
+      {
+        service_name: "門牌建號查詢",
+        target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
+        status_label: "查詢失敗",
+        transaction_id: "COP309",
+        cost: 0,
+        charged_at: "2026-05-18T22:52:20+08:00",
+      },
+    ];
     mockLicenseStatus = { status: "none", serial_key: null };
     mockLandApiSettings = { clientId: "", secret: "" };
     mockTrialStatus = {
