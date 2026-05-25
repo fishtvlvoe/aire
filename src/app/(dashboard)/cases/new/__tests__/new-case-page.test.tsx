@@ -39,6 +39,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "0001",
         building_number: "0001",
         source: "cop_moi",
+        trusted_for_pdf: true,
       },
     ]);
   });
@@ -117,7 +118,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "00700000",
         building_number: "",
         source: "dev_fixture",
-        trusted_for_pdf: false,
+        trusted_for_pdf: true,
       },
       {
         parcel_id: "DC-1556-00165000",
@@ -125,7 +126,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "00700000",
         building_number: "00165000",
         source: "dev_fixture",
-        trusted_for_pdf: false,
+        trusted_for_pdf: true,
       },
       {
         parcel_id: "DC-1556-00167000",
@@ -133,7 +134,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "00700000",
         building_number: "00167000",
         source: "dev_fixture",
-        trusted_for_pdf: false,
+        trusted_for_pdf: true,
       },
       {
         parcel_id: "DC-1556-00229000",
@@ -141,7 +142,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "00700000",
         building_number: "00229000",
         source: "dev_fixture",
-        trusted_for_pdf: false,
+        trusted_for_pdf: true,
       },
       {
         parcel_id: "DC-1556-00230000",
@@ -149,7 +150,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "00700000",
         building_number: "00230000",
         source: "dev_fixture",
-        trusted_for_pdf: false,
+        trusted_for_pdf: true,
       },
     ]);
     render(<NewCasePage />);
@@ -263,6 +264,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "0001",
         building_number: "0000",
         source: "cop_moi",
+        trusted_for_pdf: true,
       },
       {
         parcel_id: "0001-0001",
@@ -270,6 +272,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "0001",
         building_number: "0001",
         source: "cop_moi",
+        trusted_for_pdf: true,
       },
     ]);
     render(<NewCasePage />);
@@ -355,6 +358,7 @@ describe("NewCasePage address-first flow", () => {
         lot_number: "0001",
         building_number: "0001",
         source: "mock",
+        trusted_for_pdf: false,
       },
     ]);
     render(<NewCasePage />);

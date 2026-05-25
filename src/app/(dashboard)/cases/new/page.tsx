@@ -487,7 +487,7 @@ function buildAddressLookupProvenance(
 }
 
 function isTrustedAddressLookupParcel(parcel: ParcelInfo): boolean {
-  return parcel.source === "cop_moi" || parcel.source === "nlsc_cad" || parcel.source === "dev_fixture";
+  return parcel.trusted_for_pdf === true;
 }
 
 function buildManualRegistryClassification(

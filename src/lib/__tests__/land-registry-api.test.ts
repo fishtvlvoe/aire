@@ -32,12 +32,40 @@ describe("land-registry-api addressLookup", () => {
 
   it("uses the local backend in development browser mode instead of blocking local E2E", async () => {
     mocks.isTauriEnv.mockResolvedValue(false);
-    mocks.safeInvoke.mockResolvedValue([]);
+    vi.stubEnv("NODE_ENV", "development");
+    mocks.safeInvoke.mockResolvedValueOnce({ clientId: "cid", secret: "sec" });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          status: "candidate_found",
+          candidates: [
+            {
+              parcel_id: "mock",
+              address: "台南市永康區勝利街58巷4號",
+              lot_number: "9999",
+              building_number: "0000",
+              source: "mock",
+              trusted_for_pdf: true,
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ) as Response,
+    );
 
-    await expect(addressLookup("台南市永康區勝利街58巷4號")).resolves.toEqual([]);
-    expect(mocks.safeInvoke).toHaveBeenCalledWith("land_registry_address_lookup", {
-      address: "台南市永康區勝利街58巷4號",
-    });
+    await expect(addressLookup("台南市永康區勝利街58巷4號")).resolves.toEqual([
+      {
+        parcel_id: "mock",
+        address: "台南市永康區勝利街58巷4號",
+        lot_number: "9999",
+        building_number: "0000",
+        source: "mock",
+        trusted_for_pdf: true,
+      },
+    ]);
+    expect(fetchSpy).toHaveBeenCalledWith("/api/local/address-discovery", expect.any(Object));
+    expect(mocks.safeInvoke).toHaveBeenCalledWith("get_land_api_settings");
+    fetchSpy.mockRestore();
   });
 
   it("rejects production browser mode instead of falling back to mock address data", async () => {

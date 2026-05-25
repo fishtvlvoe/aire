@@ -131,11 +131,71 @@ export interface RegistryRunSyncResult {
   remote_run_id: string | null;
 }
 
-export async function addressLookup(address: string): Promise<ParcelInfo[]> {
-  if (!(await isTauriEnv())) {
-    if (process.env.NODE_ENV !== "production") {
-      return invoke<ParcelInfo[]>("land_registry_address_lookup", { address });
+interface LocalAddressDiscoveryResponse {
+  status: "candidate_found" | "manual_required";
+  candidates: ParcelInfo[];
+}
+
+interface LocalLandApiSettings {
+  clientId?: string;
+  secret?: string;
+}
+
+async function readLocalLandApiSettings(): Promise<LocalLandApiSettings> {
+  try {
+    return await safeInvoke<LocalLandApiSettings>("get_land_api_settings");
+  } catch {
+    return {};
+  }
+}
+
+async function fetchAddressDiscoveryFromLocalBackend(address: string): Promise<ParcelInfo[]> {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  const settings = await readLocalLandApiSettings();
+  const response = await fetch("/api/local/address-discovery", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      address,
+      clientId: settings.clientId ?? "",
+      secret: settings.secret ?? "",
+      allowMockFallback: true,
+    }),
+    signal: AbortSignal.timeout(8000),
+  });
+
+  if (!response.ok) {
+    try {
+      await safeInvoke<ParcelInfo[]>("land_registry_address_lookup", { address });
+    } catch {
+      // no-op
     }
+    return [];
+  }
+
+  const result = (await response.json()) as LocalAddressDiscoveryResponse;
+  if (result.status === "candidate_found") {
+    return result.candidates ?? [];
+  }
+  try {
+    await safeInvoke<ParcelInfo[]>("land_registry_address_lookup", { address });
+  } catch {
+    // no-op
+  }
+  return [];
+}
+
+export async function addressLookup(address: string): Promise<ParcelInfo[]> {
+  if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+    const inTauri = await isTauriEnv();
+    if (!inTauri) {
+      return fetchAddressDiscoveryFromLocalBackend(address);
+    }
+  }
+
+  if (!(await isTauriEnv())) {
     throw new NotInTauriError("請使用 AIRE 桌面版完成地址資料補齊");
   }
   return invoke<ParcelInfo[]>("land_registry_address_lookup", { address });
