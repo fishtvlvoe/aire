@@ -37,6 +37,7 @@ describe("Login page", () => {
       'input[type="password"]',
     ) as HTMLElement | null;
     expect(passwordInput).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "顯示密碼" })).toBeInTheDocument();
 
     // login button
     expect(screen.getByRole("button", { name: /登入/ })).toBeInTheDocument();
@@ -56,6 +57,20 @@ describe("Login page", () => {
     expect(screen.queryByText(/序號/)).not.toBeInTheDocument();
     expect(screen.queryByText(/啟用/)).not.toBeInTheDocument();
     expect(screen.queryByText(/license/i)).not.toBeInTheDocument();
+  });
+
+  it("toggles password visibility", () => {
+    render(<LoginPage />);
+
+    const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+    expect(passwordInput).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "顯示密碼" }));
+    expect(passwordInput).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "隱藏密碼" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "隱藏密碼" }));
+    expect(passwordInput).toHaveAttribute("type", "password");
   });
 
   it("successful login — calls auth login and redirects to /cases/new", async () => {
