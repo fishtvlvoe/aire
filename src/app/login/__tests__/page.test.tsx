@@ -42,9 +42,15 @@ describe("Login page", () => {
     expect(screen.getByRole("button", { name: /登入/ })).toBeInTheDocument();
 
     // forgot password
-    expect(screen.getByText(/忘記密碼/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "忘記密碼" })).toHaveAttribute(
+      "href",
+      "https://opcos.me/forgot-password",
+    );
     expect(screen.getByText("使用 AIRE 桌面版帳號登入")).toBeInTheDocument();
-    expect(screen.getByText("用 Google 或 LINE 購買？")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "用 Google 或 LINE 購買？" })).toHaveAttribute(
+      "href",
+      "https://opcos.me/login?redirect=/products/aire",
+    );
 
     // no license/activation/serial key UI
     expect(screen.queryByText(/序號/)).not.toBeInTheDocument();

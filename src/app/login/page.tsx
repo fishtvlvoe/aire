@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-const FORGOT_PASSWORD_URL = "https://opcos.com.tw";
-const DESKTOP_PASSWORD_HELP_URL = "https://opcos.me/products/aire/desktop-password";
+const FORGOT_PASSWORD_URL = "https://opcos.me/forgot-password";
+const DESKTOP_PASSWORD_HELP_URL = "https://opcos.me/login?redirect=/products/aire";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: "帳號或密碼錯誤",
