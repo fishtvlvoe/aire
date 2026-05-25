@@ -48,9 +48,10 @@ describe("Login page", () => {
       "https://opcos.me/forgot-password",
     );
     expect(screen.getByText("使用 AIRE 桌面版帳號登入")).toBeInTheDocument();
+    expect(screen.getByText("Google 或 LINE 購買用戶請先在 opcos.me 產生桌面登入碼。")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "用 Google 或 LINE 購買？" })).toHaveAttribute(
       "href",
-      "https://opcos.me/login?redirect=/products/aire",
+      "https://opcos.me/products/aire?intent=desktop-login",
     );
 
     // no license/activation/serial key UI

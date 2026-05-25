@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 const FORGOT_PASSWORD_URL = "https://opcos.me/forgot-password";
-const DESKTOP_PASSWORD_HELP_URL = "https://opcos.me/login?redirect=/products/aire";
+const DESKTOP_PASSWORD_HELP_URL = "https://opcos.me/products/aire?intent=desktop-login";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: "帳號或密碼錯誤",
@@ -57,6 +57,9 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-slate-900">AIRE</h1>
             <p className="text-sm text-muted-foreground">不動產說明書智能助手</p>
             <p className="mt-2 text-xs text-muted-foreground">使用 AIRE 桌面版帳號登入</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Google 或 LINE 購買用戶請先在 opcos.me 產生桌面登入碼。
+            </p>
           </div>
         </CardHeader>
 
