@@ -2,10 +2,11 @@
 
 Date: 2026-05-25
 Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
+Commit: `9453d12657a48399483c04eec16adc1a2a978bfa`
 
 ## Result
 
-`desktop-fullflow-r02-cop-parity` implementation is functionally validated on web/E2E and macOS Desktop App `0.1.1` fullflow smoke. The release gate is not complete until Windows installer and fullflow smoke evidence is collected for this commit.
+`desktop-fullflow-r02-cop-parity` implementation is functionally validated on web/E2E and macOS Desktop App `0.1.1` fullflow smoke. Windows installer artifacts are now verified from CI on this exact commit. The release gate is still not complete until Windows install/launch/fullflow smoke evidence is collected.
 
 ## Implementation Summary
 
@@ -23,7 +24,7 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 
 ## Verification
 
-- `pnpm test`: passed, 122 files / 646 tests.
+- `pnpm test`: passed, 123 files / 653 tests.
 - `pnpm type-check`: passed.
 - `pnpm build`: passed.
 - `pnpm tauri:build`: passed with Rust warnings only.
@@ -34,6 +35,7 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 - `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/product-auth-functional-flow.spec.ts e2e/product-ui-demo-alignment.spec.ts e2e/product-navigation-ia.spec.ts e2e/full-product-flow-ia-ux-acceptance.spec.ts --reporter=line --timeout=120000`: 12 passed, 1 locator strictness failure fixed.
 - `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/full-product-flow-ia-ux-acceptance.spec.ts --reporter=line --timeout=120000`: passed.
 - `pnpm playwright test e2e/desktop-auth-credential-fulfillment-smoke.spec.ts`: passed (bootstrap code login, relaunch auto-session restore, logout session clear).
+- GitHub Actions `Tauri Release` run `26398171467` (head SHA `9453d12657a48399483c04eec16adc1a2a978bfa`): success on `windows-latest` and `macos-latest`.
 - `spectra analyze desktop-fullflow-r02-cop-parity --json`: Critical 0 / Warning 0; 14 Suggestions remain for example-level spec clarity.
 - `spectra validate desktop-fullflow-r02-cop-parity`: valid.
 - `spectra analyze desktop-fullflow-release-acceptance-gate --json`: Critical 0 / Warning 0 / Suggestions 0.
@@ -43,6 +45,10 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 
 - macOS app: `src-tauri/target/release/bundle/macos/AIRE.app`
 - macOS DMG: `src-tauri/target/release/bundle/dmg/AIRE_0.1.1_aarch64.dmg`
+- Windows MSI artifact (CI): `AIRE_0.1.3_x64_en-US.msi`
+- Windows EXE installer artifact (CI): `AIRE_0.1.3_x64-setup.exe`
+- CI run URL: `https://github.com/fishtvlvoe/aire/actions/runs/26398171467`
+- Draft release URL: `https://github.com/fishtvlvoe/aire/releases/tag/untagged-b25f3aacbbd9b2a05748`
 - macOS launch screenshot: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-clean-v2-launch.png`
 - macOS PDF preview screenshot: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-0.1.1-pdf-preview.png`
 - macOS PDF artifact: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-0.1.1-export.pdf` (`PDF document, version 1.3, 18 pages`)
@@ -53,4 +59,4 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 
 ## Known Gap
 
-Windows install/start/fullflow/PDF evidence has not been executed in this macOS terminal session. Do not mark `desktop-fullflow-release-acceptance-gate` complete and do not start `desktop-auto-update-macos-windows` until Windows evidence exists for this commit.
+Windows install/start/fullflow/PDF evidence has not been executed in this macOS terminal session. CI proves installer build integrity for this commit, but does not replace VM/physical launch and workflow verification. Do not mark `desktop-fullflow-release-acceptance-gate` complete and do not start `desktop-auto-update-macos-windows` until Windows runtime evidence exists for this commit.

@@ -2,6 +2,7 @@
 
 Date: 2026-05-25
 Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
+Commit: `9453d12657a48399483c04eec16adc1a2a978bfa`
 
 ## desktop-fullflow-r02-cop-parity
 
@@ -18,7 +19,7 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 
 ## Automated Evidence
 
-- [x] `pnpm test` — 122 files / 646 tests passed.
+- [x] `pnpm test` — 123 files / 653 tests passed.
 - [x] `pnpm type-check` — passed.
 - [x] `pnpm build` — passed.
 - [x] `pnpm tauri:build` — passed for macOS `0.1.1`.
@@ -42,7 +43,11 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 - [x] macOS fullflow smoke: login, address-first case creation, workbench, PDF preview and PDF export.
 - [x] macOS PDF preview screenshot: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-0.1.1-pdf-preview.png`
 - [x] macOS PDF artifact: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-0.1.1-export.pdf`
-- [ ] Windows installer build from this exact commit.
+- [x] Windows installer build from this exact commit.
+- [x] Windows CI release run (commit `9453d12657a48399483c04eec16adc1a2a978bfa`): `https://github.com/fishtvlvoe/aire/actions/runs/26398171467`
+- [x] Windows installer artifacts:
+  - `AIRE_0.1.3_x64_en-US.msi`
+  - `AIRE_0.1.3_x64-setup.exe`
 - [ ] Windows VM/physical install and launch smoke from this exact commit.
 - [ ] Windows fullflow PDF export evidence from this exact commit.
 
@@ -53,4 +58,4 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 - [x] Run `spectra analyze desktop-fullflow-release-acceptance-gate --json`.
 - [x] Run `spectra validate desktop-fullflow-release-acceptance-gate`.
 - [x] Reduce all Critical and Warning findings to 0.
-- [ ] Attach Windows installer/smoke evidence from VM, physical machine, or CI for this commit.
+- [ ] Attach Windows install + launch + fullflow smoke evidence from VM or physical machine for this commit.
