@@ -8,12 +8,13 @@
 
 | 順序 | SR | 狀態 | 用途 | 下一步 |
 | --- | --- | --- | --- | --- |
+| 0 | `desktop-system-flow-blueprint-html` | 已建立 | 內部圖表式 HTML 藍圖：整理本機、Desktop App、驗收、授權、OO 串接與自動更新的完整路線。 | 接手前先看 `docs/aire-desktop-system-blueprint-2026-05-25.html`。 |
 | 1 | `desktop-fullflow-r02-cop-parity` | 進行中 | 本期主線：把 AIRE 做成 Mac/Windows 桌面完整版，從地址輸入、地段地號建號對標、客戶 COP 查詢、物調補件、HTML 預覽到 PDF。 | 先實作與驗收這個 SR。 |
 | 2 | `desktop-auto-update-macos-windows` | 排隊 | 下一期：本期桌面完整版通過 macOS 與 Windows 實機驗收後，再補自動更新通知、下載、重啟更新與發版流程。 | 完成第 1 項後才開始。 |
 
 ## 接手規則
 
-1. 預設只讀上表兩個 SR。
+1. 預設先讀 `docs/aire-desktop-system-blueprint-2026-05-25.html`，再讀上表 SR。
 2. `desktop-fullflow-r02-cop-parity` 未完成前，不要實作自動更新。
 3. 客戶前台 UI 不顯示 R02、便民系統、COP、API、Helper、JSON、payload、adapter、parser 等技術詞。
 4. `/cases/new` 是客戶唯一的地址查詢入口；底層候選查詢與正式地政查詢都藏在系統流程中。
@@ -46,6 +47,10 @@
 ```text
 現在要做
   |
+  v
+desktop-system-flow-blueprint-html
+  |  先讀圖表式藍圖
+  |  確認本機 -> App -> 驗收 -> OO -> 更新的順序
   v
 desktop-fullflow-r02-cop-parity
   |  macOS 實機可用
