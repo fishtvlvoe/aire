@@ -10,12 +10,14 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/auth", () => ({
   login: vi.fn(),
+  exchangeDesktopBootstrapCode: vi.fn(),
 }));
 
 import LoginPage from "../page";
-import { login } from "@/lib/auth";
+import { exchangeDesktopBootstrapCode, login } from "@/lib/auth";
 
 const mockLogin = vi.mocked(login);
+const mockBootstrap = vi.mocked(exchangeDesktopBootstrapCode);
 
 describe("Login page", () => {
   beforeEach(() => {
@@ -40,7 +42,8 @@ describe("Login page", () => {
     expect(screen.getByRole("button", { name: "顯示密碼" })).toBeInTheDocument();
 
     // login button
-    expect(screen.getByRole("button", { name: /登入/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^登入$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "使用一次性登入碼" })).toBeInTheDocument();
 
     // forgot password
     expect(screen.getByRole("link", { name: "忘記密碼" })).toHaveAttribute(
@@ -58,6 +61,30 @@ describe("Login page", () => {
     expect(screen.queryByText(/序號/)).not.toBeInTheDocument();
     expect(screen.queryByText(/啟用/)).not.toBeInTheDocument();
     expect(screen.queryByText(/license/i)).not.toBeInTheDocument();
+  });
+
+  it("supports bootstrap code login and redirects to /cases/new", async () => {
+    mockBootstrap.mockResolvedValue({
+      success: true,
+      user: { email: "admin@test.aire", role: "admin" },
+      bootstrapOnly: true,
+    });
+    render(<LoginPage />);
+
+    fireEvent.change(
+      (screen.queryByPlaceholderText(/email/i) ??
+        document.querySelector('input[type="email"]'))!,
+      { target: { value: "admin@test.aire" } },
+    );
+    fireEvent.change(screen.getByPlaceholderText("一次性桌面登入碼（可選）"), {
+      target: { value: "OTC-ADMIN-2026" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "使用一次性登入碼" }));
+
+    await waitFor(() => {
+      expect(mockBootstrap).toHaveBeenCalledWith("admin@test.aire", "OTC-ADMIN-2026");
+      expect(mockPush).toHaveBeenCalledWith("/cases/new");
+    });
   });
 
   it("toggles password visibility", () => {
@@ -90,7 +117,7 @@ describe("Login page", () => {
     fireEvent.change(document.querySelector('input[type="password"]')!, {
       target: { value: "password" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /登入/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^登入$/ }));
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith("admin@test.aire", "password");
@@ -101,7 +128,7 @@ describe("Login page", () => {
   it("empty submit shows explicit desktop account error", async () => {
     render(<LoginPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: /登入/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^登入$/ }));
 
     expect(screen.getByText("請輸入 AIRE 桌面版帳號與密碼")).toBeInTheDocument();
     expect(mockLogin).not.toHaveBeenCalled();
@@ -120,7 +147,7 @@ describe("Login page", () => {
     fireEvent.change(document.querySelector('input[type="password"]')!, {
       target: { value: "wrong" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /登入/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^登入$/ }));
 
     await waitFor(() => {
       expect(screen.getByText("帳號或密碼錯誤")).toBeInTheDocument();
@@ -140,7 +167,7 @@ describe("Login page", () => {
     fireEvent.change(document.querySelector('input[type="password"]')!, {
       target: { value: "password" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /登入/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^登入$/ }));
 
     await waitFor(() => {
       expect(screen.getByText("帳號已過期")).toBeInTheDocument();

@@ -10,7 +10,14 @@ vi.mock("@/lib/mock-backend", () => ({
 
 import { safeInvoke } from "@/lib/tauri-bridge";
 import { mockInvoke } from "@/lib/mock-backend";
-import { getSession, isAuthenticated, login, logout } from "@/lib/auth";
+import {
+  exchangeDesktopBootstrapCode,
+  getDeviceSessionStatus,
+  getSession,
+  isAuthenticated,
+  login,
+  logout,
+} from "@/lib/auth";
 
 const mockSafeInvoke = vi.mocked(safeInvoke);
 const mockLocalInvoke = vi.mocked(mockInvoke);
@@ -82,5 +89,34 @@ describe("auth helpers", () => {
       email: "admin@test.aire",
       password: "password",
     });
+  });
+
+  it("exchanges bootstrap code and reads device session status", async () => {
+    mockSafeInvoke
+      .mockResolvedValueOnce({
+        success: true,
+        user: { email: "admin@test.aire", role: "admin" },
+        bootstrapOnly: true,
+      })
+      .mockResolvedValueOnce({
+        status: "active",
+        email: "admin@test.aire",
+        persistedAt: "2026-05-25T00:00:00.000Z",
+      });
+
+    await expect(
+      exchangeDesktopBootstrapCode("admin@test.aire", "OTC-ADMIN-2026"),
+    ).resolves.toMatchObject({
+      success: true,
+      bootstrapOnly: true,
+    });
+    await expect(getDeviceSessionStatus()).resolves.toMatchObject({
+      status: "active",
+    });
+    expect(mockSafeInvoke).toHaveBeenNthCalledWith(1, "exchange_desktop_bootstrap_code", {
+      email: "admin@test.aire",
+      code: "OTC-ADMIN-2026",
+    });
+    expect(mockSafeInvoke).toHaveBeenNthCalledWith(2, "get_device_session_status");
   });
 });

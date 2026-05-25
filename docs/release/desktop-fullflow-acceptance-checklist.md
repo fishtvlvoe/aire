@@ -27,6 +27,7 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 - [x] Playwright `aire-disclosure-registry-ux.spec.ts` — passed.
 - [x] Playwright `candidate-parcel-options-presurvey.spec.ts` — passed.
 - [x] Playwright `complete-presurvey-property-sheet-flow.spec.ts` — passed.
+- [x] Playwright `desktop-auth-credential-fulfillment-smoke.spec.ts` — passed (bootstrap login, relaunch session restore, logout clear).
 - [x] Playwright route regression set — `product-auth-functional-flow`, `product-ui-demo-alignment`, `product-navigation-ia`, `full-product-flow-ia-ux-acceptance` passed after static-export route fix.
 
 ## Desktop Evidence

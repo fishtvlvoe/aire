@@ -33,6 +33,7 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 - `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/aire-disclosure-registry-ux.spec.ts e2e/candidate-parcel-options-presurvey.spec.ts e2e/complete-presurvey-property-sheet-flow.spec.ts --reporter=line --timeout=120000`: passed.
 - `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/product-auth-functional-flow.spec.ts e2e/product-ui-demo-alignment.spec.ts e2e/product-navigation-ia.spec.ts e2e/full-product-flow-ia-ux-acceptance.spec.ts --reporter=line --timeout=120000`: 12 passed, 1 locator strictness failure fixed.
 - `E2E_BASE_URL=http://localhost:3000 pnpm exec playwright test e2e/full-product-flow-ia-ux-acceptance.spec.ts --reporter=line --timeout=120000`: passed.
+- `pnpm playwright test e2e/desktop-auth-credential-fulfillment-smoke.spec.ts`: passed (bootstrap code login, relaunch auto-session restore, logout session clear).
 - `spectra analyze desktop-fullflow-r02-cop-parity --json`: Critical 0 / Warning 0; 14 Suggestions remain for example-level spec clarity.
 - `spectra validate desktop-fullflow-r02-cop-parity`: valid.
 - `spectra analyze desktop-fullflow-release-acceptance-gate --json`: Critical 0 / Warning 0 / Suggestions 0.
@@ -47,6 +48,7 @@ Branch: `feat/desktop-fullflow-r02-cop-parity-clean-v2`
 - macOS PDF artifact: `artifacts/smoke/macos/desktop-fullflow-r02-cop-parity-0.1.1-export.pdf` (`PDF document, version 1.3, 18 pages`)
 - Playwright screenshots: `e2e/results/demo-alignment/*.png`
 - Playwright navigation screenshots: `e2e/results/navigation-ia/*.png`
+- Desktop auth smoke artifacts: `e2e/results/test-artifacts/desktop-auth-credential-fu-*/`
 - Playwright report: `e2e/results/playwright-report/index.html`
 
 ## Known Gap

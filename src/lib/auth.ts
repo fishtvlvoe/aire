@@ -13,6 +13,10 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
+export type BootstrapLoginResponse = LoginResponse & {
+  bootstrapOnly: true;
+};
+
 export type SessionResponse =
   | {
       authenticated: false;
@@ -29,6 +33,16 @@ export function login(email: string, password: string): Promise<LoginResponse> {
   });
 }
 
+export function exchangeDesktopBootstrapCode(
+  email: string,
+  code: string,
+): Promise<BootstrapLoginResponse> {
+  return invokeAuthCommand<BootstrapLoginResponse>("exchange_desktop_bootstrap_code", {
+    email,
+    code,
+  });
+}
+
 export function logout(): Promise<{ success: true }> {
   return invokeAuthCommand<{ success: true }>("logout");
 }
@@ -37,13 +51,26 @@ export function getSession(): Promise<SessionResponse> {
   return invokeAuthCommand<SessionResponse>("get_session");
 }
 
+export function getDeviceSessionStatus(): Promise<{
+  status: "active" | "missing";
+  email: string | null;
+  persistedAt: string | null;
+}> {
+  return invokeAuthCommand("get_device_session_status");
+}
+
 export async function isAuthenticated(): Promise<boolean> {
   const session = await getSession();
   return session.authenticated;
 }
 
 async function invokeAuthCommand<T>(
-  command: "login" | "logout" | "get_session",
+  command:
+    | "login"
+    | "logout"
+    | "get_session"
+    | "exchange_desktop_bootstrap_code"
+    | "get_device_session_status",
   args?: Record<string, unknown>,
 ): Promise<T> {
   try {

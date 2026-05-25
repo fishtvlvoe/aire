@@ -16,6 +16,7 @@ import {
   type BillingLineItem,
   type RegistryQueryRun,
 } from "@/lib/land-registry-api";
+import { getDeviceSessionStatus } from "@/lib/auth";
 import { mockInvoke } from "@/lib/mock-backend";
 
 type ProfileSettingsResponse = {
@@ -249,20 +250,23 @@ function PlansAndUpgradePanel({ plans }: { plans: ReturnType<typeof getUpgradePl
     trial: TrialStatusResponse | null;
     license: LicenseStatusResponse | null;
     landCredential: LandCredentialStatus;
+    deviceSession: "active" | "missing";
   }>({
     trial: null,
     license: null,
     landCredential: "not-configured",
+    deviceSession: "missing",
   });
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const [trial, license, landSettings] = await Promise.all([
+        const [trial, license, landSettings, deviceSession] = await Promise.all([
           mockInvoke<TrialStatusResponse>("get_trial_status"),
           mockInvoke<LicenseStatusResponse>("get_license_status"),
           mockInvoke<LandApiSettingsResponse>("get_land_api_settings"),
+          getDeviceSessionStatus(),
         ]);
         if (cancelled) return;
         setAccountStatus({
@@ -270,10 +274,11 @@ function PlansAndUpgradePanel({ plans }: { plans: ReturnType<typeof getUpgradePl
           license,
           landCredential:
             landSettings.clientId?.trim() && landSettings.secret?.trim() ? "configured" : "not-configured",
+          deviceSession: deviceSession.status,
         });
       } catch {
         if (cancelled) return;
-        setAccountStatus({ trial: null, license: null, landCredential: "not-configured" });
+        setAccountStatus({ trial: null, license: null, landCredential: "not-configured", deviceSession: "missing" });
       }
     })();
     return () => {
@@ -290,7 +295,7 @@ function PlansAndUpgradePanel({ plans }: { plans: ReturnType<typeof getUpgradePl
           <SettingKv label="試用狀態" value={formatTrialStatus(accountStatus.trial)} />
           <SettingKv label="授權狀態" value={formatLicenseStatus(accountStatus.license)} />
           <SettingKv label="地政查詢帳號" value={formatLandCredentialStatus(accountStatus.landCredential)} />
-          <SettingKv label="裝置" value="本機 AIRE 桌面 App" />
+          <SettingKv label="裝置" value={accountStatus.deviceSession === "active" ? "本機 AIRE 桌面 App（已登入）" : "本機 AIRE 桌面 App（未登入）"} />
         </dl>
       </section>
 

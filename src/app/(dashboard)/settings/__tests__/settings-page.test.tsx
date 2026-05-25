@@ -50,6 +50,14 @@ vi.mock("@/lib/mock-backend", () => ({
   }),
 }));
 
+vi.mock("@/lib/auth", () => ({
+  getDeviceSessionStatus: vi.fn(async () => ({
+    status: "active",
+    email: "admin@test.aire",
+    persistedAt: "2026-05-25T00:00:00.000Z",
+  })),
+}));
+
 describe("SettingsPage demo alignment", () => {
   beforeEach(() => {
     vi.clearAllMocks();

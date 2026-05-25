@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { login } from "@/lib/auth";
+import { exchangeDesktopBootstrapCode, login } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [bootstrapCode, setBootstrapCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -43,6 +44,30 @@ export default function LoginPage() {
         setError(AUTH_ERROR_MESSAGES.ACCOUNT_EXPIRED);
       } else {
         setError("登入失敗，請稍後再試");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleBootstrapLogin() {
+    setError("");
+    if (!email.trim() || !bootstrapCode.trim()) {
+      setError("請輸入 Email 與一次性桌面登入碼");
+      return;
+    }
+    setLoading(true);
+    try {
+      await exchangeDesktopBootstrapCode(email, bootstrapCode);
+      router.push("/cases/new");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("BOOTSTRAP_CODE_EXPIRED")) {
+        setError("一次性登入碼已失效，請回 opcos.me 重新產生");
+      } else if (msg.includes("ENTITLEMENT_REQUIRED")) {
+        setError("此帳號尚未啟用 AIRE 權限，請先在 opcos.me 確認方案");
+      } else {
+        setError("一次性登入失敗，請稍後再試");
       }
     } finally {
       setLoading(false);
@@ -93,11 +118,22 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+            <Input
+              type="text"
+              placeholder="一次性桌面登入碼（可選）"
+              value={bootstrapCode}
+              onChange={(e) => setBootstrapCode(e.target.value)}
+              autoComplete="one-time-code"
+              disabled={loading}
+            />
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "登入中..." : "登入"}
+            </Button>
+            <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={() => void handleBootstrapLogin()}>
+              {loading ? "登入中..." : "使用一次性登入碼"}
             </Button>
           </form>
 

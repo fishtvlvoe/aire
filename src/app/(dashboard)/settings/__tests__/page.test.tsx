@@ -160,6 +160,13 @@ vi.mock("@/lib/land-registry-api", () => ({
 
 import SettingsPage from "../page";
 import { mockInvoke } from "@/lib/mock-backend";
+vi.mock("@/lib/auth", () => ({
+  getDeviceSessionStatus: vi.fn(async () => ({
+    status: "active",
+    email: "admin@test.aire",
+    persistedAt: "2026-05-25T00:00:00.000Z",
+  })),
+}));
 
 let mockSection: string | null = null;
 

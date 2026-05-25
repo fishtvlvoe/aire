@@ -170,6 +170,11 @@ interface PersistedMockState {
   registryQueryRuns?: RegistryQueryRun[];
   registryQueryCache?: Record<string, string>;
   registryMatchByCase?: Record<string, ConfirmedRegistryMatch>;
+  deviceSession?: {
+    status: "active" | "missing";
+    email: string | null;
+    persistedAt: string | null;
+  };
 }
 
 type TrialPlan = "trial" | "basic" | "pro" | "vip";
@@ -283,6 +288,13 @@ const TEST_ACCOUNTS = [
     status: "expired" as const,
   },
 ];
+
+const ONE_TIME_DESKTOP_CODES: Record<string, { code: string; entitlement: boolean; expired?: boolean }> = {
+  "admin@test.aire": { code: "OTC-ADMIN-2026", entitlement: true },
+  "user@test.aire": { code: "OTC-USER-2026", entitlement: true },
+  "buyer-no-entitlement@test.aire": { code: "OTC-NO-ENTITLE-2026", entitlement: false },
+  "expired-code@test.aire": { code: "OTC-EXPIRED-2026", entitlement: true, expired: true },
+};
 
 const DEFAULT_APP_SETTINGS: AppSettingsState = {
   landApi: {
@@ -664,6 +676,11 @@ export class MockStore {
   private themeId = "theme-a-minimal";
   private clauses = new Map<string, ClauseData>();
   private sessionUser: MockSessionUser | null = null;
+  private deviceSession: { status: "active" | "missing"; email: string | null; persistedAt: string | null } = {
+    status: "missing",
+    email: null,
+    persistedAt: null,
+  };
   private appSettings: AppSettingsState = {
     landApi: {
       clientId: DEFAULT_APP_SETTINGS.landApi.clientId,
@@ -758,10 +775,14 @@ export class MockStore {
 
         case "login":
           return this.login(args) as T;
+        case "exchange_desktop_bootstrap_code":
+          return this.exchangeDesktopBootstrapCode(args) as T;
         case "logout":
           return this.logout() as T;
         case "get_session":
           return this.getSession() as T;
+        case "get_device_session_status":
+          return this.getDeviceSessionStatus() as T;
         case "get_app_settings":
           return this.getAppSettings() as T;
         case "save_app_settings":
@@ -1030,14 +1051,64 @@ export class MockStore {
       email: account.email,
       role: account.role,
     };
+    this.deviceSession = {
+      status: "active",
+      email: account.email,
+      persistedAt: new Date().toISOString(),
+    };
     return {
       success: true,
       user: { ...this.sessionUser },
     };
   }
 
+  private exchangeDesktopBootstrapCode(args?: CommandArgs): {
+    success: true;
+    user: MockSessionUser;
+    bootstrapOnly: true;
+  } {
+    const payload = toRecord(args);
+    const email = pickString(payload, ["email"]);
+    const code = pickString(payload, ["code"]);
+
+    if (!email || !code) {
+      throw new Error("INVALID_CREDENTIALS");
+    }
+
+    const expected = ONE_TIME_DESKTOP_CODES[email];
+    if (!expected || expected.code !== code) {
+      throw new Error("INVALID_CREDENTIALS");
+    }
+    if (expected.expired) {
+      throw new Error("BOOTSTRAP_CODE_EXPIRED");
+    }
+    if (!expected.entitlement) {
+      throw new Error("ENTITLEMENT_REQUIRED");
+    }
+
+    const account = TEST_ACCOUNTS.find((candidate) => candidate.email === email);
+    const role = account?.role ?? "user";
+    this.sessionUser = { email, role };
+    this.deviceSession = {
+      status: "active",
+      email,
+      persistedAt: new Date().toISOString(),
+    };
+
+    return {
+      success: true,
+      user: { ...this.sessionUser },
+      bootstrapOnly: true,
+    };
+  }
+
   private logout(): { success: true } {
     this.sessionUser = null;
+    this.deviceSession = {
+      status: "missing",
+      email: null,
+      persistedAt: null,
+    };
     return { success: true };
   }
 
@@ -1052,6 +1123,14 @@ export class MockStore {
       authenticated: true,
       user: { ...this.sessionUser },
     };
+  }
+
+  private getDeviceSessionStatus(): {
+    status: "active" | "missing";
+    email: string | null;
+    persistedAt: string | null;
+  } {
+    return { ...this.deviceSession };
   }
 
   private getAppSettings(): {
@@ -2408,6 +2487,15 @@ export class MockStore {
           role: persistedSession.role,
         };
       }
+      if (parsed.deviceSession && typeof parsed.deviceSession === "object") {
+        const ds = toRecord(parsed.deviceSession);
+        const status = pickString(ds, ["status"]);
+        this.deviceSession = {
+          status: status === "active" ? "active" : "missing",
+          email: pickString(ds, ["email"]),
+          persistedAt: pickString(ds, ["persistedAt", "persisted_at"]),
+        };
+      }
 
       if (persistedSettings) {
         const landApi = toRecord(persistedSettings.landApi);
@@ -2639,6 +2727,7 @@ export class MockStore {
     const snapshot: PersistedMockState = {
       license: { ...this.license },
       sessionUser: this.sessionUser ? { ...this.sessionUser } : null,
+      deviceSession: { ...this.deviceSession },
       appSettings: {
         landApi: {
           clientId: this.appSettings.landApi.clientId,
