@@ -2706,3 +2706,91 @@ tests:
   - src/components/__tests__/AppSidebar.test.tsx
   - 0520/supastarter-nextjs-main/packages/api/modules/organizations/lib/membership.test.ts
 -->
+
+---
+### Requirement: Settings section scope
+
+The settings page SHALL render the selected settings section only. The default `/settings` route SHALL render 個人設定. Customer settings sections SHALL NOT show development-only Super Admin controls or engineering labels.
+
+#### Scenario: Default settings route renders personal settings
+
+- **WHEN** the user opens `/settings`
+- **THEN** the page heading is 個人設定
+- **AND** the page shows 帳號與授權管理、更新密碼、個人名稱與 Email、品牌色、目前操作紀錄
+
+#### Scenario: Plans section replaces feature toggles
+
+- **WHEN** the user opens `/settings?section=plans`
+- **THEN** the page heading is 方案與升級
+- **AND** the page shows 基本款、進階款、高級款
+- **AND** the page does not show MCP Hub
+
+---
+### Requirement: Data source page SHALL provide PDF asset supplement slots
+
+The 資料來源 page SHALL let basic-plan users manually provide PDF image assets when automated sources are not available. It SHALL show upload slots for 地籍圖、空拍圖、格局圖、地標圖.
+
+#### Scenario: Basic plan user sees manual upload slots
+
+- **WHEN** the user opens `/settings?section=registry-rules`
+- **THEN** the page shows PDF 圖資欄位
+- **AND** it shows upload entries for 地籍圖、空拍圖、格局圖、地標圖
+
+#### Scenario: Upgrade value is separated from manual fallback
+
+- **WHEN** the PDF asset slots render
+- **THEN** each slot explains the basic plan manual fallback
+- **AND** upgrade copy describes automation as optional enhancement, not as a blocker
+
+##### Example: cadastral map slot
+
+- **GIVEN** the user opens 資料來源
+- **WHEN** PDF 圖資欄位 renders
+- **THEN** 地籍圖上傳 is visible
+- **AND** 基本款可手動上傳地籍圖檔 is visible
+
+---
+### Requirement: 方案與升級頁顯示開發中功能開關
+
+The Settings page SHALL render the 方案與升級 feature availability section as customer-facing feature rows, not as test-build entitlement copy.
+
+- **WHEN** a user navigates to `/settings?section=plans`
+- **THEN** the feature availability section SHALL list exactly these six feature names in order:
+  - Google 地圖
+  - 空拍圖
+  - 街景參考
+  - AI 格局圖整理
+  - 地籍圖整理
+  - 實價登錄
+- **THEN** each row SHALL display status text `開發中`
+- **THEN** no row SHALL display text containing `測試版已開啟` or `正式版歸在`
+
+#### Scenario: Default customer state is off and disabled
+
+- **GIVEN** the current session user is not an admin
+- **WHEN** the user opens `/settings?section=plans`
+- **THEN** all six feature switches SHALL be visually off
+- **THEN** all six feature switches SHALL be disabled
+
+##### Example: non-admin feature row
+
+- **GIVEN** sessionUser is `{ email: "user@test.aire", role: "user" }`
+- **WHEN** the plans settings page renders
+- **THEN** the Google 地圖 switch has accessible name `Google 地圖開發中`
+- **THEN** the switch is disabled and not pressed
+
+#### Scenario: Super admin can toggle development feature rows
+
+- **GIVEN** the current session user is an admin
+- **WHEN** the admin opens `/settings?section=plans`
+- **THEN** all six feature switches SHALL be enabled controls
+- **WHEN** the admin clicks `實價登錄開發中`
+- **THEN** the switch SHALL update to the enabled visual state
+
+##### Example: admin toggles real price
+
+- **GIVEN** sessionUser is `{ email: "admin@test.aire", role: "admin" }`
+- **AND** feature flag `real-price` is disabled
+- **WHEN** the admin clicks the `實價登錄開發中` switch
+- **THEN** `toggle_feature_flag` is called with id `real-price`
+- **THEN** the row remains labelled `實價登錄` with status `開發中`
