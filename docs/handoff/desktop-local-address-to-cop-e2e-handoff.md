@@ -160,3 +160,40 @@ WIP 主要風險：
 2. 決定 `dev_fixture` 與 `trusted_for_pdf` 的語意，不要讓「可供本機 E2E」被誤解成「正式謄本可信」。
 3. 把 WIP 拆成 TDD 小步，不要一次接受所有改動。
 4. 如果要清掉 WIP，先保存 patch：`git diff > /tmp/aire-local-address-to-cop-wip.patch`。
+
+## WIP 逐檔處置裁定（2026-05-25 規劃）
+
+patch 已備份 `/tmp/aire-local-address-to-cop-wip.patch`（699 行）。決策依據見 design.md Decisions 段。
+
+| 檔案 | 裁定 | 動作 |
+| --- | --- | --- |
+| `src/lib/mock-backend.ts` | 保留全部 | 裕農路 dev_fixture、勝利街 manual_required、formal pull write-back、persistState 對齊 design |
+| `src/lib/__tests__/mock-backend.test.ts` | 保留全部 | 三測試直接驗 contract |
+| `src/lib/__tests__/land-registry-api.test.ts` | 保留全部 | dev/production env 分支；Wave 2.2 順帶把 guard 改 `=== "development"` 並更新此測試 |
+| `src/lib/land-registry-api.ts` | 部分保留 | 保留 `dev_fixture` union + dev bypass；補 DiscoveryResult 型別、guard 收緊 |
+| `src/app/(dashboard)/cases/new/page.tsx` | 還原並改正 | 移除「dev_fixture 加進 trusted」那行；改讀 `trusted_for_pdf === true`（task 0.1） |
+| `src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx` | 部分保留 | 還原 A 段（驗 dev_fixture 不可信）；保留 B 段勝利街 manual 測試（task 0.2） |
+
+## E2E 驗收劇本
+
+### 劇本 A — Local Web（`localhost:1420`，dev mode 走 mock-backend，task 5.1）
+1. 開 `/cases/new`，輸入 `台南市永康區勝利街58巷4號`。
+2. 斷言：不出現 `0001/0001/0001` 假成功；顯示 manual 補填欄位（段/地號/建號空白）。
+3. 人工填入測試值 `勝利段 / 1043-0002 / 00000000` → 建立案件。
+4. 斷言：case 保存 `confirmed_registry_match`；查詢紀錄有 discovery run（manual_required, cost=0）。
+5. 留 Playwright artifact（截圖 + trace）。
+
+### 劇本 B — Desktop App（Tauri，真打 COP，task 5.2）
+1. 系統設定填客戶 COP 憑證。
+2. 地址 discovery 失敗 → 查詢紀錄保存 diagnostics（COP no_match / NLSC denied）。
+3. 人工確認已知鍵 `BA-0001-00020000`（測試鍵）→ formal COP pull 成功 → 保存 JSON + billing rows。
+4. 同鍵再 pull → cache hit，cost=0，sourceRunId 指向原 run。
+5. 產 PDF → billing 筆數不變。
+6. 留：formal JSON、billing rows、cache hit run、error log、PDF artifact、macOS smoke report。
+
+## 費用守則（避免燒 COP 費）
+
+- live 測試一律 cache-first：先確認 `registry_query_runs` 有可重用 run 才不重打。
+- live 測試只用已知鍵 `BA-0001-00020000`（已證實 5 service / 50 cents）。
+- 任何 `--ignored` live test 預設不在 CI 跑，手動跑並留 JSON 證據。
+- discovery 永遠 `total_cost_cents=0`，出現非 0 即為 bug。
