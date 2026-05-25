@@ -13,6 +13,7 @@ WIP patch 已備份 `/tmp/aire-local-address-to-cop-wip.patch`。逐檔處置見
 - [ ] 0.1 還原 `cases/new/page.tsx` 把 `dev_fixture` 加進 trusted 的那行，並把 `isTrustedAddressLookupParcel()` 改讀 `parcel.trusted_for_pdf === true`（唯一可信判準，不靠 source 字串）；以 vitest + type-check 驗證。
   - 檔案：`src/app/(dashboard)/cases/new/page.tsx`
   - 紅燈：`dev_fixture candidate is NOT treated as trusted`（改正前 dev_fixture 被當 trusted → 斷言失敗）
+  - 依 design.md decision: dev_fixture vs trusted_for_pdf semantics
   - 證據：`pnpm vitest run` 該檔綠 + `pnpm type-check` 綠
 - [ ] 0.2 修正 `new-case-page.test.tsx` A 段（裕農路 mock 改 dev_fixture 觸發 trusted 的部分）改成驗證 dev_fixture 不可信；保留 B 段「勝利街 manual 補填流程」測試；以 vitest 驗證。
   - 檔案：`src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx`
@@ -35,7 +36,7 @@ WIP patch 已備份 `/tmp/aire-local-address-to-cop-wip.patch`。逐檔處置見
   - 紅燈：`discovery_victory_st_manual_required_no_fake_parcel`（候選空、不含 `0001/0001/0001`）
 - [ ] 2.3 實作 decision: every failed external source is product-visible in records，讓 Tauri discovery 保存 COP/NLSC 來源、錯誤與候選；以 Rust integration test 與 query record detail 驗證。
   - 檔案：`src-tauri/src/land_registry/pull.rs`（discovery 寫 `registry_query_runs`）
-  - 存法：重用 013 表，`confirmation_status="discovery"`、`total_cost_cents=0`、`error_summary_json` 記 `cop_address_no_match` / `public_cadastral_denied`、`generated_json` 記 candidates（見 design.md「Decision: Reuse 013 ledger tables」）
+  - 存法：重用 013 表，`confirmation_status="discovery"`、`total_cost_cents=0`、`error_summary_json` 記 `cop_address_no_match` / `public_cadastral_denied`、`generated_json` 記 candidates（依 design.md decision: Reuse 013 ledger tables for discovery/cache/billing/error）
   - 紅燈：`address_discover_saves_run_on_no_match`、`address_discover_saves_nlsc_denied`、`address_discover_never_creates_paid_call`
   - 證據：`cargo test --manifest-path src-tauri/Cargo.toml land_registry` 綠
 
@@ -65,6 +66,7 @@ WIP patch 已備份 `/tmp/aire-local-address-to-cop-wip.patch`。逐檔處置見
   - 紅燈：`formal_pull_failure_records_error`、`invalid_credential_records_cop_credential_required`（error_code=`cop_credential_required`, cost=0）
 - [ ] 4.3 實作 Requirement: Disclosure generation uses saved formal JSON only，物調與 PDF 使用已保存 formal JSON 或已標示 candidate/manual reference，不在 PDF 產出時重新打付費 COP；以 PDF assembly test 驗證 paid call count 不增加。
   - 檔案：`src/lib/pdf-engine/assemble-dossier-data.ts`（已不觸發查詢，加測試鎖死）
+  - 依 design.md decision: Prove PDF uses saved JSON only
   - 紅燈：`pdf_assembly_no_paid_call`（COP/pullData spy 呼叫=0）、`pdf_uses_saved_formal_json`、`pdf_candidate_only_shows_warning`（apiData 空 + 強制警告，正式欄位不 trusted）
 
 ## 5. E2E 與收斂

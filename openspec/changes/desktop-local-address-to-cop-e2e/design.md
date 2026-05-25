@@ -116,14 +116,6 @@ discovery diagnostics、cache hit、billing rows、error log 全部寫入既有 
 
 `assemble-dossier-data.ts` 已只讀 `cases.land_registry_data` 經 `extractTrustedOfficialRegistryData()` 過濾，不觸發查詢。鎖死方式：(1) spy 包住 COP/pullData 斷言 PDF 組裝 paid call=0；(2) E2E formal pull 後 billing 筆數 N → 產 PDF → 仍 N；(3) candidate-only 時顯示 pre-survey 警告，正式欄位不 trusted。
 
-### Open assumptions (pending Fish review)
-
-以下 3 項已採推測值，不阻塞 Wave 0–2；Wave 3 起若未推翻，依推測值執行：
-
-1. Rust command 走「新建 2 個」（推測：是，design/tasks/mock 都已這形狀）。
-2. 勝利街測試建號 `00000000` 占位可接受（推測：可，已標非真實謄本）。
-3. billing 以 `registry_query_api_calls` 為 SSOT、記憶體 BillingLog 降為視圖（推測：是，記憶體重啟丟失）。
-
 ## Implementation Contract
 
 - Introduce a discovery result shape equivalent to:
@@ -147,3 +139,11 @@ discovery diagnostics、cache hit、billing rows、error log 全部寫入既有 
 ## Rollback Plan
 
 If discovery changes destabilize case creation, keep manual-confirmed registry key creation and formal pull gate active, but disable automatic address discovery behind a dev flag. Never roll back to mock placeholder auto-success.
+
+## Open Questions (pending Fish review)
+
+以下 3 項已採推測值，不阻塞 Wave 0–2；Wave 3 起若未推翻，依推測值執行：
+
+1. Rust command 走「新建 2 個」（推測：是，design/tasks/mock 都已這形狀）。
+2. 勝利街測試建號 `00000000` 占位可接受（推測：可，已標非真實謄本）。
+3. billing 以 `registry_query_api_calls` 為 SSOT、記憶體 BillingLog 降為視圖（推測：是，記憶體重啟丟失）。
