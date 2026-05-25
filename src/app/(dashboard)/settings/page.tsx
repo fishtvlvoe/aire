@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   type EntitlementFeature,
+  getCustomerServiceLabel,
   getEntitlementFeatures,
   getPdfAssetSlots,
   getUpgradePlans,
@@ -37,6 +38,26 @@ type ProfileSettingsResponse = {
   passwordUpdatedAt: string | null;
 };
 
+type TrialStatusResponse = {
+  plan: "trial" | "basic" | "pro" | "vip";
+  status: "active" | "expired" | "disabled";
+  startedAt: string | null;
+  endsAt: string | null;
+};
+
+type LicenseStatusResponse = {
+  status: "none" | "active" | "expired";
+  serial_key?: string | null;
+  serialKey?: string | null;
+};
+
+type LandCredentialStatus = "not-configured" | "configured";
+
+type LandApiSettingsResponse = {
+  clientId: string;
+  secret: string;
+};
+
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const features = getEntitlementFeatures();
@@ -65,7 +86,7 @@ export default function SettingsPage() {
       : selectedSection === "billing"
       ? "查看地政查詢費用、失敗不計費原因與帳務歸屬。"
       : selectedSection === "registry-records"
-        ? "查看每次候選查詢、正式查詢、cache 命中與錯誤紀錄。"
+        ? "查看每次資料補齊、正式查詢、快取命中與錯誤紀錄。"
       : selectedSection === "plans"
         ? "目前方案、可用功能與升級入口集中在這裡。"
         : selectedSection === "registry-auth"
@@ -294,23 +315,42 @@ function PlansAndUpgradePanel({
 }) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [featureStates, setFeatureStates] = useState(() => getFeatureStates(features, []));
+  const [accountStatus, setAccountStatus] = useState<{
+    trial: TrialStatusResponse | null;
+    license: LicenseStatusResponse | null;
+    landCredential: LandCredentialStatus;
+  }>({
+    trial: null,
+    license: null,
+    landCredential: "not-configured",
+  });
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const [session, flags] = await Promise.all([
+        const [session, flags, trial, license, landSettings] = await Promise.all([
           mockInvoke<SessionResponse>("get_session"),
           mockInvoke<FeatureFlag[]>("get_feature_flags"),
+          mockInvoke<TrialStatusResponse>("get_trial_status"),
+          mockInvoke<LicenseStatusResponse>("get_license_status"),
+          mockInvoke<LandApiSettingsResponse>("get_land_api_settings"),
         ]);
         if (cancelled) return;
         const canToggle = Boolean(session.authenticated && session.user.role === "admin");
         setIsSuperAdmin(canToggle);
         setFeatureStates(getFeatureStates(features, canToggle ? flags : []));
+        setAccountStatus({
+          trial,
+          license,
+          landCredential:
+            landSettings.clientId?.trim() && landSettings.secret?.trim() ? "configured" : "not-configured",
+        });
       } catch {
         if (cancelled) return;
         setIsSuperAdmin(false);
         setFeatureStates(getFeatureStates(features, []));
+        setAccountStatus({ trial: null, license: null, landCredential: "not-configured" });
       }
     })();
     return () => {
@@ -342,8 +382,10 @@ function PlansAndUpgradePanel({
       <section className="rounded-lg border p-4" aria-label="帳號與授權管理">
         <h2 className="text-base font-semibold">帳號與授權管理</h2>
         <dl className="mt-3 grid gap-2 text-sm md:grid-cols-3">
-          <SettingKv label="目前方案" value="基本款" />
-          <SettingKv label="授權狀態" value="測試版已啟用" />
+          <SettingKv label="目前方案" value={formatPlanName(accountStatus.trial?.plan ?? "basic")} />
+          <SettingKv label="試用狀態" value={formatTrialStatus(accountStatus.trial)} />
+          <SettingKv label="授權狀態" value={formatLicenseStatus(accountStatus.license)} />
+          <SettingKv label="地政查詢帳號" value={formatLandCredentialStatus(accountStatus.landCredential)} />
           <SettingKv label="裝置" value="本機 AIRE 桌面 App" />
         </dl>
       </section>
@@ -434,6 +476,33 @@ function getFeatureStates(features: EntitlementFeature[], flags: FeatureFlag[]) 
   }));
 }
 
+function formatPlanName(plan: TrialStatusResponse["plan"]): string {
+  const labels: Record<TrialStatusResponse["plan"], string> = {
+    trial: "試用方案",
+    basic: "基本款",
+    pro: "進階款",
+    vip: "高級款",
+  };
+  return labels[plan];
+}
+
+function formatTrialStatus(trial: TrialStatusResponse | null): string {
+  if (!trial) return "尚未取得";
+  if (trial.status === "active") return trial.endsAt ? `試用中，到期日 ${trial.endsAt.slice(0, 10)}` : "試用中";
+  if (trial.status === "expired") return "試用已到期";
+  return "未啟用";
+}
+
+function formatLicenseStatus(license: LicenseStatusResponse | null): string {
+  if (!license || license.status === "none") return "尚未啟用";
+  if (license.status === "expired") return "授權已過期";
+  return "已啟用";
+}
+
+function formatLandCredentialStatus(status: LandCredentialStatus): string {
+  return status === "configured" ? "已設定" : "尚未設定";
+}
+
 function LandDataSection({ section, slots }: { section: string; slots: ReturnType<typeof getPdfAssetSlots> }) {
   if (section === "registry-records") return <RegistryQueryRecordsPanel />;
   if (section === "billing") return <BillingPanel />;
@@ -497,7 +566,7 @@ function RegistryQueryRecordsPanel() {
               <span className="truncate">{row.source_input}</span>
               <span className="ml-3 shrink-0 text-xs text-muted-foreground">
                 {row.cache_hit ? "快取命中" : "正式查詢"} / {Math.round(row.total_cost_cents / 100)} 元
-                {row.error_code ? ` / ${row.error_code}` : ""}
+                {row.error_code ? " / 錯誤" : ""}
               </span>
             </button>
           ))}
@@ -567,7 +636,7 @@ function BillingPanel() {
         <h2 className="text-base font-semibold">費用歸屬</h2>
         <dl className="mt-3 space-y-2 text-sm">
           <SettingKv label="地政查詢" value="客戶自己的地政查詢帳號負擔" />
-          <SettingKv label="AIRE 方案功能" value="Google、空拍、AI 格局圖不列入地政 API 明細" />
+        <SettingKv label="AIRE 方案功能" value="Google、空拍、AI 格局圖不列入地政查詢明細" />
           <SettingKv label="失敗不計費" value="地政查詢失敗時在費用紀錄標示 0 元" />
         </dl>
       </article>
@@ -588,7 +657,7 @@ function BillingLedgerPanel() {
         const entries = await listBillingEntries();
         if (!cancelled) setRows(entries);
       } catch (loadError) {
-        if (!cancelled) setError(loadError instanceof Error ? loadError.message : "無法取得地政 API 查詢明細");
+        if (!cancelled) setError(loadError instanceof Error ? loadError.message : "無法取得地政查詢明細");
       }
     })();
     return () => {
@@ -602,7 +671,7 @@ function BillingLedgerPanel() {
     <article className="rounded-lg border p-4 xl:col-span-2">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-base font-semibold">地政 API 查詢明細</h2>
+          <h2 className="text-base font-semibold">地政查詢明細</h2>
           <p className="text-sm text-muted-foreground">只列地政查詢扣款；AIRE 方案功能費用不放在這張表。</p>
         </div>
         <strong className="text-sm">地政費用合計 {total} 元</strong>
@@ -620,10 +689,10 @@ function BillingLedgerPanel() {
           </div>
           {rows.map((row) => (
             <div key={`${row.transaction_id}-${row.service_name}`} className="grid gap-2 border-b px-3 py-3 text-sm last:border-b-0 lg:grid-cols-[1.2fr_1.4fr_90px_1fr_80px]">
-              <span className="font-medium">{row.service_name}</span>
+              <span className="font-medium">{formatBillingServiceName(row.service_name)}</span>
               <span>{row.target}</span>
               <span>{row.status_label}</span>
-              <span className="truncate text-muted-foreground">{row.transaction_id}</span>
+              <span className="truncate text-muted-foreground">{formatBillingTransactionId(row.transaction_id)}</span>
               <strong className="text-right">{row.cost} 元</strong>
             </div>
           ))}
@@ -631,6 +700,16 @@ function BillingLedgerPanel() {
       ) : null}
     </article>
   );
+}
+
+function formatBillingServiceName(serviceName: string): string {
+  if (/MOI_API_|COP|API/i.test(serviceName)) return getCustomerServiceLabel(serviceName);
+  return serviceName;
+}
+
+function formatBillingTransactionId(transactionId: string): string {
+  if (/MOI_API_|COP|API/i.test(transactionId)) return "管理明細可查";
+  return transactionId;
 }
 
 function PdfAssetPanel({ slots }: { slots: ReturnType<typeof getPdfAssetSlots> }) {

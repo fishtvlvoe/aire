@@ -51,7 +51,7 @@ export function PreChargeConfirmDialog({
         <div className="rounded-md border border-border bg-muted/30 px-4 py-3 space-y-1 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">預計查詢項目</span>
-            <span className="font-medium">{apiCount} 支 API</span>
+            <span className="font-medium">{apiCount} 項</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">預估費用</span>

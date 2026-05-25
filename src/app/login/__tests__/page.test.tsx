@@ -22,7 +22,7 @@ describe("Login page", () => {
     vi.clearAllMocks();
   });
 
-  it("renders minimal layout — only email, password, login, forgot password", () => {
+  it("renders desktop account layout with password help", () => {
     render(<LoginPage />);
 
     // email input
@@ -43,6 +43,8 @@ describe("Login page", () => {
 
     // forgot password
     expect(screen.getByText(/忘記密碼/)).toBeInTheDocument();
+    expect(screen.getByText("使用 AIRE 桌面版帳號登入")).toBeInTheDocument();
+    expect(screen.getByText("用 Google 或 LINE 購買？")).toBeInTheDocument();
 
     // no license/activation/serial key UI
     expect(screen.queryByText(/序號/)).not.toBeInTheDocument();
@@ -50,7 +52,7 @@ describe("Login page", () => {
     expect(screen.queryByText(/license/i)).not.toBeInTheDocument();
   });
 
-  it("successful login — calls mockInvoke and redirects to /cases", async () => {
+  it("successful login — calls mockInvoke and redirects to /cases/new", async () => {
     mockInvokeFn.mockResolvedValue({
       success: true,
       user: { email: "admin@test.aire", role: "admin" },
@@ -73,8 +75,17 @@ describe("Login page", () => {
         email: "admin@test.aire",
         password: "password",
       });
-      expect(mockPush).toHaveBeenCalledWith("/cases");
+      expect(mockPush).toHaveBeenCalledWith("/cases/new");
     });
+  });
+
+  it("empty submit shows explicit desktop account error", async () => {
+    render(<LoginPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /登入/ }));
+
+    expect(screen.getByText("請輸入 AIRE 桌面版帳號與密碼")).toBeInTheDocument();
+    expect(mockInvokeFn).not.toHaveBeenCalled();
   });
 
   it("failed login — INVALID_CREDENTIALS shows 帳號或密碼錯誤", async () => {

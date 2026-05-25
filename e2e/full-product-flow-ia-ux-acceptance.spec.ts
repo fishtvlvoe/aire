@@ -88,7 +88,7 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await sidebar.getByRole("link", { name: "地政授權" }).click();
   await expect(page).toHaveURL(/\/settings\?section=registry-auth$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "地政授權" })).toBeVisible();
-  await expect(page.getByText("地政 API 設定")).toBeVisible();
+  await expect(page.getByText("地政查詢帳號")).toBeVisible();
   await expect(page.getByRole("link", { name: "前往地政註冊" })).toHaveAttribute(
     "href",
     "https://cop.moi.gov.tw/Register",
@@ -122,7 +122,7 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page.getByRole("region", { name: "本次調閱費用" })).toBeVisible();
   await page.getByRole("tab", { name: "資料來源" }).click();
   await expect(page.getByRole("region", { name: "欄位資料來源" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "下載 JSON" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "下載管理資料" })).toBeVisible();
 });
 
 async function seedCase(page: Page) {

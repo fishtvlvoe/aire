@@ -192,9 +192,9 @@ function candidateSummaryText(candidate: CandidateParcelOption): string {
   const fields = candidate.summary_fields ?? {};
   const errorHint =
     candidate.error_code === "COP317"
-      ? "正式門牌建號查詢未授權，改用候選資料"
+      ? "門牌建號資料尚未授權，改用候選資料"
       : candidate.error_code === "COP312"
-        ? "候選 probe 取得服務資訊失敗，待權狀或謄本確認"
+        ? "候選資料取得失敗，待權狀或謄本確認"
         : candidate.error_code === "COP305"
           ? "候選查無資料，保留供人工排除"
           : candidate.error_message;
@@ -209,9 +209,22 @@ function candidateSummaryText(candidate: CandidateParcelOption): string {
     typeof fields.constructionDate === "string" ? fields.constructionDate : "",
     typeof fields.floor === "string" ? fields.floor : "",
     typeof fields.ownershipScope === "string" ? `權利 ${fields.ownershipScope}` : "",
-    candidate.error_code,
     errorHint,
   ].filter(Boolean).join("｜");
+}
+
+function candidateStatusLabel(status: string | undefined): string {
+  switch (status) {
+    case "candidate_data_available":
+      return "可供確認";
+    case "failed":
+      return "待人工確認";
+    case "pending":
+    case undefined:
+      return "待確認";
+    default:
+      return "待確認";
+  }
 }
 
 function mergeCandidateSelection(
@@ -258,6 +271,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const [caseDraft, setCaseDraft] = useState(caseData);
   const [fieldCorrections, setFieldCorrections] = useState<Record<string, string>>({});
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
+  const [showRegistryManagementDetails, setShowRegistryManagementDetails] = useState(false);
   const classification = getAddressFirstClassification(caseDraft.address);
   const fields = getDemoFieldReviewRows(caseDraft).map((field) =>
     fieldCorrections[field.fieldName]
@@ -697,7 +711,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 <div>
                   <h3 className="text-sm font-semibold">地政匯入資料</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    這裡核對已帶入、待補件與查詢失敗的來源資料；可下載 JSON 留存或交給工程端排查。
+                    這裡核對已帶入、待補件與查詢失敗的來源資料；可下載管理資料留存或交給客服排查。
                   </p>
                 </div>
                 <a
@@ -705,7 +719,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   download={`${caseDraft.case_no ?? caseDraft.id}-registry-source.json`}
                   href={registryJsonHref}
                 >
-                  下載 JSON
+                  下載管理資料
                 </a>
               </div>
               <table className="mt-3 w-full table-fixed overflow-hidden rounded-md border text-sm">
@@ -751,7 +765,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         <div>
                           <strong className="block">{candidate.normalized_parcel_id}</strong>
                           <span className="mt-1 block text-xs text-muted-foreground">
-                            {candidate.parcel_type === "building" ? "建物候選" : "土地候選"} · {candidate.query_status ?? "pending"}
+                            {candidate.parcel_type === "building" ? "建物候選" : "土地候選"} · {candidateStatusLabel(candidate.query_status)}
                           </span>
                         </div>
                         <div className="text-muted-foreground">
@@ -779,11 +793,21 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 </section>
               ) : null}
 
-              <details className="mt-4 rounded-lg border bg-slate-50 p-3">
-                <summary className="cursor-pointer text-sm font-medium">JSON 預覽</summary>
-                <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-white p-3 text-xs">
-                  {registryJson}
-                </pre>
+              <details
+                className="mt-4 rounded-lg border bg-slate-50 p-3"
+                onToggle={(event) => setShowRegistryManagementDetails(event.currentTarget.open)}
+              >
+                <summary
+                  className="cursor-pointer text-sm font-medium"
+                  onClick={() => setShowRegistryManagementDetails(true)}
+                >
+                  管理明細
+                </summary>
+                {showRegistryManagementDetails ? (
+                  <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-white p-3 text-xs">
+                    {registryJson}
+                  </pre>
+                ) : null}
               </details>
             </section>
           ) : null}

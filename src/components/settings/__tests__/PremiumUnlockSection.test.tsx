@@ -27,7 +27,7 @@ describe("PremiumUnlockSection", () => {
     render(<PremiumUnlockSection />);
 
     await waitFor(() => {
-      expect(screen.getByText("實價登錄 MCP Hub")).toBeInTheDocument();
+      expect(screen.getByText("實價登錄進階功能")).toBeInTheDocument();
     });
 
     expect(screen.getByRole("button", { name: "前往升級" })).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe("PremiumUnlockSection", () => {
   it("已訂閱時顯示訂閱中 Badge 和管理訂閱連結", async () => {
     mockInvokeFn.mockResolvedValueOnce({
       subscribed: true,
-      plan: "MCP Hub 年繳",
+      plan: "進階功能年繳",
       expires_at: "2027-05-15",
     }).mockResolvedValueOnce({ authenticated: false });
 
@@ -72,7 +72,7 @@ describe("PremiumUnlockSection", () => {
       expect(screen.getByText("訂閱中")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("MCP Hub 年繳")).toBeInTheDocument();
+    expect(screen.getByText("進階功能年繳")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "管理訂閱" })).toBeInTheDocument();
   });
 

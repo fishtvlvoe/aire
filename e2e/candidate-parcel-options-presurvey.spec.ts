@@ -81,11 +81,11 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
     await expect(candidateRegion.getByText(id, { exact: true }).first()).toBeVisible();
   }
   await expect(candidateRegion.getByText(/31\.25坪/).first()).toBeVisible();
-  await expect(candidateRegion.getByText(/COP312/).first()).toBeVisible();
-  await expect(candidateRegion.getByText(/COP305/).first()).toBeVisible();
+  await expect(candidateRegion.getByText(/待權狀或謄本確認/).first()).toBeVisible();
+  await expect(candidateRegion.getByText(/候選查無資料/).first()).toBeVisible();
 
   await candidateRegion.getByRole("button", { name: "暫用 DC-1556-00165000" }).click();
-  await page.getByText("JSON 預覽").click();
+  await page.getByText("管理明細").click();
   await expect(page.getByText(/selected_candidate/)).toBeVisible();
 
   await page.getByRole("link", { name: "預覽 PDF" }).click();

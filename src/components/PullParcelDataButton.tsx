@@ -133,6 +133,10 @@ export function PullParcelDataButton({
   // 按鈕在查詢中或已完成時都 disabled，防止重複觸發扣款
   const buttonDisabled = step === "pulling" || step === "done" || apiIds.length === 0;
 
+  function failedItemLabel(index: number): string {
+    return `補填項目 ${index + 1}`;
+  }
+
   function buildPreviewData(
     sourceResults: Record<string, ApiResult> | null,
     sourceManualEntries: ManualEntry[],
@@ -337,12 +341,12 @@ export function PullParcelDataButton({
           <p className="text-xs text-muted-foreground">
             以下項目查詢失敗，請手動填入資料：
           </p>
-          {manualEntries.map((entry) => (
+          {manualEntries.map((entry, index) => (
             <div key={entry.apiId}>
               {entry.data ? (
                 <div className="flex items-center gap-2 text-xs text-green-700 px-3 py-2 rounded-md bg-green-50 border border-green-200">
                   <CheckCircle className="h-4 w-4" />
-                  <span>{entry.apiId} — 已儲存手動資料</span>
+                  <span>{failedItemLabel(index)} — 已儲存手動資料</span>
                 </div>
               ) : (
                 <ManualFallbackInput

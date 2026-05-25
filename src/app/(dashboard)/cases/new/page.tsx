@@ -11,7 +11,7 @@ import {
   getAddressFirstClassification,
   type AddressFirstClassification,
 } from "@/lib/product-ui-demo-alignment";
-import { addressLookup, type ParcelInfo } from "@/lib/land-registry-api";
+import { addressLookup, confirmCaseRegistryMatch, type ParcelInfo } from "@/lib/land-registry-api";
 import { createRegistryProvenancePayload } from "@/lib/registry-provenance";
 
 const schema = z.object({
@@ -75,7 +75,7 @@ export default function NewCasePage() {
         const primaryLot = parcels[0]?.lot_number?.trim();
         if (primaryLot) setLandLots([primaryLot]);
       }
-      setRegistryMatch(buildRegistryMatchDraft(parcels[0]));
+      setRegistryMatch(buildRegistryMatchDraft(parcels));
       return result;
     } catch (error) {
       const result = getAddressFirstClassification(values.address);
@@ -83,8 +83,8 @@ export default function NewCasePage() {
       setClassification(result);
       setRegistryDetectMessage(
         error instanceof Error
-          ? `地政查詢暫時無法使用，已改用本機判斷：${error.message}`
-          : "地政查詢暫時無法使用，已改用本機判斷。",
+          ? `資料補齊暫時無法使用，已改用本機判斷：${error.message}`
+          : "資料補齊暫時無法使用，已改用本機判斷。",
       );
       if (!result.manualSelectionRequired) {
         update("property_type", result.propertyType);
@@ -116,6 +116,11 @@ export default function NewCasePage() {
         return;
       }
       const detected = classification;
+      const missingRegistryFields = getMissingRegistryFields(registryMatch, detected);
+      if (missingRegistryFields.length > 0) {
+        setSubmitError(`請先確認${missingRegistryFields.join("、")}後再建立案件`);
+        return;
+      }
       const propertyType = parsed.data.property_type ?? detected.propertyType;
       const filteredLots = landLots.filter((s) => s.trim() !== "");
       const detectedLots = Array.from(
@@ -141,9 +146,15 @@ export default function NewCasePage() {
             section_name: registryMatch.sectionName || null,
             land_no: registryMatch.landNo || null,
             building_no: registryMatch.buildingNo || null,
-            status: registryMatch.landNo ? "confirmed" : "candidate",
+            status: "confirmed",
           },
         },
+      });
+      await confirmCaseRegistryMatch({
+        caseId: created.id,
+        sectionName: registryMatch.sectionName,
+        landNo: registryMatch.landNo,
+        buildingNo: registryMatch.buildingNo || null,
       });
       router.push(`/cases/${created.id}`);
     } catch (err) {
@@ -158,7 +169,7 @@ export default function NewCasePage() {
     <main className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-2 text-2xl font-semibold tracking-normal">新增案件</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        先輸入地址讓地政資料自動判斷土地、建物與說明書章節；只有查不到才人工選。
+        先輸入地址讓系統補齊土地、建物與說明書章節；只有查不到才人工選。
       </p>
       <form className="space-y-5 rounded-lg border bg-white p-5 shadow-sm" onSubmit={handleSubmit}>
         <section>
@@ -191,7 +202,10 @@ export default function NewCasePage() {
 
         {classification ? (
           <section className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
-            <strong className="block">地址與地政判斷</strong>
+            <strong className="block">地址資料補齊</strong>
+            <p className="mt-1 text-sm font-medium text-emerald-900">
+              {getRegistryStatusMessage(classification, detectedParcels)}
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">{classification.summary}</p>
             <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
               <div className="rounded-md bg-white p-3">
@@ -468,16 +482,38 @@ function buildAddressLookupProvenance(
   });
 }
 
-function buildRegistryMatchDraft(primaryParcel?: ParcelInfo): RegistryMatchDraft {
+function buildRegistryMatchDraft(parcels: ParcelInfo[]): RegistryMatchDraft {
+  const primaryParcel = parcels[0];
   if (!primaryParcel) {
     return { sectionName: "", landNo: "", buildingNo: "" };
   }
+  const firstBuilding = parcels.find((parcel) => parcel.building_number?.trim());
   const sectionCode = primaryParcel.parcel_id.split("-")[1] ?? "";
   return {
     sectionName: sectionCode === "1556" ? "富強段" : sectionCode,
     landNo: primaryParcel.lot_number?.trim() ?? "",
-    buildingNo: primaryParcel.building_number?.trim() ?? "",
+    buildingNo: primaryParcel.building_number?.trim() || firstBuilding?.building_number?.trim() || "",
   };
+}
+
+function getRegistryStatusMessage(
+  classification: AddressFirstClassification,
+  parcels: ParcelInfo[],
+): string {
+  if (parcels.length > 1) return "請選擇正確資料";
+  if (classification.manualSelectionRequired || parcels.length === 0) return "需要人工補填資料";
+  return "已自動補齊，請確認資料";
+}
+
+function getMissingRegistryFields(
+  match: RegistryMatchDraft,
+  classification: AddressFirstClassification,
+): string[] {
+  const missing: string[] = [];
+  if (!match.sectionName.trim()) missing.push("地段");
+  if (!match.landNo.trim()) missing.push("地號");
+  if (classification.buildingCount > 0 && !match.buildingNo.trim()) missing.push("建號");
+  return missing;
 }
 
 function extractTargetUnit(address: string): string | undefined {

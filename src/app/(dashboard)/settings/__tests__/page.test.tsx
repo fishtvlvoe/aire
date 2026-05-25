@@ -18,6 +18,15 @@ let mockProfileSettings = {
   logoName: "",
   passwordUpdatedAt: null as string | null,
 };
+let mockRegistryRows: Array<Record<string, unknown>> = [];
+let mockLicenseStatus: Record<string, unknown> = { status: "none", serial_key: null };
+let mockLandApiSettings = { clientId: "", secret: "" };
+let mockTrialStatus = {
+  plan: "trial",
+  status: "active",
+  startedAt: "2026-05-25T00:00:00.000Z",
+  endsAt: "2026-06-24T23:59:59.000Z",
+};
 
 // Mock mockInvoke（所有子元件透過 mockInvoke 存取資料）
 vi.mock("@/lib/mock-backend", () => ({
@@ -29,10 +38,10 @@ vi.mock("@/lib/mock-backend", () => ({
       };
     }
     if (cmd === "get_license_status") {
-      return { status: "none", serial_key: null };
+      return mockLicenseStatus;
     }
     if (cmd === "get_land_api_settings") {
-      return { clientId: "", secret: "" };
+      return mockLandApiSettings;
     }
     if (cmd === "get_premium_status") {
       return { subscribed: false, plan: null, expires_at: null };
@@ -90,7 +99,7 @@ vi.mock("@/lib/mock-backend", () => ({
       ];
     }
     if (cmd === "list_registry_query_runs") {
-      return [];
+      return mockRegistryRows;
     }
     if (cmd === "get_registry_query_run_detail") {
       return {
@@ -114,12 +123,7 @@ vi.mock("@/lib/mock-backend", () => ({
       };
     }
     if (cmd === "get_trial_status") {
-      return {
-        plan: "trial",
-        status: "active",
-        startedAt: "2026-05-25T00:00:00.000Z",
-        endsAt: "2026-06-24T23:59:59.000Z",
-      };
+      return mockTrialStatus;
     }
     if (cmd === "land_registry_record_r02_result_text") {
       return { run_id: "run-r02-001", ok: true, discovery: { adapter: "easymap_r02_desktop" }, error: null };
@@ -162,6 +166,15 @@ describe("Settings page（重組後）", () => {
       brandColor: "#174d36",
       logoName: "",
       passwordUpdatedAt: null,
+    };
+    mockRegistryRows = [];
+    mockLicenseStatus = { status: "none", serial_key: null };
+    mockLandApiSettings = { clientId: "", secret: "" };
+    mockTrialStatus = {
+      plan: "trial",
+      status: "active",
+      startedAt: "2026-05-25T00:00:00.000Z",
+      endsAt: "2026-06-24T23:59:59.000Z",
     };
   });
 
@@ -243,7 +256,7 @@ describe("Settings page（重組後）", () => {
   it("渲染授權管理區塊", async () => {
     mockSection = "registry-auth";
     render(<SettingsPage />);
-    expect(await screen.findByText("地政 API 設定")).toBeInTheDocument();
+    expect(await screen.findByText("地政查詢帳號")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "前往地政註冊" })).toHaveAttribute(
       "href",
       "https://cop.moi.gov.tw/Register",
@@ -255,7 +268,7 @@ describe("Settings page（重組後）", () => {
   it("渲染地政 API 設定區塊", async () => {
     mockSection = "registry-auth";
     render(<SettingsPage />);
-    expect(await screen.findByText("地政 API 設定")).toBeInTheDocument();
+    expect(await screen.findByText("地政查詢帳號")).toBeInTheDocument();
   });
 
   it("方案與升級顯示三方案且不出現工程名詞", async () => {
@@ -268,6 +281,9 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByRole("heading", { name: "高級款" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "帳號與授權管理" })).toBeInTheDocument();
     expect(screen.getAllByText("目前方案").length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText("試用中，到期日 2026-06-24")).toBeInTheDocument();
+    expect(screen.getByText("尚未啟用")).toBeInTheDocument();
+    expect(screen.getByText("尚未設定")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "前往升級" })).toHaveLength(2);
     expect(screen.getByRole("heading", { name: "預留功能" })).toBeInTheDocument();
     expect(screen.getByText("目前正在開發中。")).toBeInTheDocument();
@@ -283,6 +299,24 @@ describe("Settings page（重組後）", () => {
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
     expect(screen.getAllByText("實價登錄").length).toBeGreaterThan(0);
+  });
+
+  it("系統設定顯示已設定與到期的授權狀態", async () => {
+    mockSection = "plans";
+    mockTrialStatus = {
+      plan: "basic",
+      status: "expired",
+      startedAt: "2026-04-25T00:00:00.000Z",
+      endsAt: "2026-05-24T23:59:59.000Z",
+    };
+    mockLicenseStatus = { status: "expired", serial_key: "AIRE-TEST-2026-ADMIN" };
+    mockLandApiSettings = { clientId: "customer-client", secret: "customer-secret" };
+
+    render(<SettingsPage />);
+
+    expect(await screen.findByText("試用已到期")).toBeInTheDocument();
+    expect(screen.getByText("授權已過期")).toBeInTheDocument();
+    expect(screen.getByText("已設定")).toBeInTheDocument();
   });
 
   it("非管理員看到預留功能全部關閉且不可切換", async () => {
@@ -308,33 +342,58 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByLabelText("格局圖上傳")).toBeInTheDocument();
     expect(screen.getByLabelText("地標圖上傳")).toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("地政 API 設定")).not.toBeInTheDocument();
+    expect(screen.queryByText("地政查詢帳號")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
   });
 
-  it("費用紀錄顯示地政 API 明細與總計", async () => {
+  it("費用紀錄顯示地政查詢明細與總計", async () => {
     mockSection = "billing";
     render(<SettingsPage />);
 
     expect(screen.getByRole("heading", { name: "費用紀錄" })).toBeInTheDocument();
     expect(screen.getByText("費用歸屬")).toBeInTheDocument();
     expect(screen.getByText("本月使用量")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "地政 API 查詢明細" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "地政查詢明細" })).toBeInTheDocument();
     expect(screen.getByText("建物所有權資料")).toBeInTheDocument();
     expect(screen.getByText("門牌建號查詢")).toBeInTheDocument();
+    expect(screen.getByText("管理明細可查")).toBeInTheDocument();
+    expect(screen.queryByText("COP309")).not.toBeInTheDocument();
     expect(screen.getByText("地政費用合計 27 元")).toBeInTheDocument();
     expect(screen.getByText("AIRE 方案功能")).toBeInTheDocument();
   });
 
   it("查詢紀錄頁僅顯示追溯資訊且不出現技術操作區", async () => {
     mockSection = "registry-records";
+    mockRegistryRows = [
+      {
+        id: "run-error-001",
+        organization_id: "local-device",
+        case_id: "case-r02-001",
+        input_type: "address",
+        source_input: "台南市東區裕農路288巷17號8樓之1",
+        match_status: "candidate",
+        candidate_json: { adapter: "easymap_r02_desktop" },
+        cop_response_json: null,
+        raw_response_json: { adapter: "easymap_r02_desktop" },
+        total_cost_cents: 0,
+        cache_hit: false,
+        source_run_id: null,
+        error_code: "COP312",
+        error_message: "candidate discovery failed",
+        api_calls: [],
+        created_at: "2026-05-25T00:00:00.000Z",
+        updated_at: "2026-05-25T00:00:00.000Z",
+      },
+    ];
     render(<SettingsPage />);
 
     expect(screen.getByRole("heading", { name: "查詢紀錄" })).toBeInTheDocument();
+    expect(await screen.findByText("正式查詢 / 0 元 / 錯誤")).toBeInTheDocument();
     expect(screen.queryByText("試用")).not.toBeInTheDocument();
     expect(screen.queryByText("Helper")).not.toBeInTheDocument();
     expect(screen.queryByText("R02")).not.toBeInTheDocument();
+    expect(screen.queryByText("COP312")).not.toBeInTheDocument();
     expect(screen.queryByText("SaaS")).not.toBeInTheDocument();
   });
 

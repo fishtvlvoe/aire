@@ -105,7 +105,7 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.queryByRole("link", { name: "品牌設定" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "操作日誌" })).not.toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("地政 API 設定")).not.toBeInTheDocument();
+    expect(screen.queryByText("地政查詢帳號")).not.toBeInTheDocument();
   });
 
   it("renders registry source as land-data content instead of the full system settings", () => {
@@ -118,7 +118,7 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.queryByRole("link", { name: "操作日誌" })).not.toBeInTheDocument();
     expect(screen.queryByText("方案與升級")).not.toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("地政 API 設定")).not.toBeInTheDocument();
+    expect(screen.queryByText("地政查詢帳號")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
   });
 });

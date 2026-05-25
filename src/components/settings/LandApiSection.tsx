@@ -56,7 +56,7 @@ export function LandApiSection() {
     setSaving(true);
     try {
       await mockInvoke("save_land_api_settings", { clientId, secret });
-      toast.success("地政 API 設定已儲存");
+      toast.success("地政查詢帳號已儲存");
     } catch {
       toast.error("儲存失敗，請重試");
     } finally {
@@ -91,7 +91,7 @@ export function LandApiSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>地政 API 設定</CardTitle>
+        <CardTitle>地政查詢帳號</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -119,7 +119,7 @@ export function LandApiSection() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="land-api-client-id">Client ID</Label>
+              <Label htmlFor="land-api-client-id">帳號識別碼</Label>
               <Input
                 id="land-api-client-id"
                 value={clientId}
@@ -145,7 +145,7 @@ export function LandApiSection() {
                 variant="outline"
                 onClick={handleTestConnection}
                 disabled={actionsDisabled}
-                title={!hasValues ? "請先填入 Client ID 和安全碼" : undefined}
+                title={!hasValues ? "請先填入帳號識別碼和安全碼" : undefined}
               >
                 測試連線
               </Button>

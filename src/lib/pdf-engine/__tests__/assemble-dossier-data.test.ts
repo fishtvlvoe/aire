@@ -105,6 +105,30 @@ const mockPullResultLand = {
   total_cost: 4,
 };
 
+function savedRegistryPayloadFromPullResult(
+  pullResult: typeof mockPullResultLand,
+  overrides: Partial<typeof mockPullResultLand["results"]> = {},
+) {
+  const results = { ...pullResult.results, ...overrides };
+  return {
+    schema: "aire.registry-provenance.v1",
+    generatedAt: "2026-05-25T00:00:00.000Z",
+    totalCost: pullResult.total_cost,
+    entries: Object.fromEntries(
+      Object.entries(results).map(([apiId, value]) => [
+        apiId,
+        {
+          apiId,
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data: value.data,
+        },
+      ]),
+    ),
+  };
+}
+
 const mockLegalClauses = [
   "依不動產經紀業管理條例第 23 條規定，不動產經紀人員應依本說明書說明標的物狀況。",
   "本說明書所載資料以簽約當日前最新調查資料為準。",
@@ -314,7 +338,10 @@ describe("assembleDossierData — 土地版成功路徑", () => {
       throw new Error(`Unexpected invoke: ${cmd}`);
     });
 
-    const result = await assembleDossierData(landCaseRow);
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      land_registry_data: savedRegistryPayloadFromPullResult(mockPullResultLand),
+    });
 
     expect(result.propertyType).toBe("land");
     expect(result.caseNo).toBe("AIRE-2026-LAND");
@@ -421,7 +448,12 @@ describe("assembleDossierData — 土地版成功路徑", () => {
       return {};
     });
 
-    const result = await assembleDossierData(landCaseRow);
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      land_registry_data: savedRegistryPayloadFromPullResult(mockPullResultLand, {
+        zoning: { source: "api", data: { zoning_type: "住宅區", usage_category: "乙種住宅用地" } },
+      }),
+    });
 
     expect(result.legalClauses).toHaveLength(2);
     expect(result.legalClauses?.[0]).toContain("不動產經紀業管理條例");
@@ -988,7 +1020,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     );
   });
 
-  it("只有 candidate/failed provenance 且有屋主姓名時，PDF assembly 會嘗試正式 pull", async () => {
+  it("只有 candidate/failed provenance 且有屋主姓名時，PDF assembly 不會重新打正式查詢", async () => {
     mockInvoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
       if (cmd === "get_brand_text_settings") return {};
       if (cmd === "get_legal_clause") return [];
@@ -996,52 +1028,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
       if (cmd === "query_real_price") return [];
       if (cmd === "update_case") return {};
       if (cmd === "land_registry_pull_data") {
-        expect(args?.apiIds).toEqual(
-          expect.arrayContaining([
-            "building_registry",
-            "building_ownership",
-            "land_registry",
-            "zoning",
-          ]),
-        );
-        return {
-          total_cost: 36,
-          results: {
-            building_registry: {
-              source: "api",
-              data: {
-                building_area: 84.13,
-                building_purpose: "住家用",
-                construction_date: "083/10/18",
-              },
-            },
-            building_ownership: {
-              source: "api",
-              data: {
-                owner_name: "王建國",
-                ownership_date: "083/12/13",
-                numerator: "1",
-                denominator: "1",
-              },
-            },
-            land_registry: {
-              source: "api",
-              data: {
-                section: "勝利段",
-                lot_number: "0005",
-                area: 120.5,
-              },
-            },
-            zoning: {
-              source: "api",
-              data: {
-                zoning_type: "住宅區",
-                building_coverage_ratio: "60%",
-                floor_area_ratio: "200%",
-              },
-            },
-          },
-        };
+        throw new Error("PDF assembly must use saved registry data only");
       }
       return {};
     });
@@ -1070,51 +1057,11 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
       },
     });
 
-    expect(mockInvoke).toHaveBeenCalledWith(
-      "land_registry_pull_data",
-      expect.objectContaining({
-        parcelId: "板橋段100-2",
-        apiIds: expect.arrayContaining([
-          "building_registry",
-          "building_ownership",
-          "land_registry",
-          "zoning",
-        ]),
-      }),
-    );
-    expect(result.buildingArea).toBe(84.13);
-    expect(result.propertySheet?.landSection).toBe("勝利段");
-    expect(result.propertySheet?.zoning).toBe("住宅區");
-    expect(mockInvoke).toHaveBeenCalledWith(
-      "update_case",
-      expect.objectContaining({
-        id: "test-id-002",
-        input: expect.objectContaining({
-          land_registry_data: expect.objectContaining({
-            schema: "aire.registry-provenance.v1",
-            entries: expect.objectContaining({
-              building_registry: expect.objectContaining({
-                source: "moi_api",
-                status: "success",
-                trustedForPdf: true,
-                data: expect.objectContaining({
-                  building_area: 84.13,
-                  building_purpose: "住家用",
-                }),
-              }),
-              land_registry: expect.objectContaining({
-                source: "moi_api",
-                status: "success",
-                trustedForPdf: true,
-                data: expect.objectContaining({
-                  section: "勝利段",
-                }),
-              }),
-            }),
-          }),
-        }),
-      }),
-    );
+    expect(mockInvoke).not.toHaveBeenCalledWith("land_registry_pull_data", expect.anything());
+    expect(result.buildingArea).toBeUndefined();
+    expect(result.propertySheet?.landSection).toBe("");
+    expect(result.propertySheet?.zoning).toBe("");
+    expect(mockInvoke).not.toHaveBeenCalledWith("update_case", expect.anything());
   });
 
   it("地址候選只有 placeholder 地號且無建號時，不用 0001 進正式 pull", async () => {
@@ -1265,7 +1212,12 @@ describe("assembleDossierData — invoke 失敗時降級", () => {
       throw new Error(`Unexpected: ${cmd}`);
     });
 
-    const result = await assembleDossierData(landCaseRow);
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      land_registry_data: savedRegistryPayloadFromPullResult(mockPullResultLand, {
+        zoning: { source: "api", data: { zoning_type: "未知特殊分區X", usage_category: "" } },
+      }),
+    });
     expect(result.recentSalePricePerSqm).toBeUndefined();
     expect(result.recentSaleCount).toBe(0);
   });
@@ -1293,7 +1245,10 @@ describe("assembleDossierData — zoningType 映射", () => {
       throw new Error(`Unexpected: ${cmd}`);
     });
 
-    const result = await assembleDossierData(landCaseRow);
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      land_registry_data: savedRegistryPayloadFromPullResult(pullWithKnownZoning),
+    });
     expect(result.soilConservation).toBe(ZONING_RESTRICTIONS["住宅區"].soilConservation);
     expect(result.buildingLineNote).toBe(ZONING_RESTRICTIONS["住宅區"].buildingLineNote);
   });
@@ -1315,7 +1270,10 @@ describe("assembleDossierData — zoningType 映射", () => {
       throw new Error(`Unexpected: ${cmd}`);
     });
 
-    const result = await assembleDossierData(landCaseRow);
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      land_registry_data: savedRegistryPayloadFromPullResult(pullWithUnknownZoning),
+    });
     expect(result.soilConservation).toBe("依主管機關規定辦理");
     expect(result.buildingLineNote).toBe("依主管機關規定辦理");
   });

@@ -74,8 +74,8 @@ describe("DashboardLayout", () => {
       expect(screen.getAllByTestId("sidebar")).toHaveLength(2);
       expect(screen.getByText("content")).toBeInTheDocument();
       expect(screen.getByText("本瀏覽器本機測試資料")).toBeInTheDocument();
-      expect(screen.getByText(/下載 JSON/)).toBeInTheDocument();
-      expect(screen.getByText(/aire-mock-store/)).toBeInTheDocument();
+      expect(screen.getByText(/下載管理資料/)).toBeInTheDocument();
+      expect(screen.queryByText(/aire-mock-store/)).not.toBeInTheDocument();
     });
   });
 

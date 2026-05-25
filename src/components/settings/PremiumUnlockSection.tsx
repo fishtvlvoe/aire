@@ -69,7 +69,7 @@ export function PremiumUnlockSection() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-4">
-          <CardTitle>實價登錄 MCP Hub</CardTitle>
+          <CardTitle>實價登錄進階功能</CardTitle>
           {loading ? null : isAdmin ? (
             <Badge className="border-transparent bg-green-100 text-green-700">已啟用（管理員）</Badge>
           ) : subscribed ? (
@@ -86,7 +86,7 @@ export function PremiumUnlockSection() {
           </div>
         ) : isAdmin ? (
           <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">管理員帳號已自動啟用 MCP Hub</div>
+            <div className="text-sm text-muted-foreground">管理員帳號已自動啟用進階功能</div>
           </div>
         ) : subscribed ? (
           <div className="space-y-2">
@@ -106,7 +106,7 @@ export function PremiumUnlockSection() {
         ) : (
           <div className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              實價登錄 MCP 整合，提供地政資料一鍵查詢；目前先送出 OPCOS 後台升級申請。
+              實價登錄與進階地政資料整理正在開放申請；目前先送出後台升級申請。
             </div>
             <Button onClick={handleSubscribe} disabled={subscribing}>
               前往升級

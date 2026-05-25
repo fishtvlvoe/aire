@@ -6,22 +6,16 @@ import { queryNearbyAmenities, summarizeNearbyAmenities } from "@/lib/overpass-c
 import { calculateBuildingAge } from "@/lib/registry-preview";
 import { storage, type BrandingData } from "@/lib/storage";
 import {
-  createRegistryProvenancePayload,
   extractCandidateOptions,
   extractRegistryFailureReasons,
   extractTrustedRegistryData,
   isRegistryProvenancePayload,
   type CandidateParcelOption,
   type CandidateSummaryFields,
-  type RegistryProvenancePayload,
 } from "@/lib/registry-provenance";
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
-type PullResult = {
-  results: Record<string, { data: unknown; source?: string; success?: boolean; error?: string }>;
-  total_cost: number;
-};
 type LegalClauseRecord = {
   law_id?: string;
   title?: string;
@@ -304,23 +298,6 @@ function parseSupplementNumber(value?: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function isPlaceholderParcelId(value?: string | null): boolean {
-  const trimmed = value?.trim();
-  if (!trimmed) return true;
-  return trimmed === "0001" || trimmed === "00001" || /候選|待確認|待補/.test(trimmed);
-}
-
-function resolveFormalPullParcelId(caseRow: CaseRow, trustedPersisted: Record<string, unknown>) {
-  const manualSupplement = trustedPersisted.manual_registry_supplement;
-  const manualBuildingNumber = firstString(manualSupplement, ["buildingNumberCandidate"]);
-  const candidates = [
-    caseRow.building_lot_no,
-    manualBuildingNumber,
-    caseRow.land_lot_no,
-  ];
-  return candidates.find((candidate) => !isPlaceholderParcelId(candidate))?.trim();
-}
-
 function extractTrustedOfficialRegistryData(payload: unknown): Record<string, unknown> {
   if (!isRegistryProvenancePayload(payload)) return {};
   return Object.fromEntries(
@@ -357,49 +334,6 @@ function buildFieldVisitLookup(payload?: WorkbenchSupplementPayload) {
     answerByTopic.set(topic, answer);
   }
   return answerByTopic;
-}
-
-function mergeRegistryProvenancePayload(
-  existing: unknown,
-  next: RegistryProvenancePayload,
-): RegistryProvenancePayload {
-  if (!isRegistryProvenancePayload(existing)) return next;
-  return {
-    ...existing,
-    ...next,
-    entries: {
-      ...existing.entries,
-      ...next.entries,
-    },
-    candidate_options: next.candidate_options ?? existing.candidate_options,
-    selected_candidate_ids: next.selected_candidate_ids ?? existing.selected_candidate_ids,
-    confirmed_parcel_ids: next.confirmed_parcel_ids ?? existing.confirmed_parcel_ids,
-    coordinate_source: next.coordinate_source ?? existing.coordinate_source,
-    inferred_reference: next.inferred_reference ?? existing.inferred_reference,
-  };
-}
-
-function normalizePullResultsForProvenance(
-  results: PullResult["results"],
-): Parameters<typeof createRegistryProvenancePayload>[0]["results"] {
-  return Object.fromEntries(
-    Object.entries(results).map(([apiId, value]) => {
-      const success =
-        typeof value.success === "boolean"
-          ? value.success
-          : (value.source === "api" || value.source === "cache" || value.source === "moi_api") &&
-            hasRegistryData(value.data);
-      return [
-        apiId,
-        {
-          success,
-          source: value.source,
-          data: hasRegistryData(value.data) ? value.data : undefined,
-          error: typeof value.error === "string" ? value.error : undefined,
-        },
-      ];
-    }),
-  );
 }
 
 const PRE_SURVEY_DISCLAIMER = "地政資料，最終以正式謄本為主；本說明書不代表完整資訊。";
@@ -517,11 +451,6 @@ async function resolveLegalClauses(): Promise<string[]> {
   }
 
   return [];
-}
-
-function isMockRegistryPullData(results: Record<string, { data: unknown }>): boolean {
-  const entries = Object.values(results) as Array<{ data: unknown; source?: unknown }>;
-  return entries.length > 0 && entries.every((entry) => entry.source === "mock");
 }
 
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -642,18 +571,6 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   // ── 地政 API ──────────────────────────────────────────────────────────────
 
-  const apiIds = isLand
-    ? ["land_registry", "zoning", "land_value", "mortgages"]
-    : [
-        "building_registry",
-        "building_ownership",
-        "mortgages",
-        "land_registry",
-        "co_owners",
-        "zoning",
-        "land_value",
-      ];
-
   let apiData: Record<string, { data: unknown; source?: string }> = {};
   const trustedPersisted =
     persisted && typeof persisted === "object" && !Array.isArray(persisted)
@@ -661,14 +578,6 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       : {};
   const trustedOfficialPersisted = extractTrustedOfficialRegistryData(persisted);
   const hasTrustedPersisted = Object.keys(trustedOfficialPersisted).length > 0;
-  const formalPullParcelId = resolveFormalPullParcelId(caseRow, trustedPersisted);
-  const shouldAttemptFormalPull =
-    !persisted ||
-    (isRegistryProvenancePayload(persisted) &&
-      !hasTrustedPersisted &&
-      Boolean(caseRow.owner_name?.trim()) &&
-      Boolean(formalPullParcelId));
-
   if (hasTrustedPersisted) {
     apiData = Object.fromEntries(
       Object.entries(trustedPersisted).map(([apiId, value]) => {
@@ -679,46 +588,6 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         return [apiId, wrapped];
       }),
     );
-  } else if (shouldAttemptFormalPull) {
-    let pullResult: PullResult | undefined;
-    try {
-      pullResult = await safeInvoke<PullResult>("land_registry_pull_data", {
-        parcelId: formalPullParcelId,
-        apiIds,
-      });
-    } catch {
-      // 組裝層捕捉錯誤，API 欄位降級為 undefined
-    }
-    apiData = pullResult?.results ?? {};
-    if (isMockRegistryPullData(apiData)) {
-      apiData = {};
-    } else {
-      apiData = Object.fromEntries(
-        Object.entries(apiData).filter(([, value]) => {
-          const source = (value as { source?: unknown }).source;
-          return (source === "api" || source === "cache" || source === "moi_api") &&
-            hasRegistryData(value.data);
-        }),
-      );
-      if (Object.keys(apiData).length > 0 && pullResult?.results) {
-        const trustedPayload = createRegistryProvenancePayload({
-          parcelId: caseRow.land_lot_no,
-          totalCost: pullResult.total_cost,
-          results: normalizePullResultsForProvenance(pullResult.results),
-        });
-        const mergedPayload = mergeRegistryProvenancePayload(persisted, trustedPayload);
-        try {
-          await safeInvoke("update_case", {
-            id: caseRow.id,
-            input: {
-              land_registry_data: mergedPayload,
-            },
-          });
-        } catch {
-          // PDF assembly can still proceed with the freshly pulled trusted payload.
-        }
-      }
-    }
   }
   if (trustedPersisted.manual_registry_supplement && !apiData.manual_registry_supplement) {
     apiData.manual_registry_supplement = { data: trustedPersisted.manual_registry_supplement };

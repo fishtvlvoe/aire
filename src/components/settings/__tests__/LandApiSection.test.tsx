@@ -33,21 +33,21 @@ describe("LandApiSection", () => {
     render(<LandApiSection />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Client ID/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/帳號識別碼/)).toBeInTheDocument();
     });
 
     expect(screen.getByRole("button", { name: "儲存" })).toBeDisabled();
     const testButton = screen.getByRole("button", { name: "測試連線" });
     expect(testButton).toBeDisabled();
-    expect(testButton).toHaveAttribute("title", "請先填入 Client ID 和安全碼");
+    expect(testButton).toHaveAttribute("title", "請先填入帳號識別碼和安全碼");
   });
 
   it("client id 與安全碼皆有值時，測試連線按鈕啟用且無 tooltip", async () => {
     render(<LandApiSection />);
 
-    await waitFor(() => screen.getByLabelText(/Client ID/));
+    await waitFor(() => screen.getByLabelText(/帳號識別碼/));
 
-    fireEvent.change(screen.getByLabelText(/Client ID/), {
+    fireEvent.change(screen.getByLabelText(/帳號識別碼/), {
       target: { value: "my-client-id" },
     });
     fireEvent.change(screen.getByLabelText(/安全碼/), {
@@ -64,9 +64,9 @@ describe("LandApiSection", () => {
 
     render(<LandApiSection />);
 
-    await waitFor(() => screen.getByLabelText(/Client ID/));
+    await waitFor(() => screen.getByLabelText(/帳號識別碼/));
 
-    fireEvent.change(screen.getByLabelText(/Client ID/), {
+    fireEvent.change(screen.getByLabelText(/帳號識別碼/), {
       target: { value: "my-client-id" },
     });
     fireEvent.change(screen.getByLabelText(/安全碼/), {
@@ -85,9 +85,9 @@ describe("LandApiSection", () => {
   it("測試連線成功顯示延遲", async () => {
     render(<LandApiSection />);
 
-    await waitFor(() => screen.getByLabelText(/Client ID/));
+    await waitFor(() => screen.getByLabelText(/帳號識別碼/));
 
-    fireEvent.change(screen.getByLabelText(/Client ID/), {
+    fireEvent.change(screen.getByLabelText(/帳號識別碼/), {
       target: { value: "my-client-id" },
     });
     fireEvent.change(screen.getByLabelText(/安全碼/), {
@@ -109,9 +109,9 @@ describe("LandApiSection", () => {
 
     render(<LandApiSection />);
 
-    await waitFor(() => screen.getByLabelText(/Client ID/));
+    await waitFor(() => screen.getByLabelText(/帳號識別碼/));
 
-    fireEvent.change(screen.getByLabelText(/Client ID/), {
+    fireEvent.change(screen.getByLabelText(/帳號識別碼/), {
       target: { value: "my-client-id" },
     });
     fireEvent.change(screen.getByLabelText(/安全碼/), {
@@ -127,7 +127,7 @@ describe("LandApiSection", () => {
   it("申請說明顯示地政註冊連結，教學影片仍為敬請期待", async () => {
     render(<LandApiSection />);
 
-    await waitFor(() => screen.getByLabelText(/Client ID/));
+    await waitFor(() => screen.getByLabelText(/帳號識別碼/));
 
     expect(screen.getByText("請使用自然人憑證或是工商憑證註冊帳號，即可開始使用。")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "前往地政註冊" })).toHaveAttribute(

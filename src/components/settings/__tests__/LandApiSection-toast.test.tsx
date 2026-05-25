@@ -38,8 +38,8 @@ beforeEach(() => {
 
 async function fillAndWaitReady() {
   render(<LandApiSection />);
-  await waitFor(() => screen.getByLabelText("Client ID"));
-  await userEvent.type(screen.getByLabelText("Client ID"), "QA-CLIENT");
+  await waitFor(() => screen.getByLabelText("帳號識別碼"));
+  await userEvent.type(screen.getByLabelText("帳號識別碼"), "QA-CLIENT");
   await userEvent.type(screen.getByLabelText("安全碼"), "QA-SECRET");
 }
 

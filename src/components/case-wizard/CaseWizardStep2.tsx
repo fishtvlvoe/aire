@@ -196,7 +196,7 @@ function AddressDetectionPanel({ state }: { state: RegistryDetectionState }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 id="address-detection-heading" className="text-sm font-semibold">
-            地址與地政判斷
+            地址資料補齊
           </h3>
           <p className="mt-1 break-words text-xs text-muted-foreground">
             {state.address || "尚未輸入地址"}
@@ -249,7 +249,7 @@ function RegistryPreviewPanel({
 
       {sections.length === 0 ? (
         <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">
-          尚未讀到謄本資料。請先拉謄本；若 API 查不到，後續欄位會保留空白讓業務手寫。
+          尚未讀到謄本資料。請先正式查詢；若資料查不到，後續欄位會保留空白讓業務手寫。
         </div>
       ) : (
         <div className="grid gap-4 2xl:grid-cols-2">

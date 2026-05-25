@@ -235,12 +235,12 @@ export async function getTrialStatus(): Promise<TrialStatusInfo> {
 export function mapErrorToMessage(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
   if (msg.includes("registry_match_required")) return "請先確認地段、地號與建號後再查詢";
-  if (msg.includes("cop_credential_required")) return "請先在設定頁完成客戶憑證設定";
-  if (msg.includes("ApiKeyNotConfigured")) return "請先在設定頁設定地政 API 金鑰";
-  if (msg.includes("AuthenticationFailed")) return "API 認證失敗，請確認金鑰設定";
+  if (msg.includes("cop_credential_required")) return "請先在設定頁完成地政查詢帳號設定";
+  if (msg.includes("ApiKeyNotConfigured")) return "請先在設定頁設定地政查詢帳號";
+  if (msg.includes("AuthenticationFailed")) return "地政查詢帳號驗證失敗，請確認設定";
   if (msg.includes("ConsentRequired")) return "請先取得所有權人授權同意";
   if (msg.includes("NlscPermissionDenied")) {
-    return "國土測繪 CAD 查詢尚未開通，請申請 CAD_009/CAD_011 或改走補件／人工確認";
+    return "圖資查詢尚未開通，請改走補件或人工確認";
   }
   if (msg.includes("InsufficientBalance")) return "餘額不足，請聯繫平台補值";
   return `查詢失敗：${msg}`;

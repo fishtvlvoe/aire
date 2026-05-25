@@ -17,7 +17,7 @@ vi.mock("@/lib/land-registry-api", () => ({
   formalPullData: mocks.formalPullData,
   mapErrorToMessage: (error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
-    if (message.includes("ApiKeyNotConfigured")) return "請先在設定頁設定地政 API 金鑰";
+    if (message.includes("ApiKeyNotConfigured")) return "請先在設定頁設定地政查詢帳號";
     return `查詢失敗：${message}`;
   },
 }));
@@ -221,7 +221,40 @@ describe("PullParcelDataButton", () => {
     await userEvent.click(screen.getByRole("button", { name: "扣款確認" }));
 
     await waitFor(() => {
-      expect(screen.getByText("請先在設定頁設定地政 API 金鑰")).toBeInTheDocument();
+      expect(screen.getByText("請先在設定頁設定地政查詢帳號")).toBeInTheDocument();
     });
+  });
+
+  it("keeps failed query item identifiers out of visible fallback copy", async () => {
+    mocks.formalPullData.mockResolvedValueOnce({
+      run_id: "run-002",
+      cache_hit: false,
+      source_run_id: null,
+      total_cost: 0,
+      results: {
+        MOI_API_037: {
+          success: false,
+          error: "COP317",
+          source: "api",
+        },
+      },
+    });
+
+    render(
+      <PullParcelDataButton
+        apiIds={["MOI_API_037"]}
+        caseId="case-001"
+        parcelId="大安段一小段 123-4"
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /正式查詢/ }));
+    await userEvent.click(screen.getByRole("button", { name: "授權確認" }));
+    await userEvent.click(screen.getByRole("button", { name: "扣款確認" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("以下項目查詢失敗，請手動填入資料：")).toBeInTheDocument();
+    });
+    expect(document.body.textContent).not.toMatch(/MOI_API_037|COP317|API/);
   });
 });

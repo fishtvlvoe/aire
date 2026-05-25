@@ -403,6 +403,18 @@ describe("MockStore", () => {
     });
 
     await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).rejects.toThrow("registry_match_required");
+
+    const runsBeforeConfirm = await mockInvoke<Array<{ total_cost_cents: number }>>(
+      "list_registry_query_runs",
+      {},
+    );
+
+    await expect(
       mockInvoke("confirm_case_registry_match", {
         caseId: created.id,
         sectionName: "富強段",
@@ -436,8 +448,10 @@ describe("MockStore", () => {
       "list_registry_query_runs",
       {},
     );
-    expect(runs.length).toBeGreaterThanOrEqual(2);
+    expect(runs.length).toBe(runsBeforeConfirm.length + 2);
     expect(runs.some((run) => run.cache_hit)).toBe(true);
+    const cacheRun = runs.find((run) => run.cache_hit);
+    expect(cacheRun?.source_run_id).toBeTruthy();
     const detail = await mockInvoke<{ id: string; api_calls: Array<{ service_code: string }> }>(
       "get_registry_query_run_detail",
       { runId: runs[0].id },

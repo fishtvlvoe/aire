@@ -169,8 +169,10 @@ describe("DemoAlignedWorkbench", () => {
     });
 
     fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
-    expect(screen.getByText("JSON 預覽")).toBeInTheDocument();
-    expect(screen.getByText(/勝利段 58 建號/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("管理明細"));
+    await waitFor(() => {
+      expect(screen.getByText(/勝利段 58 建號/)).toBeInTheDocument();
+    });
     expect(screen.getByText(/manual/)).toBeInTheDocument();
   });
 
@@ -303,9 +305,9 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(sourceRegion).getByText("DC-1556-00167000")).toBeInTheDocument();
     expect(within(sourceRegion).getByText("DC-1556-00230000")).toBeInTheDocument();
     expect(within(sourceRegion).getByText(/31\.25坪/)).toBeInTheDocument();
-    expect(within(sourceRegion).getAllByText(/COP312/).length).toBeGreaterThan(0);
-    expect(within(sourceRegion).getByText(/候選 probe 取得服務資訊失敗/)).toBeInTheDocument();
-    expect(within(sourceRegion).getAllByText(/COP305/).length).toBeGreaterThan(0);
+    expect(within(sourceRegion).queryByText(/COP312/)).not.toBeInTheDocument();
+    expect(within(sourceRegion).getByText(/候選資料取得失敗/)).toBeInTheDocument();
+    expect(within(sourceRegion).queryByText(/COP305/)).not.toBeInTheDocument();
     expect(within(sourceRegion).getAllByText(/候選查無資料/).length).toBeGreaterThan(0);
 
     fireEvent.click(within(sourceRegion).getByRole("button", { name: "確認 DC-1556-00700000" }));
@@ -377,8 +379,8 @@ describe("DemoAlignedWorkbench", () => {
 
     expect(screen.getByRole("tab", { name: "資料來源" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "下載 JSON" })).toBeInTheDocument();
-    expect(screen.getByText("JSON 預覽")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "下載管理資料" })).toBeInTheDocument();
+    expect(screen.getByText("管理明細")).toBeInTheDocument();
   });
 
   it("saves owner name correction to the case and reflects it in source JSON", async () => {
@@ -395,8 +397,10 @@ describe("DemoAlignedWorkbench", () => {
     });
 
     fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
-    expect(screen.getByText("JSON 預覽")).toBeInTheDocument();
-    expect(screen.getByText(/蔡國卿/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText("管理明細"));
+    await waitFor(() => {
+      expect(screen.getByText(/蔡國卿/)).toBeInTheDocument();
+    });
   });
 
   it("persists supplement answers, statuses, upload names, and PDF upload count across remounts", async () => {

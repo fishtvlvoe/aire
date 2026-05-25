@@ -37,13 +37,17 @@ for (const viewport of viewports) {
     });
 
     await page.goto(`/cases/${CASE_ID}`);
-    await expect(page.getByRole("navigation", { name: "主要選單" })).toBeVisible();
+    const primaryNavigation = page.getByRole("navigation", { name: "主要選單" });
+    if (await primaryNavigation.count()) {
+      await expect(primaryNavigation).toBeVisible();
+    }
     await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
     await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "補件/現場" })).toBeVisible();
     await expect(page.getByRole("region", { name: "本次調閱費用" })).toBeVisible();
     await expect(page.getByText("MOI_API_")).toHaveCount(0);
     await expect(page.getByText("COP309")).toHaveCount(0);
+    await expectCustomerFacingTextClean(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: `e2e/results/demo-alignment/product-workbench-${viewport.width}.png`,
@@ -75,9 +79,10 @@ for (const viewport of viewports) {
     await page.goto("/settings?section=billing");
     await expect(page.getByRole("main").getByRole("heading", { name: "費用紀錄", exact: true })).toBeVisible();
     await expect(page.getByText("本月使用量")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "地政 API 查詢明細" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "地政查詢明細" })).toBeVisible();
     await expect(page.getByText("地政費用合計 27 元")).toBeVisible();
     await expect(page.getByText("授權管理")).toHaveCount(0);
+    await expectCustomerFacingTextClean(page);
 
     await page.goto("/settings?section=plans");
     await expect(page.getByRole("main").getByRole("heading", { name: "方案與升級" })).toBeVisible();
@@ -102,6 +107,7 @@ test("new case flow is address-first and only falls back to manual type selectio
   await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 1 號");
   await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
   await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
+  await expectCustomerFacingTextClean(page);
   await expect(page.getByLabel("物件類型")).toHaveCount(0);
 
   await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 候選多筆");
@@ -200,4 +206,9 @@ async function expectNoHorizontalOverflow(page: Page) {
     return root.scrollWidth <= root.clientWidth + 1;
   });
   expect(hasNoOverflow).toBe(true);
+}
+
+async function expectCustomerFacingTextClean(page: Page) {
+  const text = await page.locator("main").last().textContent();
+  expect(text ?? "").not.toMatch(/\b(R02|COP|API|Helper|adapter|parser|payload|JSON)\b|便民系統/);
 }

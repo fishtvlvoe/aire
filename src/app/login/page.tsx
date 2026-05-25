@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 const FORGOT_PASSWORD_URL = "https://opcos.com.tw";
+const DESKTOP_PASSWORD_HELP_URL = "https://opcos.me/products/aire/desktop-password";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: "帳號或密碼錯誤",
@@ -24,10 +25,14 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!email.trim() || !password.trim()) {
+      setError("請輸入 AIRE 桌面版帳號與密碼");
+      return;
+    }
     setLoading(true);
     try {
       await mockInvoke("login", { email, password });
-      router.push("/cases");
+      router.push("/cases/new");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("INVALID_CREDENTIALS")) {
@@ -49,6 +54,7 @@ export default function LoginPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">AIRE</h1>
             <p className="text-sm text-muted-foreground">不動產說明書智能助手</p>
+            <p className="mt-2 text-xs text-muted-foreground">使用 AIRE 桌面版帳號登入</p>
           </div>
         </CardHeader>
 
@@ -61,7 +67,6 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               disabled={loading}
-              required
             />
             <Input
               type="password"
@@ -70,7 +75,6 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               disabled={loading}
-              required
             />
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -88,6 +92,15 @@ export default function LoginPage() {
               className="text-sm text-blue-600 hover:underline"
             >
               忘記密碼
+            </a>
+            <span className="mx-2 text-slate-300">|</span>
+            <a
+              href={DESKTOP_PASSWORD_HELP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 hover:underline"
+            >
+              用 Google 或 LINE 購買？
             </a>
           </div>
         </CardContent>
