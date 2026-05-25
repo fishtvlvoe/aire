@@ -181,15 +181,15 @@ describe("Settings page（重組後）", () => {
   it("預設顯示個人設定", async () => {
     render(<SettingsPage />);
     expect(screen.getByRole("heading", { name: "個人設定" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "更新密碼" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "PDF 開啟密碼" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "個人名稱與 Email" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "品牌色與 Logo" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "品牌色與 Logo" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("個人名稱")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
-    expect(screen.getByLabelText("目前密碼")).toBeInTheDocument();
-    expect(screen.getByLabelText("新密碼")).toBeInTheDocument();
-    expect(screen.getByLabelText("品牌色")).toBeInTheDocument();
-    expect(screen.getByLabelText("品牌 Logo 上傳")).toBeInTheDocument();
+    expect(screen.getByLabelText("目前 PDF 密碼（首次可留空）")).toBeInTheDocument();
+    expect(screen.getByLabelText("新 PDF 密碼")).toBeInTheDocument();
+    expect(screen.queryByLabelText("品牌色")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("品牌 Logo 上傳")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "帳號與授權管理" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "目前操作紀錄" })).not.toBeInTheDocument();
   });
@@ -211,30 +211,16 @@ describe("Settings page（重組後）", () => {
       expect(screen.getByText("個人資料已儲存")).toBeInTheDocument();
     });
 
-    fireEvent.change(screen.getByLabelText("品牌色"), { target: { value: "#008577" } });
-    fireEvent.change(screen.getByLabelText("品牌 Logo 上傳"), {
-      target: { files: [new File(["logo"], "logo.png", { type: "image/png" })] },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "儲存品牌設定" }));
-
-    await waitFor(() => {
-      expect(mockedInvoke).toHaveBeenCalledWith("save_profile_settings", expect.objectContaining({
-        brandColor: "#008577",
-        logoName: "logo.png",
-      }));
-      expect(screen.getByText("品牌設定已儲存")).toBeInTheDocument();
-    });
-
-    fireEvent.change(screen.getByLabelText("目前密碼"), { target: { value: "old-password" } });
-    fireEvent.change(screen.getByLabelText("新密碼"), { target: { value: "new-password" } });
-    fireEvent.click(screen.getByRole("button", { name: "更新密碼" }));
+    fireEvent.change(screen.getByLabelText("目前 PDF 密碼（首次可留空）"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("新 PDF 密碼"), { target: { value: "new-password" } });
+    fireEvent.click(screen.getByRole("button", { name: "儲存 PDF 密碼" }));
 
     await waitFor(() => {
       expect(mockedInvoke).toHaveBeenCalledWith("update_profile_password", {
-        currentPassword: "old-password",
+        currentPassword: "",
         newPassword: "new-password",
       });
-      expect(screen.getByText("密碼已更新")).toBeInTheDocument();
+      expect(screen.getByText("PDF 密碼已更新")).toBeInTheDocument();
     });
 
     unmount();
@@ -243,8 +229,7 @@ describe("Settings page（重組後）", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("個人名稱")).toHaveValue("王小明");
       expect(screen.getByLabelText("Email")).toHaveValue("wang@example.com");
-      expect(screen.getByLabelText("品牌色")).toHaveValue("#008577");
-      expect(screen.getByText("已選擇：logo.png")).toBeInTheDocument();
+      expect(screen.queryByLabelText("品牌色")).not.toBeInTheDocument();
     });
   });
 
@@ -271,34 +256,28 @@ describe("Settings page（重組後）", () => {
     expect(await screen.findByText("地政查詢帳號")).toBeInTheDocument();
   });
 
-  it("方案與升級顯示三方案且不出現工程名詞", async () => {
+  it("方案與升級只顯示目前可用的基本款", async () => {
     mockSection = "plans";
     render(<SettingsPage />);
 
     expect(screen.getByRole("heading", { name: "方案與升級" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "基本款" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "進階款" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "高級款" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "進階款" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "高級款" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "帳號與授權管理" })).toBeInTheDocument();
     expect(screen.getAllByText("目前方案").length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText("試用中，到期日 2026-06-24")).toBeInTheDocument();
     expect(screen.getByText("尚未啟用")).toBeInTheDocument();
     expect(screen.getByText("尚未設定")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "前往升級" })).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: "預留功能" })).toBeInTheDocument();
-    expect(screen.getByText("目前正在開發中。")).toBeInTheDocument();
-    expect(screen.getAllByText("未啟用").length).toBeGreaterThanOrEqual(6);
+    expect(screen.queryByRole("button", { name: "前往升級" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "預留功能" })).not.toBeInTheDocument();
+    expect(screen.queryByText("目前正在開發中。")).not.toBeInTheDocument();
     expect(screen.queryByText("測試版已開啟")).not.toBeInTheDocument();
     expect(screen.queryByText(/正式版歸在/)).not.toBeInTheDocument();
-    const googleSwitch = await screen.findByRole("switch", { name: "Google 地圖未啟用" });
-    expect(googleSwitch).not.toBeDisabled();
-    expect(googleSwitch).toHaveAttribute("aria-checked", "false");
-    const realPriceSwitch = screen.getByRole("switch", { name: "實價登錄未啟用" });
-    fireEvent.click(realPriceSwitch);
-    await waitFor(() => expect(screen.getByRole("switch", { name: "實價登錄已啟用" })).toHaveAttribute("aria-checked", "true"));
+    expect(screen.queryByRole("switch", { name: "Google 地圖未啟用" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "實價登錄未啟用" })).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
-    expect(screen.getAllByText("實價登錄").length).toBeGreaterThan(0);
   });
 
   it("系統設定顯示已設定與到期的授權狀態", async () => {
@@ -319,17 +298,14 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByText("已設定")).toBeInTheDocument();
   });
 
-  it("非管理員看到預留功能全部關閉且不可切換", async () => {
+  it("非管理員也不會看到尚未開放的預留功能開關", async () => {
     mockSection = "plans";
     mockSessionRole = "user";
     render(<SettingsPage />);
 
-    const switches = await screen.findAllByRole("switch");
-    expect(switches).toHaveLength(6);
-    for (const switchControl of switches) {
-      expect(switchControl).toBeDisabled();
-      expect(switchControl).toHaveAttribute("aria-checked", "false");
-    }
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "預留功能" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "基本款" })).toBeInTheDocument();
   });
 
   it("資料來源頁不混入授權、升級與 Super Admin", async () => {
