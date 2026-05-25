@@ -31,5 +31,5 @@
 - Affected specs: desktop-shell, windows-desktop-install-smoke-evidence
 - Affected code:
   - New: .github/workflows/windows-desktop-smoke.yml, scripts/windows-desktop-smoke.ps1, openspec/changes/windows-desktop-install-smoke-evidence/specs/windows-desktop-install-smoke-evidence/spec.md
-  - Modified: artifacts/smoke/2026-05-25-desktop-fullflow-r02-cop-parity-smoke-report.md
+  - Modified: .github/workflows/release.yml, artifacts/smoke/2026-05-25-desktop-fullflow-r02-cop-parity-smoke-report.md
   - Removed: none

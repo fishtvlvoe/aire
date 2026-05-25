@@ -18,7 +18,7 @@ Native launch evidence SHALL prove MSI install and installed app startup with pr
 
 ## Implementation Contract
 
-- The workflow `windows-desktop-smoke.yml` SHALL run on `workflow_dispatch` and pull requests that touch Windows smoke or desktop packaging files.
+- The workflow `windows-desktop-smoke.yml` SHALL run on `workflow_dispatch` after it exists on the default branch, and the existing release workflow SHALL run the same Windows smoke steps immediately from this feature branch.
 - The workflow SHALL build a Windows MSI, fail if no MSI exists, and upload installer artifacts.
 - The script `scripts/windows-desktop-smoke.ps1` SHALL accept `InstallerPath` and `OutputDir`.
 - The script SHALL run `msiexec` with a log file, find the installed `AIRE.exe`, launch it, capture process/window metadata, capture `launch.png`, and stop the process.

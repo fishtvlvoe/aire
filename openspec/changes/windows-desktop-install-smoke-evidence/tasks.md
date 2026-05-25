@@ -5,7 +5,7 @@
 ## 2. Windows native install smoke
 
 - [ ] 2.1 Implement Decision 1: Use GitHub-hosted Windows as repeatable VM evidence and add `scripts/windows-desktop-smoke.ps1` so Windows CI can install the generated MSI, launch AIRE, capture process/window metadata and screenshot; verify locally with PowerShell syntax parse or in CI with generated artifacts.
-- [ ] 2.2 Implement Decision 2: Install the just-built MSI in the same run and Decision 3: Separate native launch evidence from product fullflow evidence by adding `.github/workflows/windows-desktop-smoke.yml` to build Windows bundles, run the smoke script, run the existing fullflow Playwright test, and upload installer/smoke artifacts; verify with `gh workflow run windows-desktop-smoke.yml`.
+- [ ] 2.2 Implement Decision 2: Install the just-built MSI in the same run and Decision 3: Separate native launch evidence from product fullflow evidence by adding `.github/workflows/windows-desktop-smoke.yml` and wiring the same steps into `.github/workflows/release.yml`; verify with `gh workflow run release.yml`.
 
 ## 3. Evidence and handoff
 

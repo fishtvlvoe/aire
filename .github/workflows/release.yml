@@ -68,3 +68,65 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: "${{ matrix.args }}"
+
+      - name: Locate Windows installer
+        if: runner.os == 'Windows'
+        id: windows-installer
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem -Path "src-tauri/target/release/bundle/msi" -Filter "*.msi" -Recurse | Select-Object -First 1
+          if (!$msi) {
+            throw "No MSI installer found under src-tauri/target/release/bundle/msi"
+          }
+          "msi=$($msi.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Smoke installed Windows app
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          ./scripts/windows-desktop-smoke.ps1 `
+            -InstallerPath "${{ steps.windows-installer.outputs.msi }}" `
+            -OutputDir "artifacts/smoke/windows-vm"
+
+      - name: Install Playwright browser
+        if: runner.os == 'Windows'
+        run: pnpm exec playwright install chromium
+
+      - name: Start web fullflow server
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "pnpm.cmd" -ArgumentList "dev" -PassThru
+          "AIRE_E2E_SERVER_PID=$($process.Id)" >> $env:GITHUB_ENV
+          for ($i = 0; $i -lt 60; $i++) {
+            try {
+              $response = Invoke-WebRequest -Uri "http://localhost:3000" -UseBasicParsing -TimeoutSec 2
+              if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
+                exit 0
+              }
+            } catch {
+              Start-Sleep -Seconds 2
+            }
+          }
+          throw "Timed out waiting for http://localhost:3000"
+
+      - name: Run complete product fullflow
+        if: runner.os == 'Windows'
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        run: pnpm playwright test e2e/complete-presurvey-property-sheet-flow.spec.ts --reporter=line
+
+      - name: Stop web fullflow server
+        if: always() && runner.os == 'Windows' && env.AIRE_E2E_SERVER_PID != ''
+        shell: pwsh
+        run: Stop-Process -Id $env:AIRE_E2E_SERVER_PID -Force -ErrorAction SilentlyContinue
+
+      - name: Upload Windows smoke evidence
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop-smoke-evidence
+          path: |
+            artifacts/smoke/windows-vm/**
+            e2e/results/**
+          if-no-files-found: error
