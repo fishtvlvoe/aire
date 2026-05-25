@@ -19,9 +19,13 @@ verification.
 ## 2. 地址與土地反查對標
 
 - [ ] 2.1 實作 EasyMap is discovery only adapter，讓 Address input SHALL resolve registry candidates before paid COP calls 回傳候選地段、地號、建號且不呼叫 COP；以 `resolve-address` unit test 驗證裕農路 fixture 與 zero-cost run。
+- [ ] 2.1a 實作 Desktop App is the R02 execution boundary，讓 Desktop helper SHALL execute R02 discovery from the user's local environment 可由 Mac/Windows 本機瀏覽器或 WebView 開啟 R02 並擷取候選資料；以 desktop helper fixture test 驗證行政區、地政事務所、地段、地號、建號、樓層、用途與 `totalCostCents = 0`。
+- [ ] 2.1b 實作 R02 cloud fallback，讓 R02 blocks cloud discovery but desktop helper can continue 在 SaaS R02 access denied 時建立 `r02_cloud_access_denied` zero-cost run 並提示改用桌面 Helper；以 route test 驗證 HTTP 502/diagnostic run 與後續 helper attach。
 - [ ] 2.2 實作土地輸入 parser，讓 Land input SHALL resolve registry candidates without requiring address 可解析南化段 850-1 與港子前段 1090、1090-26；以 parser test 驗證 candidate 數量與 `buildingNo = null`。
 - [ ] 2.3 實作 Failure modes 的人工確認 gate，讓 Confirmed registry match SHALL gate formal COP queries 只有 confirmed run 才能進入正式 COP；以 route test 驗證 multiple candidates 進入 `needs_selection` 並 block formal pull。
 - [ ] 2.4 建立七個 fixture run，讓 Test fixtures SHALL produce persistent run data 留下 JSON、費用、狀態與分類；以 fixture integration test 驗證七筆測試資料都能從後台 detail endpoint 讀回。
+- [ ] 2.5 實作 SaaS sync keeps candidate data separate from official data 與 desktop-to-SaaS sync，讓 Desktop helper SHALL sync confirmed registry matches to SaaS 可把 candidate JSON、confirmation、sourceRunId、adapter、parserVersion 與 cache metadata 寫回 SaaS 案件；以 API contract test 驗證 confirmed 後 SaaS 開啟正式 COP action、未 confirmed 時維持 reference only。
+- [ ] 2.6 實作 desktop diagnostic persistence，讓 Desktop helper SHALL preserve diagnostics for support and iteration 在 DOM parse failed 時保存 parser version、缺失欄位、redacted raw summary 與 next action；以 integration test 驗證 Settings query-record detail 可直接顯示錯誤，不需要本機檔案或 AI。
 
 ## 3. 快取、費用與錯誤紀錄
 
@@ -57,3 +61,4 @@ verification.
 - [ ] 7.1 跑完整 CR consistency gate，確認 Acceptance criteria、所有 Requirement 與 design headings 都被 tasks 覆蓋；以 `spectra analyze address-first-registry-match-and-query-ledger --json` 驗證 0 Critical、0 Warning。
 - [ ] 7.2 跑 Spectra validation，確認 CR artifact 格式可被歸檔；以 `spectra validate address-first-registry-match-and-query-ledger` 驗證通過。
 - [ ] 7.3 執行相關前後端測試，確認七個 fixture、快取、費用、錯誤 Log、Settings UI、補件預覽與正式產出 gate 行為一致；以 `rtk npm test -- --runInBand`、`rtk cargo test land_registry` 或實作後等效測試指令驗證。
+- [ ] 7.4 驗證 Mac/Windows 桌面交付，讓 Mac and Windows desktop deliverables SHALL be verified before handoff 對 R02 helper path 跑 macOS Tauri smoke、Windows runner/VM/CI installer smoke、SaaS sync confirmation 與失敗診斷 fixture；以 release verification report 保存測試輸出與可重跑指令。

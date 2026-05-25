@@ -16,6 +16,7 @@ pub mod cases;
 pub mod floor_plan_sketches;
 pub mod drafts;
 pub mod oplog;
+pub mod registry_query_runs;
 pub mod settings;
 pub mod migrations {
     pub mod rekey {
@@ -44,6 +45,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("../../migrations/010_case_assets.sql"),
     include_str!("../../migrations/011_case_asset_slots.sql"),
     include_str!("../../migrations/012_registry_payloads.sql"),
+    include_str!("../../migrations/013_registry_query_runs.sql"),
 ];
 
 /// AIRE 資料庫統一錯誤型別。

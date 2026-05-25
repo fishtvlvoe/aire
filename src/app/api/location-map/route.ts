@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fetchStaticMap } from "@/lib/osm-static-map";
 
+export const dynamic = "force-static";
+
 interface LocationMapBody {
   lat?: number;
   lng?: number;

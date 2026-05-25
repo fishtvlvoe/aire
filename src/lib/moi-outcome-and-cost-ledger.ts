@@ -59,8 +59,8 @@ export interface UsageLedgerSummary {
 
 export function classifyMoiOutcome(input: OutcomeInput): MoiOutcome {
   if (input.transportError) return "transport_failure";
-  if (!input.parseOk) return "parse_failure";
   if (input.restricted) return "restricted_failure";
+  if (input.parseOk === false) return "parse_failure";
   if (input.httpStatus !== undefined && input.httpStatus !== null && input.httpStatus >= 400) {
     return "transport_failure";
   }

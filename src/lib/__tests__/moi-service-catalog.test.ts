@@ -44,4 +44,10 @@ describe("moi-service-catalog", () => {
       pricePolicy: "auth_free",
     });
   });
+
+  it("marks mixed known and unknown dependencies as missing", () => {
+    expect(getCoverageDecision(["MOI_API_014", "MOI_WMS_005"])).toMatchObject({
+      status: "missing",
+    });
+  });
 });
