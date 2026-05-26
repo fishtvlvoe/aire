@@ -53,10 +53,11 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByText("地政")).toBeInTheDocument();
     expect(screen.getByText("土地 2 筆")).toBeInTheDocument();
     expect(screen.getByText("建物 1 筆")).toBeInTheDocument();
-    expect(screen.getByText("42 件")).toBeInTheDocument();
-    expect(screen.getByText("13 件")).toBeInTheDocument();
-    expect(screen.getByText("8 件")).toBeInTheDocument();
-    expect(screen.getAllByText("27 元").length).toBeGreaterThan(0);
+    expect(screen.getByText("0 件")).toBeInTheDocument();
+    expect(screen.getByText("6 件")).toBeInTheDocument();
+    expect(screen.getByText("2 件")).toBeInTheDocument();
+    expect(screen.getAllByText("0 元").length).toBeGreaterThan(0);
+    expect(screen.queryByText("27 元")).not.toBeInTheDocument();
     expect(screen.getByLabelText("欄位審核表")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "重新查詢" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "產生補件清單" })).not.toBeInTheDocument();
@@ -77,9 +78,9 @@ describe("DemoAlignedWorkbench", () => {
 
     const workbench = screen.getByTestId("demo-aligned-workbench");
     expect(within(workbench).getByText("建物權利範圍")).toBeInTheDocument();
-    expect(within(workbench).getAllByText("建物所有權資料").length).toBeGreaterThan(0);
+    expect(within(workbench).getAllByText("地政謄本匯入").length).toBeGreaterThan(0);
     expect(within(workbench).getAllByText("門牌建號查詢").length).toBeGreaterThan(0);
-    expect(workbench.textContent).not.toMatch(/MOI_API_|COP309|BASIC|pro|advanced|domain_failure/);
+    expect(workbench.textContent).not.toMatch(/MOI_API_|COP309|COP|R02|便民系統|BASIC|pro|advanced|domain_failure/);
   });
 
   it("uses registry preview data as field review source and keeps supplement actions in the workbench", () => {
@@ -98,7 +99,7 @@ describe("DemoAlignedWorkbench", () => {
 
     const workbench = screen.getByTestId("demo-aligned-workbench");
     expect(within(workbench).getByText("1/1")).toBeInTheDocument();
-    expect(within(workbench).getByText("083/10/18")).toBeInTheDocument();
+    expect(within(workbench).getByText("民國083年10月18日")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "補件/現場" }));
     const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
     expect(supplementRegion).toBeInTheDocument();
@@ -121,8 +122,7 @@ describe("DemoAlignedWorkbench", () => {
     const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
     expect(within(sourceRegion).getByText("屋主姓名")).toBeInTheDocument();
     expect(within(sourceRegion).getAllByText("需人工提供").length).toBeGreaterThan(0);
-    expect(within(sourceRegion).getByText("姓名比對結果")).toBeInTheDocument();
-    expect(within(sourceRegion).getByText("待資料")).toBeInTheDocument();
+    expect(within(sourceRegion).queryByText("姓名比對結果")).not.toBeInTheDocument();
     expect(within(sourceRegion).getByText("門牌查詢建號")).toBeInTheDocument();
     expect(within(sourceRegion).getByText("查詢未成功")).toBeInTheDocument();
 
@@ -130,7 +130,7 @@ describe("DemoAlignedWorkbench", () => {
     const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
 
     expect(within(supplementRegion).getByLabelText("屋主姓名補件值")).toBeInTheDocument();
-    expect(within(supplementRegion).getByLabelText("姓名比對結果補件值")).toBeInTheDocument();
+    expect(within(supplementRegion).queryByLabelText("姓名比對結果補件值")).not.toBeInTheDocument();
     expect(within(supplementRegion).getByLabelText("門牌查詢建號補件值")).toBeInTheDocument();
     expect(within(supplementRegion).getByLabelText("格局補件值")).toBeInTheDocument();
     expect(within(supplementRegion).getByLabelText("座向補件值")).toBeInTheDocument();
@@ -171,7 +171,7 @@ describe("DemoAlignedWorkbench", () => {
     fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
     fireEvent.click(screen.getByText("管理明細"));
     await waitFor(() => {
-      expect(screen.getByText(/勝利段 58 建號/)).toBeInTheDocument();
+      expect(screen.getAllByText(/勝利段 58 建號/).length).toBeGreaterThan(0);
     });
     expect(screen.getByText(/manual/)).toBeInTheDocument();
   });
@@ -200,7 +200,7 @@ describe("DemoAlignedWorkbench", () => {
     );
 
     expect(screen.getByRole("region", { name: "本次調閱費用" })).toHaveTextContent("本次調閱費用：0 元");
-    expect(screen.getByText("本次只取得候選或待確認資料；查詢失敗與帳務同步不計費。")).toBeInTheDocument();
+    expect(screen.getByText("本次只取得免費候選或物件基本資料；尚未產生正式地政謄本費用。")).toBeInTheDocument();
   });
 
   it("shows candidate parcel options and persists temporary and confirmed selections", async () => {
@@ -379,7 +379,8 @@ describe("DemoAlignedWorkbench", () => {
 
     expect(screen.getByRole("tab", { name: "資料來源" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "下載管理資料" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /下載管理資料|下載|另存/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/缺資料再進補件或正式資料匯入/)).toBeInTheDocument();
     expect(screen.getByText("管理明細")).toBeInTheDocument();
   });
 
@@ -399,7 +400,158 @@ describe("DemoAlignedWorkbench", () => {
     fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
     fireEvent.click(screen.getByText("管理明細"));
     await waitFor(() => {
-      expect(screen.getByText(/蔡國卿/)).toBeInTheDocument();
+      expect(screen.getAllByText(/蔡國卿/).length).toBeGreaterThan(0);
+    });
+  });
+
+  it("shows source rows as customer-readable values and keeps owner comparison pending until formal data exists", () => {
+    const sourceCase: CaseRow = {
+      ...caseRow,
+      case_name: "東和路47",
+      address: "台南市東區東和路47號3樓",
+      owner_name: "蔡國卿",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-26T00:00:00.000Z",
+        totalCost: 0,
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "building:DK-9125-00084000",
+            parcel_type: "building",
+            section_code: "9125",
+            section_name: "東和段",
+            parcel_number: "00084000",
+            normalized_parcel_id: "DK-9125-00084000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            summary_fields: {
+              registeredAreaPing: 38.78,
+              legalUse: "住商用",
+              constructionDate: "0710804",
+              floor: "三層",
+              age: "44年",
+            },
+            warnings: [],
+          },
+        ],
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={sourceCase} initialTab="sources" />);
+
+    const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
+    expect(within(sourceRegion).getByText("蔡國卿")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("住商用")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("38.78 坪")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("民國071年08月04日")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("已找到建號 00084000")).toBeInTheDocument();
+    expect(within(sourceRegion).getByText("待正式所有權資料後再比對")).toBeInTheDocument();
+    expect(within(sourceRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
+    expect(sourceRegion.textContent).not.toContain("候選建號");
+    expect(sourceRegion.textContent).not.toMatch(/R02|便民系統/);
+  });
+
+  it("puts the paid formal import action inside a single usable candidate card", () => {
+    const singleCandidateCase: CaseRow = {
+      ...caseRow,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-26T00:00:00.000Z",
+        totalCost: 0,
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "building:DK-9125-00084000",
+            parcel_type: "building",
+            section_code: "9125",
+            section_name: "東和段",
+            parcel_number: "00084000",
+            normalized_parcel_id: "DK-9125-00084000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            summary_fields: {
+              registeredAreaPing: 38.78,
+              legalUse: "住商用",
+            },
+            warnings: [],
+          },
+        ],
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={singleCandidateCase} initialTab="sources" />);
+
+    const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
+    expect(within(sourceRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
+    expect(within(sourceRegion).queryByRole("button", { name: "確認" })).not.toBeInTheDocument();
+    expect(within(sourceRegion).queryByRole("button", { name: "取消" })).not.toBeInTheDocument();
+    expect(within(sourceRegion).queryByRole("button", { name: /暫用/ })).not.toBeInTheDocument();
+    expect(within(sourceRegion).queryByRole("button", { name: /確認 DK-9125-00084000/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps candidate metadata and coordinates when supplement fields are saved", async () => {
+    const candidateOptions = [
+      {
+        candidate_id: "building:DC-1556-00204000",
+        parcel_type: "building" as const,
+        normalized_parcel_id: "DC-1556-00204000",
+        parcel_number: "00204000",
+        query_status: "candidate_data_available" as const,
+        summary_fields: { lat: 22.986217, lng: 120.228962 },
+      },
+    ];
+    const coordinateSource = {
+      lat: 22.986217,
+      lng: 120.228962,
+      source: "candidate_reference",
+    };
+    const buildingRegistryEntry = {
+      apiId: "building_registry",
+      source: "moi_api" as const,
+      status: "success" as const,
+      trustedForPdf: true,
+      data: { building_area: 83.61 },
+    };
+    const sourceCase: CaseRow = {
+      ...caseRow,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-26T00:00:00.000Z",
+        totalCost: 20,
+        entries: {
+          building_registry: buildingRegistryEntry,
+        },
+        candidate_options: candidateOptions,
+        coordinate_source: coordinateSource,
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={sourceCase} initialTab="supplements" />);
+
+    const supplementRegion = await screen.findByRole("region", { name: "補件與現場確認" });
+    fireEvent.change(within(supplementRegion).getByLabelText("格局補件值"), {
+      target: { value: "3房2廳2衛" },
+    });
+
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(sourceCase.id, {
+        land_registry_data: expect.objectContaining({
+          candidate_options: candidateOptions,
+          coordinate_source: coordinateSource,
+          entries: expect.objectContaining({
+            building_registry: buildingRegistryEntry,
+            manual_registry_supplement: expect.objectContaining({
+              source: "manual",
+              trustedForPdf: true,
+            }),
+          }),
+        }),
+      });
     });
   });
 
@@ -408,7 +560,7 @@ describe("DemoAlignedWorkbench", () => {
 
     const supplementRegion = await screen.findByRole("region", { name: "補件與現場確認" });
     fireEvent.change(within(supplementRegion).getByLabelText("建物現況回答"), {
-      target: { value: "屋主表示客廳牆角曾有滲水，已修繕。" },
+      target: { value: "有漏水或壁癌" },
     });
     fireEvent.change(within(supplementRegion).getByLabelText("建物現況狀態"), {
       target: { value: "已確認" },
@@ -421,6 +573,8 @@ describe("DemoAlignedWorkbench", () => {
     await waitFor(() => {
       expect(within(supplementRegion).getByText("已加入補件清單")).toBeInTheDocument();
       expect(within(supplementRegion).getByText("已選擇：cadastral-map.pdf")).toBeInTheDocument();
+      expect(within(supplementRegion).getAllByText("檔案").length).toBeGreaterThan(0);
+      expect(within(supplementRegion).queryByText("選擇地籍圖檔案")).toBeNull();
     });
 
     unmount();
@@ -428,7 +582,7 @@ describe("DemoAlignedWorkbench", () => {
 
     const restoredRegion = await screen.findByRole("region", { name: "補件與現場確認" });
     await waitFor(() => {
-      expect(within(restoredRegion).getByLabelText("建物現況回答")).toHaveValue("屋主表示客廳牆角曾有滲水，已修繕。");
+      expect(within(restoredRegion).getByLabelText("建物現況回答")).toHaveValue("有漏水或壁癌");
       expect(within(restoredRegion).getByLabelText("建物現況狀態")).toHaveValue("已確認");
       expect(within(restoredRegion).getByText("已選擇：cadastral-map.pdf")).toBeInTheDocument();
       expect(within(restoredRegion).getByText("已加入補件清單")).toBeInTheDocument();

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { PullParcelDataButton } from "@/components/PullParcelDataButton";
 import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
 import { mockInvoke } from "@/lib/mock-backend";
+import { selectFormalCopApiSet } from "@/lib/formal-cop-api-set";
 import {
   getAddressFirstClassification,
   getDemoFieldReviewRows,
@@ -106,7 +108,6 @@ const PROPERTY_SHEET_SUPPLEMENT_FIELDS = [
 
 const MANUAL_SUPPLEMENT_FIELD_MAP: Record<string, string> = {
   屋主姓名: "ownerName",
-  姓名比對結果: "ownerNameComparison",
   門牌查詢建號: "buildingNumberCandidate",
   建物現況: "buildingStatus",
   格局: "rooms",
@@ -136,6 +137,20 @@ const FIELD_VISIT_QUESTIONS = [
     source: "現場拍攝或檔案上傳",
   },
 ];
+
+const SUPPLEMENT_VALUE_OPTIONS: Record<string, string[]> = {
+  建物現況: ["待現場確認", "正常使用", "有漏水或壁癌", "有增建", "需修繕", "其他待補"],
+  格局: ["待補格局", "1房1廳1衛", "2房1廳1衛", "3房2廳2衛", "4房2廳2衛", "開放式", "其他待補"],
+  座向: ["待補座向", "坐北朝南", "坐南朝北", "坐東朝西", "坐西朝東", "其他待補"],
+  "管理費（元/月）": ["待補管理費", "無管理費", "1000 元以下", "1000-3000 元", "3000-5000 元", "5000 元以上", "其他待補"],
+};
+
+const FIELD_VISIT_ANSWER_OPTIONS: Record<string, string[]> = {
+  建物現況: ["待現場確認", "正常使用", "有漏水或壁癌", "有傾斜疑慮", "有增建", "需修繕", "其他待補"],
+  設備與瑕疵: ["待確認", "設備正常", "部分設備待修", "屋主不保固設備", "其他待補"],
+  周邊環境: ["待確認", "無特殊狀況", "有噪音", "停車需確認", "嫌惡設施需揭露", "其他待補"],
+  照片資料: ["待補照片", "已取得室內照片", "已取得外觀照片", "已取得格局圖", "需現場補拍"],
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -179,9 +194,8 @@ function mergeManualSupplementIntoRegistryData(
 
   if (!isRegistryProvenancePayload(existing)) return manualPayload;
   return {
-    ...manualPayload,
-    parcelId: existing.parcelId,
-    totalCost: existing.totalCost,
+    ...existing,
+    generatedAt: manualPayload.generatedAt,
     entries: {
       ...existing.entries,
       ...manualPayload.entries,
@@ -207,11 +221,26 @@ function candidateSummaryText(candidate: CandidateParcelOption): string {
     typeof fields.parkingAreaPing === "number" ? `車位 ${fields.parkingAreaPing.toFixed(2)}坪` : "",
     typeof fields.legalUse === "string" ? fields.legalUse : "",
     typeof fields.material === "string" ? fields.material : "",
-    typeof fields.constructionDate === "string" ? fields.constructionDate : "",
+    typeof fields.constructionDate === "string" ? formatRocDate(fields.constructionDate) : "",
     typeof fields.floor === "string" ? fields.floor : "",
     typeof fields.ownershipScope === "string" ? `權利 ${fields.ownershipScope}` : "",
     errorHint,
   ].filter(Boolean).join("｜");
+}
+
+function formatRocDate(value: string): string {
+  const trimmed = value.trim();
+  const slash = trimmed.match(/^(\d{2,3})\/(\d{1,2})\/(\d{1,2})$/);
+  if (slash) {
+    const [, year, month, day] = slash;
+    return `民國${year.padStart(3, "0")}年${month.padStart(2, "0")}月${day.padStart(2, "0")}日`;
+  }
+  const compact = trimmed.match(/^(\d{3})(\d{2})(\d{2})$/);
+  if (compact) {
+    const [, year, month, day] = compact;
+    return `民國${year}年${month}月${day}日`;
+  }
+  return trimmed;
 }
 
 function candidateStatusLabel(status: string | undefined): string {
@@ -226,6 +255,27 @@ function candidateStatusLabel(status: string | undefined): string {
     default:
       return "待確認";
   }
+}
+
+function findFormalImportTarget(
+  caseDraft: CaseRow,
+  candidates: CandidateParcelOption[],
+): CandidateParcelOption | null {
+  const buildingKey = caseDraft.building_lot_no?.trim();
+  const landKey = caseDraft.land_lot_no?.trim();
+  const explicitTarget = candidates.find((candidate) =>
+    candidate.confirmation_state === "confirmed" ||
+    candidate.normalized_parcel_id === buildingKey ||
+    candidate.normalized_parcel_id === landKey ||
+    candidate.parcel_number === buildingKey ||
+    candidate.parcel_number === landKey,
+  );
+  if (explicitTarget) return explicitTarget;
+
+  const usableCandidates = candidates.filter(
+    (candidate) => candidate.query_status === "candidate_data_available",
+  );
+  return usableCandidates.length === 1 ? usableCandidates[0] : null;
 }
 
 function mergeCandidateSelection(
@@ -261,6 +311,56 @@ function mergeCandidateSelection(
   };
 }
 
+function mergeFormalRegistryImport(
+  existing: CaseRow["land_registry_data"],
+  imported: Record<string, unknown>,
+): RegistryProvenancePayload {
+  const base = isRegistryProvenancePayload(existing)
+    ? existing
+    : createRegistryProvenancePayload({});
+  const formal = isRegistryProvenancePayload(imported)
+    ? imported
+    : createRegistryProvenancePayload({});
+  return {
+    ...base,
+    generatedAt: formal.generatedAt || base.generatedAt,
+    parcelId: formal.parcelId || base.parcelId,
+    totalCost: typeof formal.totalCost === "number" ? formal.totalCost : base.totalCost,
+    entries: {
+      ...base.entries,
+      ...formal.entries,
+    },
+    candidate_options: base.candidate_options ?? formal.candidate_options,
+    selected_candidate_ids: base.selected_candidate_ids ?? formal.selected_candidate_ids,
+    confirmed_parcel_ids: base.confirmed_parcel_ids ?? formal.confirmed_parcel_ids,
+    coordinate_source: base.coordinate_source ?? formal.coordinate_source,
+    inferred_reference: base.inferred_reference ?? formal.inferred_reference,
+  };
+}
+
+function clearCandidateSelection(
+  existing: CaseRow["land_registry_data"],
+  candidate: CandidateParcelOption,
+): RegistryProvenancePayload {
+  const base = isRegistryProvenancePayload(existing)
+    ? existing
+    : createRegistryProvenancePayload({});
+  const selected_candidate_ids = { ...(base.selected_candidate_ids ?? {}) };
+  const confirmed_parcel_ids = { ...(base.confirmed_parcel_ids ?? {}) };
+  delete selected_candidate_ids[candidate.parcel_type];
+  delete confirmed_parcel_ids[candidate.parcel_type];
+  return {
+    ...base,
+    selected_candidate_ids,
+    confirmed_parcel_ids,
+    candidate_options: (base.candidate_options ?? []).map((item) => {
+      if (item.candidate_id !== candidate.candidate_id) return item;
+      const { confirmation_state: _confirmationState, ...rest } = item;
+      return rest;
+    }),
+  };
+}
+
 export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbenchProps) {
   const [activeTab, setActiveTab] = useState<WorkbenchTab>(() => normalizeWorkbenchTab(initialTab));
   const [supplementAdded, setSupplementAdded] = useState(false);
@@ -287,19 +387,38 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const actionableRegistryFields = sourceFields.filter((field) =>
     ACTIONABLE_SOURCE_STATUSES.some((status) => field.statusLabel.includes(status)),
   );
-  const usageRows = getUsageLedgerRows();
+  const usageRows = getUsageLedgerRows(caseDraft);
   const candidateOptions = extractCandidateOptions(caseDraft.land_registry_data);
+  const formalImportTarget = findFormalImportTarget(caseDraft, candidateOptions);
+  const formalImportApiIds = formalImportTarget
+    ? selectFormalCopApiSet({
+        buildingNo: formalImportTarget.parcel_type === "building" ? formalImportTarget.parcel_number : null,
+        propertyType: caseDraft.property_type,
+      })
+    : [];
   const lookupCost =
     isRegistryProvenancePayload(caseDraft.land_registry_data) &&
     typeof caseDraft.land_registry_data.totalCost === "number"
       ? caseDraft.land_registry_data.totalCost
-      : 27;
+      : 0;
+  const hasFormalRegistryImport =
+    isRegistryProvenancePayload(caseDraft.land_registry_data) &&
+    Object.values(caseDraft.land_registry_data.entries).some(
+      (entry) => entry.source === "moi_api" && entry.status === "success" && entry.trustedForPdf,
+    );
   const lookupCostNote =
-    lookupCost === 0
-      ? "本次只取得候選或待確認資料；查詢失敗與帳務同步不計費。"
-      : "已完成建物所有權資料調閱；查詢失敗與帳務同步不計費。";
-  const importedCount = fields.filter((field) => field.statusLabel === "地政已帶入").length + 40;
-  const supplementCount = fields.filter((field) => field.statusLabel.includes("人工")).length + 12;
+    hasFormalRegistryImport
+      ? "已完成正式地政謄本匯入；費用依本次正式查詢紀錄顯示。"
+      : "本次只取得免費候選或物件基本資料；尚未產生正式地政謄本費用。";
+  const importedCount = fields.filter((field) => ["地政已帶入", "候選資料"].includes(field.statusLabel)).length;
+  const supplementCount = actionableRegistryFields.length;
+  const pendingCount = fields.filter((field) =>
+    ["待匯入", "待確認", "待資料"].some((status) => field.statusLabel.includes(status)),
+  ).length;
+  const needsConfirmText = [
+    candidateOptions.length > 0 ? "物件候選" : "",
+    caseDraft.owner_name?.trim() ? "" : "屋主姓名",
+  ].filter(Boolean).join("、") || "待補欄位";
   const activeTabIndex = WORKBENCH_TABS.findIndex((tab) => tab.id === activeTab);
   const nextTab = WORKBENCH_TABS[activeTabIndex + 1];
   const registrySnapshot = {
@@ -334,7 +453,6 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     })),
   };
   const registryJson = JSON.stringify(registrySnapshot, null, 2);
-  const registryJsonHref = `data:application/json;charset=utf-8,${encodeURIComponent(registryJson)}`;
   const uploadedAssetCount = Object.values(assetUploads).filter(Boolean).length;
 
   useEffect(() => {
@@ -488,15 +606,17 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
           // Browser-dev still keeps the visible draft; authoritative persistence is tested separately.
         },
       );
-      if (fieldName === "屋主姓名" || fieldName === "姓名比對結果") {
+      if (fieldName === "屋主姓名") {
         setCaseDraft((current) => ({ ...current, owner_name: nextValue }));
       }
     }
     persistSupplementDraft({ registryDrafts: nextDrafts });
   }
 
-  function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed") {
-    const nextLandRegistryData = mergeCandidateSelection(caseDraft.land_registry_data, candidate, mode);
+  function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed" | "cleared") {
+    const nextLandRegistryData = mode === "cleared"
+      ? clearCandidateSelection(caseDraft.land_registry_data, candidate)
+      : mergeCandidateSelection(caseDraft.land_registry_data, candidate, mode);
     const updateInput: UpdateCaseInput = {
       land_registry_data: nextLandRegistryData,
     };
@@ -521,7 +641,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     setFieldCorrections((current) => ({ ...current, [fieldName]: nextValue }));
     setEditingField(null);
 
-    if (fieldName === "屋主姓名" || fieldName === "姓名比對結果") {
+    if (fieldName === "屋主姓名") {
       const updated = await casesApi.update(caseDraft.id, { owner_name: nextValue });
       setCaseDraft((current) => ({
         ...current,
@@ -578,7 +698,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               </div>
               <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-md bg-white/80 px-3 py-2">
                 <dt className="text-muted-foreground">需確認</dt>
-                <dd className="text-right font-medium leading-snug">門牌、屋主姓名</dd>
+                <dd className="text-right font-medium leading-snug">{needsConfirmText}</dd>
               </div>
             </dl>
             <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
@@ -592,7 +712,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               </div>
               <div className="rounded-md bg-white p-2">
                 <span className="block text-muted-foreground">待補資料</span>
-                <strong>8 件</strong>
+                <strong>{pendingCount} 件</strong>
               </div>
               <div className="rounded-md bg-white p-2">
                 <span className="block text-muted-foreground">本次費用</span>
@@ -710,18 +830,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
             <section className="mt-4 rounded-lg border p-4" aria-label="欄位資料來源">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold">地政匯入資料</h3>
+                  <h3 className="text-sm font-semibold">物件資料來源</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    這裡核對已帶入、待補件與查詢失敗的來源資料；可下載管理資料留存或交給客服排查。
+                    核對目前已帶入的值；缺資料再進補件或正式資料匯入。
                   </p>
                 </div>
-                <a
-                  className="w-fit rounded-md border px-3 py-2 text-sm"
-                  download={`${caseDraft.case_no ?? caseDraft.id}-registry-source.json`}
-                  href={registryJsonHref}
-                >
-                  下載管理資料
-                </a>
               </div>
               <table className="mt-3 w-full table-fixed overflow-hidden rounded-md border text-sm">
                 <colgroup>
@@ -732,7 +845,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 <thead className="sr-only">
                   <tr>
                     <th scope="col">欄位</th>
-                    <th scope="col">資料來源</th>
+                    <th scope="col">目前內容</th>
                     <th scope="col">狀態</th>
                   </tr>
                 </thead>
@@ -742,7 +855,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       <th className="px-3 py-3 text-left font-medium" scope="row">
                         {field.fieldName}
                       </th>
-                      <td className="px-3 py-3 text-muted-foreground">{field.serviceName}</td>
+                      <td className="px-3 py-3">
+                        <span className="block text-foreground">{field.value}</span>
+                        <span className="mt-1 block text-xs text-muted-foreground">{field.serviceName}</span>
+                      </td>
                       <td className="px-3 py-3 text-right font-medium">{field.statusLabel}</td>
                     </tr>
                   ))}
@@ -752,13 +868,19 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               {candidateOptions.length > 0 ? (
                 <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50/40 p-3" aria-label="候選土地建物清單" role="region">
                   <div>
-                    <h4 className="text-sm font-semibold">候選土地建物清單</h4>
+                    <h4 className="text-sm font-semibold">物件候選確認</h4>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      這些資料可先供前期物調參考；正式地政資料仍以謄本與屋主/權狀確認為準。
+                      確認是本案物件後，才會進入正式資料匯入；不確認就不產生費用。
                     </p>
                   </div>
                   <div className="mt-3 overflow-hidden rounded-md border bg-white">
-                    {candidateOptions.map((candidate) => (
+                    {candidateOptions.map((candidate) => {
+                      const isSingleUsableCandidate =
+                        candidateOptions.length === 1 && candidate.query_status === "candidate_data_available";
+                      const canImportFormal =
+                        formalImportTarget?.candidate_id === candidate.candidate_id ||
+                        (isSingleUsableCandidate && formalImportTarget?.normalized_parcel_id === candidate.normalized_parcel_id);
+                      return (
                       <article
                         key={candidate.candidate_id}
                         className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[minmax(170px,1fr)_minmax(220px,1.5fr)_190px]"
@@ -773,23 +895,42 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                           {candidateSummaryText(candidate) || "待候選資料查詢"}
                         </div>
                         <div className="flex flex-wrap gap-2 md:justify-end">
-                          <button
-                            className="rounded-md border bg-white px-3 py-2 text-sm"
-                            type="button"
-                            onClick={() => updateCandidateSelection(candidate, "selected")}
-                          >
-                            暫用 {candidate.normalized_parcel_id}
-                          </button>
-                          <button
-                            className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white"
-                            type="button"
-                            onClick={() => updateCandidateSelection(candidate, "confirmed")}
-                          >
-                            確認 {candidate.normalized_parcel_id}
-                          </button>
+                          {canImportFormal ? (
+                            <PullParcelDataButton
+                              caseId={caseDraft.id}
+                              parcelId={candidate.normalized_parcel_id}
+                              apiIds={formalImportApiIds}
+                              label="正式資料匯入（付費）"
+                              preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
+                              onSaved={(data) => {
+                                setCaseDraft((current) => ({
+                                  ...current,
+                                  land_registry_data: data,
+                                }));
+                              }}
+                            />
+                          ) : (
+                            <>
+                              <button
+                                className="rounded-md border bg-white px-3 py-2 text-sm"
+                                type="button"
+                                onClick={() => updateCandidateSelection(candidate, "selected")}
+                              >
+                                暫用 {candidate.normalized_parcel_id}
+                              </button>
+                              <button
+                                className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white"
+                                type="button"
+                                onClick={() => updateCandidateSelection(candidate, "confirmed")}
+                              >
+                                確認 {candidate.normalized_parcel_id}
+                              </button>
+                            </>
+                          )}
                         </div>
                       </article>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               ) : null}
@@ -840,17 +981,34 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         </div>
                         <label className="text-sm">
                           <span className="font-medium">{field.fieldName}補件值</span>
-                          <input
-                            aria-label={`${field.fieldName}補件值`}
-                            className="mt-2 min-h-10 w-full rounded-md border px-3 py-2"
-                            placeholder={field.value || "輸入補件內容"}
-                            value={draft.value}
-                            onChange={(event) =>
-                              updateRegistrySupplementDraft(field.fieldName, {
-                                value: event.target.value,
-                              })
-                            }
-                          />
+                          {SUPPLEMENT_VALUE_OPTIONS[field.fieldName] ? (
+                            <select
+                              aria-label={`${field.fieldName}補件值`}
+                              className="mt-2 min-h-10 w-full rounded-md border px-3 py-2"
+                              value={draft.value || field.value}
+                              onChange={(event) =>
+                                updateRegistrySupplementDraft(field.fieldName, {
+                                  value: event.target.value,
+                                })
+                              }
+                            >
+                              {SUPPLEMENT_VALUE_OPTIONS[field.fieldName].map((option) => (
+                                <option key={option}>{option}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              aria-label={`${field.fieldName}補件值`}
+                              className="mt-2 min-h-10 w-full rounded-md border px-3 py-2"
+                              placeholder={field.value || "輸入補件內容"}
+                              value={draft.value}
+                              onChange={(event) =>
+                                updateRegistrySupplementDraft(field.fieldName, {
+                                  value: event.target.value,
+                                })
+                              }
+                            />
+                          )}
                           {draft.value.trim() ? (
                             <span className="mt-2 block text-xs font-medium text-emerald-700">
                               已補：{draft.value}
@@ -905,13 +1063,16 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                     </div>
                     <label className="text-sm">
                       <span className="font-medium">{item.question}</span>
-                      <textarea
+                      <select
                         aria-label={`${item.topic}回答`}
-                        className="mt-2 min-h-20 w-full rounded-md border px-3 py-2"
-                        placeholder="輸入客戶回覆、現場狀況或待補原因"
-                        value={fieldVisitDrafts[item.topic]?.answer ?? ""}
+                        className="mt-2 min-h-10 w-full rounded-md border px-3 py-2"
+                        value={fieldVisitDrafts[item.topic]?.answer ?? FIELD_VISIT_ANSWER_OPTIONS[item.topic]?.[0] ?? "待確認"}
                         onChange={(event) => updateFieldVisitDraft(item.topic, { answer: event.target.value })}
-                      />
+                      >
+                        {(FIELD_VISIT_ANSWER_OPTIONS[item.topic] ?? ["待確認", "已確認", "其他待補"]).map((option) => (
+                          <option key={option}>{option}</option>
+                        ))}
+                      </select>
                     </label>
                     <label className="text-sm">
                       <span className="font-medium">狀態</span>
@@ -930,12 +1091,12 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 ))}
               </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {ASSET_UPLOAD_SLOTS.map((slot) => (
-                  <label key={slot} className="rounded-md border p-3 text-sm">
-                    <span className="font-medium">{slot}上傳</span>
+                  <label key={slot} className="rounded-md border p-3 text-sm transition hover:border-slate-400 hover:bg-slate-50">
+                    <span className="block font-medium">{slot}上傳</span>
                     <input
-                      className="mt-2 block w-full text-xs"
+                      className="sr-only"
                       type="file"
                       accept="image/*,.pdf"
                       aria-label={`${slot}上傳`}
@@ -948,7 +1109,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         }
                       }}
                     />
-                    <span className="mt-2 block text-xs text-muted-foreground">
+                    <span className="mt-4 inline-flex min-h-10 items-center rounded-md border bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+                      檔案
+                    </span>
+                    <span className="mt-2 block rounded-md bg-slate-100 px-2 py-1 text-xs text-muted-foreground">
                       {assetUploads[slot] ? `已選擇：${assetUploads[slot]}` : "尚未上傳"}
                     </span>
                   </label>

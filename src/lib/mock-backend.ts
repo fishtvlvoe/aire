@@ -1,4 +1,4 @@
-import type { CaseRow, CreateCaseInput, UpdateCaseInput } from "@/lib/cases-api";
+import { isCasePropertyType, type CaseRow, type CreateCaseInput, type UpdateCaseInput } from "@/lib/cases-api";
 import type { LogEntry, LogResult } from "@/lib/log";
 
 type CommandArgs = Record<string, unknown> | undefined;
@@ -27,6 +27,8 @@ interface BrandSettings {
 interface LogoAsset {
   bytes: number[];
   mime: string;
+  filename?: string;
+  uploadedAt?: string;
 }
 
 interface FloorPlanSketchRow {
@@ -162,6 +164,7 @@ interface PersistedMockState {
   appSettings?: AppSettingsState;
   featureFlags?: FeatureFlagState[];
   profileSettings?: ProfileSettingsState;
+  logo?: LogoAsset | null;
   workbenchSupplements?: Record<string, WorkbenchSupplementDraft>;
   cases?: CaseRow[];
   caseAssets?: CaseAssetRow[];
@@ -229,6 +232,16 @@ interface ConfirmedRegistryMatch {
   land_no: string;
   building_no: string | null;
   confirmed_at: string;
+}
+
+function isBuildingFormalApi(apiId: string): boolean {
+  return [
+    "building_registry",
+    "building_ownership",
+    "building_other_rights",
+    "building_anchor",
+    "building_parking",
+  ].includes(apiId);
 }
 
 interface R02BuildingCandidate {
@@ -878,6 +891,8 @@ export class MockStore {
 
         case "land_registry_address_lookup":
           return this.landRegistryAddressLookup(args) as T;
+        case "record_local_address_discovery":
+          return this.recordLocalAddressDiscovery(args) as T;
         case "land_registry_parse_r02_result_text":
           return this.landRegistryParseR02ResultText(args) as T;
         case "land_registry_record_r02_result_text":
@@ -886,6 +901,8 @@ export class MockStore {
           return this.landRegistryPullData(args) as T;
         case "land_registry_formal_pull_data":
           return this.landRegistryFormalPullData(args) as T;
+        case "land_registry_paid_address_resolver":
+          return this.landRegistryPaidAddressResolver(args) as T;
         case "query_real_price":
           return this.queryRealPrice(args) as T;
         case "land_registry_set_api_key":
@@ -1329,7 +1346,7 @@ export class MockStore {
 
     const propertyType = pickString(input, ["property_type"]);
     const address = pickString(input, ["address"]);
-    if (!propertyType || (propertyType !== "residential" && propertyType !== "land")) {
+    if (!propertyType || !isCasePropertyType(propertyType)) {
       throw new Error("create_case requires valid property_type");
     }
     if (!address) {
@@ -1384,12 +1401,18 @@ export class MockStore {
     if (!existing) {
       throw new Error(`Case not found: ${id}`);
     }
+    const propertyType = pickString(input, ["property_type"]);
+    let nextPropertyType = existing.property_type;
+    if (propertyType) {
+      if (!isCasePropertyType(propertyType)) {
+        throw new Error("update_case requires valid property_type");
+      }
+      nextPropertyType = propertyType;
+    }
 
     const next: CaseRow = {
       ...existing,
-      property_type:
-        (pickString(input, ["property_type"]) as UpdateCaseInput["property_type"]) ??
-        existing.property_type,
+      property_type: nextPropertyType,
       land_lot_no: pickString(input, ["land_lot_no"]) ?? existing.land_lot_no,
       land_lots: Array.isArray(input.land_lots) && (input.land_lots as string[]).length > 0
         ? (input.land_lots as string[]).filter((lot) => typeof lot === "string" && lot.trim())
@@ -1701,7 +1724,10 @@ export class MockStore {
     this.logo = {
       bytes,
       mime: pickString(payload, ["mime", "mimeType"]) ?? "image/png",
+      filename: pickString(payload, ["filename", "fileName"]) ?? "brand-logo",
+      uploadedAt: new Date().toISOString(),
     };
+    this.persistState();
 
     return { success: true };
   }
@@ -1712,6 +1738,7 @@ export class MockStore {
 
   private deleteLogo(): { success: true } {
     this.logo = null;
+    this.persistState();
     return { success: true };
   }
 
@@ -1846,6 +1873,41 @@ export class MockStore {
     return candidates;
   }
 
+  private recordLocalAddressDiscovery(args?: CommandArgs): { success: true; run_id: string } {
+    const payload = toRecord(args);
+    const address = pickString(payload, ["address"]) ?? "";
+    const result = toRecord(payload.result);
+    const status = pickString(result, ["status"]) ?? "manual_required";
+    const candidates = Array.isArray(result.candidates) ? result.candidates : [];
+    const errors = Array.isArray(result.errors) ? result.errors : [];
+    const firstError = toRecord(errors[0]);
+    const errorCode = pickString(firstError, ["code"]);
+    const errorMessage = pickString(firstError, ["message"]);
+    const run = this.makeQueryRun({
+      inputType: "address",
+      sourceInput: address,
+      matchStatus: candidates.length > 0 ? "candidate" : "rejected",
+      candidateJson: {
+        ...result,
+        status,
+        candidates,
+        errors,
+        input_address: address,
+        normalizedAddress: pickString(result, ["normalizedAddress"]) ?? address,
+        total_cost_cents: 0,
+      },
+      rawResponseJson: result,
+      totalCostCents: 0,
+      cacheHit: Boolean(result.cacheHit),
+      sourceRunId: pickString(result, ["sourceRunId"]) ?? undefined,
+      errorCode: errorCode ?? undefined,
+      errorMessage: errorMessage ?? undefined,
+    });
+    this.registryQueryRuns.unshift(run);
+    this.persistState();
+    return { success: true, run_id: run.id };
+  }
+
   private landRegistryParseR02ResultText(args?: CommandArgs): R02DiscoveryRun {
     const payload = toRecord(args);
     const inputAddress = pickString(payload, ["inputAddress", "input_address"]) ?? "";
@@ -1936,7 +1998,12 @@ export class MockStore {
   private landRegistryPullData(
     args?: CommandArgs,
   ): { results: Record<string, unknown>; total_cost: number } {
+    const payload = toRecord(args);
     const apiIds = (args?.apiIds || []) as string[];
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    const confirmed = caseId ? this.registryMatchByCase.get(caseId) : null;
+    const caseRow = caseId ? this.cases.get(caseId) : undefined;
+    const confirmedBuildingNo = confirmed?.building_no ?? pickString(payload, ["buildingNo", "building_no"]);
     const results: Record<string, unknown> = {};
     const mockDataMap: Record<string, unknown> = {
       land_registry: { area: 125.8, purpose: "田", lot_number: "0456-0000" },
@@ -1986,6 +2053,50 @@ export class MockStore {
       },
     };
 
+    if (confirmedBuildingNo === "00204000") {
+      mockDataMap.building_registry = {
+        area: 83.61,
+        building_area: 83.61,
+        purpose: "住家用",
+        building_purpose: "住家用",
+        construction_date: "0800829",
+        building_number: "00204000",
+        building_floor: "八層",
+        total_floor_count: "012",
+        address: caseRow?.address ?? "台南市東區裕農路288巷17號8樓之1",
+      };
+      mockDataMap.building_ownership = {
+        owner_name: caseRow?.owner_name ?? "",
+        certificate_no: "",
+        ownership_date: "",
+        registration_reason: "",
+        denominator: 1,
+        numerator: 1,
+      };
+    }
+
+    if (confirmedBuildingNo === "00084000" || confirmedBuildingNo === "03045000") {
+      mockDataMap.building_registry = {
+        area: 128.2,
+        building_area: 128.2,
+        purpose: "住商用",
+        building_purpose: "住商用",
+        construction_date: "0710804",
+        building_number: confirmedBuildingNo,
+        building_floor: "一層，二層，三層，騎樓，電梯樓梯間",
+        total_floor_count: "003",
+        address: caseRow?.address ?? "台南市東區東和路47號3樓",
+      };
+      mockDataMap.building_ownership = {
+        owner_name: caseRow?.owner_name ?? "",
+        certificate_no: "",
+        ownership_date: "",
+        registration_reason: "",
+        denominator: 1,
+        numerator: 1,
+      };
+    }
+
     let totalCost = 0;
     for (const apiId of apiIds) {
       results[apiId] = {
@@ -2007,12 +2118,6 @@ export class MockStore {
     cache_hit: boolean;
     source_run_id: string | null;
   } {
-    if (this.trialState.status !== "active") {
-      throw new Error("trial_expired");
-    }
-    if (!this.appSettings.landApi.clientId.trim() || !this.appSettings.landApi.secret.trim()) {
-      throw new Error("cop_credential_required");
-    }
     const payload = toRecord(args);
     const caseId = pickString(payload, ["caseId", "case_id"]);
     const confirmed = caseId ? this.registryMatchByCase.get(caseId) : null;
@@ -2021,7 +2126,28 @@ export class MockStore {
     }
     const confirmedCaseId = caseId;
     const apiIds = Array.isArray(payload.apiIds) ? (payload.apiIds as string[]) : [];
+    if (this.trialState.status !== "active") {
+      throw new Error("trial_expired");
+    }
     const cacheKey = `${this.organizationId}:${confirmed.section_name}:${confirmed.land_no}:${confirmed.building_no ?? "land-only"}:${apiIds.join(",")}`;
+    if (!this.appSettings.landApi.clientId.trim() || !this.appSettings.landApi.secret.trim()) {
+      const run = this.makeQueryRun({
+        inputType: "registry_key",
+        sourceInput: cacheKey,
+        matchStatus: "confirmed",
+        candidateJson: { selected_api_set: apiIds },
+        totalCostCents: 0,
+        caseId,
+        errorCode: "cop_credential_required",
+        errorMessage: "請先在設定頁完成地政查詢帳號設定",
+      });
+      this.registryQueryRuns.unshift(run);
+      this.persistState();
+      throw new Error("cop_credential_required");
+    }
+    if (!confirmed.building_no && apiIds.some(isBuildingFormalApi)) {
+      throw new Error("registry_match_required");
+    }
     const cachedRunId = this.registryQueryCache.get(cacheKey);
     if (cachedRunId) {
       const run = this.makeQueryRun({
@@ -2039,6 +2165,18 @@ export class MockStore {
       return { run_id: run.id, results: {}, total_cost: 0, cache_hit: true, source_run_id: cachedRunId };
     }
     const pulled = this.landRegistryPullData({ ...payload, apiIds });
+    const formalResults = Object.fromEntries(
+      Object.entries(pulled.results).map(([apiId, result]) => {
+        const row = toRecord(result);
+        return [
+          apiId,
+          {
+            ...row,
+            source: row.success === false ? row.source ?? "api" : "api",
+          },
+        ];
+      }),
+    );
     const nowIso = new Date().toISOString();
     const apiCalls: RegistryQueryApiCall[] = apiIds.map((apiId, index) => ({
       id: makeUuid(),
@@ -2056,8 +2194,8 @@ export class MockStore {
       inputType: "registry_key",
       sourceInput: cacheKey,
       matchStatus: "confirmed",
-      copResponseJson: pulled.results as Record<string, unknown>,
-      rawResponseJson: pulled.results as Record<string, unknown>,
+      copResponseJson: formalResults as Record<string, unknown>,
+      rawResponseJson: formalResults as Record<string, unknown>,
       totalCostCents: pulled.total_cost * 100,
       caseId: confirmedCaseId,
       apiCalls,
@@ -2071,7 +2209,7 @@ export class MockStore {
         land_registry_data: {
           ...(existing.land_registry_data ?? {}),
           formal_registry_run_id: run.id,
-          formal_registry_json: pulled.results,
+          formal_registry_json: formalResults,
           confirmed_registry_match: {
             section_name: confirmed.section_name,
             land_no: confirmed.land_no,
@@ -2084,7 +2222,99 @@ export class MockStore {
       this.cases.set(confirmedCaseId, next);
     }
     this.persistState();
-    return { run_id: run.id, results: pulled.results, total_cost: pulled.total_cost, cache_hit: false, source_run_id: null };
+    return { run_id: run.id, results: formalResults, total_cost: pulled.total_cost, cache_hit: false, source_run_id: null };
+  }
+
+  private landRegistryPaidAddressResolver(args?: CommandArgs): {
+    run_id: string;
+    candidates: Array<{
+      parcel_id: string;
+      address: string;
+      lot_number: string;
+      building_number: string;
+      section_name?: string;
+      section_code?: string;
+      source: "cop_moi";
+      trusted_for_pdf: false;
+      discovery_confidence: "needs_selection";
+      confirmation_state: "unconfirmed";
+    }>;
+    total_cost: number;
+    total_cost_cents: number;
+    cache_hit: boolean;
+    source_run_id: null;
+  } {
+    const address = pickString(toRecord(args), ["address"]) ?? "";
+    if (!address.trim()) throw new Error("resolver_address_required");
+    if (!this.appSettings.landApi.clientId.trim() || !this.appSettings.landApi.secret.trim()) {
+      throw new Error("cop_credential_required");
+    }
+    const candidates = [
+      {
+        parcel_id: "resolver:1556:00700000:00165000",
+        address,
+        lot_number: "00700000",
+        building_number: "00165000",
+        section_name: "富強段",
+        section_code: "1556",
+        source: "cop_moi" as const,
+        trusted_for_pdf: false as const,
+        discovery_confidence: "needs_selection" as const,
+        confirmation_state: "unconfirmed" as const,
+      },
+      {
+        parcel_id: "resolver:1556:00700000:00167000",
+        address,
+        lot_number: "00700000",
+        building_number: "00167000",
+        section_name: "富強段",
+        section_code: "1556",
+        source: "cop_moi" as const,
+        trusted_for_pdf: false as const,
+        discovery_confidence: "needs_selection" as const,
+        confirmation_state: "unconfirmed" as const,
+      },
+    ];
+    const nowIso = new Date().toISOString();
+    const apiCall: RegistryQueryApiCall = {
+      id: makeUuid(),
+      service_code: "MOI_API_037",
+      transaction_id: `tx-resolver-${Date.now()}`,
+      http_status: 200,
+      moi_code: null,
+      moi_message: "OK",
+      return_rows: candidates.length,
+      cost_cents: 3000,
+      started_at: nowIso,
+      finished_at: nowIso,
+    };
+    const run = this.makeQueryRun({
+      inputType: "address",
+      sourceInput: address,
+      matchStatus: "candidate",
+      candidateJson: {
+        run_type: "paid_address_resolver",
+        status: "candidate_unconfirmed",
+        candidates,
+        total_cost_cents: 3000,
+      },
+      rawResponseJson: {
+        run_type: "paid_address_resolver",
+        candidates,
+      },
+      totalCostCents: 3000,
+      apiCalls: [apiCall],
+    });
+    this.registryQueryRuns.unshift(run);
+    this.persistState();
+    return {
+      run_id: run.id,
+      candidates,
+      total_cost: 30,
+      total_cost_cents: 3000,
+      cache_hit: false,
+      source_run_id: null,
+    };
   }
 
   private queryRealPrice(args?: CommandArgs): Array<{
@@ -2636,8 +2866,24 @@ export class MockStore {
           passwordUpdatedAt:
             typeof profile.passwordUpdatedAt === "string"
               ? profile.passwordUpdatedAt
-              : null,
+            : null,
         };
+      }
+      if (parsed.logo && typeof parsed.logo === "object") {
+        const logo = toRecord(parsed.logo);
+        const bytesRaw = logo.bytes;
+        const bytes = Array.isArray(bytesRaw)
+          ? bytesRaw.filter((value): value is number => typeof value === "number")
+          : [];
+        const mime = pickString(logo, ["mime"]);
+        if (bytes.length > 0 && mime) {
+          this.logo = {
+            bytes,
+            mime,
+            filename: pickString(logo, ["filename", "fileName"]) ?? undefined,
+            uploadedAt: pickString(logo, ["uploadedAt", "uploaded_at"]) ?? undefined,
+          };
+        }
       }
       if (parsed.workbenchSupplements && typeof parsed.workbenchSupplements === "object") {
         this.workbenchSupplements = new Map(
@@ -2824,6 +3070,7 @@ export class MockStore {
       },
       featureFlags: this.featureFlags.map((flag) => ({ ...flag })),
       profileSettings: { ...this.profileSettings },
+      logo: this.logo ? { ...this.logo } : null,
       workbenchSupplements: Object.fromEntries(
         [...this.workbenchSupplements.entries()].map(([caseId, draft]) => [
           caseId,

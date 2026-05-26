@@ -215,6 +215,41 @@ const PAGE_STYLE = {
   fontSize: 10,
 } as const;
 
+const PING_TO_SQUARE_METER = 3.305785;
+
+function formatNumber(value: number, fractionDigits = 2): string {
+  return value.toLocaleString("zh-TW", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+}
+
+function formatBuildingArea(data: CaseDossierData): string {
+  const registeredAreaPing = data.propertySheet?.registeredArea;
+  const squareMeters = data.buildingArea ?? (
+    typeof registeredAreaPing === "number"
+      ? registeredAreaPing * PING_TO_SQUARE_METER
+      : undefined
+  );
+
+  if (typeof squareMeters !== "number") return "";
+  const squareMeterText = formatNumber(squareMeters);
+  if (typeof registeredAreaPing === "number") {
+    return `${squareMeterText}（${formatNumber(registeredAreaPing)}坪）`;
+  }
+  return squareMeterText;
+}
+
+function formatOptionalAmount(value: number | undefined): string {
+  if (typeof value !== "number") return "";
+  return String(value);
+}
+
+function hasAnyKeyword(value: string | undefined, keywords: string[]): boolean {
+  if (!value) return false;
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 輔助：法規告知頁
 // ─────────────────────────────────────────────────────────────────────────────
@@ -547,6 +582,17 @@ function BuildingPages({
   const mortgageAmount = firstMortgage
     ? `NT$ ${firstMortgage.amount.toLocaleString("zh-TW")}`
     : "";
+  const propertySheet = data.propertySheet;
+  const buildingAreaDisplay = formatBuildingArea(data);
+  const buildingPurpose = data.buildingPurpose ?? propertySheet?.legalUse ?? "";
+  const constructionDate = data.constructionDate ?? propertySheet?.constructionDate ?? "";
+  const ownerName = data.ownerName || propertySheet?.owner || "";
+  const ownershipDate = data.buildingOwnershipDate ?? propertySheet?.acquisitionDate ?? "";
+  const ownershipScope = propertySheet?.ownershipScope ?? propertySheet?.ownershipRatio ?? "";
+  const otherRightsType = data.otherRightsDetail ?? mortgageCreditor;
+  const buildingStatus = propertySheet?.buildingStatus ?? "";
+  const leakageStatus = hasAnyKeyword(buildingStatus, ["漏水", "滲水"]) ? buildingStatus : "";
+  const wallCancerStatus = hasAnyKeyword(buildingStatus, ["壁癌"]) ? buildingStatus : "";
 
   return (
     <>
@@ -583,9 +629,9 @@ function BuildingPages({
             tokens={tokens}
             rows={[
               ["建物門牌", data.address],
-              ["建物面積（㎡）", data.buildingArea?.toFixed(2) ?? ""],
-              ["建物用途", data.buildingPurpose ?? ""],
-              ["建造完成日期", data.constructionDate ?? ""],
+              ["建物面積（㎡）", buildingAreaDisplay],
+              ["建物用途", buildingPurpose],
+              ["建造完成日期", constructionDate],
             ]}
           />
         </PdfSection>
@@ -599,10 +645,11 @@ function BuildingPages({
           <PdfFieldTable
             tokens={tokens}
             rows={[
-              ["所有權人", data.ownerName],
+              ["所有權人", ownerName],
               ["權狀字號", data.buildingCertificateNo ?? ""],
-              ["登記日期", data.buildingOwnershipDate ?? ""],
-              ["他項權利種類", mortgageCreditor],
+              ["登記日期", ownershipDate],
+              ["權利範圍", ownershipScope],
+              ["他項權利種類", otherRightsType],
               ["擔保金額", mortgageAmount],
               ["存續期間", ""],
             ]}
@@ -618,12 +665,12 @@ function BuildingPages({
           <PdfFieldTable
             tokens={tokens}
             rows={[
-              ["屋齡（年）", ""],
-              ["樓層", ""],
-              ["格局", ""],
-              ["裝修狀況", ""],
-              ["漏水滲水", ""],
-              ["壁癌", ""],
+              ["屋齡（年）", propertySheet?.buildingAge ?? ""],
+              ["樓層", propertySheet?.floor ?? ""],
+              ["格局", propertySheet?.rooms ?? ""],
+              ["裝修狀況", buildingStatus],
+              ["漏水滲水", leakageStatus],
+              ["壁癌", wallCancerStatus],
             ]}
           />
         </PdfSection>
@@ -638,7 +685,7 @@ function BuildingPages({
             tokens={tokens}
             rows={[
               ["管理委員會", ""],
-              ["管理費（元/月）", ""],
+              ["管理費（元/月）", formatOptionalAmount(propertySheet?.managementFee)],
               ["停車位", ""],
               ["備註", "請洽管理委員會確認"],
             ]}

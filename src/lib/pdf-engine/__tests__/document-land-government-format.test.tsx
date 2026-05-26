@@ -155,4 +155,44 @@ describe("PdfDocument building pages unchanged", () => {
     expect(screen.getByText("位置圖與生活機能")).toBeInTheDocument();
     expect(screen.getByText("大安國小")).toBeInTheDocument();
   });
+
+  it("maps building property sheet values into the government-format PDF sections", () => {
+    render(
+      <PdfDocument
+        data={{
+          ...baseBuildingData,
+          propertySheet: {
+            askingPrice: 12000000,
+            landSection: "富強段",
+            landNumber: "00700000",
+            zoning: "",
+            ownershipRatio: "1/1",
+            buildingCoverage: "",
+            floorAreaRatio: "",
+            owner: "余啟彰",
+            acquisitionDate: "民國080年08月29日",
+            registeredArea: 25.29,
+            legalUse: "住家用",
+            constructionDate: "民國080年08月29日",
+            buildingAge: "34年",
+            floor: "八層 / 總樓層 012",
+            rooms: "3房2廳2衛",
+            direction: "坐東朝西",
+            buildingStatus: "正常使用",
+            managementFee: 2500,
+          },
+        }}
+        themeId="theme-a-minimal"
+      />,
+    );
+
+    expect(screen.getByText("83.60（25.29坪）")).toBeInTheDocument();
+    expect(screen.getAllByText("住家用").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("民國080年08月29日").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("34年").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("八層 / 總樓層 012").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("3房2廳2衛").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("正常使用").length).toBeGreaterThan(0);
+    expect(screen.getByText("2500")).toBeInTheDocument();
+  });
 });
