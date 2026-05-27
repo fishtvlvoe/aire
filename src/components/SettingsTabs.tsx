@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const SETTINGS_TABS = [
-  { label: "一般設定", href: "/settings" },
-  { label: "品牌與交付資訊", href: "/settings/branding" },
+  { label: "品牌設定", href: "/settings/branding" },
   { label: "操作日誌", href: "/settings/logs" },
 ] as const;
 

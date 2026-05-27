@@ -81,12 +81,14 @@ describe("SettingsPage demo alignment", () => {
     mockSection = "plans";
     render(<SettingsPage />);
 
-    expect(screen.getByRole("heading", { name: "方案與升級" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "方案設定" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "設定分類" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "基本款" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "進階款" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "高級款" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "帳號與授權管理" })).toBeInTheDocument();
+    expect(screen.getByText("帳號角色")).toBeInTheDocument();
+    expect(await screen.findByText("管理員")).toBeInTheDocument();
     expect(screen.getAllByText("目前方案").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByRole("button", { name: "前往升級" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "預留功能" })).not.toBeInTheDocument();
@@ -120,7 +122,7 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.getByText("屋主資料邊界")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "品牌設定" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "操作日誌" })).not.toBeInTheDocument();
-    expect(screen.queryByText("方案與升級")).not.toBeInTheDocument();
+    expect(screen.queryByText("方案設定")).not.toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
     expect(screen.queryByText("地政查詢帳號")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();

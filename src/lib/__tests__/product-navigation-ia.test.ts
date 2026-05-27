@@ -19,7 +19,9 @@ describe("product navigation IA", () => {
       .map((item) => item.label);
     expect(secondaryLabels).toContain("新增案件");
     expect(secondaryLabels).toContain("補件清單");
-    expect(secondaryLabels).toContain("方案與升級");
+    expect(secondaryLabels).toContain("方案設定");
+    expect(secondaryLabels).not.toContain("個人設定");
+    expect(secondaryLabels).not.toContain("方案與升級");
     expect(secondaryLabels).not.toContain("PDF 預覽");
     expect(secondaryLabels).not.toContain("列印與匯出");
     expect(secondaryLabels).not.toContain("地政查詢");
