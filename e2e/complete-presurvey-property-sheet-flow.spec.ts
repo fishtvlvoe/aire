@@ -90,8 +90,8 @@ test("visible Yunong pre-survey flow creates a case, records supplements, previe
   await expect(page.getByText("已加入補件清單")).toBeVisible();
 
   await page.getByRole("tab", { name: "資料來源" }).click();
-  await expect(page.getByText("JSON 預覽")).toBeVisible();
-  await page.getByText("JSON 預覽").click();
+  await expect(page.getByText("管理明細")).toBeVisible();
+  await page.getByText("管理明細").click();
   await expect(page.getByText('"value": "蔡國卿"')).toBeVisible();
 
   await page.getByRole("tab", { name: "PDF 檢查" }).click();

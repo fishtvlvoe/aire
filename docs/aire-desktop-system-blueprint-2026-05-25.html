@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIRE 桌面完整版系統藍圖 — 2026-05-25</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232736;
+    --border: #2e3347;
+    --text: #e4e6f0;
+    --text2: #9ba0b8;
+    --accent: #6c8aff;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --orange: #fb923c;
+    --purple: #a78bfa;
+    --cyan: #22d3ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'SF Pro Text', 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    color: var(--text2);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 2.5rem 0 1rem;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.5rem 0 0.75rem;
+    color: var(--text);
+  }
+  p, li { font-size: 0.95rem; color: var(--text2); }
+  ul { padding-left: 1.5rem; margin: 0.5rem 0; }
+  li { margin: 0.3rem 0; }
+  code {
+    color: var(--cyan);
+    background: rgba(34,211,238,0.08);
+    padding: 0.05rem 0.35rem;
+    border-radius: 6px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+  }
+  .metric-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0.5rem 0 0.25rem;
+  }
+  .metric-label {
+    font-size: 0.85rem;
+    color: var(--text2);
+  }
+  .metric-sub {
+    font-size: 0.8rem;
+    color: var(--text2);
+    margin-top: 0.25rem;
+  }
+  .green { color: var(--green); }
+  .yellow { color: var(--yellow); }
+  .red { color: var(--red); }
+  .orange { color: var(--orange); }
+  .purple { color: var(--purple); }
+  .cyan { color: var(--cyan); }
+  .accent { color: var(--accent); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  th {
+    text-align: left;
+    padding: 0.75rem;
+    background: var(--surface2);
+    color: var(--text);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+  }
+  tr:hover td { background: var(--surface2); }
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .tag-green { background: rgba(74,222,128,0.15); color: var(--green); }
+  .tag-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .tag-red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .tag-purple { background: rgba(167,139,250,0.15); color: var(--purple); }
+  .tag-cyan { background: rgba(34,211,238,0.15); color: var(--cyan); }
+  .tag-orange { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .insight-box,
+  .warn-box,
+  .critical-box,
+  .success-box {
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+  .insight-box {
+    background: linear-gradient(135deg, rgba(108,138,255,0.08), rgba(167,139,250,0.08));
+    border: 1px solid rgba(108,138,255,0.2);
+  }
+  .warn-box { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); }
+  .critical-box { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+  .success-box { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); }
+  .insight-box h4 { color: var(--accent); font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .warn-box h4 { color: var(--yellow); font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .critical-box h4 { color: var(--red); font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .success-box h4 { color: var(--green); font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .flow-diagram {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .flow-step {
+    padding: 0.65rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 120px;
+  }
+  .flow-step span {
+    display: block;
+    color: var(--text2);
+    font-size: 0.74rem;
+    font-weight: 500;
+    margin-top: 0.15rem;
+  }
+  .flow-arrow {
+    color: var(--text2);
+    font-size: 1.2rem;
+    align-self: center;
+  }
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+  .toc a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  .toc a:hover { text-decoration: underline; }
+  .toc ol { padding-left: 1.2rem; }
+  .toc li { margin: 0.4rem 0; }
+  .lane-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+  .lane-title {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem;
+    color: var(--text);
+    font-weight: 700;
+  }
+  .lane-body {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem;
+  }
+  .mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+  }
+  .mini-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem;
+  }
+  .mini-card strong { color: var(--text); display: block; margin-bottom: 0.25rem; }
+  .footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--text2);
+    font-size: 0.8rem;
+  }
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    h1 { font-size: 1.5rem; }
+    .card-grid, .lane-grid { grid-template-columns: 1fr; }
+    .flow-diagram { display: block; }
+    .flow-step { margin: 0.5rem 0; }
+    .flow-arrow { display: block; text-align: center; transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<h1>AIRE Desktop System Blueprint</h1>
+<p class="subtitle">
+  AIRE 桌面完整版系統藍圖 &nbsp;|&nbsp; 版本日期：2026-05-25 &nbsp;|&nbsp; 範圍：本機開發、Desktop App、驗收、授權、OO 串接、自動更新
+</p>
+
+<div class="toc">
+  <strong style="color:var(--text)">目錄</strong>
+  <ol>
+    <li><a href="#overview">系統總覽與交付狀態</a></li>
+    <li><a href="#object-model">物件分類與判斷規則</a></li>
+    <li><a href="#case-flow">案件流程與資料流</a></li>
+    <li><a href="#authorization">授權方式與 OO 串接</a></li>
+    <li><a href="#validation">本機到 App 的驗收路線</a></li>
+    <li><a href="#update">自動更新與版本管理</a></li>
+    <li><a href="#risks">斷點、紀錄與修正對策</a></li>
+  </ol>
+</div>
+
+<h2 id="overview">1. 系統總覽與交付狀態</h2>
+
+<div class="card-grid">
+  <div class="metric-card">
+    <div class="metric-label">主要交付面</div>
+    <div class="metric-value green">Desktop</div>
+    <div class="metric-sub">macOS + Windows 完整版優先</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">客戶入口</div>
+    <div class="metric-value accent">新增案件</div>
+    <div class="metric-sub">地址輸入是唯一查詢入口</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">資料確認鍵</div>
+    <div class="metric-value cyan">3 項</div>
+    <div class="metric-sub">地段 / 地號 / 建號</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">正式查詢</div>
+    <div class="metric-value purple">COP</div>
+    <div class="metric-sub">使用客戶自己的 API 權限</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">追溯紀錄</div>
+    <div class="metric-value yellow">JSON</div>
+    <div class="metric-sub">費用 / cache / error log</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">下一期能力</div>
+    <div class="metric-value orange">Updater</div>
+    <div class="metric-sub">Tauri 自動更新通知與升版</div>
+  </div>
+</div>
+
+<div class="success-box">
+  <h4>白話結論</h4>
+  <p>AIRE 的客戶操作不應該看到 R02、COP、API、Helper、JSON 等底層名詞。客戶只需要先輸入地址，確認系統補出的地段、地號、建號，接著產出物調、補件、預覽與 PDF。工程與管理細節放在查詢紀錄與設定頁。</p>
+</div>
+
+<h3>1.1 從本機到客戶使用的總流程</h3>
+
+<div class="flow-diagram">
+  <div class="flow-step" style="background:rgba(108,138,255,0.2); color:var(--accent);">本機開發<span>localhost / mock / e2e</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(34,211,238,0.2); color:var(--cyan);">Desktop App<span>Tauri shell</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(74,222,128,0.2); color:var(--green);">實機驗收<span>macOS / Windows</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(167,139,250,0.2); color:var(--purple);">OO 授權<span>帳號 / 方案 / 試用</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(251,191,36,0.2); color:var(--yellow);">客戶 COP<span>自己的 key / 自己付費</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(251,146,60,0.2); color:var(--orange);">自動更新<span>通知 / 下載 / 重啟</span></div>
+</div>
+
+<h2 id="object-model">2. 物件分類與判斷規則</h2>
+
+<table>
+  <thead>
+    <tr><th>物件</th><th>判斷來源</th><th>系統可自動帶入</th><th>現場仍需確認</th><th>物調方向</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>大樓</strong></td><td>建物樓層與集合住宅條件</td><td>樓層數、樓層別、建號、建物面積、主要用途</td><td>電梯、車位、漏水、管理狀態</td><td><span class="tag tag-green">建物版</span></td></tr>
+    <tr><td><strong>華廈</strong></td><td>8 至 11 層、集合住宅、通常有電梯</td><td>建號、樓層、用途、建物完成日期</td><td>電梯、水塔、車位、公共設施</td><td><span class="tag tag-green">建物版</span></td></tr>
+    <tr><td><strong>公寓</strong></td><td>通常無電梯，樓層較低</td><td>建號、樓層別、面積、用途</td><td>無電梯、漏水、頂樓或增建、通行</td><td><span class="tag tag-green">建物版</span></td></tr>
+    <tr><td><strong>透天</strong></td><td>建物型態與門牌對應</td><td>建號、土地地號、面積、用途</td><td>車庫不一定有、騎樓、店住、漏水、通行</td><td><span class="tag tag-cyan">建物 + 土地</span></td></tr>
+    <tr><td><strong>別墅</strong></td><td>有車庫的透天型態</td><td>建號、土地地號、建物資料</td><td>車庫、庭院、社區管理、通行</td><td><span class="tag tag-cyan">建物 + 土地</span></td></tr>
+    <tr><td><strong>住宅建地</strong></td><td>都市計畫住宅區或可建築用地</td><td>地段、地號、公告現值、使用分區</td><td>臨路、套繪、建築線、通行</td><td><span class="tag tag-purple">土地版</span></td></tr>
+    <tr><td><strong>農地</strong></td><td>農牧用地或非都市土地使用類別</td><td>地段、地號、公告現值、使用地類別</td><td>農路、水源、套繪、農舍可能性</td><td><span class="tag tag-purple">土地版</span></td></tr>
+    <tr><td><strong>工業地</strong></td><td>工業區或丁種建築用地</td><td>地段、地號、使用分區、公告現值</td><td>污染、道路、廠登、水電容量</td><td><span class="tag tag-orange">土地版</span></td></tr>
+  </tbody>
+</table>
+
+<div class="insight-box">
+  <h4>分類原則</h4>
+  <p>地政資料能確定的先自動帶入；謄本不會登載、但買方一定會問的資訊，保留在現場必問或補件欄位。車庫、電梯、水塔、漏水、壁癌、通行狀況不能只靠地政資料判斷。</p>
+</div>
+
+<h2 id="case-flow">3. 案件流程與資料流</h2>
+
+<h3>3.1 客戶看到的流程</h3>
+
+<div class="flow-diagram">
+  <div class="flow-step" style="background:rgba(108,138,255,0.2); color:var(--accent);">輸入地址<span>完整門牌</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(34,211,238,0.2); color:var(--cyan);">資料補齊<span>系統背景處理</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(251,191,36,0.2); color:var(--yellow);">人工確認<span>地段 / 地號 / 建號</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(167,139,250,0.2); color:var(--purple);">正式查詢<span>客戶授權後</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(74,222,128,0.2); color:var(--green);">物調補件<span>左補填 / 右預覽</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(251,146,60,0.2); color:var(--orange);">輸出 PDF<span>不重打付費查詢</span></div>
+</div>
+
+<h3>3.2 系統內部資料流</h3>
+
+<div class="lane-grid">
+  <div class="lane-title">客戶 UI</div>
+  <div class="lane-body">
+    <div class="mini-grid">
+      <div class="mini-card"><strong>新增案件</strong><p>輸入地址、顯示地段/地號/建號確認欄位。</p></div>
+      <div class="mini-card"><strong>物件審核</strong><p>確認資料是否能進正式查詢。</p></div>
+      <div class="mini-card"><strong>補件工作台</strong><p>左側補填漏水、車庫、電梯等欄位，右側預覽。</p></div>
+    </div>
+  </div>
+  <div class="lane-title">背景流程</div>
+  <div class="lane-body">
+    <div class="mini-grid">
+      <div class="mini-card"><strong>地址候選</strong><p>以地址推回可能的地段、地號、建號。</p></div>
+      <div class="mini-card"><strong>正式 gate</strong><p>沒有確認 registry key 前，不打付費查詢。</p></div>
+      <div class="mini-card"><strong>快取判斷</strong><p>同一物件已查過時，直接帶入舊資料。</p></div>
+    </div>
+  </div>
+  <div class="lane-title">管理紀錄</div>
+  <div class="lane-body">
+    <div class="mini-grid">
+      <div class="mini-card"><strong>JSON</strong><p>保存候選與正式查詢結果，供除錯與追溯。</p></div>
+      <div class="mini-card"><strong>費用</strong><p>每次 paid run、cache hit、失敗 run 都留紀錄。</p></div>
+      <div class="mini-card"><strong>Error Log</strong><p>COP 憑證錯誤、查無資料、PDF 失敗都可追。</p></div>
+    </div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr><th>階段</th><th>必要資料</th><th>成功條件</th><th>不成功時</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>新增案件</td><td>地址或土地地號</td><td>建立案件草稿</td><td>提示補齊地址或地號</td></tr>
+    <tr><td>地址補齊</td><td>地址</td><td>得到候選地段、地號、建號</td><td>進人工補填模式</td></tr>
+    <tr><td>資料確認</td><td>地段、地號、建號</td><td>生成可查詢 registry key</td><td>正式查詢 disabled，費用 0</td></tr>
+    <tr><td>正式查詢</td><td>客戶 COP 權限 + registry key</td><td>回傳土地/建物 JSON</td><td>寫入錯誤 log</td></tr>
+    <tr><td>文件產出</td><td>已保存 JSON + 補件欄位</td><td>HTML 預覽與 PDF 正確</td><td>保留資料，不重新扣費</td></tr>
+  </tbody>
+</table>
+
+<h2 id="authorization">4. 授權方式與 OO 串接</h2>
+
+<div class="flow-diagram">
+  <div class="flow-step" style="background:rgba(108,138,255,0.2); color:var(--accent);">opcos.me<span>帳號 / 登入 / 會員</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(167,139,250,0.2); color:var(--purple);">AIRE entitlement<span>試用 / 方案 / 到期</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(34,211,238,0.2); color:var(--cyan);">Desktop App<span>本機案件資料</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(251,191,36,0.2); color:var(--yellow);">客戶 COP<span>自己的 API key</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(74,222,128,0.2); color:var(--green);">查詢紀錄<span>費用 / cache / log</span></div>
+</div>
+
+<table>
+  <thead>
+    <tr><th>權限層</th><th>誰管理</th><th>放在哪裡</th><th>用途</th><th>不可混淆的點</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>OO 帳號</td><td>OPCOS 母站</td><td><code>opcos.me</code></td><td>登入、會員、管理員、超級管理員</td><td>不是 COP 帳號</td></tr>
+    <tr><td>AIRE 授權</td><td>OPCOS 授權中心</td><td>系統設定顯示狀態</td><td>決定能不能使用 AIRE 桌面功能</td><td>不是地政查詢費用</td></tr>
+    <tr><td>試用方案</td><td>OPCOS 後台</td><td>系統設定</td><td>7 天、30 天或正式方案</td><td>不放在查詢紀錄頁</td></tr>
+    <tr><td>客戶 COP key</td><td>客戶自己</td><td>AIRE Desktop 安全設定</td><td>正式地政查詢扣客戶自己的費用</td><td>不能用 Fish 的 key 當正式服務</td></tr>
+    <tr><td>本機案件資料</td><td>AIRE Desktop</td><td>客戶電腦</td><td>案件、JSON、補件、PDF 資料</td><td>OO 只管授權，不保存完整案件資料</td></tr>
+  </tbody>
+</table>
+
+<div class="warn-box">
+  <h4>授權 UX 原則</h4>
+  <p>客戶只需要知道「帳號是否能用 AIRE」與「地政查詢是否已設定」。不要把 OAuth、API、token、COP endpoint 等名詞放在每日操作流程中。</p>
+</div>
+
+<h2 id="validation">5. 本機到 App 的驗收路線</h2>
+
+<table>
+  <thead>
+    <tr><th>驗收層級</th><th>驗收內容</th><th>必留紀錄</th><th>通過標準</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><span class="tag tag-cyan">本機瀏覽器</span></td><td>新增案件、資料確認、查詢紀錄 UI、補件預覽</td><td>Playwright artifact、截圖、測試資料</td><td>流程不破版、禁用工程詞不外露</td></tr>
+    <tr><td><span class="tag tag-green">macOS App</span></td><td>安裝、啟動、跑通地址到 PDF</td><td>macOS smoke report、截圖或影片</td><td>可產出 PDF，資料留在本機</td></tr>
+    <tr><td><span class="tag tag-green">Windows App</span></td><td>安裝、啟動、跑通同一流程</td><td>Windows CI/VM/實機 smoke report</td><td>與 macOS 同流程同結果</td></tr>
+    <tr><td><span class="tag tag-yellow">付費查詢</span></td><td>正式 COP 查詢、錯誤、cache hit</td><td>JSON、費用、error log、sourceRunId</td><td>重複物件不重複扣費</td></tr>
+    <tr><td><span class="tag tag-purple">文件產出</span></td><td>HTML 預覽、PDF 下載、補件欄位反映</td><td>PDF artifact、預覽截圖</td><td>PDF 產出不重新打 COP</td></tr>
+  </tbody>
+</table>
+
+<div class="critical-box">
+  <h4>不能只看 build 成功</h4>
+  <p>桌面版完成標準是 macOS 與 Windows 都可以安裝、啟動、跑完整案件流程、保存 JSON/費用/log、產出 PDF。單純 Next build、Tauri build 或 mock E2E 綠燈都不算完成。</p>
+</div>
+
+<h2 id="update">6. 自動更新與版本管理</h2>
+
+<div class="flow-diagram">
+  <div class="flow-step" style="background:rgba(108,138,255,0.2); color:var(--accent);">發布新版<span>release artifacts</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(34,211,238,0.2); color:var(--cyan);">App 檢查<span>背景、不阻斷</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(251,191,36,0.2); color:var(--yellow);">通知使用者<span>有新版本</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(167,139,250,0.2); color:var(--purple);">下載更新<span>signed package</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-step" style="background:rgba(74,222,128,0.2); color:var(--green);">重啟套用<span>資料保留</span></div>
+</div>
+
+<table>
+  <thead>
+    <tr><th>更新階段</th><th>客戶看到</th><th>工程內部</th><th>驗收重點</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>檢查更新</td><td>目前已是最新 / 有新版本</td><td>Tauri updater manifest</td><td>失敗不阻斷案件操作</td></tr>
+    <tr><td>下載更新</td><td>下載中 / 可稍後重試</td><td>signed artifact</td><td>簽章驗證失敗不得安裝</td></tr>
+    <tr><td>重啟套用</td><td>重新啟動完成更新</td><td>replace app bundle / installer</td><td>不強制中斷填寫中的案件</td></tr>
+    <tr><td>升版後驗收</td><td>版本已更新</td><td>old-to-new smoke</td><td>案件、JSON、COP 設定、log 都存在</td></tr>
+  </tbody>
+</table>
+
+<div class="insight-box">
+  <h4>更新排程</h4>
+  <p>先完成 Desktop fullflow 與 macOS/Windows 實機驗收，再做自動更新。自動更新不能早於桌面完整版，否則只是把半成品更快送到客戶電腦。</p>
+</div>
+
+<h2 id="risks">7. 斷點、紀錄與修正對策</h2>
+
+<table>
+  <thead>
+    <tr><th>斷點</th><th>會發生什麼</th><th>系統要留下什麼</th><th>對策</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>地址候選不唯一</td><td>可能對到多筆地號或建號</td><td>候選 JSON、信心狀態、人工確認紀錄</td><td>不進正式查詢，請使用者確認</td></tr>
+    <tr><td>地址查不到</td><td>沒有候選地段/地號/建號</td><td>lookup_failed log、輸入地址</td><td>人工補填地段、地號、建號</td></tr>
+    <tr><td>COP 憑證錯誤</td><td>正式查詢失敗</td><td>credential_required 或 auth_error log</td><td>系統設定提示重新設定客戶 COP</td></tr>
+    <tr><td>重複查詢同物件</td><td>可能浪費費用</td><td>cacheHit、sourceRunId、totalCostCents=0</td><td>命中快取自動帶入，不打新 API</td></tr>
+    <tr><td>PDF 產出失敗</td><td>文件不能交付</td><td>PDF error log、使用的查詢 JSON id</td><td>修 PDF，不重新扣地政查詢費</td></tr>
+    <tr><td>Windows/macOS 安裝失敗</td><td>客戶不能使用 App</td><td>installer log、平台版本、簽章狀態</td><td>release blocker，不標記完成</td></tr>
+    <tr><td>更新失敗</td><td>版本無法升級</td><td>update_failed log、目前版本、目標版本</td><td>保留舊版可用，允許稍後重試</td></tr>
+  </tbody>
+</table>
+
+<div class="success-box">
+  <h4>最終完成定義</h4>
+  <p>客戶在 AIRE Desktop 輸入地址後，可以低噪地完成資料確認、正式查詢、物調補件、預覽與 PDF；管理者可在系統內看到 JSON、費用、cache 與錯誤 log；macOS 與 Windows 都有實機驗收；未來可用自動更新把修正送到客戶端。</p>
+</div>
+
+<div class="footer">
+  <p>Generated for AIRE Desktop Fullflow Planning &nbsp;|&nbsp; 2026-05-25</p>
+  <p>核流有限公司 &nbsp;·&nbsp; OPCOS / AIRE System Blueprint</p>
+</div>
+
+</body>
+</html>

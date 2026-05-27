@@ -185,9 +185,10 @@ describe("MockStore", () => {
         mime: "image/png",
       }),
     ).resolves.toEqual({ success: true });
-    await expect(mockInvoke("get_logo")).resolves.toEqual({
+    await expect(mockInvoke("get_logo")).resolves.toMatchObject({
       bytes: [1, 2, 3],
       mime: "image/png",
+      filename: "brand-logo",
     });
 
     const themes = await mockInvoke<Array<{ id: string }>>("list_themes");
@@ -387,6 +388,551 @@ describe("MockStore", () => {
         password: "password",
       }),
     ).rejects.toThrow("ACCOUNT_EXPIRED");
+  });
+
+  it("supports web trial gate, registry confirmation, formal lookup, and cache-hit query runs", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+      },
+    });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).rejects.toThrow("registry_match_required");
+
+    const runsBeforeConfirm = await mockInvoke<Array<{ total_cost_cents: number }>>(
+      "list_registry_query_runs",
+      {},
+    );
+    const runsAfterRejectedFormal = await mockInvoke<Array<{ total_cost_cents: number; api_calls: unknown[] }>>(
+      "list_registry_query_runs",
+      {},
+    );
+    expect(runsAfterRejectedFormal).toHaveLength(runsBeforeConfirm.length);
+
+    await expect(
+      mockInvoke("confirm_case_registry_match", {
+        caseId: created.id,
+        sectionName: "富強段",
+        landNo: "00700000",
+        buildingNo: "00165000",
+      }),
+    ).resolves.toMatchObject({ success: true });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).resolves.toMatchObject({
+      cache_hit: false,
+      total_cost: 20,
+      source_run_id: null,
+    });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).resolves.toMatchObject({
+      cache_hit: true,
+      total_cost: 0,
+    });
+
+    const runs = await mockInvoke<Array<{ id: string; cache_hit: boolean; source_run_id: string | null }>>(
+      "list_registry_query_runs",
+      {},
+    );
+    expect(runs.length).toBe(runsBeforeConfirm.length + 2);
+    expect(runs.some((run) => run.cache_hit)).toBe(true);
+    const cacheRun = runs.find((run) => run.cache_hit);
+    expect(cacheRun?.source_run_id).toBeTruthy();
+    const detail = await mockInvoke<{ id: string; api_calls: Array<{ service_code: string }> }>(
+      "get_registry_query_run_detail",
+      { runId: runs[0].id },
+    );
+    expect(detail.id).toBe(runs[0].id);
+    expect(Array.isArray(detail.api_calls)).toBe(true);
+
+    const saved = await mockInvoke<{ land_registry_data?: Record<string, unknown> }>("get_case", {
+      id: created.id,
+    });
+    expect(saved.land_registry_data).toMatchObject({
+      formal_registry_run_id: expect.any(String),
+      formal_registry_json: expect.objectContaining({
+        building_registry: expect.objectContaining({ success: true }),
+      }),
+      confirmed_registry_match: expect.objectContaining({
+        section_name: "富強段",
+        land_no: "00700000",
+        building_no: "00165000",
+      }),
+    });
+  });
+
+  it("returns parcel-specific formal mock data for confirmed building keys", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+        owner_name: "余啟彰",
+      },
+    });
+    await mockInvoke("confirm_case_registry_match", {
+      caseId: created.id,
+      sectionName: "富強段",
+      landNo: "00700000",
+      buildingNo: "00204000",
+    });
+
+    const result = await mockInvoke<{
+      results: Record<string, { success: boolean; data: Record<string, unknown> }>;
+      total_cost: number;
+    }>("land_registry_formal_pull_data", {
+      caseId: created.id,
+      apiIds: ["building_registry", "building_ownership"],
+    });
+
+    expect(result.total_cost).toBe(20);
+    expect(result.results.building_registry.data).toMatchObject({
+      building_number: "00204000",
+      building_area: 83.61,
+      building_purpose: "住家用",
+      construction_date: "0800829",
+      building_floor: "八層",
+      total_floor_count: "012",
+    });
+    expect(result.results.building_ownership.data).toMatchObject({
+      owner_name: "余啟彰",
+    });
+  });
+
+  it("blocks building formal APIs when only section and land number are confirmed", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市永康區勝利段1043-0002",
+        property_type: "land",
+      },
+    });
+
+    await expect(
+      mockInvoke("confirm_case_registry_match", {
+        caseId: created.id,
+        sectionName: "勝利段",
+        landNo: "10430002",
+      }),
+    ).resolves.toMatchObject({
+      success: true,
+      match: expect.objectContaining({
+        building_no: null,
+      }),
+    });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry"],
+      }),
+    ).rejects.toThrow("registry_match_required");
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["land_registry"],
+      }),
+    ).resolves.toMatchObject({
+      cache_hit: false,
+      total_cost: 10,
+    });
+  });
+
+  it("blocks formal COP for registry_pending and mock discovery candidates without API call rows", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+
+    const pendingCase = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市永康區勝利街58巷4號",
+        property_type: "residential",
+        land_lot_no: "",
+        land_lots: [],
+        land_registry_data: {
+          registry_status: "registry_pending",
+          candidate_options: [
+            {
+              source: "mock",
+              trusted_for_pdf: false,
+              section_name: "0001",
+              land_no: "0001",
+              building_no: "0001",
+            },
+          ],
+        },
+      },
+    });
+    const runsBefore = await mockInvoke<Array<{ api_calls: unknown[]; total_cost_cents: number }>>(
+      "list_registry_query_runs",
+      {},
+    );
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: pendingCase.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).rejects.toThrow("registry_match_required");
+
+    const runsAfter = await mockInvoke<Array<{ api_calls: unknown[]; total_cost_cents: number }>>(
+      "list_registry_query_runs",
+      {},
+    );
+    expect(runsAfter).toHaveLength(runsBefore.length);
+    expect(runsAfter.every((run) => run.total_cost_cents === 0 || run.api_calls.length > 0)).toBe(true);
+  });
+
+  it("records formal credential errors with zero cost and no API call rows", async () => {
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+        land_lot_no: "00700000",
+      },
+    });
+    await mockInvoke("confirm_case_registry_match", {
+      caseId: created.id,
+      sectionName: "富強段",
+      landNo: "00700000",
+      buildingNo: "00165000",
+    });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry"],
+      }),
+    ).rejects.toThrow("cop_credential_required");
+
+    const runs = await mockInvoke<Array<{
+      error_code: string | null;
+      error_message: string | null;
+      total_cost_cents: number;
+      api_calls: unknown[];
+    }>>("list_registry_query_runs", {});
+    expect(runs[0]).toMatchObject({
+      error_code: "cop_credential_required",
+      total_cost_cents: 0,
+      api_calls: [],
+    });
+    expect(runs[0].error_message).toContain("地政查詢帳號");
+  });
+
+  it("rejects unconfirmed formal states in the backend before paid lookup", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+    const scenarios = [
+      {
+        registry_status: "candidate_selection_required",
+        candidate_options: [
+          { section_name: "富強段", land_no: "00700000", building_no: "00165000" },
+          { section_name: "富強段", land_no: "00700000", building_no: "00167000" },
+        ],
+      },
+      {
+        registry_status: "manual_required",
+        correction_suggestions: ["苓雅二路"],
+      },
+      {
+        registry_status: "registry_pending",
+        missing_registry_fields: ["地段", "地號", "建號"],
+      },
+    ];
+
+    const before = await mockInvoke<Array<{ total_cost_cents: number; api_calls: unknown[] }>>(
+      "list_registry_query_runs",
+      {},
+    );
+    for (const landRegistryData of scenarios) {
+      const created = await mockInvoke<{ id: string }>("create_case", {
+        input: {
+          address: "高雄市苓雅區苓雅路二段18巷8弄2號",
+          property_type: "residential",
+          land_lot_no: "00700000",
+          land_lots: ["00700000"],
+          land_registry_data: landRegistryData,
+        },
+      });
+      await expect(
+        mockInvoke("land_registry_formal_pull_data", {
+          caseId: created.id,
+          apiIds: ["building_registry"],
+        }),
+      ).rejects.toThrow("registry_match_required");
+    }
+    const after = await mockInvoke<Array<{ total_cost_cents: number; api_calls: unknown[] }>>(
+      "list_registry_query_runs",
+      {},
+    );
+    expect(after).toHaveLength(before.length);
+  });
+
+  it("logs paid address resolver separately as candidate evidence", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+    const result = await mockInvoke<{
+      run_id: string;
+      candidates: Array<{ building_number: string; confirmation_state: string }>;
+      total_cost_cents: number;
+    }>("land_registry_paid_address_resolver", {
+      address: "台南市東區裕農路288巷17號8樓之1",
+    });
+
+    expect(result.total_cost_cents).toBe(3000);
+    expect(result.candidates).toHaveLength(2);
+    expect(result.candidates.every((candidate) => candidate.confirmation_state === "unconfirmed")).toBe(true);
+
+    const detail = await mockInvoke<{
+      id: string;
+      match_status: string;
+      total_cost_cents: number;
+      candidate_json: { run_type?: string };
+      api_calls: Array<{ service_code: string; cost_cents: number }>;
+      cop_response_json: unknown;
+    }>("get_registry_query_run_detail", { runId: result.run_id });
+    expect(detail.match_status).toBe("candidate");
+    expect(detail.candidate_json.run_type).toBe("paid_address_resolver");
+    expect(detail.total_cost_cents).toBe(3000);
+    expect(detail.api_calls).toEqual([
+      expect.objectContaining({ service_code: "MOI_API_037", cost_cents: 3000 }),
+    ]);
+    expect(detail.cop_response_json).toBeNull();
+  });
+
+  it("allows formal pull only after a paid resolver candidate is selected and confirmed", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+        land_lot_no: "",
+        land_lots: [],
+        land_registry_data: {
+          registry_status: "registry_pending",
+          missing_registry_fields: ["地段", "地號", "建號"],
+        },
+      },
+    });
+    const resolver = await mockInvoke<{
+      candidates: Array<{ section_name?: string; lot_number: string; building_number: string }>;
+    }>("land_registry_paid_address_resolver", {
+      address: "台南市東區裕農路288巷17號8樓之1",
+    });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).rejects.toThrow("registry_match_required");
+
+    const selected = resolver.candidates[1];
+    await mockInvoke("confirm_case_registry_match", {
+      caseId: created.id,
+      sectionName: selected.section_name,
+      landNo: selected.lot_number,
+      buildingNo: selected.building_number,
+    });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry", "building_ownership"],
+      }),
+    ).resolves.toMatchObject({
+      cache_hit: false,
+      total_cost: 20,
+    });
+  });
+
+  it("records local Web discovery diagnostics without treating 勝利街 as fake success", async () => {
+    const result = await mockInvoke<Array<{ source: string }>>("land_registry_address_lookup", {
+      address: "台南市永康區勝利街58巷4號",
+    });
+
+    expect(result).toEqual([]);
+    const runs = await mockInvoke<Array<{
+      source_input: string;
+      candidate_json: Record<string, unknown>;
+      total_cost_cents: number;
+      error_code: string | null;
+    }>>("list_registry_query_runs", {});
+    expect(runs[0]).toMatchObject({
+      source_input: "台南市永康區勝利街58巷4號",
+      total_cost_cents: 0,
+      error_code: "address_discovery_unavailable",
+      candidate_json: expect.objectContaining({
+        status: "manual_required",
+        candidates: [],
+      }),
+    });
+  });
+
+  it("returns explicit dev fixture candidates for local E2E without marking them PDF-trusted", async () => {
+    const result = await mockInvoke<Array<{
+      parcel_id: string;
+      source: string;
+      trusted_for_pdf: boolean;
+    }>>("land_registry_address_lookup", {
+      address: "台南市東區裕農路288巷17號8樓之1",
+    });
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          parcel_id: "DC-1556-00165000",
+          source: "dev_fixture",
+          trusted_for_pdf: false,
+        }),
+      ]),
+    );
+  });
+
+  it("parses R02 desktop helper text into zero-cost candidate JSON", async () => {
+    const run = await mockInvoke<{
+      adapter: string;
+      parser_version: string;
+      total_cost_cents: number;
+      candidates: Array<{
+        section_code: string | null;
+        section_name: string | null;
+        building_no: string | null;
+        building_area_sqm: string | null;
+        main_use: string | null;
+      }>;
+    }>("land_registry_parse_r02_result_text", {
+      inputAddress: "台南市東區裕農路288巷17號8樓之1",
+      textOrHtml: `
+        查詢結果
+        行政區 臺南市 東區
+        地政事務所 東南地政事務所
+        地段 1556 富強段
+        建號 00204000
+        建物面積 83.61 平方公尺
+        樓層數 012
+        樓層別 八層
+        建物完成日期 0800829 (屋齡:約 34年)
+        主要用途 住家用
+      `,
+    });
+
+    expect(run.adapter).toBe("easymap_r02_desktop");
+    expect(run.parser_version).toBe("r02-text-v1");
+    expect(run.total_cost_cents).toBe(0);
+    expect(run.candidates[0]).toMatchObject({
+      section_code: "1556",
+      section_name: "富強段",
+      building_no: "00204000",
+      building_area_sqm: "83.61",
+      main_use: "住家用",
+    });
+  });
+
+  it("records R02 desktop helper parse results into query runs", async () => {
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+      },
+    });
+
+    const recorded = await mockInvoke<{ run_id: string; ok: boolean }>(
+      "land_registry_record_r02_result_text",
+      {
+        caseId: created.id,
+        inputAddress: "台南市東區裕農路288巷17號8樓之1",
+        textOrHtml: `
+          行政區 臺南市 東區
+          地政事務所 東南地政事務所
+          地段 1556 富強段
+          建號 00204000
+          主要用途 住家用
+        `,
+      },
+    );
+
+    expect(recorded.ok).toBe(true);
+
+    const detail = await mockInvoke<{
+      id: string;
+      case_id: string | null;
+      total_cost_cents: number;
+      candidate_json: Record<string, unknown> | null;
+    }>("get_registry_query_run_detail", { runId: recorded.run_id });
+
+    expect(detail).toMatchObject({
+      id: recorded.run_id,
+      case_id: created.id,
+      total_cost_cents: 0,
+    });
+    expect(detail.candidate_json).toMatchObject({
+      adapter: "easymap_r02_desktop",
+    });
+  });
+
+  it("blocks formal lookup when trial is expired", async () => {
+    const created = await mockInvoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+        land_lot_no: "00700000",
+      },
+    });
+    await mockInvoke("confirm_case_registry_match", {
+      caseId: created.id,
+      sectionName: "富強段",
+      landNo: "00700000",
+      buildingNo: "00165000",
+    });
+    await expect(
+      mockInvoke("set_trial_status", {
+        status: "expired",
+      }),
+    ).resolves.toMatchObject({ success: true });
+
+    await expect(
+      mockInvoke("land_registry_formal_pull_data", {
+        caseId: created.id,
+        apiIds: ["building_registry"],
+      }),
+    ).rejects.toThrow("trial_expired");
   });
 
   it("supports get_app_settings and save_app_settings merging", async () => {

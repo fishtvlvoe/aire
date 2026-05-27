@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { mockInvoke } from "@/lib/mock-backend";
+import { Eye, EyeOff } from "lucide-react";
+import { exchangeDesktopBootstrapCode, login } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-const FORGOT_PASSWORD_URL = "https://opcos.com.tw";
+const FORGOT_PASSWORD_URL = "https://opcos.me/forgot-password";
+const DESKTOP_PASSWORD_HELP_URL = "https://opcos.me/products/aire?intent=desktop-login";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: "帳號或密碼錯誤",
@@ -18,16 +20,22 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [bootstrapCode, setBootstrapCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!email.trim() || !password.trim()) {
+      setError("請輸入 AIRE 桌面版帳號與密碼");
+      return;
+    }
     setLoading(true);
     try {
-      await mockInvoke("login", { email, password });
-      router.push("/cases");
+      await login(email, password);
+      router.push("/cases/new");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("INVALID_CREDENTIALS")) {
@@ -42,6 +50,30 @@ export default function LoginPage() {
     }
   }
 
+  async function handleBootstrapLogin() {
+    setError("");
+    if (!email.trim() || !bootstrapCode.trim()) {
+      setError("請輸入 Email 與一次性桌面登入碼");
+      return;
+    }
+    setLoading(true);
+    try {
+      await exchangeDesktopBootstrapCode(email, bootstrapCode);
+      router.push("/cases/new");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("BOOTSTRAP_CODE_EXPIRED")) {
+        setError("一次性登入碼已失效，請回 opcos.me 重新產生");
+      } else if (msg.includes("ENTITLEMENT_REQUIRED")) {
+        setError("此帳號尚未啟用 AIRE 權限，請先在 opcos.me 確認方案");
+      } else {
+        setError("一次性登入失敗，請稍後再試");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md shadow-md">
@@ -49,6 +81,10 @@ export default function LoginPage() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">AIRE</h1>
             <p className="text-sm text-muted-foreground">不動產說明書智能助手</p>
+            <p className="mt-2 text-xs text-muted-foreground">使用 AIRE 桌面版帳號登入</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Google 或 LINE 購買用戶請先在 opcos.me 產生桌面登入碼。
+            </p>
           </div>
         </CardHeader>
 
@@ -61,22 +97,43 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               disabled={loading}
-              required
             />
+            <div className="relative">
+              <Input
+                className="pr-11"
+                type={showPassword ? "text" : "password"}
+                placeholder="密碼"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                aria-label={showPassword ? "隱藏密碼" : "顯示密碼"}
+                className="absolute right-3 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-slate-500 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setShowPassword((current) => !current)}
+                disabled={loading}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             <Input
-              type="password"
-              placeholder="密碼"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              type="text"
+              placeholder="一次性桌面登入碼（可選）"
+              value={bootstrapCode}
+              onChange={(e) => setBootstrapCode(e.target.value)}
+              autoComplete="one-time-code"
               disabled={loading}
-              required
             />
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "登入中..." : "登入"}
+            </Button>
+            <Button type="button" variant="outline" className="w-full" disabled={loading} onClick={() => void handleBootstrapLogin()}>
+              {loading ? "登入中..." : "使用一次性登入碼"}
             </Button>
           </form>
 
@@ -88,6 +145,15 @@ export default function LoginPage() {
               className="text-sm text-blue-600 hover:underline"
             >
               忘記密碼
+            </a>
+            <span className="mx-2 text-slate-300">|</span>
+            <a
+              href={DESKTOP_PASSWORD_HELP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 hover:underline"
+            >
+              用 Google 或 LINE 購買？
             </a>
           </div>
         </CardContent>

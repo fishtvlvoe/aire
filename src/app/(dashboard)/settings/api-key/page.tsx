@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 地政 API 設定頁
+ * 地政查詢帳號設定頁
  *
  * 包含 ApiKeySettings（金鑰設定）+ BalanceMonitor（餘額監控）。
  * 路由：/settings/api-key
@@ -29,7 +29,7 @@ export default function ApiKeySettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>地政 API 設定</CardTitle>
+          <CardTitle>地政查詢帳號</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <ApiKeySettings />

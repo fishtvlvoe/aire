@@ -19,8 +19,7 @@ describe("Branding settings page", () => {
   it("renders settings tabs and marks branding active", () => {
     render(<BrandingSettingsPage />);
 
-    expect(screen.getByRole("link", { name: "一般設定" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "品牌與交付資訊" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "品牌設定" })).toHaveAttribute(
       "aria-current",
       "page",
     );

@@ -1,4 +1,4 @@
-import type { CaseRow, CreateCaseInput, UpdateCaseInput } from "@/lib/cases-api";
+import { isCasePropertyType, type CaseRow, type CreateCaseInput, type UpdateCaseInput } from "@/lib/cases-api";
 import type { LogEntry, LogResult } from "@/lib/log";
 
 type CommandArgs = Record<string, unknown> | undefined;
@@ -27,6 +27,8 @@ interface BrandSettings {
 interface LogoAsset {
   bytes: number[];
   mime: string;
+  filename?: string;
+  uploadedAt?: string;
 }
 
 interface FloorPlanSketchRow {
@@ -162,10 +164,119 @@ interface PersistedMockState {
   appSettings?: AppSettingsState;
   featureFlags?: FeatureFlagState[];
   profileSettings?: ProfileSettingsState;
+  logo?: LogoAsset | null;
   workbenchSupplements?: Record<string, WorkbenchSupplementDraft>;
   cases?: CaseRow[];
   caseAssets?: CaseAssetRow[];
   caseAssetBytes?: Record<string, number[]>;
+  trialState?: TrialState;
+  registryQueryRuns?: RegistryQueryRun[];
+  registryQueryCache?: Record<string, string>;
+  registryMatchByCase?: Record<string, ConfirmedRegistryMatch>;
+  deviceSession?: {
+    status: "active" | "missing";
+    email: string | null;
+    persistedAt: string | null;
+  };
+}
+
+type TrialPlan = "trial" | "basic" | "pro" | "vip";
+type TrialStatus = "active" | "expired" | "disabled";
+
+interface TrialState {
+  plan: TrialPlan;
+  status: TrialStatus;
+  startedAt: string | null;
+  endsAt: string | null;
+}
+
+type RegistryRunMatchStatus = "candidate" | "confirmed" | "rejected";
+type RegistryRunInputType = "address" | "land" | "registry_key";
+
+interface RegistryQueryApiCall {
+  id: string;
+  service_code: string;
+  transaction_id: string | null;
+  http_status: number;
+  moi_code: string | null;
+  moi_message: string | null;
+  return_rows: number;
+  cost_cents: number;
+  started_at: string;
+  finished_at: string;
+}
+
+interface RegistryQueryRun {
+  id: string;
+  organization_id: string;
+  case_id: string | null;
+  input_type: RegistryRunInputType;
+  source_input: string;
+  match_status: RegistryRunMatchStatus;
+  candidate_json: Record<string, unknown> | null;
+  cop_response_json: Record<string, unknown> | null;
+  raw_response_json: Record<string, unknown> | null;
+  total_cost_cents: number;
+  cache_hit: boolean;
+  source_run_id: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  api_calls: RegistryQueryApiCall[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface ConfirmedRegistryMatch {
+  case_id: string;
+  section_name: string;
+  land_no: string;
+  building_no: string | null;
+  confirmed_at: string;
+}
+
+function isBuildingFormalApi(apiId: string): boolean {
+  return [
+    "building_registry",
+    "building_ownership",
+    "building_other_rights",
+    "building_anchor",
+    "building_parking",
+  ].includes(apiId);
+}
+
+interface R02BuildingCandidate {
+  administrative_district: string | null;
+  land_office: string | null;
+  section_code: string | null;
+  section_name: string | null;
+  land_no: string | null;
+  building_no: string | null;
+  building_area_sqm: string | null;
+  total_floor_count: string | null;
+  floor_label: string | null;
+  completion_date_roc: string | null;
+  age_years: string | null;
+  main_use: string | null;
+}
+
+interface R02DiscoveryRun {
+  adapter: "easymap_r02_desktop";
+  parser_version: "r02-text-v1";
+  input_address: string;
+  status: "candidate_unconfirmed";
+  total_cost_cents: 0;
+  candidates: R02BuildingCandidate[];
+  raw_summary: string;
+  missing_fields: string[];
+  error_code: null;
+  next_action: null;
+}
+
+interface R02RecordedDiscoveryRun {
+  run_id: string;
+  ok: boolean;
+  discovery: R02DiscoveryRun | null;
+  error: Record<string, unknown> | null;
 }
 
 const MOCK_STORAGE_KEY = "aire-mock-store";
@@ -190,6 +301,13 @@ const TEST_ACCOUNTS = [
     status: "expired" as const,
   },
 ];
+
+const ONE_TIME_DESKTOP_CODES: Record<string, { code: string; entitlement: boolean; expired?: boolean }> = {
+  "admin@test.aire": { code: "OTC-ADMIN-2026", entitlement: true },
+  "user@test.aire": { code: "OTC-USER-2026", entitlement: true },
+  "buyer-no-entitlement@test.aire": { code: "OTC-NO-ENTITLE-2026", entitlement: false },
+  "expired-code@test.aire": { code: "OTC-EXPIRED-2026", entitlement: true, expired: true },
+};
 
 const DEFAULT_APP_SETTINGS: AppSettingsState = {
   landApi: {
@@ -219,6 +337,13 @@ const DEFAULT_PROFILE_SETTINGS: ProfileSettingsState = {
   brandColor: "#174d36",
   logoName: "",
   passwordUpdatedAt: null,
+};
+
+const DEFAULT_TRIAL_STATE: TrialState = {
+  plan: "trial",
+  status: "active",
+  startedAt: "2026-05-25T00:00:00.000Z",
+  endsAt: "2026-06-24T23:59:59.000Z",
 };
 
 const DEFAULT_THEMES = [
@@ -412,6 +537,55 @@ function pickString(record: Record<string, unknown>, keys: string[]): string | n
   return null;
 }
 
+function normalizeR02Text(input: string): string {
+  return input
+    .replace(/<[^>]+>/g, "\n")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function extractR02Label(text: string, label: string): string | null {
+  const labels = [
+    "行政區",
+    "地政事務所",
+    "地段",
+    "地號",
+    "建號",
+    "建物面積",
+    "樓層數",
+    "樓層別",
+    "建物完成日期",
+    "主要用途",
+  ];
+  const lines = text.split(/\r?\n/);
+
+  for (const [index, rawLine] of lines.entries()) {
+    const line = rawLine.replace(/：/g, ":").trim();
+    if (line === label) {
+      return lines[index + 1]?.trim() || null;
+    }
+    if (line.startsWith(label)) {
+      const value = line.slice(label.length).replace(/^:/, "").trim();
+      if (value) return value.replace(/\s+/g, " ");
+    }
+    const labelIndex = line.indexOf(label);
+    if (labelIndex >= 0) {
+      const after = line.slice(labelIndex + label.length).replace(/^:/, "").trim();
+      if (!after) continue;
+      const nextLabelIndex = labels
+        .filter((candidate) => candidate !== label)
+        .map((candidate) => after.indexOf(candidate))
+        .filter((position) => position >= 0)
+        .sort((a, b) => a - b)[0];
+      return after.slice(0, nextLabelIndex ?? after.length).trim().replace(/\s+/g, " ");
+    }
+  }
+
+  return null;
+}
+
 function toRecord(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object") {
     return value as Record<string, unknown>;
@@ -515,6 +689,11 @@ export class MockStore {
   private themeId = "theme-a-minimal";
   private clauses = new Map<string, ClauseData>();
   private sessionUser: MockSessionUser | null = null;
+  private deviceSession: { status: "active" | "missing"; email: string | null; persistedAt: string | null } = {
+    status: "missing",
+    email: null,
+    persistedAt: null,
+  };
   private appSettings: AppSettingsState = {
     landApi: {
       clientId: DEFAULT_APP_SETTINGS.landApi.clientId,
@@ -537,6 +716,11 @@ export class MockStore {
   private floorPlanConversions: unknown[] = [];
   private caseAssets: CaseAssetRow[] = [];
   private caseAssetBytes = new Map<string, number[]>();
+  private organizationId = "org-demo-001";
+  private trialState: TrialState = { ...DEFAULT_TRIAL_STATE };
+  private registryQueryRuns: RegistryQueryRun[] = [];
+  private registryQueryCache = new Map<string, string>();
+  private registryMatchByCase = new Map<string, ConfirmedRegistryMatch>();
 
   constructor() {
     this.reset();
@@ -544,6 +728,10 @@ export class MockStore {
     this.floorPlanConversions = [];
     this.caseAssets = [];
     this.caseAssetBytes = new Map<string, number[]>();
+    this.trialState = { ...DEFAULT_TRIAL_STATE };
+    this.registryQueryRuns = [];
+    this.registryQueryCache = new Map<string, string>();
+    this.registryMatchByCase = new Map<string, ConfirmedRegistryMatch>();
     this.restorePersistedState();
   }
 
@@ -580,6 +768,10 @@ export class MockStore {
     this.workbenchSupplements = new Map<string, WorkbenchSupplementDraft>();
     this.floorPlanSketches = [];
     this.floorPlanConversions = [];
+    this.trialState = { ...DEFAULT_TRIAL_STATE };
+    this.registryQueryRuns = [];
+    this.registryQueryCache = new Map<string, string>();
+    this.registryMatchByCase = new Map<string, ConfirmedRegistryMatch>();
   }
 
   async invoke<T>(cmd: string, args?: CommandArgs): Promise<T> {
@@ -596,10 +788,14 @@ export class MockStore {
 
         case "login":
           return this.login(args) as T;
+        case "exchange_desktop_bootstrap_code":
+          return this.exchangeDesktopBootstrapCode(args) as T;
         case "logout":
           return this.logout() as T;
         case "get_session":
           return this.getSession() as T;
+        case "get_device_session_status":
+          return this.getDeviceSessionStatus() as T;
         case "get_app_settings":
           return this.getAppSettings() as T;
         case "save_app_settings":
@@ -695,8 +891,18 @@ export class MockStore {
 
         case "land_registry_address_lookup":
           return this.landRegistryAddressLookup(args) as T;
+        case "record_local_address_discovery":
+          return this.recordLocalAddressDiscovery(args) as T;
+        case "land_registry_parse_r02_result_text":
+          return this.landRegistryParseR02ResultText(args) as T;
+        case "land_registry_record_r02_result_text":
+          return this.landRegistryRecordR02ResultText(args) as T;
         case "land_registry_pull_data":
           return this.landRegistryPullData(args) as T;
+        case "land_registry_formal_pull_data":
+          return this.landRegistryFormalPullData(args) as T;
+        case "land_registry_paid_address_resolver":
+          return this.landRegistryPaidAddressResolver(args) as T;
         case "query_real_price":
           return this.queryRealPrice(args) as T;
         case "land_registry_set_api_key":
@@ -711,6 +917,18 @@ export class MockStore {
           return this.landRegistryListBillingEntries() as T;
         case "land_registry_record_consent":
           return this.landRegistryRecordConsent(args) as T;
+        case "list_registry_query_runs":
+          return this.listRegistryQueryRuns(args) as T;
+        case "get_registry_query_run_detail":
+          return this.getRegistryQueryRunDetail(args) as T;
+        case "land_registry_sync_query_run_to_saas":
+          return this.syncRegistryQueryRunToSaas(args) as T;
+        case "confirm_case_registry_match":
+          return this.confirmCaseRegistryMatch(args) as T;
+        case "get_trial_status":
+          return this.getTrialStatus() as T;
+        case "set_trial_status":
+          return this.setTrialStatus(args) as T;
 
         case "import_case_asset":
           return this.importCaseAsset(args) as T;
@@ -850,14 +1068,64 @@ export class MockStore {
       email: account.email,
       role: account.role,
     };
+    this.deviceSession = {
+      status: "active",
+      email: account.email,
+      persistedAt: new Date().toISOString(),
+    };
     return {
       success: true,
       user: { ...this.sessionUser },
     };
   }
 
+  private exchangeDesktopBootstrapCode(args?: CommandArgs): {
+    success: true;
+    user: MockSessionUser;
+    bootstrapOnly: true;
+  } {
+    const payload = toRecord(args);
+    const email = pickString(payload, ["email"]);
+    const code = pickString(payload, ["code"]);
+
+    if (!email || !code) {
+      throw new Error("INVALID_CREDENTIALS");
+    }
+
+    const expected = ONE_TIME_DESKTOP_CODES[email];
+    if (!expected || expected.code !== code) {
+      throw new Error("INVALID_CREDENTIALS");
+    }
+    if (expected.expired) {
+      throw new Error("BOOTSTRAP_CODE_EXPIRED");
+    }
+    if (!expected.entitlement) {
+      throw new Error("ENTITLEMENT_REQUIRED");
+    }
+
+    const account = TEST_ACCOUNTS.find((candidate) => candidate.email === email);
+    const role = account?.role ?? "user";
+    this.sessionUser = { email, role };
+    this.deviceSession = {
+      status: "active",
+      email,
+      persistedAt: new Date().toISOString(),
+    };
+
+    return {
+      success: true,
+      user: { ...this.sessionUser },
+      bootstrapOnly: true,
+    };
+  }
+
   private logout(): { success: true } {
     this.sessionUser = null;
+    this.deviceSession = {
+      status: "missing",
+      email: null,
+      persistedAt: null,
+    };
     return { success: true };
   }
 
@@ -872,6 +1140,14 @@ export class MockStore {
       authenticated: true,
       user: { ...this.sessionUser },
     };
+  }
+
+  private getDeviceSessionStatus(): {
+    status: "active" | "missing";
+    email: string | null;
+    persistedAt: string | null;
+  } {
+    return { ...this.deviceSession };
   }
 
   private getAppSettings(): {
@@ -1070,7 +1346,7 @@ export class MockStore {
 
     const propertyType = pickString(input, ["property_type"]);
     const address = pickString(input, ["address"]);
-    if (!propertyType || (propertyType !== "residential" && propertyType !== "land")) {
+    if (!propertyType || !isCasePropertyType(propertyType)) {
       throw new Error("create_case requires valid property_type");
     }
     if (!address) {
@@ -1108,6 +1384,7 @@ export class MockStore {
 
     this.cases.set(id, row);
     this.addLog("建立案件", `建立案件：${row.address}`);
+    this.persistState();
     return { ...row };
   }
 
@@ -1124,12 +1401,18 @@ export class MockStore {
     if (!existing) {
       throw new Error(`Case not found: ${id}`);
     }
+    const propertyType = pickString(input, ["property_type"]);
+    let nextPropertyType = existing.property_type;
+    if (propertyType) {
+      if (!isCasePropertyType(propertyType)) {
+        throw new Error("update_case requires valid property_type");
+      }
+      nextPropertyType = propertyType;
+    }
 
     const next: CaseRow = {
       ...existing,
-      property_type:
-        (pickString(input, ["property_type"]) as UpdateCaseInput["property_type"]) ??
-        existing.property_type,
+      property_type: nextPropertyType,
       land_lot_no: pickString(input, ["land_lot_no"]) ?? existing.land_lot_no,
       land_lots: Array.isArray(input.land_lots) && (input.land_lots as string[]).length > 0
         ? (input.land_lots as string[]).filter((lot) => typeof lot === "string" && lot.trim())
@@ -1441,7 +1724,10 @@ export class MockStore {
     this.logo = {
       bytes,
       mime: pickString(payload, ["mime", "mimeType"]) ?? "image/png",
+      filename: pickString(payload, ["filename", "fileName"]) ?? "brand-logo",
+      uploadedAt: new Date().toISOString(),
     };
+    this.persistState();
 
     return { success: true };
   }
@@ -1452,6 +1738,7 @@ export class MockStore {
 
   private deleteLogo(): { success: true } {
     this.logo = null;
+    this.persistState();
     return { success: true };
   }
 
@@ -1509,38 +1796,214 @@ export class MockStore {
 
   private landRegistryAddressLookup(
     args?: CommandArgs,
-  ): Array<{ parcel_id: string; address: string; lot_number: string; building_number: string }> {
+  ): Array<{
+    parcel_id: string;
+    address: string;
+    lot_number: string;
+    building_number: string;
+    source: "dev_fixture" | "mock";
+    trusted_for_pdf: boolean;
+  }> {
     const addr = (args?.address as string) || "未知地址";
+    let candidates: Array<{
+      parcel_id: string;
+      address: string;
+      lot_number: string;
+      building_number: string;
+      source: "dev_fixture" | "mock";
+      trusted_for_pdf: boolean;
+    }> = [];
+    let errorCode: string | undefined;
+    let errorMessage: string | undefined;
+    let discoveryStatus = "candidate_found";
     if (!addr.trim() || /查無|不存在/.test(addr)) {
-      return [];
-    }
-    if (/裕農路288巷17號/.test(addr)) {
-      return [
-        { parcel_id: "DC-1556-00700000", address: addr, lot_number: "00700000", building_number: "" },
-        { parcel_id: "DC-1556-00165000", address: addr, lot_number: "00700000", building_number: "00165000" },
-        { parcel_id: "DC-1556-00167000", address: addr, lot_number: "00700000", building_number: "00167000" },
-        { parcel_id: "DC-1556-00229000", address: addr, lot_number: "00700000", building_number: "00229000" },
-        { parcel_id: "DC-1556-00230000", address: addr, lot_number: "00700000", building_number: "00230000" },
+      candidates = [];
+      discoveryStatus = "manual_required";
+      errorCode = "address_no_match";
+      errorMessage = "地址查無可用候選，請人工確認地段、地號、建號";
+    } else if (/勝利街58巷4號/.test(addr)) {
+      candidates = [];
+      discoveryStatus = "manual_required";
+      errorCode = "address_discovery_unavailable";
+      errorMessage = "本機測試環境未取得勝利街地址的可信地政候選，請人工確認地段、地號、建號";
+    } else if (/裕農路288巷17號/.test(addr)) {
+      candidates = [
+        { parcel_id: "DC-1556-00700000", address: addr, lot_number: "00700000", building_number: "", source: "dev_fixture", trusted_for_pdf: false },
+        { parcel_id: "DC-1556-00165000", address: addr, lot_number: "00700000", building_number: "00165000", source: "dev_fixture", trusted_for_pdf: false },
+        { parcel_id: "DC-1556-00167000", address: addr, lot_number: "00700000", building_number: "00167000", source: "dev_fixture", trusted_for_pdf: false },
+        { parcel_id: "DC-1556-00229000", address: addr, lot_number: "00700000", building_number: "00229000", source: "dev_fixture", trusted_for_pdf: false },
+        { parcel_id: "DC-1556-00230000", address: addr, lot_number: "00700000", building_number: "00230000", source: "dev_fixture", trusted_for_pdf: false },
       ];
-    }
-    if (/候選|多筆|結果不明確/.test(addr)) {
-      return [
-        { parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "0000" },
-        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
+    } else if (/候選|多筆|結果不明確/.test(addr)) {
+      candidates = [
+        { parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "0000", source: "mock", trusted_for_pdf: false },
+        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001", source: "mock", trusted_for_pdf: false },
       ];
+      discoveryStatus = "manual_required";
+      errorCode = "mock_placeholder_untrusted";
+      errorMessage = "本機 mock placeholder 不可視為可信地政候選";
+    } else if (/農地|土地|地號/.test(addr)) {
+      candidates = [{ parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "", source: "mock", trusted_for_pdf: false }];
+      discoveryStatus = "manual_required";
+      errorCode = "mock_placeholder_untrusted";
+      errorMessage = "本機 mock placeholder 不可視為可信地政候選";
+    } else {
+      candidates = [
+        { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001", source: "mock", trusted_for_pdf: false },
+      ];
+      discoveryStatus = "manual_required";
+      errorCode = "mock_placeholder_untrusted";
+      errorMessage = "本機 mock placeholder 不可視為可信地政候選";
     }
-    if (/農地|土地|地號/.test(addr)) {
-      return [{ parcel_id: "0001-0000", address: addr, lot_number: "0001", building_number: "" }];
+    this.registryQueryRuns.unshift(this.makeQueryRun({
+      inputType: "address",
+      sourceInput: addr,
+      matchStatus: "candidate",
+      candidateJson: {
+        status: discoveryStatus,
+        total_cost_cents: 0,
+        candidates,
+        errors: errorCode ? [{ source: "local_dev_discovery", code: errorCode, message: errorMessage }] : [],
+      },
+      totalCostCents: 0,
+      errorCode,
+      errorMessage,
+    }));
+    this.persistState();
+    return candidates;
+  }
+
+  private recordLocalAddressDiscovery(args?: CommandArgs): { success: true; run_id: string } {
+    const payload = toRecord(args);
+    const address = pickString(payload, ["address"]) ?? "";
+    const result = toRecord(payload.result);
+    const status = pickString(result, ["status"]) ?? "manual_required";
+    const candidates = Array.isArray(result.candidates) ? result.candidates : [];
+    const errors = Array.isArray(result.errors) ? result.errors : [];
+    const firstError = toRecord(errors[0]);
+    const errorCode = pickString(firstError, ["code"]);
+    const errorMessage = pickString(firstError, ["message"]);
+    const run = this.makeQueryRun({
+      inputType: "address",
+      sourceInput: address,
+      matchStatus: candidates.length > 0 ? "candidate" : "rejected",
+      candidateJson: {
+        ...result,
+        status,
+        candidates,
+        errors,
+        input_address: address,
+        normalizedAddress: pickString(result, ["normalizedAddress"]) ?? address,
+        total_cost_cents: 0,
+      },
+      rawResponseJson: result,
+      totalCostCents: 0,
+      cacheHit: Boolean(result.cacheHit),
+      sourceRunId: pickString(result, ["sourceRunId"]) ?? undefined,
+      errorCode: errorCode ?? undefined,
+      errorMessage: errorMessage ?? undefined,
+    });
+    this.registryQueryRuns.unshift(run);
+    this.persistState();
+    return { success: true, run_id: run.id };
+  }
+
+  private landRegistryParseR02ResultText(args?: CommandArgs): R02DiscoveryRun {
+    const payload = toRecord(args);
+    const inputAddress = pickString(payload, ["inputAddress", "input_address"]) ?? "";
+    const text = normalizeR02Text(pickString(payload, ["textOrHtml", "text_or_html", "text"]) ?? "");
+    const candidate: R02BuildingCandidate = {
+      administrative_district: extractR02Label(text, "行政區"),
+      land_office: extractR02Label(text, "地政事務所"),
+      section_code: extractR02Label(text, "地段")?.split(/\s+/)[0] ?? null,
+      section_name: extractR02Label(text, "地段")?.split(/\s+/).slice(1).join(" ") || null,
+      land_no: extractR02Label(text, "地號"),
+      building_no: extractR02Label(text, "建號")?.replace(/\D/g, "") || null,
+      building_area_sqm: extractR02Label(text, "建物面積")?.replace("平方公尺", "").trim() ?? null,
+      total_floor_count: extractR02Label(text, "樓層數"),
+      floor_label: extractR02Label(text, "樓層別"),
+      completion_date_roc: extractR02Label(text, "建物完成日期")?.split(/\s+/)[0] ?? null,
+      age_years: extractR02Label(text, "建物完成日期")?.match(/屋齡[^)）]*/)?.[0] ?? null,
+      main_use: extractR02Label(text, "主要用途"),
+    };
+    const missingFields = [
+      candidate.section_code ? null : "section_code",
+      candidate.section_name ? null : "section_name",
+      candidate.building_no ? null : "building_no",
+    ].filter((field): field is string => Boolean(field));
+    if (missingFields.length > 0) {
+      throw new Error(`r02_required_fields_missing:${missingFields.join(",")}`);
     }
-    return [
-      { parcel_id: "0001-0001", address: addr, lot_number: "0001", building_number: "0001" },
-    ];
+    return {
+      adapter: "easymap_r02_desktop",
+      parser_version: "r02-text-v1",
+      input_address: inputAddress,
+      status: "candidate_unconfirmed",
+      total_cost_cents: 0,
+      candidates: [candidate],
+      raw_summary: text.slice(0, 1200),
+      missing_fields: [],
+      error_code: null,
+      next_action: null,
+    };
+  }
+
+  private landRegistryRecordR02ResultText(args?: CommandArgs): R02RecordedDiscoveryRun {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    const inputAddress = pickString(payload, ["inputAddress", "input_address"]) ?? "";
+    try {
+      const discovery = this.landRegistryParseR02ResultText(args);
+      const candidate = discovery.candidates[0];
+      const run = this.makeQueryRun({
+        inputType: "address",
+        sourceInput: inputAddress,
+        matchStatus: "candidate",
+        candidateJson: discovery as unknown as Record<string, unknown>,
+        rawResponseJson: discovery as unknown as Record<string, unknown>,
+        totalCostCents: 0,
+        caseId,
+      });
+      this.registryQueryRuns.unshift(run);
+      this.persistState();
+      return { run_id: run.id, ok: true, discovery, error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const missingFields = message.startsWith("r02_required_fields_missing:")
+        ? message.split(":")[1]?.split(",").filter(Boolean) ?? []
+        : [];
+      const errorSummary = {
+        adapter: "easymap_r02_desktop",
+        parserVersion: "r02-text-v1",
+        errorCode: "r02_required_fields_missing",
+        missingFields,
+        nextAction: "manual_registry_key_required",
+      };
+      const run = this.makeQueryRun({
+        inputType: "address",
+        sourceInput: inputAddress,
+        matchStatus: "candidate",
+        totalCostCents: 0,
+        caseId,
+        errorCode: "r02_required_fields_missing",
+        errorMessage: message,
+        rawResponseJson: errorSummary,
+      });
+      this.registryQueryRuns.unshift(run);
+      this.persistState();
+      return { run_id: run.id, ok: false, discovery: null, error: errorSummary };
+    }
   }
 
   private landRegistryPullData(
     args?: CommandArgs,
   ): { results: Record<string, unknown>; total_cost: number } {
+    const payload = toRecord(args);
     const apiIds = (args?.apiIds || []) as string[];
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    const confirmed = caseId ? this.registryMatchByCase.get(caseId) : null;
+    const caseRow = caseId ? this.cases.get(caseId) : undefined;
+    const confirmedBuildingNo = confirmed?.building_no ?? pickString(payload, ["buildingNo", "building_no"]);
     const results: Record<string, unknown> = {};
     const mockDataMap: Record<string, unknown> = {
       land_registry: { area: 125.8, purpose: "田", lot_number: "0456-0000" },
@@ -1590,6 +2053,50 @@ export class MockStore {
       },
     };
 
+    if (confirmedBuildingNo === "00204000") {
+      mockDataMap.building_registry = {
+        area: 83.61,
+        building_area: 83.61,
+        purpose: "住家用",
+        building_purpose: "住家用",
+        construction_date: "0800829",
+        building_number: "00204000",
+        building_floor: "八層",
+        total_floor_count: "012",
+        address: caseRow?.address ?? "台南市東區裕農路288巷17號8樓之1",
+      };
+      mockDataMap.building_ownership = {
+        owner_name: caseRow?.owner_name ?? "",
+        certificate_no: "",
+        ownership_date: "",
+        registration_reason: "",
+        denominator: 1,
+        numerator: 1,
+      };
+    }
+
+    if (confirmedBuildingNo === "00084000" || confirmedBuildingNo === "03045000") {
+      mockDataMap.building_registry = {
+        area: 128.2,
+        building_area: 128.2,
+        purpose: "住商用",
+        building_purpose: "住商用",
+        construction_date: "0710804",
+        building_number: confirmedBuildingNo,
+        building_floor: "一層，二層，三層，騎樓，電梯樓梯間",
+        total_floor_count: "003",
+        address: caseRow?.address ?? "台南市東區東和路47號3樓",
+      };
+      mockDataMap.building_ownership = {
+        owner_name: caseRow?.owner_name ?? "",
+        certificate_no: "",
+        ownership_date: "",
+        registration_reason: "",
+        denominator: 1,
+        numerator: 1,
+      };
+    }
+
     let totalCost = 0;
     for (const apiId of apiIds) {
       results[apiId] = {
@@ -1600,6 +2107,214 @@ export class MockStore {
       totalCost += 10;
     }
     return { results, total_cost: totalCost };
+  }
+
+  private landRegistryFormalPullData(
+    args?: CommandArgs,
+  ): {
+    run_id: string;
+    results: Record<string, unknown>;
+    total_cost: number;
+    cache_hit: boolean;
+    source_run_id: string | null;
+  } {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    const confirmed = caseId ? this.registryMatchByCase.get(caseId) : null;
+    if (!caseId || !confirmed) {
+      throw new Error("registry_match_required");
+    }
+    const confirmedCaseId = caseId;
+    const apiIds = Array.isArray(payload.apiIds) ? (payload.apiIds as string[]) : [];
+    if (this.trialState.status !== "active") {
+      throw new Error("trial_expired");
+    }
+    const cacheKey = `${this.organizationId}:${confirmed.section_name}:${confirmed.land_no}:${confirmed.building_no ?? "land-only"}:${apiIds.join(",")}`;
+    if (!this.appSettings.landApi.clientId.trim() || !this.appSettings.landApi.secret.trim()) {
+      const run = this.makeQueryRun({
+        inputType: "registry_key",
+        sourceInput: cacheKey,
+        matchStatus: "confirmed",
+        candidateJson: { selected_api_set: apiIds },
+        totalCostCents: 0,
+        caseId,
+        errorCode: "cop_credential_required",
+        errorMessage: "請先在設定頁完成地政查詢帳號設定",
+      });
+      this.registryQueryRuns.unshift(run);
+      this.persistState();
+      throw new Error("cop_credential_required");
+    }
+    if (!confirmed.building_no && apiIds.some(isBuildingFormalApi)) {
+      throw new Error("registry_match_required");
+    }
+    const cachedRunId = this.registryQueryCache.get(cacheKey);
+    if (cachedRunId) {
+      const run = this.makeQueryRun({
+        inputType: "registry_key",
+        sourceInput: cacheKey,
+        matchStatus: "confirmed",
+        candidateJson: { cache: "hit" },
+        totalCostCents: 0,
+        cacheHit: true,
+        sourceRunId: cachedRunId,
+        caseId,
+      });
+      this.registryQueryRuns.unshift(run);
+      this.persistState();
+      return { run_id: run.id, results: {}, total_cost: 0, cache_hit: true, source_run_id: cachedRunId };
+    }
+    const pulled = this.landRegistryPullData({ ...payload, apiIds });
+    const formalResults = Object.fromEntries(
+      Object.entries(pulled.results).map(([apiId, result]) => {
+        const row = toRecord(result);
+        return [
+          apiId,
+          {
+            ...row,
+            source: row.success === false ? row.source ?? "api" : "api",
+          },
+        ];
+      }),
+    );
+    const nowIso = new Date().toISOString();
+    const apiCalls: RegistryQueryApiCall[] = apiIds.map((apiId, index) => ({
+      id: makeUuid(),
+      service_code: apiId,
+      transaction_id: `tx-${Date.now()}-${index + 1}`,
+      http_status: 200,
+      moi_code: null,
+      moi_message: "OK",
+      return_rows: 1,
+      cost_cents: 1000,
+      started_at: nowIso,
+      finished_at: nowIso,
+    }));
+    const run = this.makeQueryRun({
+      inputType: "registry_key",
+      sourceInput: cacheKey,
+      matchStatus: "confirmed",
+      copResponseJson: formalResults as Record<string, unknown>,
+      rawResponseJson: formalResults as Record<string, unknown>,
+      totalCostCents: pulled.total_cost * 100,
+      caseId: confirmedCaseId,
+      apiCalls,
+    });
+    this.registryQueryRuns.unshift(run);
+    this.registryQueryCache.set(cacheKey, run.id);
+    const existing = this.cases.get(confirmedCaseId);
+    if (existing) {
+      const next: CaseRow = {
+        ...existing,
+        land_registry_data: {
+          ...(existing.land_registry_data ?? {}),
+          formal_registry_run_id: run.id,
+          formal_registry_json: formalResults,
+          confirmed_registry_match: {
+            section_name: confirmed.section_name,
+            land_no: confirmed.land_no,
+            building_no: confirmed.building_no,
+            status: "confirmed",
+          },
+        },
+        updated_at: unixNow(),
+      };
+      this.cases.set(confirmedCaseId, next);
+    }
+    this.persistState();
+    return { run_id: run.id, results: formalResults, total_cost: pulled.total_cost, cache_hit: false, source_run_id: null };
+  }
+
+  private landRegistryPaidAddressResolver(args?: CommandArgs): {
+    run_id: string;
+    candidates: Array<{
+      parcel_id: string;
+      address: string;
+      lot_number: string;
+      building_number: string;
+      section_name?: string;
+      section_code?: string;
+      source: "cop_moi";
+      trusted_for_pdf: false;
+      discovery_confidence: "needs_selection";
+      confirmation_state: "unconfirmed";
+    }>;
+    total_cost: number;
+    total_cost_cents: number;
+    cache_hit: boolean;
+    source_run_id: null;
+  } {
+    const address = pickString(toRecord(args), ["address"]) ?? "";
+    if (!address.trim()) throw new Error("resolver_address_required");
+    if (!this.appSettings.landApi.clientId.trim() || !this.appSettings.landApi.secret.trim()) {
+      throw new Error("cop_credential_required");
+    }
+    const candidates = [
+      {
+        parcel_id: "resolver:1556:00700000:00165000",
+        address,
+        lot_number: "00700000",
+        building_number: "00165000",
+        section_name: "富強段",
+        section_code: "1556",
+        source: "cop_moi" as const,
+        trusted_for_pdf: false as const,
+        discovery_confidence: "needs_selection" as const,
+        confirmation_state: "unconfirmed" as const,
+      },
+      {
+        parcel_id: "resolver:1556:00700000:00167000",
+        address,
+        lot_number: "00700000",
+        building_number: "00167000",
+        section_name: "富強段",
+        section_code: "1556",
+        source: "cop_moi" as const,
+        trusted_for_pdf: false as const,
+        discovery_confidence: "needs_selection" as const,
+        confirmation_state: "unconfirmed" as const,
+      },
+    ];
+    const nowIso = new Date().toISOString();
+    const apiCall: RegistryQueryApiCall = {
+      id: makeUuid(),
+      service_code: "MOI_API_037",
+      transaction_id: `tx-resolver-${Date.now()}`,
+      http_status: 200,
+      moi_code: null,
+      moi_message: "OK",
+      return_rows: candidates.length,
+      cost_cents: 3000,
+      started_at: nowIso,
+      finished_at: nowIso,
+    };
+    const run = this.makeQueryRun({
+      inputType: "address",
+      sourceInput: address,
+      matchStatus: "candidate",
+      candidateJson: {
+        run_type: "paid_address_resolver",
+        status: "candidate_unconfirmed",
+        candidates,
+        total_cost_cents: 3000,
+      },
+      rawResponseJson: {
+        run_type: "paid_address_resolver",
+        candidates,
+      },
+      totalCostCents: 3000,
+      apiCalls: [apiCall],
+    });
+    this.registryQueryRuns.unshift(run);
+    this.persistState();
+    return {
+      run_id: run.id,
+      candidates,
+      total_cost: 30,
+      total_cost_cents: 3000,
+      cache_hit: false,
+      source_run_id: null,
+    };
   }
 
   private queryRealPrice(args?: CommandArgs): Array<{
@@ -1748,6 +2463,9 @@ export class MockStore {
   }
 
   private landRegistryListBillingEntries(): Array<{
+    run_id?: string;
+    object_type?: "building" | "land" | "address" | "unknown";
+    object_type_label?: string;
     service_name: string;
     target: string;
     status_label: string;
@@ -1755,8 +2473,26 @@ export class MockStore {
     cost: number;
     charged_at: string;
   }> {
+    const fromRuns = this.registryQueryRuns.flatMap((run) =>
+      run.api_calls.map((call) => ({
+        run_id: run.id,
+        object_type: inferBillingObjectType(run, call.service_code),
+        object_type_label: formatBillingObjectType(inferBillingObjectType(run, call.service_code)),
+        service_name: call.service_code,
+        target: run.case_id ? `${run.case_id} / ${run.source_input}` : run.source_input,
+        status_label: call.http_status >= 400 ? "查詢失敗" : "查詢成功",
+        transaction_id: call.transaction_id ?? "N/A",
+        cost: Math.round(call.cost_cents / 100),
+        charged_at: call.finished_at,
+      })),
+    );
+    if (fromRuns.length > 0) return fromRuns;
+
     return [
       {
+        run_id: "demo-building-run",
+        object_type: "building",
+        object_type_label: "戶建",
         service_name: "建物所有權資料",
         target: "AIRE-2026-001 / 建號 88-1",
         status_label: "查詢成功",
@@ -1765,6 +2501,9 @@ export class MockStore {
         charged_at: "2026-05-18T22:52:20+08:00",
       },
       {
+        run_id: "demo-address-run",
+        object_type: "address",
+        object_type_label: "門牌",
         service_name: "門牌建號查詢",
         target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
         status_label: "查詢失敗",
@@ -1773,6 +2512,9 @@ export class MockStore {
         charged_at: "2026-05-18T22:52:20+08:00",
       },
       {
+        run_id: "demo-billing-run",
+        object_type: "unknown",
+        object_type_label: "帳務",
         service_name: "帳務查詢",
         target: "地政帳號",
         status_label: "免費",
@@ -1790,6 +2532,128 @@ export class MockStore {
       this.consentedCases.add(caseId);
     }
     return undefined;
+  }
+
+  private listRegistryQueryRuns(args?: CommandArgs): RegistryQueryRun[] {
+    const payload = toRecord(args);
+    const keyword = pickString(payload, ["keyword"])?.toLowerCase() ?? "";
+    return this.registryQueryRuns
+      .filter((run) => run.organization_id === this.organizationId)
+      .filter((run) => (keyword ? JSON.stringify(run).toLowerCase().includes(keyword) : true))
+      .map((run) => ({ ...run, api_calls: run.api_calls.map((call) => ({ ...call })) }));
+  }
+
+  private getRegistryQueryRunDetail(args?: CommandArgs): RegistryQueryRun {
+    const payload = toRecord(args);
+    const runId = pickString(payload, ["runId", "run_id", "id"]);
+    if (!runId) throw new Error("run_id_required");
+    const run = this.registryQueryRuns.find(
+      (item) => item.id === runId && item.organization_id === this.organizationId,
+    );
+    if (!run) throw new Error("run_not_found");
+    return { ...run, api_calls: run.api_calls.map((call) => ({ ...call })) };
+  }
+
+  private syncRegistryQueryRunToSaas(args?: CommandArgs): { synced: true; remote_run_id: string } {
+    const payload = toRecord(args);
+    const runId = pickString(payload, ["runId", "run_id", "id"]);
+    if (!runId) throw new Error("run_id_required");
+    const run = this.registryQueryRuns.find((item) => item.id === runId);
+    if (!run) throw new Error("run_not_found");
+    return { synced: true, remote_run_id: `mock-remote-${run.id}` };
+  }
+
+  private confirmCaseRegistryMatch(args?: CommandArgs): { success: true; match: ConfirmedRegistryMatch } {
+    const payload = toRecord(args);
+    const caseId = pickString(payload, ["caseId", "case_id"]);
+    const sectionName = pickString(payload, ["sectionName", "section_name"]);
+    const landNo = pickString(payload, ["landNo", "land_no"]);
+    const buildingNo = pickString(payload, ["buildingNo", "building_no"]);
+    if (!caseId || !sectionName || !landNo) throw new Error("registry_match_required");
+    const match: ConfirmedRegistryMatch = {
+      case_id: caseId,
+      section_name: sectionName,
+      land_no: landNo,
+      building_no: buildingNo,
+      confirmed_at: new Date().toISOString(),
+    };
+    this.registryMatchByCase.set(caseId, match);
+    const existing = this.cases.get(caseId);
+    if (existing) {
+      this.cases.set(caseId, {
+        ...existing,
+        land_registry_data: {
+          ...(existing.land_registry_data ?? {}),
+          confirmed_registry_match: {
+            section_name: sectionName,
+            land_no: landNo,
+            building_no: buildingNo ?? null,
+            status: "confirmed",
+          },
+        },
+        updated_at: unixNow(),
+      });
+    }
+    this.persistState();
+    return { success: true, match };
+  }
+
+  private getTrialStatus(): TrialState {
+    return { ...this.trialState };
+  }
+
+  private setTrialStatus(args?: CommandArgs): { success: true; trial: TrialState } {
+    const payload = toRecord(args);
+    const status = pickString(payload, ["status"]) as TrialStatus | null;
+    const plan = pickString(payload, ["plan"]) as TrialPlan | null;
+    if (status && (status === "active" || status === "expired" || status === "disabled")) {
+      this.trialState.status = status;
+    }
+    if (plan && (plan === "trial" || plan === "basic" || plan === "pro" || plan === "vip")) {
+      this.trialState.plan = plan;
+    }
+    const startedAt = pickString(payload, ["startedAt", "started_at"]);
+    const endsAt = pickString(payload, ["endsAt", "ends_at"]);
+    if (startedAt !== null) this.trialState.startedAt = startedAt;
+    if (endsAt !== null) this.trialState.endsAt = endsAt;
+    return { success: true, trial: { ...this.trialState } };
+  }
+
+  private makeQueryRun(input: {
+    inputType: RegistryRunInputType;
+    sourceInput: string;
+    matchStatus: RegistryRunMatchStatus;
+    candidateJson?: Record<string, unknown>;
+    copResponseJson?: Record<string, unknown>;
+    rawResponseJson?: Record<string, unknown>;
+    totalCostCents: number;
+    cacheHit?: boolean;
+    sourceRunId?: string;
+    errorCode?: string;
+    errorMessage?: string;
+    caseId?: string | null;
+    apiCalls?: RegistryQueryApiCall[];
+  }): RegistryQueryRun {
+    const now = new Date().toISOString();
+    return {
+      id: makeUuid(),
+      organization_id: this.organizationId,
+      case_id: input.caseId ?? null,
+      input_type: input.inputType,
+      source_input: input.sourceInput,
+      match_status: input.matchStatus,
+      candidate_json: input.candidateJson ?? null,
+      cop_response_json: input.copResponseJson ?? null,
+      raw_response_json: input.rawResponseJson ?? null,
+      total_cost_cents: input.totalCostCents,
+      cache_hit: input.cacheHit ?? false,
+      source_run_id: input.sourceRunId ?? null,
+      error_code: input.errorCode ?? null,
+      error_message: input.errorMessage ?? null,
+      api_calls: input.apiCalls ?? [],
+      created_at: now,
+      updated_at: now,
+    };
   }
 
   private uploadFloorPlanSketch(args?: CommandArgs): FloorPlanSketchRow {
@@ -1923,6 +2787,7 @@ export class MockStore {
       const persistedSession = parsed.sessionUser;
       const persistedSettings = parsed.appSettings;
       const persistedCases = parsed.cases;
+      const persistedTrial = parsed.trialState;
 
       if (
         persistedLicense &&
@@ -1947,6 +2812,15 @@ export class MockStore {
         this.sessionUser = {
           email: persistedSession.email,
           role: persistedSession.role,
+        };
+      }
+      if (parsed.deviceSession && typeof parsed.deviceSession === "object") {
+        const ds = toRecord(parsed.deviceSession);
+        const status = pickString(ds, ["status"]);
+        this.deviceSession = {
+          status: status === "active" ? "active" : "missing",
+          email: pickString(ds, ["email"]),
+          persistedAt: pickString(ds, ["persistedAt", "persisted_at"]),
         };
       }
 
@@ -2007,8 +2881,24 @@ export class MockStore {
           passwordUpdatedAt:
             typeof profile.passwordUpdatedAt === "string"
               ? profile.passwordUpdatedAt
-              : null,
+            : null,
         };
+      }
+      if (parsed.logo && typeof parsed.logo === "object") {
+        const logo = toRecord(parsed.logo);
+        const bytesRaw = logo.bytes;
+        const bytes = Array.isArray(bytesRaw)
+          ? bytesRaw.filter((value): value is number => typeof value === "number")
+          : [];
+        const mime = pickString(logo, ["mime"]);
+        if (bytes.length > 0 && mime) {
+          this.logo = {
+            bytes,
+            mime,
+            filename: pickString(logo, ["filename", "fileName"]) ?? undefined,
+            uploadedAt: pickString(logo, ["uploadedAt", "uploaded_at"]) ?? undefined,
+          };
+        }
       }
       if (parsed.workbenchSupplements && typeof parsed.workbenchSupplements === "object") {
         this.workbenchSupplements = new Map(
@@ -2102,6 +2992,40 @@ export class MockStore {
             .map((row) => [row.id, { ...row }]),
         );
       }
+      if (
+        persistedTrial &&
+        (persistedTrial.plan === "trial" ||
+          persistedTrial.plan === "basic" ||
+          persistedTrial.plan === "pro" ||
+          persistedTrial.plan === "vip") &&
+        (persistedTrial.status === "active" ||
+          persistedTrial.status === "expired" ||
+          persistedTrial.status === "disabled")
+      ) {
+        this.trialState = { ...persistedTrial };
+      }
+      if (Array.isArray(parsed.registryQueryRuns)) {
+        this.registryQueryRuns = parsed.registryQueryRuns.map((run) => ({
+          ...run,
+          api_calls: Array.isArray(run.api_calls) ? run.api_calls.map((call) => ({ ...call })) : [],
+        }));
+      }
+      if (parsed.registryQueryCache && typeof parsed.registryQueryCache === "object") {
+        this.registryQueryCache = new Map(
+          Object.entries(parsed.registryQueryCache).filter(
+            (entry): entry is [string, string] =>
+              typeof entry[0] === "string" && typeof entry[1] === "string",
+          ),
+        );
+      }
+      if (parsed.registryMatchByCase && typeof parsed.registryMatchByCase === "object") {
+        this.registryMatchByCase = new Map(
+          Object.entries(parsed.registryMatchByCase).filter(
+            (entry): entry is [string, ConfirmedRegistryMatch] =>
+              typeof entry[0] === "string" && typeof entry[1] === "object" && entry[1] !== null,
+          ),
+        );
+      }
       if (Array.isArray(parsed.caseAssets)) {
         this.caseAssets = parsed.caseAssets
           .filter((asset): asset is CaseAssetRow => Boolean(asset) && typeof asset.id === "string")
@@ -2146,6 +3070,7 @@ export class MockStore {
     const snapshot: PersistedMockState = {
       license: { ...this.license },
       sessionUser: this.sessionUser ? { ...this.sessionUser } : null,
+      deviceSession: { ...this.deviceSession },
       appSettings: {
         landApi: {
           clientId: this.appSettings.landApi.clientId,
@@ -2160,6 +3085,7 @@ export class MockStore {
       },
       featureFlags: this.featureFlags.map((flag) => ({ ...flag })),
       profileSettings: { ...this.profileSettings },
+      logo: this.logo ? { ...this.logo } : null,
       workbenchSupplements: Object.fromEntries(
         [...this.workbenchSupplements.entries()].map(([caseId, draft]) => [
           caseId,
@@ -2169,6 +3095,13 @@ export class MockStore {
       cases: [...this.cases.values()].map((row) => ({ ...row })),
       caseAssets: this.caseAssets.map((asset) => ({ ...asset })),
       caseAssetBytes: Object.fromEntries(this.caseAssetBytes.entries()),
+      trialState: { ...this.trialState },
+      registryQueryRuns: this.registryQueryRuns.map((run) => ({
+        ...run,
+        api_calls: run.api_calls.map((call) => ({ ...call })),
+      })),
+      registryQueryCache: Object.fromEntries(this.registryQueryCache.entries()),
+      registryMatchByCase: Object.fromEntries(this.registryMatchByCase.entries()),
     };
 
     try {
@@ -2198,4 +3131,27 @@ export function __resetMockStoreForTests(): void {
     }
   }
   defaultStore = new MockStore();
+}
+
+function inferBillingObjectType(
+  run: RegistryQueryRun,
+  serviceCode: string,
+): "building" | "land" | "address" | "unknown" {
+  const haystack = [
+    serviceCode,
+    run.source_input,
+    JSON.stringify(run.candidate_json ?? {}),
+    JSON.stringify(run.cop_response_json ?? {}),
+  ].join(" ");
+  if (/paid_address_resolver|MOI_API_037|門牌|address/i.test(haystack)) return "address";
+  if (/building|建物|建號|building_registry|building_ownership/i.test(haystack)) return "building";
+  if (/land|土地|地號|land_registry|地籍/i.test(haystack)) return "land";
+  return "unknown";
+}
+
+function formatBillingObjectType(type: "building" | "land" | "address" | "unknown"): string {
+  if (type === "building") return "戶建";
+  if (type === "land") return "土地";
+  if (type === "address") return "門牌";
+  return "其他";
 }

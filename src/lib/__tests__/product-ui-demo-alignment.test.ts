@@ -6,6 +6,7 @@ import {
   FRONTSTAGE_FORBIDDEN_PATTERNS,
   getAddressFirstClassification,
   classifyAddressLookupResult,
+  getCustomerPropertyTypeOptions,
   getCustomerServiceLabel,
   getDemoFieldReviewRows,
   getDemoSidebarFolders,
@@ -13,6 +14,7 @@ import {
   getSettingsCategories,
   getUpgradePlans,
   getUsageLedgerRows,
+  inferPropertyTypeFromRegistryFields,
   isFrontstageTextClean,
 } from "../product-ui-demo-alignment";
 
@@ -52,18 +54,17 @@ describe("product-ui-demo-alignment contract", () => {
     expect(getDemoSidebarFolders()[1].items.map((item) => item.label)).toEqual([
       "資料來源",
       "費用紀錄",
+      "地政授權",
     ]);
     expect(getSettingsCategories().map((category) => category.label)).toEqual([
-      "個人設定",
-      "品牌與交付資訊",
-      "地政授權",
-      "方案與升級",
+      "品牌設定",
+      "操作日誌",
+      "方案設定",
     ]);
     expect(getDemoSidebarFolders()[2].items.map((item) => item.label)).toEqual([
-      "個人設定",
-      "品牌與交付資訊",
-      "地政授權",
-      "方案與升級",
+      "品牌設定",
+      "操作日誌",
+      "方案設定",
     ]);
   });
 
@@ -152,6 +153,47 @@ describe("product-ui-demo-alignment contract", () => {
     expect(multipleCandidates.buildingCount).toBe(1);
   });
 
+  it("exposes customer-facing property type options while keeping legacy values loadable", () => {
+    const options = getCustomerPropertyTypeOptions();
+
+    expect(options.map((option) => option.label)).toEqual(
+      expect.arrayContaining(["大樓", "公寓", "透天", "成屋", "農舍", "土地", "農地", "店面", "工廠", "其他"]),
+    );
+    expect(options.map((option) => option.value)).toEqual(
+      expect.arrayContaining(["highrise", "apartment", "townhouse", "residential", "farmhouse", "land", "farmland", "storefront", "factory", "other"]),
+    );
+  });
+
+  it.each([
+    ["大樓正式資料", { hasBuilding: true, totalFloorCount: 15, mainUse: "住家用" }, "highrise"],
+    ["公寓正式資料", { hasBuilding: true, totalFloorCount: 5, mainUse: "集合住宅" }, "apartment"],
+    ["透天正式資料", { hasBuilding: true, totalFloorCount: 3, mainUse: "住家用" }, "townhouse"],
+    ["店面正式資料", { hasBuilding: true, mainUse: "店舖" }, "storefront"],
+    ["工廠正式資料", { hasBuilding: true, mainUse: "廠房" }, "factory"],
+    ["農地正式資料", { hasBuilding: false, zoning: "特定農業區", landUse: "農牧用地" }, "farmland"],
+    ["商業用地正式資料", { hasBuilding: false, zoning: "商業區" }, "commercial-land"],
+  ])("infers %s into detailed property type", (_label, input, expected) => {
+    expect(inferPropertyTypeFromRegistryFields(input)).toBe(expected);
+  });
+
+  it("does not classify a floor address as land-only when discovery only finds land", () => {
+    const classified = classifyAddressLookupResult("台南市東區東和路47號3樓", [
+      {
+        parcel_id: "DC-1514-00022132",
+        address: "臺南市東區小東里３鄰東和路４７號",
+        lot_number: "00022132",
+        building_number: "",
+      },
+    ]);
+
+    expect(classified.status).toBe("manual_required");
+    expect(classified.propertyType).toBe("residential");
+    expect(classified.displayType).toBe("建物需確認");
+    expect(classified.summary).toBe("已找到 1 筆土地，建號需人工確認");
+    expect(classified.landCount).toBe(1);
+    expect(classified.buildingCount).toBe(1);
+  });
+
   it("counts Yunong candidate land and buildings separately", () => {
     const classified = classifyAddressLookupResult("台南市東區裕農路288巷17號8樓之1", [
       { parcel_id: "DC-1556-00700000", address: "A", lot_number: "00700000", building_number: "" },
@@ -181,7 +223,8 @@ describe("product-ui-demo-alignment contract", () => {
       expect(customerText).not.toMatch(pattern);
     }
 
-    expect(rows.some((row) => row.admin.serviceCode === "MOI_API_005")).toBe(true);
+    expect(rows.some((row) => row.admin.serviceCode === "R02_FREE_DISCOVERY")).toBe(true);
+    expect(rows.some((row) => row.serviceName === "地政謄本匯入" && row.outcomeLabel === "尚未匯入")).toBe(true);
   });
 
   it("maps provenance candidate and failed lookup states into customer-facing field review rows", () => {
@@ -227,15 +270,21 @@ describe("product-ui-demo-alignment contract", () => {
       expect.arrayContaining([
         expect.objectContaining({
           fieldName: "登記日期",
-          value: "083/10/18",
-          statusLabel: "待確認",
-          serviceName: "建物標示資料",
+          value: "民國083年10月18日",
+          statusLabel: "候選資料",
+          serviceName: "公開物件資料",
         }),
         expect.objectContaining({
           fieldName: "建物權利範圍",
           value: "授權不足，請補授權或改由屋主提供謄本",
           statusLabel: "查詢未成功",
           serviceName: "建物所有權資料",
+        }),
+        expect.objectContaining({
+          fieldName: "門牌查詢建號",
+          value: "已找到建號 00165000",
+          statusLabel: "候選資料",
+          serviceName: "免費物件查詢",
         }),
       ]),
     );
@@ -286,10 +335,94 @@ describe("product-ui-demo-alignment contract", () => {
           fieldName: "登記日期",
           value: "待確認",
           statusLabel: "待確認",
-          serviceName: "建物標示資料",
+          serviceName: "公開物件資料",
+        }),
+        expect.objectContaining({
+          fieldName: "門牌查詢建號",
+          value: "已找到建號 0001",
+          statusLabel: "候選資料",
+          serviceName: "免費物件查詢",
         }),
       ]),
     );
     expect(rows.map((row) => row.value)).not.toContain("113/08/12");
+  });
+
+  it("surfaces owner and zero-cost candidate values without exposing provider names", () => {
+    const rows = getDemoFieldReviewRows({
+      id: "donghe-case",
+      case_no: "002",
+      case_name: "東和路",
+      property_type: "residential",
+      land_lot_no: "00084000",
+      land_lots: ["00084000"],
+      building_lot_no: "00084000",
+      address: "台南市東區東和路47號3樓",
+      owner_name: "蔡國卿",
+      status: "draft",
+      created_at: 1763200000,
+      updated_at: 1763200000,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-26T00:00:00.000Z",
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "building:DK-9125-00084000",
+            parcel_type: "building",
+            section_code: "9125",
+            section_name: "東和段",
+            parcel_number: "00084000",
+            normalized_parcel_id: "DK-9125-00084000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            summary_fields: {
+              registeredAreaPing: 38.78,
+              legalUse: "住商用",
+              constructionDate: "0710804",
+              floor: "三層",
+              age: "44年",
+            },
+            warnings: [],
+          },
+        ],
+      },
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          fieldName: "屋主姓名",
+          value: "蔡國卿",
+          serviceName: "案件資料",
+          statusLabel: "已提供",
+        }),
+        expect.objectContaining({
+          fieldName: "姓名比對結果",
+          value: "待正式所有權資料後再比對",
+          statusLabel: "待匯入",
+        }),
+        expect.objectContaining({
+          fieldName: "建物面積",
+          value: "38.78 坪",
+          helper: "建物面積",
+          serviceName: "公開物件資料",
+        }),
+        expect.objectContaining({
+          fieldName: "主要用途",
+          value: "住商用",
+          helper: "主要用途",
+          serviceName: "公開物件資料",
+        }),
+        expect.objectContaining({
+          fieldName: "登記日期",
+          value: "民國071年08月04日",
+          serviceName: "公開物件資料",
+        }),
+      ]),
+    );
+    expect(rows.map((row) => `${row.helper}${row.serviceName}`).join(" ")).not.toMatch(/R02|便民系統/);
   });
 });

@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-static";
 
 const STORE_PATH = join(process.cwd(), ".aire-dev", "branding-text-settings.json");
 

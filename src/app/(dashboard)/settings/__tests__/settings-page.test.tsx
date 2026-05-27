@@ -50,6 +50,14 @@ vi.mock("@/lib/mock-backend", () => ({
   }),
 }));
 
+vi.mock("@/lib/auth", () => ({
+  getDeviceSessionStatus: vi.fn(async () => ({
+    status: "active",
+    email: "admin@test.aire",
+    persistedAt: "2026-05-25T00:00:00.000Z",
+  })),
+}));
+
 describe("SettingsPage demo alignment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -60,40 +68,38 @@ describe("SettingsPage demo alignment", () => {
     render(<SettingsPage />);
 
     expect(screen.getByRole("heading", { name: "個人設定" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "設定分類" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "更新密碼" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "PDF 開啟密碼" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "個人名稱與 Email" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "品牌色與 Logo" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "品牌色與 Logo" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("品牌色")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("品牌 Logo 上傳")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "帳號與授權管理" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "目前操作紀錄" })).not.toBeInTheDocument();
   });
 
-  it("renders plan cards and usable test-build feature controls", async () => {
+  it("renders only the currently available basic plan", async () => {
     mockSection = "plans";
     render(<SettingsPage />);
 
-    expect(screen.getByRole("heading", { name: "方案與升級" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "方案設定" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "設定分類" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "基本款" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "進階款" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "高級款" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "進階款" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "高級款" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "帳號與授權管理" })).toBeInTheDocument();
+    expect(screen.getByText("帳號角色")).toBeInTheDocument();
+    expect(await screen.findByText("管理員")).toBeInTheDocument();
     expect(screen.getAllByText("目前方案").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByRole("button", { name: "前往升級" })).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: "預留功能" })).toBeInTheDocument();
-    expect(screen.getByText("目前正在開發中。")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByRole("switch", { name: "Google 地圖未啟用" })).not.toBeDisabled();
-    });
-    expect(screen.getByRole("switch", { name: "地籍圖整理未啟用" })).not.toBeDisabled();
-    expect(screen.getByRole("switch", { name: "實價登錄未啟用" })).not.toBeDisabled();
-    expect(screen.getAllByText("未啟用").length).toBeGreaterThanOrEqual(6);
+    expect(screen.queryByRole("button", { name: "前往升級" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "預留功能" })).not.toBeInTheDocument();
+    expect(screen.queryByText("目前正在開發中。")).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "Google 地圖未啟用" })).not.toBeInTheDocument();
     expect(screen.queryByText("測試版已開啟")).not.toBeInTheDocument();
     expect(screen.queryByText(/正式版歸在/)).not.toBeInTheDocument();
     expect(screen.queryByText("Super Admin")).not.toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
-    expect(screen.getAllByText("實價登錄").length).toBeGreaterThan(0);
+    expect(screen.queryByText("實價登錄")).not.toBeInTheDocument();
   });
 
   it("marks route-ready settings sections from query params", () => {
@@ -105,7 +111,7 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.queryByRole("link", { name: "品牌設定" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "操作日誌" })).not.toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("地政 API 設定")).not.toBeInTheDocument();
+    expect(screen.queryByText("地政查詢帳號")).not.toBeInTheDocument();
   });
 
   it("renders registry source as land-data content instead of the full system settings", () => {
@@ -116,9 +122,9 @@ describe("SettingsPage demo alignment", () => {
     expect(screen.getByText("屋主資料邊界")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "品牌設定" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "操作日誌" })).not.toBeInTheDocument();
-    expect(screen.queryByText("方案與升級")).not.toBeInTheDocument();
+    expect(screen.queryByText("方案設定")).not.toBeInTheDocument();
     expect(screen.queryByText("授權管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("地政 API 設定")).not.toBeInTheDocument();
+    expect(screen.queryByText("地政查詢帳號")).not.toBeInTheDocument();
     expect(screen.queryByText("實價登錄 MCP Hub")).not.toBeInTheDocument();
   });
 });

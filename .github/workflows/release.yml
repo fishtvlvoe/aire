@@ -5,9 +5,19 @@ on:
     tags:
       - "v*.*.*"
   workflow_dispatch:
+    inputs:
+      smoke_existing_release_tag:
+        description: "Optional draft release tag to download an existing Windows setup.exe for runtime smoke"
+        required: false
+        default: ""
+      customer_release:
+        description: "Require trusted Windows code signing and customer-release-ready metadata"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -18,9 +28,6 @@ jobs:
           - platform: macos-latest
             name: macos-aarch64
             args: "--target aarch64-apple-darwin"
-          - platform: macos-13
-            name: macos-x64
-            args: "--target x86_64-apple-darwin"
           - platform: windows-latest
             name: windows-x64
             args: ""
@@ -51,12 +58,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Type check
+        if: ${{ github.event.inputs.smoke_existing_release_tag == '' }}
         run: pnpm type-check
 
+      - name: Ensure Windows temp output directory
+        if: runner.os == 'Windows'
+        run: New-Item -ItemType Directory -Force D:\tmp
+
       - name: Test
+        if: ${{ github.event.inputs.smoke_existing_release_tag == '' }}
         run: pnpm test
 
       - name: Build and upload Tauri bundles
+        if: ${{ github.event.inputs.smoke_existing_release_tag == '' }}
         uses: tauri-apps/tauri-action@v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,3 +81,175 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: "${{ matrix.args }}"
+
+      - name: Locate Windows installer
+        if: runner.os == 'Windows' && github.event.inputs.smoke_existing_release_tag == ''
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installer = Get-ChildItem src-tauri\target\release\bundle -Recurse -Filter "*setup.exe" |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $installer) {
+            throw "No Windows setup.exe installer found under src-tauri\target\release\bundle"
+          }
+          "WINDOWS_INSTALLER_PATH=$($installer.FullName)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          $version = node -p "require('./package.json').version"
+          "AIRE_RELEASE_TAG=aire-v$version" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Azure login for Windows signing
+        if: runner.os == 'Windows' && github.event.inputs.customer_release == 'true' && github.event.inputs.smoke_existing_release_tag == ''
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign Windows installer with Azure Artifact Signing
+        if: runner.os == 'Windows' && github.event.inputs.customer_release == 'true' && github.event.inputs.smoke_existing_release_tag == ''
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
+          files: ${{ env.WINDOWS_INSTALLER_PATH }}
+          file-digest: SHA256
+          timestamp-rfc3161: "http://timestamp.acs.microsoft.com"
+          timestamp-digest: SHA256
+          description: "AIRE Windows installer"
+          description-url: "https://github.com/fishtvlvoe/aire"
+
+      - name: Verify Windows installer trust
+        if: runner.os == 'Windows' && github.event.inputs.smoke_existing_release_tag == ''
+        shell: pwsh
+        env:
+          CUSTOMER_RELEASE: ${{ github.event.inputs.customer_release }}
+          WINDOWS_SIGNING_EXPECTED_PUBLISHER: ${{ vars.WINDOWS_SIGNING_EXPECTED_PUBLISHER }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force artifacts\windows-installer-trust | Out-Null
+          $args = @(
+            "scripts\verify-windows-installer-trust.mjs",
+            "--installer", $env:WINDOWS_INSTALLER_PATH,
+            "--out", "artifacts\windows-installer-trust\metadata.json",
+            "--workflow-url", "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID",
+            "--commit", $env:GITHUB_SHA,
+            "--release-tag", $env:AIRE_RELEASE_TAG,
+            "--smart-screen", "not_observed",
+            "--defender", "not_observed",
+            "--windows-runtime-evidence", "artifacts/windows-runtime-smoke/report.json,artifacts/windows-runtime-smoke/aire-windows-runtime-smoke.png"
+          )
+          if ($env:WINDOWS_SIGNING_EXPECTED_PUBLISHER) {
+            $args += @("--expected-publisher", $env:WINDOWS_SIGNING_EXPECTED_PUBLISHER)
+          }
+          if ($env:CUSTOMER_RELEASE -eq "true") {
+            $args += "--customer-release"
+          }
+          node @args
+          if (-not (Test-Path "artifacts\windows-installer-trust\metadata.json")) {
+            throw "Windows installer trust metadata was not generated"
+          }
+
+      - name: Upload signed Windows release assets
+        if: runner.os == 'Windows' && github.event.inputs.customer_release == 'true' && github.event.inputs.smoke_existing_release_tag == ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          gh release upload $env:AIRE_RELEASE_TAG $env:WINDOWS_INSTALLER_PATH artifacts\windows-installer-trust\metadata.json --clobber
+
+      - name: Windows runtime smoke
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force artifacts\windows-runtime-smoke | Out-Null
+
+          $existingReleaseTag = "${{ github.event.inputs.smoke_existing_release_tag }}"
+          if ($existingReleaseTag) {
+            New-Item -ItemType Directory -Force artifacts\windows-runtime-input | Out-Null
+            gh release download $existingReleaseTag --pattern "*setup.exe" --dir artifacts\windows-runtime-input
+            $installer = Get-ChildItem artifacts\windows-runtime-input -Recurse -Filter "*setup.exe" |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+          } else {
+            $installer = Get-ChildItem src-tauri\target\release\bundle -Recurse -Filter "*setup.exe" |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+          }
+          if (-not $installer) {
+            throw "No Windows setup.exe installer found under src-tauri\target\release\bundle"
+          }
+
+          $installerHash = (Get-FileHash -Algorithm SHA256 $installer.FullName).Hash.ToLowerInvariant()
+          Start-Process -FilePath $installer.FullName -ArgumentList "/S" -Wait
+          Start-Sleep -Seconds 5
+
+          $exeCandidates = @(
+            "$env:LOCALAPPDATA\Programs\AIRE\AIRE.exe",
+            "$env:LOCALAPPDATA\Programs\aire\AIRE.exe",
+            "$env:LOCALAPPDATA\AIRE\AIRE.exe",
+            "$env:ProgramFiles\AIRE\AIRE.exe",
+            "${env:ProgramFiles(x86)}\AIRE\AIRE.exe"
+          )
+          $appExe = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $appExe) {
+            $appExe = Get-ChildItem "$env:LOCALAPPDATA\Programs","$env:ProgramFiles","${env:ProgramFiles(x86)}" -Recurse -ErrorAction SilentlyContinue -Filter "AIRE.exe" |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $appExe) {
+            throw "AIRE.exe was not found after installer completed"
+          }
+
+          $process = Start-Process -FilePath $appExe -PassThru
+          Start-Sleep -Seconds 15
+          $running = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
+          if (-not $running) {
+            throw "AIRE process exited before runtime smoke could observe it"
+          }
+
+          $screenshotPath = "artifacts\windows-runtime-smoke\aire-windows-runtime-smoke.png"
+          try {
+            Add-Type -AssemblyName System.Windows.Forms
+            Add-Type -AssemblyName System.Drawing
+            $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+            $bitmap.Save($screenshotPath, [System.Drawing.Imaging.ImageFormat]::Png)
+            $graphics.Dispose()
+            $bitmap.Dispose()
+          } catch {
+            "Screenshot capture failed: $($_.Exception.Message)" | Set-Content artifacts\windows-runtime-smoke\screenshot-error.txt
+          }
+
+          $report = [ordered]@{
+            capturedAt = (Get-Date).ToString("o")
+            runner = $env:RUNNER_NAME
+            installer = $installer.FullName
+            installerSha256 = $installerHash
+            appExe = $appExe
+            processId = $running.Id
+            processName = $running.ProcessName
+            mainWindowTitle = $running.MainWindowTitle
+            screenshot = $screenshotPath
+            result = "windows-installer-installed-and-app-process-launched"
+          }
+          $report | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 artifacts\windows-runtime-smoke\report.json
+
+      - name: Upload Windows runtime smoke evidence
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-runtime-smoke
+          path: artifacts/windows-runtime-smoke/
+
+      - name: Upload Windows installer trust metadata
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-trust
+          path: artifacts/windows-installer-trust/

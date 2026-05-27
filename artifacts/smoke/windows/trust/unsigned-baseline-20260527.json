@@ -1,0 +1,31 @@
+{
+  "schema": "aire.windows-installer-trust.v1",
+  "generatedAt": "2026-05-27T13:37:07.261Z",
+  "workflowRunUrl": "https://github.com/fishtvlvoe/aire/actions/runs/26511089066",
+  "commitSha": "294a9571",
+  "releaseTag": "aire-v0.1.3",
+  "installerFilename": "AIRE_0.1.3_x64-setup.exe",
+  "installerPath": "artifacts/smoke/windows/installer/AIRE_0.1.3_x64-setup.exe",
+  "installerSha256": "cda8090a4f2f3a83477b20e6416d7c5734c29f423d493ed4456d7f03e1470c59",
+  "sourceArtifactUrl": null,
+  "signing": {
+    "status": "unsigned",
+    "authenticodeStatus": "NotSigned",
+    "statusMessage": "Current installer baseline is unsigned",
+    "publisherSubject": null,
+    "expectedPublisher": null,
+    "publisherMatches": true,
+    "certificateThumbprint": null,
+    "timestampSubject": null,
+    "timestampStatus": "missing_or_unavailable"
+  },
+  "observations": {
+    "smartScreen": "reported_by_user_unclassified",
+    "defender": "not_observed",
+    "defenderDetectionName": null
+  },
+  "windowsRuntimeEvidence": [],
+  "customerReleaseRequested": false,
+  "customerReleaseReady": false,
+  "releaseStatus": "internal-only"
+}

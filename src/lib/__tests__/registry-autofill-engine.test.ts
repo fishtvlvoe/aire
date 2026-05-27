@@ -79,4 +79,67 @@ describe("registry-autofill-engine", () => {
       value: "",
     });
   });
+
+  it("uses the caller-provided matrix instead of the global matrix", () => {
+    const result = autofillDisclosureDraft({
+      propertyType: "townhouse",
+      draftFields: [{ fieldKey: "custom_field" }],
+      matrixRows: [
+        {
+          fieldKey: "custom_field",
+          documentArea: "building.identification",
+          propertyTypes: ["townhouse"],
+          sourceKind: "registry_api",
+          automationState: "filled_from_registry",
+          serviceCodes: ["MOI_API_004"],
+          requiredForCompletion: false,
+          reviewNote: "custom mapping",
+          sourcePayloadPaths: ["building_registry.custom"],
+        },
+      ],
+      catalog: listMoiServiceCatalog(),
+      lookupResults: [
+        {
+          serviceCode: "MOI_API_004",
+          success: true,
+          payload: { building_registry: { custom: "from custom matrix" } },
+        },
+      ],
+    });
+
+    expect(result.fields[0]).toMatchObject({
+      fieldKey: "custom_field",
+      value: "from custom matrix",
+      automationState: "filled_from_registry",
+    });
+  });
+
+  it("falls back to later service codes when the first service has no lookup result", () => {
+    const result = autofillDisclosureDraft({
+      propertyType: "townhouse",
+      draftFields: [{ fieldKey: "floor_area" }],
+      matrixRows: listDisclosureFieldSourceMatrix(),
+      catalog: listMoiServiceCatalog(),
+      lookupResults: [
+        {
+          serviceCode: "MOI_API_026",
+          success: true,
+          payload: {
+            building_registry: {
+              area: 91.2,
+            },
+          },
+          source: "api",
+          returnRows: 1,
+        },
+      ],
+    });
+
+    expect(result.fields[0]).toMatchObject({
+      value: 91.2,
+      sourceMetadata: {
+        serviceCode: "MOI_API_026",
+      },
+    });
+  });
 });

@@ -40,7 +40,7 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page).toHaveURL(/\/cases\?view=supplements$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "補件清單" })).toBeVisible();
   await page.getByText("勝利小屋").click();
-  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID.replaceAll("-", "\\-")}\\?tab=supplements$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/_\\?caseId=${CASE_ID.replaceAll("-", "\\-")}&tab=supplements$`));
   await expect(page.getByRole("tab", { name: "補件/現場" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("region", { name: "補件與現場確認" })).toBeVisible();
   await page.goBack();
@@ -64,7 +64,7 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
 
   await page.goto("/cases");
   await page.getByRole("button", { name: "預覽 PDF" }).click();
-  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID.replaceAll("-", "\\-")}/preview$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/_/preview\\?caseId=${CASE_ID.replaceAll("-", "\\-")}$`));
   await page.goBack();
   await expect(page.getByRole("button", { name: "匯出 PDF" })).toBeVisible();
 
@@ -88,7 +88,7 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await sidebar.getByRole("link", { name: "地政授權" }).click();
   await expect(page).toHaveURL(/\/settings\?section=registry-auth$/);
   await expect(page.getByRole("main").getByRole("heading", { name: "地政授權" })).toBeVisible();
-  await expect(page.getByText("地政 API 設定")).toBeVisible();
+  await expect(page.getByText("地政查詢帳號", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "前往地政註冊" })).toHaveAttribute(
     "href",
     "https://cop.moi.gov.tw/Register",
@@ -113,7 +113,7 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page.getByRole("switch", { name: "Google 地圖未啟用" })).toBeEnabled();
   await expect(page.getByRole("switch", { name: "實價登錄未啟用" })).toBeEnabled();
 
-  await page.goto(`/cases/${CASE_ID}`);
+  await page.goto(`/cases/_?caseId=${CASE_ID}`);
   await expect(page.getByRole("heading", { name: "物件審核" })).toBeVisible();
   await expect(page.getByRole("button", { name: "重新查詢" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "產生補件清單" })).toHaveCount(0);
@@ -122,7 +122,7 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page.getByRole("region", { name: "本次調閱費用" })).toBeVisible();
   await page.getByRole("tab", { name: "資料來源" }).click();
   await expect(page.getByRole("region", { name: "欄位資料來源" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "下載 JSON" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "下載管理資料" })).toBeVisible();
 });
 
 async function seedCase(page: Page) {

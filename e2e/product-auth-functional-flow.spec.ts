@@ -13,14 +13,15 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await login(page, "admin@test.aire", "password");
   await preserveSessionForFutureNavigations(page, "admin");
 
-  await expect(page).toHaveURL(/\/cases$/);
+  await expect(page).toHaveURL(/\/cases\/new$/);
+  await page.goto("/cases");
   await expect(page.getByRole("main").getByRole("heading", { name: "案件總覽" })).toBeVisible();
   await expect(page.getByText("宜蘭五結農舍")).toBeVisible();
   await expect(page.getByRole("button", { name: "開啟宜蘭五結農舍工作台" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "主要選單" })).toBeVisible();
 
   await page.getByText("宜蘭五結農舍").click();
-  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/_\\?caseId=${CASE_ID}$`));
   await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
   await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
   await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
@@ -28,15 +29,17 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await expect(page.getByRole("region", { name: "補件與現場確認" })).toBeVisible();
   await expect(page.getByText("MOI_API_")).toHaveCount(0);
   await expect(page.getByText("COP309")).toHaveCount(0);
+  await expectCustomerFacingTextClean(page);
   await expectNoHorizontalOverflow(page);
 
   await page.goto("/settings?section=billing");
   await expect(page.getByRole("heading", { name: "費用紀錄" })).toBeVisible();
   await expect(page.getByText("費用歸屬")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "地政 API 查詢明細" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "地政查詢明細" })).toBeVisible();
   await expect(page.getByText("授權管理")).toHaveCount(0);
   await expect(page.getByText("地政 API 設定")).toHaveCount(0);
   await expect(page.getByText("實價登錄 MCP Hub")).toHaveCount(0);
+  await expectCustomerFacingTextClean(page);
 
   await page.goto("/settings?section=plans");
   await expect(page.getByRole("heading", { name: "方案與升級" })).toBeVisible();
@@ -53,6 +56,7 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 1 號");
   await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
   await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
+  await expectCustomerFacingTextClean(page);
 
   await page.getByRole("button", { name: "登出" }).click();
   await expect(page).toHaveURL(/\/login$/);
@@ -151,4 +155,9 @@ async function expectNoHorizontalOverflow(page: Page) {
     return root.scrollWidth <= root.clientWidth + 1;
   });
   expect(hasNoOverflow).toBe(true);
+}
+
+async function expectCustomerFacingTextClean(page: Page) {
+  const text = await page.locator("main").last().textContent();
+  expect(text ?? "").not.toMatch(/\b(R02|COP|API|Helper|adapter|parser|payload|JSON)\b|便民系統/);
 }

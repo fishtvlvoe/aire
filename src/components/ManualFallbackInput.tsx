@@ -89,11 +89,11 @@ export function ManualFallbackInput({ apiId, onSubmit }: ManualFallbackInputProp
       <div className="flex items-center gap-2 mb-3">
         <PenLine className="h-4 w-4 text-amber-600" />
         <p className="text-sm font-medium text-amber-800">
-          API 查詢失敗，請手動填入資料
+          地政查詢失敗，請手動填入資料
         </p>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        此資料將標記為「手動填入」（source: manual），請確保資料正確。
+        此資料將標記為「手動填入」，請確保資料正確。
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-3">

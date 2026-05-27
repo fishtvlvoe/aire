@@ -1,0 +1,114 @@
+name: Windows Desktop Runtime Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-runtime-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Windows installer
+        run: pnpm tauri build
+
+      - name: Install and launch AIRE
+        id: smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force artifacts\windows-runtime-smoke | Out-Null
+
+          $installer = Get-ChildItem src-tauri\target\release\bundle -Recurse -Filter "*setup.exe" |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $installer) {
+            throw "No Windows setup.exe installer found under src-tauri\target\release\bundle"
+          }
+
+          $installerHash = (Get-FileHash -Algorithm SHA256 $installer.FullName).Hash.ToLowerInvariant()
+          Start-Process -FilePath $installer.FullName -ArgumentList "/S" -Wait
+          Start-Sleep -Seconds 5
+
+          $exeCandidates = @(
+            "$env:LOCALAPPDATA\Programs\AIRE\AIRE.exe",
+            "$env:LOCALAPPDATA\Programs\aire\AIRE.exe",
+            "$env:LOCALAPPDATA\AIRE\AIRE.exe",
+            "$env:ProgramFiles\AIRE\AIRE.exe",
+            "${env:ProgramFiles(x86)}\AIRE\AIRE.exe"
+          )
+          $appExe = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $appExe) {
+            $appExe = Get-ChildItem "$env:LOCALAPPDATA\Programs","$env:ProgramFiles","${env:ProgramFiles(x86)}" -Recurse -ErrorAction SilentlyContinue -Filter "AIRE.exe" |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $appExe) {
+            throw "AIRE.exe was not found after installer completed"
+          }
+
+          $process = Start-Process -FilePath $appExe -PassThru
+          Start-Sleep -Seconds 15
+          $running = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
+          if (-not $running) {
+            throw "AIRE process exited before runtime smoke could observe it"
+          }
+
+          $windowTitle = $running.MainWindowTitle
+          $screenshotPath = "artifacts\windows-runtime-smoke\aire-windows-runtime-smoke.png"
+          try {
+            Add-Type -AssemblyName System.Windows.Forms
+            Add-Type -AssemblyName System.Drawing
+            $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+            $bitmap.Save($screenshotPath, [System.Drawing.Imaging.ImageFormat]::Png)
+            $graphics.Dispose()
+            $bitmap.Dispose()
+          } catch {
+            "Screenshot capture failed: $($_.Exception.Message)" | Set-Content artifacts\windows-runtime-smoke\screenshot-error.txt
+          }
+
+          $report = [ordered]@{
+            capturedAt = (Get-Date).ToString("o")
+            runner = $env:RUNNER_NAME
+            installer = $installer.FullName
+            installerSha256 = $installerHash
+            appExe = $appExe
+            processId = $running.Id
+            processName = $running.ProcessName
+            mainWindowTitle = $windowTitle
+            screenshot = $screenshotPath
+            result = "windows-installer-installed-and-app-process-launched"
+          }
+          $report | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 artifacts\windows-runtime-smoke\report.json
+
+      - name: Upload runtime smoke evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-runtime-smoke
+          path: artifacts/windows-runtime-smoke/

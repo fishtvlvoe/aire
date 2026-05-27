@@ -77,41 +77,41 @@ export function ApiKeySettings() {
     <Card className="p-6 space-y-5">
       <div className="flex items-center gap-2 mb-1">
         <Key className="h-5 w-5 text-muted-foreground" />
-        <h3 className="text-base font-semibold">地政 API 金鑰設定</h3>
+        <h3 className="text-base font-semibold">地政查詢帳號設定</h3>
       </div>
 
       {/* 已儲存的 key 狀態 */}
       {keyInfo && (
         <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm">
-          <span className="text-muted-foreground">已儲存的 Client ID：</span>
+          <span className="text-muted-foreground">已儲存的帳號識別碼：</span>
           <span className="font-mono ml-1">{keyInfo.client_id_masked}</span>
           {keyInfo.has_secret && (
-            <span className="ml-2 text-xs text-muted-foreground">（已設定 Secret）</span>
+            <span className="ml-2 text-xs text-muted-foreground">（已設定安全碼）</span>
           )}
         </div>
       )}
 
       {/* Client ID */}
       <div className="space-y-1.5">
-        <Label htmlFor="land-client-id">Client ID</Label>
+        <Label htmlFor="land-client-id">帳號識別碼</Label>
         <Input
           id="land-client-id"
           value={clientId}
           onChange={(e) => setClientId(e.target.value)}
-          placeholder="輸入新的 Client ID"
+          placeholder="輸入新的帳號識別碼"
           disabled={isSaving}
         />
       </div>
 
       {/* Client Secret */}
       <div className="space-y-1.5">
-        <Label htmlFor="land-client-secret">Client Secret</Label>
+        <Label htmlFor="land-client-secret">安全碼</Label>
         <Input
           id="land-client-secret"
           type="password"
           value={clientSecret}
           onChange={(e) => setClientSecret(e.target.value)}
-          placeholder="輸入 Client Secret"
+          placeholder="輸入安全碼"
           disabled={isSaving}
         />
       </div>

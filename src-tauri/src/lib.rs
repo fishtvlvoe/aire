@@ -61,6 +61,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
+use serde::Serialize;
 use tauri::Manager;
 
 /// 共享狀態：DB connection（包在 Mutex，Tauri IPC 多執行緒安全）。
@@ -89,6 +90,26 @@ pub struct LandRegistryBillingState(pub land_registry::billing_log::BillingLog);
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {name}! AIRE 桌面 App 已啟動。")
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct TrialStatusInfo {
+    plan: String,
+    status: String,
+    #[serde(rename = "startedAt")]
+    started_at: Option<String>,
+    #[serde(rename = "endsAt")]
+    ends_at: Option<String>,
+}
+
+#[tauri::command]
+fn get_trial_status() -> TrialStatusInfo {
+    TrialStatusInfo {
+        plan: "trial".to_string(),
+        status: "active".to_string(),
+        started_at: None,
+        ends_at: None,
+    }
 }
 
 // ── legal_clauses IPC commands ────────────────────────────────────────────────
@@ -192,7 +213,7 @@ pub fn run() {
 
             // 讀取 OPCOS 設定（環境變數，生產環境應由 keychain 取得）
             let opcos_base_url = std::env::var("OPCOS_BASE_URL")
-                .unwrap_or_else(|_| "https://opcos.aiver.me".to_string());
+                .unwrap_or_else(|_| "https://opcos.me".to_string());
             let opcos_token = std::env::var("OPCOS_TOKEN").unwrap_or_default();
             let http_client = reqwest::Client::new();
 
@@ -264,9 +285,15 @@ pub fn run() {
             list_legal_clauses,
             sync_legal_clauses,
             verify_realtor_license,
+            get_trial_status,
             // land_registry IPC commands（tasks 12-15）
             land_registry::pull::land_registry_address_lookup,
+            land_registry::easymap_r02::land_registry_parse_r02_result_text,
+            land_registry::easymap_r02::land_registry_record_r02_result_text,
             land_registry::pull::land_registry_pull_data,
+            db::registry_query_runs::list_registry_query_runs,
+            db::registry_query_runs::get_registry_query_run_detail,
+            land_registry::saas_sync::land_registry_sync_query_run_to_saas,
             land_registry::api_key_storage::land_registry_set_api_key,
             land_registry::api_key_storage::land_registry_get_api_key,
             land_registry::api_key_storage::land_registry_test_connection,

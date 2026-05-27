@@ -18,11 +18,14 @@ vi.mock("@/lib/mock-backend", () => ({
   }),
 }));
 
+vi.mock("@/lib/land-registry-api", () => ({
+  setApiKey: vi.fn(async () => undefined),
+  testConnection: vi.fn(async () => ({ success: false, message: "認證失敗" })),
+}));
+
 import { LandApiSection } from "../LandApiSection";
 import { mockInvoke } from "@/lib/mock-backend";
-
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock);
+import { testConnection } from "@/lib/land-registry-api";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -30,16 +33,13 @@ beforeEach(() => {
     if (cmd === "get_land_api_settings") return Promise.resolve({ clientId: "", secret: "" });
     return Promise.resolve({ success: true });
   });
-  fetchMock.mockResolvedValue({
-    ok: true,
-    json: () => Promise.resolve({ success: false, latency_ms: 100, error: "認證失敗" }),
-  });
+  vi.mocked(testConnection).mockResolvedValue({ success: false, message: "認證失敗" });
 });
 
 async function fillAndWaitReady() {
   render(<LandApiSection />);
-  await waitFor(() => screen.getByLabelText("Client ID"));
-  await userEvent.type(screen.getByLabelText("Client ID"), "QA-CLIENT");
+  await waitFor(() => screen.getByLabelText("帳號識別碼"));
+  await userEvent.type(screen.getByLabelText("帳號識別碼"), "QA-CLIENT");
   await userEvent.type(screen.getByLabelText("安全碼"), "QA-SECRET");
 }
 
@@ -55,15 +55,12 @@ describe("LandApiSection — Bug#7 儲存 toast", () => {
   });
 });
 
-describe("LandApiSection — Bug NEW-4 測試連線真實 HTTP", () => {
-  it("點測試連線 → 呼叫 fetch('/api/land-api/test-connection')", async () => {
+describe("LandApiSection — Bug NEW-4 測試連線", () => {
+  it("點測試連線 → 呼叫地政 bridge 測試連線，不走 Next API timeout 路徑", async () => {
     await fillAndWaitReady();
     await userEvent.click(screen.getByRole("button", { name: /測試連線/ }));
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/land-api/test-connection",
-        expect.objectContaining({ method: "POST" }),
-      );
+      expect(testConnection).toHaveBeenCalled();
     });
   });
 });

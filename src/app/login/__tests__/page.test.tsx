@@ -8,21 +8,23 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-vi.mock("@/lib/mock-backend", () => ({
-  mockInvoke: vi.fn(),
+vi.mock("@/lib/auth", () => ({
+  login: vi.fn(),
+  exchangeDesktopBootstrapCode: vi.fn(),
 }));
 
 import LoginPage from "../page";
-import { mockInvoke } from "@/lib/mock-backend";
+import { exchangeDesktopBootstrapCode, login } from "@/lib/auth";
 
-const mockInvokeFn = vi.mocked(mockInvoke);
+const mockLogin = vi.mocked(login);
+const mockBootstrap = vi.mocked(exchangeDesktopBootstrapCode);
 
 describe("Login page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders minimal layout — only email, password, login, forgot password", () => {
+  it("renders desktop account layout with password help", () => {
     render(<LoginPage />);
 
     // email input
@@ -37,12 +39,23 @@ describe("Login page", () => {
       'input[type="password"]',
     ) as HTMLElement | null;
     expect(passwordInput).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "顯示密碼" })).toBeInTheDocument();
 
     // login button
-    expect(screen.getByRole("button", { name: /登入/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^登入$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "使用一次性登入碼" })).toBeInTheDocument();
 
     // forgot password
-    expect(screen.getByText(/忘記密碼/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "忘記密碼" })).toHaveAttribute(
+      "href",
+      "https://opcos.me/forgot-password",
+    );
+    expect(screen.getByText("使用 AIRE 桌面版帳號登入")).toBeInTheDocument();
+    expect(screen.getByText("Google 或 LINE 購買用戶請先在 opcos.me 產生桌面登入碼。")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "用 Google 或 LINE 購買？" })).toHaveAttribute(
+      "href",
+      "https://opcos.me/products/aire?intent=desktop-login",
+    );
 
     // no license/activation/serial key UI
     expect(screen.queryByText(/序號/)).not.toBeInTheDocument();
@@ -50,8 +63,46 @@ describe("Login page", () => {
     expect(screen.queryByText(/license/i)).not.toBeInTheDocument();
   });
 
-  it("successful login — calls mockInvoke and redirects to /cases", async () => {
-    mockInvokeFn.mockResolvedValue({
+  it("supports bootstrap code login and redirects to /cases/new", async () => {
+    mockBootstrap.mockResolvedValue({
+      success: true,
+      user: { email: "admin@test.aire", role: "admin" },
+      bootstrapOnly: true,
+    });
+    render(<LoginPage />);
+
+    fireEvent.change(
+      (screen.queryByPlaceholderText(/email/i) ??
+        document.querySelector('input[type="email"]'))!,
+      { target: { value: "admin@test.aire" } },
+    );
+    fireEvent.change(screen.getByPlaceholderText("一次性桌面登入碼（可選）"), {
+      target: { value: "OTC-ADMIN-2026" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "使用一次性登入碼" }));
+
+    await waitFor(() => {
+      expect(mockBootstrap).toHaveBeenCalledWith("admin@test.aire", "OTC-ADMIN-2026");
+      expect(mockPush).toHaveBeenCalledWith("/cases/new");
+    });
+  });
+
+  it("toggles password visibility", () => {
+    render(<LoginPage />);
+
+    const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+    expect(passwordInput).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "顯示密碼" }));
+    expect(passwordInput).toHaveAttribute("type", "text");
+    expect(screen.getByRole("button", { name: "隱藏密碼" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "隱藏密碼" }));
+    expect(passwordInput).toHaveAttribute("type", "password");
+  });
+
+  it("successful login — calls auth login and redirects to /cases/new", async () => {
+    mockLogin.mockResolvedValue({
       success: true,
       user: { email: "admin@test.aire", role: "admin" },
     });
@@ -66,19 +117,25 @@ describe("Login page", () => {
     fireEvent.change(document.querySelector('input[type="password"]')!, {
       target: { value: "password" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /登入/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^登入$/ }));
 
     await waitFor(() => {
-      expect(mockInvokeFn).toHaveBeenCalledWith("login", {
-        email: "admin@test.aire",
-        password: "password",
-      });
-      expect(mockPush).toHaveBeenCalledWith("/cases");
+      expect(mockLogin).toHaveBeenCalledWith("admin@test.aire", "password");
+      expect(mockPush).toHaveBeenCalledWith("/cases/new");
     });
   });
 
+  it("empty submit shows explicit desktop account error", async () => {
+    render(<LoginPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^登入$/ }));
+
+    expect(screen.getByText("請輸入 AIRE 桌面版帳號與密碼")).toBeInTheDocument();
+    expect(mockLogin).not.toHaveBeenCalled();
+  });
+
   it("failed login — INVALID_CREDENTIALS shows 帳號或密碼錯誤", async () => {
-    mockInvokeFn.mockRejectedValue(new Error("INVALID_CREDENTIALS"));
+    mockLogin.mockRejectedValue(new Error("INVALID_CREDENTIALS"));
 
     render(<LoginPage />);
 
@@ -90,7 +147,7 @@ describe("Login page", () => {
     fireEvent.change(document.querySelector('input[type="password"]')!, {
       target: { value: "wrong" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /登入/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^登入$/ }));
 
     await waitFor(() => {
       expect(screen.getByText("帳號或密碼錯誤")).toBeInTheDocument();
@@ -98,7 +155,7 @@ describe("Login page", () => {
   });
 
   it("failed login — ACCOUNT_EXPIRED shows 帳號已過期", async () => {
-    mockInvokeFn.mockRejectedValue(new Error("ACCOUNT_EXPIRED"));
+    mockLogin.mockRejectedValue(new Error("ACCOUNT_EXPIRED"));
 
     render(<LoginPage />);
 
@@ -110,7 +167,7 @@ describe("Login page", () => {
     fireEvent.change(document.querySelector('input[type="password"]')!, {
       target: { value: "password" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /登入/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^登入$/ }));
 
     await waitFor(() => {
       expect(screen.getByText("帳號已過期")).toBeInTheDocument();

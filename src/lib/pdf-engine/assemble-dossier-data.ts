@@ -6,22 +6,16 @@ import { queryNearbyAmenities, summarizeNearbyAmenities } from "@/lib/overpass-c
 import { calculateBuildingAge } from "@/lib/registry-preview";
 import { storage, type BrandingData } from "@/lib/storage";
 import {
-  createRegistryProvenancePayload,
   extractCandidateOptions,
   extractRegistryFailureReasons,
   extractTrustedRegistryData,
   isRegistryProvenancePayload,
   type CandidateParcelOption,
   type CandidateSummaryFields,
-  type RegistryProvenancePayload,
 } from "@/lib/registry-provenance";
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
-type PullResult = {
-  results: Record<string, { data: unknown; source?: string; success?: boolean; error?: string }>;
-  total_cost: number;
-};
 type LegalClauseRecord = {
   law_id?: string;
   title?: string;
@@ -243,6 +237,22 @@ function m2ToPing(value?: number): number | undefined {
     : undefined;
 }
 
+function formatRocDate(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  const slash = trimmed.match(/^(\d{2,3})\/(\d{1,2})\/(\d{1,2})$/);
+  if (slash) {
+    const [, year, month, day] = slash;
+    return `民國${year.padStart(3, "0")}年${month.padStart(2, "0")}月${day.padStart(2, "0")}日`;
+  }
+  const compact = trimmed.match(/^(\d{3})(\d{2})(\d{2})$/);
+  if (compact) {
+    const [, year, month, day] = compact;
+    return `民國${year}年${month}月${day}日`;
+  }
+  return trimmed;
+}
+
 function ratioText(obj: unknown): string {
   const numerator = firstText(obj, ["NUMERATOR", "numerator"]);
   const denominator = firstText(obj, ["DENOMINATOR", "denominator"]);
@@ -304,23 +314,6 @@ function parseSupplementNumber(value?: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function isPlaceholderParcelId(value?: string | null): boolean {
-  const trimmed = value?.trim();
-  if (!trimmed) return true;
-  return trimmed === "0001" || trimmed === "00001" || /候選|待確認|待補/.test(trimmed);
-}
-
-function resolveFormalPullParcelId(caseRow: CaseRow, trustedPersisted: Record<string, unknown>) {
-  const manualSupplement = trustedPersisted.manual_registry_supplement;
-  const manualBuildingNumber = firstString(manualSupplement, ["buildingNumberCandidate"]);
-  const candidates = [
-    caseRow.building_lot_no,
-    manualBuildingNumber,
-    caseRow.land_lot_no,
-  ];
-  return candidates.find((candidate) => !isPlaceholderParcelId(candidate))?.trim();
-}
-
 function extractTrustedOfficialRegistryData(payload: unknown): Record<string, unknown> {
   if (!isRegistryProvenancePayload(payload)) return {};
   return Object.fromEntries(
@@ -359,49 +352,6 @@ function buildFieldVisitLookup(payload?: WorkbenchSupplementPayload) {
   return answerByTopic;
 }
 
-function mergeRegistryProvenancePayload(
-  existing: unknown,
-  next: RegistryProvenancePayload,
-): RegistryProvenancePayload {
-  if (!isRegistryProvenancePayload(existing)) return next;
-  return {
-    ...existing,
-    ...next,
-    entries: {
-      ...existing.entries,
-      ...next.entries,
-    },
-    candidate_options: next.candidate_options ?? existing.candidate_options,
-    selected_candidate_ids: next.selected_candidate_ids ?? existing.selected_candidate_ids,
-    confirmed_parcel_ids: next.confirmed_parcel_ids ?? existing.confirmed_parcel_ids,
-    coordinate_source: next.coordinate_source ?? existing.coordinate_source,
-    inferred_reference: next.inferred_reference ?? existing.inferred_reference,
-  };
-}
-
-function normalizePullResultsForProvenance(
-  results: PullResult["results"],
-): Parameters<typeof createRegistryProvenancePayload>[0]["results"] {
-  return Object.fromEntries(
-    Object.entries(results).map(([apiId, value]) => {
-      const success =
-        typeof value.success === "boolean"
-          ? value.success
-          : (value.source === "api" || value.source === "cache" || value.source === "moi_api") &&
-            hasRegistryData(value.data);
-      return [
-        apiId,
-        {
-          success,
-          source: value.source,
-          data: hasRegistryData(value.data) ? value.data : undefined,
-          error: typeof value.error === "string" ? value.error : undefined,
-        },
-      ];
-    }),
-  );
-}
-
 const PRE_SURVEY_DISCLAIMER = "地政資料，最終以正式謄本為主；本說明書不代表完整資訊。";
 const CANDIDATE_SOURCE_LABEL = "候選資料，待屋主/權狀確認";
 const INFERRED_SOURCE_LABEL = "推測資料，非登記資料";
@@ -411,9 +361,25 @@ function findSelectedCandidate(
   parcelType: "land" | "building",
 ): CandidateParcelOption | undefined {
   if (!isRegistryProvenancePayload(payload)) return undefined;
-  const selectedId = payload.selected_candidate_ids?.[parcelType];
-  if (!selectedId) return undefined;
-  return extractCandidateOptions(payload).find((candidate) => candidate.candidate_id === selectedId);
+  const options = extractCandidateOptions(payload).filter((candidate) => candidate.parcel_type === parcelType);
+  const selectedId = payload.confirmed_parcel_ids?.[parcelType] ?? payload.selected_candidate_ids?.[parcelType];
+  if (selectedId) {
+    const selected = options.find((candidate) => candidate.candidate_id === selectedId);
+    if (selected) return selected;
+  }
+  return options.find((candidate) => candidate.confirmation_state === "confirmed") ??
+    options.find((candidate) => candidate.confirmation_state === "selected_candidate");
+}
+
+function findSingleUsableCandidate(
+  payload: unknown,
+  parcelType: "land" | "building",
+): CandidateParcelOption | undefined {
+  if (!isRegistryProvenancePayload(payload)) return undefined;
+  const options = extractCandidateOptions(payload).filter(
+    (candidate) => candidate.parcel_type === parcelType && candidate.query_status !== "failed",
+  );
+  return options.length === 1 ? options[0] : undefined;
 }
 
 function numberFromSummary(fields: CandidateSummaryFields | undefined, key: string): number | undefined {
@@ -519,11 +485,6 @@ async function resolveLegalClauses(): Promise<string[]> {
   return [];
 }
 
-function isMockRegistryPullData(results: Record<string, { data: unknown }>): boolean {
-  const entries = Object.values(results) as Array<{ data: unknown; source?: unknown }>;
-  return entries.length > 0 && entries.every((entry) => entry.source === "mock");
-}
-
 function base64ToUint8Array(base64: string): Uint8Array {
   const binary =
     typeof atob === "function"
@@ -549,14 +510,22 @@ function readPersistedFloorPlanPhoto(persisted: unknown): Uint8Array | null {
   }
 }
 
-async function readCaseAssetFloorPlan(caseId: string): Promise<Uint8Array | null> {
+type DossierCaseAssetKind =
+  | "floor_plan"
+  | "location_map"
+  | "surrounding_map"
+  | "cadastral_map"
+  | "exterior_photo";
+
+async function readCaseAssetImage(caseId: string, kind: DossierCaseAssetKind): Promise<Uint8Array | null> {
   try {
     const assets = await safeInvoke<
       Array<{ id: string; is_primary?: boolean; review_status?: string }>
     >("list_case_assets", {
       case_id: caseId,
-      kind: "floor_plan",
+      kind,
     });
+    if (!Array.isArray(assets)) return null;
     const asset = assets.find((item) => item.is_primary && item.review_status === "approved")
       ?? assets.find((item) => item.review_status === "approved")
       ?? assets[0];
@@ -572,6 +541,10 @@ async function readCaseAssetFloorPlan(caseId: string): Promise<Uint8Array | null
     // 舊版 IPC 或檔案遺失時交給 legacy fallback。
   }
   return null;
+}
+
+async function readCaseAssetFloorPlan(caseId: string): Promise<Uint8Array | null> {
+  return readCaseAssetImage(caseId, "floor_plan");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -642,18 +615,6 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   // ── 地政 API ──────────────────────────────────────────────────────────────
 
-  const apiIds = isLand
-    ? ["land_registry", "zoning", "land_value", "mortgages"]
-    : [
-        "building_registry",
-        "building_ownership",
-        "mortgages",
-        "land_registry",
-        "co_owners",
-        "zoning",
-        "land_value",
-      ];
-
   let apiData: Record<string, { data: unknown; source?: string }> = {};
   const trustedPersisted =
     persisted && typeof persisted === "object" && !Array.isArray(persisted)
@@ -661,14 +622,6 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       : {};
   const trustedOfficialPersisted = extractTrustedOfficialRegistryData(persisted);
   const hasTrustedPersisted = Object.keys(trustedOfficialPersisted).length > 0;
-  const formalPullParcelId = resolveFormalPullParcelId(caseRow, trustedPersisted);
-  const shouldAttemptFormalPull =
-    !persisted ||
-    (isRegistryProvenancePayload(persisted) &&
-      !hasTrustedPersisted &&
-      Boolean(caseRow.owner_name?.trim()) &&
-      Boolean(formalPullParcelId));
-
   if (hasTrustedPersisted) {
     apiData = Object.fromEntries(
       Object.entries(trustedPersisted).map(([apiId, value]) => {
@@ -679,46 +632,6 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         return [apiId, wrapped];
       }),
     );
-  } else if (shouldAttemptFormalPull) {
-    let pullResult: PullResult | undefined;
-    try {
-      pullResult = await safeInvoke<PullResult>("land_registry_pull_data", {
-        parcelId: formalPullParcelId,
-        apiIds,
-      });
-    } catch {
-      // 組裝層捕捉錯誤，API 欄位降級為 undefined
-    }
-    apiData = pullResult?.results ?? {};
-    if (isMockRegistryPullData(apiData)) {
-      apiData = {};
-    } else {
-      apiData = Object.fromEntries(
-        Object.entries(apiData).filter(([, value]) => {
-          const source = (value as { source?: unknown }).source;
-          return (source === "api" || source === "cache" || source === "moi_api") &&
-            hasRegistryData(value.data);
-        }),
-      );
-      if (Object.keys(apiData).length > 0 && pullResult?.results) {
-        const trustedPayload = createRegistryProvenancePayload({
-          parcelId: caseRow.land_lot_no,
-          totalCost: pullResult.total_cost,
-          results: normalizePullResultsForProvenance(pullResult.results),
-        });
-        const mergedPayload = mergeRegistryProvenancePayload(persisted, trustedPayload);
-        try {
-          await safeInvoke("update_case", {
-            id: caseRow.id,
-            input: {
-              land_registry_data: mergedPayload,
-            },
-          });
-        } catch {
-          // PDF assembly can still proceed with the freshly pulled trusted payload.
-        }
-      }
-    }
   }
   if (trustedPersisted.manual_registry_supplement && !apiData.manual_registry_supplement) {
     apiData.manual_registry_supplement = { data: trustedPersisted.manual_registry_supplement };
@@ -732,6 +645,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   let floorPlanPhoto: Uint8Array | null = null;
   floorPlanPhoto = await readCaseAssetFloorPlan(caseRow.id);
+  if (!floorPlanPhoto && isLand) {
+    floorPlanPhoto = await readCaseAssetImage(caseRow.id, "cadastral_map");
+  }
   if (!floorPlanPhoto) {
     floorPlanPhoto = readPersistedFloorPlanPhoto(caseRow.land_registry_data);
   }
@@ -847,6 +763,20 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     }
   }
 
+  if ((!geoLat || !geoLng) && isRegistryProvenancePayload(persisted)) {
+    const coordinateCandidate = decorateCandidateOptions(persisted).find((candidate) => {
+      const lat = numberFromSummary(candidate.summary_fields, "lat");
+      const lng = numberFromSummary(candidate.summary_fields, "lng");
+      return lat !== undefined && lng !== undefined;
+    });
+    const lat = numberFromSummary(coordinateCandidate?.summary_fields, "lat");
+    const lng = numberFromSummary(coordinateCandidate?.summary_fields, "lng");
+    if (lat !== undefined && lng !== undefined) {
+      geoLat = lat;
+      geoLng = lng;
+    }
+  }
+
   // 若 API 資料無座標，嘗試用地址 geocode（Nominatim，免費）
   if ((!geoLat || !geoLng) && caseRow.address) {
     try {
@@ -859,8 +789,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     }
   }
 
-  let locationMapImage: Uint8Array | null = null;
-  if (geoLat && geoLng) {
+  let locationMapImage: Uint8Array | null = await readCaseAssetImage(caseRow.id, "location_map");
+  if (!locationMapImage && geoLat && geoLng) {
     try {
       nearbyAmenities = summarizeNearbyAmenities(
         await queryNearbyAmenities({ lat: geoLat, lng: geoLng, radiusM: 1000 }),
@@ -875,8 +805,10 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         zoom: 16,
         size: "500x400",
       });
-      if (pngBytes && pngBytes.length > 0) {
+      if (Array.isArray(pngBytes) && pngBytes.length > 0) {
         locationMapImage = new Uint8Array(pngBytes);
+      } else {
+        locationMapImage = await fetchWebImage("/api/location-map", { lat: geoLat, lng: geoLng });
       }
     } catch {
       // Tauri IPC 失敗 → web fallback（OSM tiles via Next.js API route）
@@ -884,32 +816,40 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     }
   }
 
-  let aerialPhoto: Uint8Array | null = null;
-  let exteriorPhoto: Uint8Array | null = null;
+  let aerialPhoto: Uint8Array | null = await readCaseAssetImage(caseRow.id, "surrounding_map");
+  let exteriorPhoto: Uint8Array | null = await readCaseAssetImage(caseRow.id, "exterior_photo");
   if (geoLat && geoLng) {
-    try {
-      const aerialBytes = await safeInvoke<number[]>("fetch_aerial_photo", {
-        lat: geoLat,
-        lng: geoLng,
-      });
-      if (aerialBytes && aerialBytes.length > 0) {
-        aerialPhoto = new Uint8Array(aerialBytes);
+    if (!aerialPhoto) {
+      try {
+        const aerialBytes = await safeInvoke<number[]>("fetch_aerial_photo", {
+          lat: geoLat,
+          lng: geoLng,
+        });
+        if (Array.isArray(aerialBytes) && aerialBytes.length > 0) {
+          aerialPhoto = new Uint8Array(aerialBytes);
+        } else {
+          aerialPhoto = await fetchWebImage("/api/aerial-photo", { lat: geoLat, lng: geoLng });
+        }
+      } catch {
+        // Tauri IPC 失敗 → web fallback（NLSC 空拍圖 via Next.js API route）
+        aerialPhoto = await fetchWebImage("/api/aerial-photo", { lat: geoLat, lng: geoLng });
       }
-    } catch {
-      // Tauri IPC 失敗 → web fallback（NLSC 空拍圖 via Next.js API route）
-      aerialPhoto = await fetchWebImage("/api/aerial-photo", { lat: geoLat, lng: geoLng });
     }
-    try {
-      const streetBytes = await safeInvoke<number[]>("fetch_street_view", {
-        lat: geoLat,
-        lng: geoLng,
-      });
-      if (streetBytes && streetBytes.length > 0) {
-        exteriorPhoto = new Uint8Array(streetBytes);
+    if (!exteriorPhoto) {
+      try {
+        const streetBytes = await safeInvoke<number[]>("fetch_street_view", {
+          lat: geoLat,
+          lng: geoLng,
+        });
+        if (Array.isArray(streetBytes) && streetBytes.length > 0) {
+          exteriorPhoto = new Uint8Array(streetBytes);
+        } else {
+          exteriorPhoto = await fetchWebImage("/api/street-view", { lat: geoLat, lng: geoLng });
+        }
+      } catch {
+        // Tauri IPC 失敗 → web fallback（Mapillary via Next.js API route）
+        exteriorPhoto = await fetchWebImage("/api/street-view", { lat: geoLat, lng: geoLng });
       }
-    } catch {
-      // Tauri IPC 失敗 → web fallback（Mapillary via Next.js API route）
-      exteriorPhoto = await fetchWebImage("/api/street-view", { lat: geoLat, lng: geoLng });
     }
   }
 
@@ -1102,7 +1042,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const selectedLandCandidate = findSelectedCandidate(persisted, "land") ?? (
       landCandidates.length === 1 ? landCandidates[0] : undefined
     );
-    const selectedBuildingCandidate = findSelectedCandidate(persisted, "building");
+    const selectedBuildingCandidate =
+      findSelectedCandidate(persisted, "building") ??
+      (inferredReference ? undefined : findSingleUsableCandidate(persisted, "building"));
     const landCandidateFields = selectedLandCandidate?.summary_fields;
     const buildingCandidateFields = selectedBuildingCandidate?.summary_fields;
     const inferredFields = inferredReference?.estimated_fields;
@@ -1134,19 +1076,23 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       firstString(buildingReg, ["material", "MATERIAL"]) ??
       textFromSummary(buildingCandidateFields, "material") ??
       textFromSummary(inferredFields, "material");
-    const resolvedConstructionDate =
+    const resolvedConstructionDateRaw =
       firstString(buildingReg, ["construction_date", "COMPLETEDATE"]) ??
       textFromSummary(buildingCandidateFields, "constructionDate") ??
       textFromSummary(inferredFields, "constructionDate");
+    const resolvedConstructionDate = formatRocDate(resolvedConstructionDateRaw);
     const resolvedFloor = resolveBuildingFloor(
       firstString(buildingReg, ["building_floor", "BUILDINGFLOOR"]) ??
         textFromSummary(buildingCandidateFields, "floor") ??
         textFromSummary(inferredFields, "floor"),
       caseRow.address,
     );
+    const calculatedBuildingAge =
+      calculateBuildingAge(resolvedConstructionDateRaw ?? "") ||
+      calculateBuildingAge(resolvedConstructionDate ?? "");
     const resolvedBuildingAge =
-      calculateBuildingAge(resolvedConstructionDate ?? "") ??
-      textFromSummary(buildingCandidateFields, "age") ??
+      calculatedBuildingAge ||
+      textFromSummary(buildingCandidateFields, "age") ||
       textFromSummary(inferredFields, "age");
     const resolvedLandArea = landArea ?? numberFromSummary(landCandidateFields, "landAreaSqm");
     const candidateOwnershipRatio = textFromSummary(buildingCandidateFields, "landOwnershipRatio");

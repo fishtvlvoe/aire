@@ -1,3 +1,5 @@
+import { caseDetailHref } from "@/lib/case-routes";
+
 export type ProductNavigationLevel = "primary" | "secondary" | "case-workbench";
 export type ProductNavigationScope = "global" | "module" | "case";
 export type CaseManagementViewId = "overview" | "workbench" | "supplements";
@@ -44,7 +46,7 @@ const PRIMARY_NAVIGATION: ProductNavigationItem[] = [
     label: "系統設定",
     href: "/settings",
     scope: "global",
-    description: "帳號、授權、升級",
+    description: "品牌、日誌、方案",
   },
 ];
 
@@ -55,10 +57,10 @@ const SECONDARY_NAVIGATION: ProductNavigationItem[] = [
   { level: "secondary", label: "補件清單", href: "/cases?view=supplements", scope: "module", parentLabel: "案件管理" },
   { level: "secondary", label: "資料來源", href: "/settings?section=registry-rules", scope: "module", parentLabel: "地政資料" },
   { level: "secondary", label: "費用紀錄", href: "/settings?section=billing", scope: "module", parentLabel: "地政資料" },
-  { level: "secondary", label: "個人設定", href: "/settings", scope: "module", parentLabel: "系統設定" },
-  { level: "secondary", label: "品牌與交付資訊", href: "/settings/branding", scope: "module", parentLabel: "系統設定" },
-  { level: "secondary", label: "地政授權", href: "/settings?section=registry-auth", scope: "module", parentLabel: "系統設定" },
-  { level: "secondary", label: "方案與升級", href: "/settings?section=plans", scope: "module", parentLabel: "系統設定" },
+  { level: "secondary", label: "地政授權", href: "/settings?section=registry-auth", scope: "module", parentLabel: "地政資料" },
+  { level: "secondary", label: "品牌設定", href: "/settings/branding", scope: "module", parentLabel: "系統設定" },
+  { level: "secondary", label: "操作日誌", href: "/settings/logs", scope: "module", parentLabel: "系統設定" },
+  { level: "secondary", label: "方案設定", href: "/settings?section=plans", scope: "module", parentLabel: "系統設定" },
 ];
 
 const CASE_WORKBENCH_NAVIGATION: ProductNavigationItem[] = [
@@ -137,10 +139,10 @@ export function getVisibleCaseManagementScope(value: string | null): CaseManagem
 export function getCaseRowDestination(view: CaseManagementViewId, caseId: string): string {
   switch (view) {
     case "supplements":
-      return `/cases/${caseId}?tab=supplements`;
+      return caseDetailHref(caseId, "supplements");
     case "workbench":
     case "overview":
     default:
-      return `/cases/${caseId}`;
+      return caseDetailHref(caseId);
   }
 }

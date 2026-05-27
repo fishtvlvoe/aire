@@ -66,6 +66,17 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
+function formatRocDate(value: unknown): string {
+  const raw = formatValue(value).trim();
+  const compact = raw.match(/^(\d{3})(\d{2})(\d{2})$/);
+  if (compact) return `民國${compact[1]}年${compact[2]}月${compact[3]}日`;
+  const separated = raw.match(/^(?:民國)?(\d{2,3})[年/-](\d{1,2})[月/-](\d{1,2})日?$/);
+  if (separated) {
+    return `民國${separated[1].padStart(3, "0")}年${separated[2].padStart(2, "0")}月${separated[3].padStart(2, "0")}日`;
+  }
+  return raw;
+}
+
 function formatRatio(record: RegistryRecord): string {
   const denominator = firstValue(record, ["DENOMINATOR", "denominator", "right_denominator"]);
   const numerator = firstValue(record, ["NUMERATOR", "numerator", "right_numerator"]);
@@ -134,7 +145,7 @@ export function buildRegistryPreviewSections(
   const buildingOwnership = unwrapApiData(normalizedPayload, "building_ownership");
   const buildingRights = unwrapApiData(normalizedPayload, "building_other_rights");
 
-  const completion = formatValue(
+  const completion = formatRocDate(
     firstValue(building, ["COMPLETEDATE", "construction_date", "completion_date"]),
   );
 
@@ -195,7 +206,7 @@ export function buildRegistryPreviewSections(
         field(building, "建號", ["NO", "building_number", "building_no"], "建物標示/建號"),
         field(building, "建物門牌", ["BNUMBER", "building_address", "address"], "建物標示/門牌地址"),
         field(building, "坐落地號", ["LANDNO", "land_no", "land_number"], "建物標示/坐落地號"),
-        field(building, "主要用途", ["PURPOSE", "purpose", "building_purpose"], "建物標示/法定用途"),
+        field(building, "法定用途", ["PURPOSE", "purpose", "building_purpose"], "建物標示/法定用途"),
         field(building, "主要建材", ["MATERIAL", "material"], "建物標示/主要建材"),
         field(
           building,
@@ -203,9 +214,9 @@ export function buildRegistryPreviewSections(
           ["BUILDINGFLOOR", "building_floor", "total_floors"],
           "建物標示/總樓層",
         ),
-        field(building, "總面積", ["AREA", "area", "building_area"], "建物標示/登記坪數"),
+        field(building, "登記坪數", ["AREA", "area", "building_area"], "建物標示/登記坪數"),
         {
-          label: "建築完成日期",
+          label: "建築完成日",
           value: completion,
           target: "建物標示/建築完成日",
         },
@@ -214,10 +225,10 @@ export function buildRegistryPreviewSections(
           value: completion ? calculateBuildingAge(completion, now) : "",
           target: "物件資料表/屋齡",
         },
-        field(building, "主建物面積", ["MAINAREA", "main_building_area"], "建物標示/主建坪數"),
-        field(building, "附屬建物面積", ["ATTAREA", "auxiliary_area"], "建物標示/附屬建物"),
-        field(building, "共有部分面積", ["SHAREAREA", "common_area"], "建物標示/公共設施"),
-        field(building, "車位面積", ["PARKAREA", "parking_area"], "建物標示/車位坪數"),
+        field(building, "主建坪數", ["MAINAREA", "main_building_area"], "建物標示/主建坪數"),
+        field(building, "附屬建物", ["ATTAREA", "auxiliary_area"], "建物標示/附屬建物"),
+        field(building, "公共設施", ["SHAREAREA", "common_area"], "建物標示/公共設施"),
+        field(building, "車位坪數", ["PARKAREA", "parking_area"], "建物標示/車位坪數"),
         field(building, "建設公司", ["CONBUILDNAME", "construction_company"], "基本資料/建設公司"),
       ],
       "MOI_API_004 地籍建物標示部",

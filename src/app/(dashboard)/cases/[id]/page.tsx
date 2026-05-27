@@ -12,12 +12,13 @@ import {
 } from "@/lib/cases-api";
 import { DemoAlignedWorkbench } from "@/components/workbench/DemoAlignedWorkbench";
 import { useIpcErrorToast } from "@/hooks/useIpcErrorToast";
+import { resolveRuntimeCaseId } from "@/lib/case-routes";
 
 export default function CaseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = params?.id;
+  const id = resolveRuntimeCaseId(params?.id, searchParams);
 
   const { handleError } = useIpcErrorToast();
   const [caseData, setCaseData] = useState<CaseRow | null>(null);
