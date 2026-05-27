@@ -21,6 +21,9 @@ let mockProfileSettings = {
 let mockRegistryRows: Array<Record<string, unknown>> = [];
 let mockBillingEntries = [
   {
+    run_id: "run-building-001",
+    object_type: "building",
+    object_type_label: "戶建",
     service_name: "建物所有權資料",
     target: "AIRE-2026-001 / 建號 88-1",
     status_label: "查詢成功",
@@ -29,6 +32,9 @@ let mockBillingEntries = [
     charged_at: "2026-05-18T22:52:20+08:00",
   },
   {
+    run_id: "run-address-001",
+    object_type: "address",
+    object_type_label: "門牌",
     service_name: "門牌建號查詢",
     target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
     status_label: "查詢失敗",
@@ -135,6 +141,7 @@ vi.mock("@/lib/mock-backend", () => ({
 }));
 
 vi.mock("@/lib/land-registry-api", () => ({
+  getBalance: vi.fn(async () => ({ month_total_cost: 27, month_query_count: 2, low_balance_warning: false })),
   listBillingEntries: vi.fn(async () => mockBillingEntries),
   listRegistryQueryRuns: vi.fn(async () => mockRegistryRows),
   getRegistryQueryRunDetail: vi.fn(async (runId: string) => ({
@@ -147,12 +154,25 @@ vi.mock("@/lib/land-registry-api", () => ({
     candidate_json: { adapter: "easymap_r02_desktop" },
     cop_response_json: null,
     raw_response_json: { adapter: "easymap_r02_desktop" },
-    total_cost_cents: 0,
+    total_cost_cents: 2700,
     cache_hit: false,
     source_run_id: null,
     error_code: null,
     error_message: null,
-    api_calls: [],
+    api_calls: [
+      {
+        id: "call-001",
+        service_code: "building_ownership",
+        transaction_id: "TXN-001",
+        http_status: 200,
+        moi_code: null,
+        moi_message: null,
+        return_rows: 2,
+        cost_cents: 2700,
+        started_at: "2026-05-25T00:00:00.000Z",
+        finished_at: "2026-05-25T00:00:02.000Z",
+      },
+    ],
     created_at: "2026-05-25T00:00:00.000Z",
     updated_at: "2026-05-25T00:00:00.000Z",
   })),
@@ -200,6 +220,9 @@ describe("Settings page（重組後）", () => {
     mockRegistryRows = [];
     mockBillingEntries = [
       {
+        run_id: "run-building-001",
+        object_type: "building",
+        object_type_label: "戶建",
         service_name: "建物所有權資料",
         target: "AIRE-2026-001 / 建號 88-1",
         status_label: "查詢成功",
@@ -208,6 +231,9 @@ describe("Settings page（重組後）", () => {
         charged_at: "2026-05-18T22:52:20+08:00",
       },
       {
+        run_id: "run-address-001",
+        object_type: "address",
+        object_type_label: "門牌",
         service_name: "門牌建號查詢",
         target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
         status_label: "查詢失敗",
@@ -304,15 +330,17 @@ describe("Settings page（重組後）", () => {
     expect(await screen.findByText("地政查詢帳號")).toBeInTheDocument();
   });
 
-  it("方案與升級只顯示目前可用的基本款", async () => {
+  it("方案設定只顯示目前可用的基本款與帳號授權狀態", async () => {
     mockSection = "plans";
     render(<SettingsPage />);
 
-    expect(screen.getByRole("heading", { name: "方案與升級" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "方案設定" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "基本款" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "進階款" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "高級款" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "帳號與授權管理" })).toBeInTheDocument();
+    expect(screen.getByText("帳號角色")).toBeInTheDocument();
+    expect(await screen.findByText("管理員")).toBeInTheDocument();
     expect(screen.getAllByText("目前方案").length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText("試用中，到期日 2026-06-24")).toBeInTheDocument();
     expect(screen.getByText("尚未啟用")).toBeInTheDocument();
@@ -379,12 +407,33 @@ describe("Settings page（重組後）", () => {
     expect(screen.getByText("費用歸屬")).toBeInTheDocument();
     expect(screen.getByText("本月使用量")).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "地政查詢明細" })).toBeInTheDocument();
-    expect(screen.getByText("建物所有權資料")).toBeInTheDocument();
+    expect(screen.getAllByText("建物所有權資料").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("門牌建號查詢")).toBeInTheDocument();
+    expect(screen.getByText("戶建")).toBeInTheDocument();
+    expect(screen.getByText("門牌")).toBeInTheDocument();
     expect(screen.getByText("管理明細可查")).toBeInTheDocument();
     expect(screen.queryByText("COP309")).not.toBeInTheDocument();
     expect(screen.getByText("地政費用合計 27 元")).toBeInTheDocument();
     expect(screen.getByText("AIRE 方案功能")).toBeInTheDocument();
+  });
+
+  it("費用紀錄可點入查詢 saved run、cache、來源紀錄與服務列", async () => {
+    mockSection = "billing";
+    render(<SettingsPage />);
+
+    expect(await screen.findByRole("heading", { name: "地政查詢明細" })).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "查看" })[0]);
+
+    expect(await screen.findByRole("region", { name: "費用明細" })).toBeInTheDocument();
+    expect(screen.getByText("查詢紀錄")).toBeInTheDocument();
+    expect(screen.getByText("run-building-001")).toBeInTheDocument();
+    expect(screen.getByText("快取")).toBeInTheDocument();
+    expect(screen.getByText("新查詢")).toBeInTheDocument();
+    expect(screen.getByText("來源紀錄")).toBeInTheDocument();
+    expect(screen.getByText("總費用")).toBeInTheDocument();
+    expect(screen.getAllByText("建物所有權資料").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("2").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("27 元").length).toBeGreaterThanOrEqual(1);
   });
 
   it("查詢紀錄頁僅顯示追溯資訊且不出現技術操作區", async () => {
