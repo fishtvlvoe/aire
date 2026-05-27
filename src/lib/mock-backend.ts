@@ -2463,6 +2463,9 @@ export class MockStore {
   }
 
   private landRegistryListBillingEntries(): Array<{
+    run_id?: string;
+    object_type?: "building" | "land" | "address" | "unknown";
+    object_type_label?: string;
     service_name: string;
     target: string;
     status_label: string;
@@ -2472,6 +2475,9 @@ export class MockStore {
   }> {
     const fromRuns = this.registryQueryRuns.flatMap((run) =>
       run.api_calls.map((call) => ({
+        run_id: run.id,
+        object_type: inferBillingObjectType(run, call.service_code),
+        object_type_label: formatBillingObjectType(inferBillingObjectType(run, call.service_code)),
         service_name: call.service_code,
         target: run.case_id ? `${run.case_id} / ${run.source_input}` : run.source_input,
         status_label: call.http_status >= 400 ? "查詢失敗" : "查詢成功",
@@ -2484,6 +2490,9 @@ export class MockStore {
 
     return [
       {
+        run_id: "demo-building-run",
+        object_type: "building",
+        object_type_label: "戶建",
         service_name: "建物所有權資料",
         target: "AIRE-2026-001 / 建號 88-1",
         status_label: "查詢成功",
@@ -2492,6 +2501,9 @@ export class MockStore {
         charged_at: "2026-05-18T22:52:20+08:00",
       },
       {
+        run_id: "demo-address-run",
+        object_type: "address",
+        object_type_label: "門牌",
         service_name: "門牌建號查詢",
         target: "AIRE-2026-001 / 台南市永康區勝利街58巷4號1樓",
         status_label: "查詢失敗",
@@ -2500,6 +2512,9 @@ export class MockStore {
         charged_at: "2026-05-18T22:52:20+08:00",
       },
       {
+        run_id: "demo-billing-run",
+        object_type: "unknown",
+        object_type_label: "帳務",
         service_name: "帳務查詢",
         target: "地政帳號",
         status_label: "免費",
@@ -3116,4 +3131,27 @@ export function __resetMockStoreForTests(): void {
     }
   }
   defaultStore = new MockStore();
+}
+
+function inferBillingObjectType(
+  run: RegistryQueryRun,
+  serviceCode: string,
+): "building" | "land" | "address" | "unknown" {
+  const haystack = [
+    serviceCode,
+    run.source_input,
+    JSON.stringify(run.candidate_json ?? {}),
+    JSON.stringify(run.cop_response_json ?? {}),
+  ].join(" ");
+  if (/paid_address_resolver|MOI_API_037|門牌|address/i.test(haystack)) return "address";
+  if (/building|建物|建號|building_registry|building_ownership/i.test(haystack)) return "building";
+  if (/land|土地|地號|land_registry|地籍/i.test(haystack)) return "land";
+  return "unknown";
+}
+
+function formatBillingObjectType(type: "building" | "land" | "address" | "unknown"): string {
+  if (type === "building") return "戶建";
+  if (type === "land") return "土地";
+  if (type === "address") return "門牌";
+  return "其他";
 }

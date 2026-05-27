@@ -2,12 +2,16 @@
 //
 // 集中所有 invoke('xxx_case') 呼叫，避免在 component 內 import @tauri-apps/api/core 散落。
 import { safeInvoke } from "@/lib/tauri-bridge";
+import { PROPERTY_TYPE_REGISTRY, type PropertyTypeId } from "@/lib/property-type-registry";
+
+export type LegacyPropertyTypeId = "residential" | "land";
+export type CasePropertyType = LegacyPropertyTypeId | PropertyTypeId | "other";
 
 export interface CaseRow {
   id: string;
   case_no: string | null;
   case_name?: string | null;
-  property_type: "residential" | "land";
+  property_type: CasePropertyType;
   land_lot_no: string;
   land_lots: string[];
   building_lot_no?: string | null;
@@ -22,7 +26,7 @@ export interface CaseRow {
 }
 
 export interface CreateCaseInput {
-  property_type: "residential" | "land";
+  property_type: CasePropertyType;
   land_lot_no: string;
   land_lots?: string[];
   address: string;
@@ -36,7 +40,7 @@ export interface CreateCaseInput {
 }
 
 export interface UpdateCaseInput {
-  property_type?: "residential" | "land";
+  property_type?: CasePropertyType;
   land_lot_no?: string;
   land_lots?: string[];
   building_lot_no?: string | null;
@@ -80,9 +84,13 @@ export function formatTpeDate(unixSecs: number): string {
   return TPE_FMT.format(new Date(unixSecs * 1000));
 }
 
-const PROPERTY_TYPE_LABEL: Record<CaseRow["property_type"], string> = {
+const PROPERTY_TYPE_LABEL: Record<CasePropertyType, string> = {
   residential: "成屋",
   land: "土地",
+  other: "其他",
+  ...Object.fromEntries(
+    PROPERTY_TYPE_REGISTRY.map((definition) => [definition.id, definition.displayName]),
+  ) as Record<PropertyTypeId, string>,
 };
 
 const STATUS_LABEL: Record<CaseRow["status"], string> = {
@@ -92,8 +100,24 @@ const STATUS_LABEL: Record<CaseRow["status"], string> = {
   exported: "已匯出",
 };
 
-export function propertyTypeLabel(t: CaseRow["property_type"]): string {
-  return PROPERTY_TYPE_LABEL[t];
+export function isCasePropertyType(value: string): value is CasePropertyType {
+  return value in PROPERTY_TYPE_LABEL;
+}
+
+export function coarseCasePropertyType(value: CasePropertyType): LegacyPropertyTypeId {
+  return value === "land" ||
+    value === "farmland" ||
+    value === "residential-land" ||
+    value === "industrial-land" ||
+    value === "commercial-land" ||
+    value === "village-land" ||
+    value === "other-land"
+    ? "land"
+    : "residential";
+}
+
+export function propertyTypeLabel(t: CasePropertyType | string): string {
+  return PROPERTY_TYPE_LABEL[t as CasePropertyType] ?? t;
 }
 
 export function statusLabel(s: CaseRow["status"]): string {
