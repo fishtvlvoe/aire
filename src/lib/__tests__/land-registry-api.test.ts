@@ -65,6 +65,39 @@ describe("land-registry-api addressLookup", () => {
     ]);
     expect(fetchSpy).toHaveBeenCalledWith("/api/local/address-discovery", expect.any(Object));
     expect(mocks.safeInvoke).toHaveBeenCalledWith("get_land_api_settings");
+    expect(mocks.safeInvoke).toHaveBeenCalledWith("record_local_address_discovery", {
+      address: "台南市永康區勝利街58巷4號",
+      result: expect.objectContaining({
+        status: "candidate_found",
+      }),
+    });
+    fetchSpy.mockRestore();
+  });
+
+  it("records manual local discovery results without falling back to mock address lookup", async () => {
+    mocks.isTauriEnv.mockResolvedValue(false);
+    vi.stubEnv("NODE_ENV", "development");
+    mocks.safeInvoke.mockResolvedValueOnce({ clientId: "cid", secret: "sec" });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          status: "manual_required",
+          candidates: [],
+          errors: [{ source: "easymap_r02", code: "easymap_r02_no_candidate", message: "需要人工確認" }],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ) as Response,
+    );
+
+    await expect(addressLookup("查無地址")).resolves.toEqual([]);
+    expect(mocks.safeInvoke).toHaveBeenCalledWith("record_local_address_discovery", {
+      address: "查無地址",
+      result: expect.objectContaining({
+        status: "manual_required",
+        errors: [expect.objectContaining({ code: "easymap_r02_no_candidate" })],
+      }),
+    });
+    expect(mocks.safeInvoke).not.toHaveBeenCalledWith("land_registry_address_lookup", expect.anything());
     fetchSpy.mockRestore();
   });
 
@@ -73,7 +106,7 @@ describe("land-registry-api addressLookup", () => {
     mocks.isTauriEnv.mockResolvedValue(false);
 
     await expect(addressLookup("台南市永康區勝利街58巷4號")).rejects.toThrow(
-      "請使用 AIRE 桌面版完成地址資料補齊",
+      "請使用 AIRE 桌面版完成物件資料補齊",
     );
     expect(mocks.safeInvoke).not.toHaveBeenCalled();
   });

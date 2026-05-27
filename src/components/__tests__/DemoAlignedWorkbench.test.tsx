@@ -4,6 +4,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUpdateCase = vi.hoisted(() => vi.fn());
+const mockImportCaseAsset = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/cases-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/cases-api")>();
@@ -13,6 +14,14 @@ vi.mock("@/lib/cases-api", async (importOriginal) => {
       ...actual.casesApi,
       update: mockUpdateCase,
     },
+  };
+});
+
+vi.mock("@/lib/floor-plan-assets", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/floor-plan-assets")>();
+  return {
+    ...actual,
+    importCaseAsset: mockImportCaseAsset,
   };
 });
 
@@ -42,6 +51,8 @@ describe("DemoAlignedWorkbench", () => {
     __resetMockStoreForTests();
     mockUpdateCase.mockReset();
     mockUpdateCase.mockResolvedValue({ ...caseRow, owner_name: "蔡國卿" });
+    mockImportCaseAsset.mockReset();
+    mockImportCaseAsset.mockResolvedValue({ id: "asset-1" });
   });
 
   it("renders the two-column case/chapter and field review workbench", () => {
@@ -63,14 +74,24 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.queryByRole("button", { name: "產生補件清單" })).not.toBeInTheDocument();
     expect(screen.queryByText("地政重查：後端串接中")).not.toBeInTheDocument();
     expect(screen.queryByText("自動補件：後端串接中")).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "補件/現場" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "補件與現場" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "正式資料匯入" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "物件資料總覽" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "現場必問" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "費用" })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "PDF 檢查" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "本次調閱費用" })).toBeInTheDocument();
     expect(screen.queryByText("說明書章節")).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "修改" }).length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "下一步：資料來源" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "預覽 PDF" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "下一步：補件與現場" })).toBeInTheDocument();
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "欄位初審",
+      "補件與現場",
+      "正式資料匯入",
+      "物件資料總覽",
+      "PDF 檢查",
+    ]);
   });
 
   it("uses customer-facing field labels and hides engineering codes", () => {
@@ -100,7 +121,7 @@ describe("DemoAlignedWorkbench", () => {
     const workbench = screen.getByTestId("demo-aligned-workbench");
     expect(within(workbench).getByText("1/1")).toBeInTheDocument();
     expect(within(workbench).getByText("民國083年10月18日")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: "補件/現場" }));
+    fireEvent.click(screen.getByRole("tab", { name: "補件與現場" }));
     const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
     expect(supplementRegion).toBeInTheDocument();
     expect(within(supplementRegion).getByRole("button", { name: "加入補件清單" })).toBeInTheDocument();
@@ -117,7 +138,7 @@ describe("DemoAlignedWorkbench", () => {
   });
 
   it("turns missing source rows into actionable supplement fields and reflects values in source JSON", async () => {
-    render(<DemoAlignedWorkbench caseData={{ ...caseRow, owner_name: null }} initialTab="sources" />);
+    render(<DemoAlignedWorkbench caseData={{ ...caseRow, owner_name: null }} initialTab="summary" />);
 
     const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
     expect(within(sourceRegion).getByText("屋主姓名")).toBeInTheDocument();
@@ -126,7 +147,7 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(sourceRegion).getByText("門牌查詢建號")).toBeInTheDocument();
     expect(within(sourceRegion).getByText("查詢未成功")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "補件/現場" }));
+    fireEvent.click(screen.getByRole("tab", { name: "補件與現場" }));
     const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
 
     expect(within(supplementRegion).getByLabelText("屋主姓名補件值")).toBeInTheDocument();
@@ -168,7 +189,7 @@ describe("DemoAlignedWorkbench", () => {
       );
     });
 
-    fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
+    fireEvent.click(screen.getByRole("tab", { name: "物件資料總覽" }));
     fireEvent.click(screen.getByText("管理明細"));
     await waitFor(() => {
       expect(screen.getAllByText(/勝利段 58 建號/).length).toBeGreaterThan(0);
@@ -296,7 +317,7 @@ describe("DemoAlignedWorkbench", () => {
       ...input,
     }));
 
-    render(<DemoAlignedWorkbench caseData={candidateCase} initialTab="sources" />);
+    render(<DemoAlignedWorkbench caseData={candidateCase} initialTab="summary" />);
 
     const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
     expect(within(sourceRegion).getByRole("region", { name: "候選土地建物清單" })).toBeInTheDocument();
@@ -359,13 +380,13 @@ describe("DemoAlignedWorkbench", () => {
   it("switches workbench tabs instead of showing every panel at once", () => {
     render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
 
-    expect(screen.getByRole("tab", { name: "補件/現場" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "補件與現場" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("region", { name: "補件與現場確認" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "欄位資料來源" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
+    fireEvent.click(screen.getByRole("tab", { name: "物件資料總覽" }));
 
-    expect(screen.getByRole("tab", { name: "資料來源" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "物件資料總覽" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "補件與現場確認" })).not.toBeInTheDocument();
   });
@@ -375,9 +396,10 @@ describe("DemoAlignedWorkbench", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "修改" })[0]);
     expect(screen.getByLabelText("屋主姓名修改值")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "下一步：資料來源" }));
+    fireEvent.click(screen.getByRole("button", { name: "下一步：補件與現場" }));
 
-    expect(screen.getByRole("tab", { name: "資料來源" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "補件與現場" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("tab", { name: "物件資料總覽" }));
     expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /下載管理資料|下載|另存/ })).not.toBeInTheDocument();
     expect(screen.getByText(/缺資料再進補件或正式資料匯入/)).toBeInTheDocument();
@@ -397,7 +419,7 @@ describe("DemoAlignedWorkbench", () => {
       expect(mockUpdateCase).toHaveBeenCalledWith(caseRow.id, { owner_name: "蔡國卿" });
     });
 
-    fireEvent.click(screen.getByRole("tab", { name: "資料來源" }));
+    fireEvent.click(screen.getByRole("tab", { name: "物件資料總覽" }));
     fireEvent.click(screen.getByText("管理明細"));
     await waitFor(() => {
       expect(screen.getAllByText(/蔡國卿/).length).toBeGreaterThan(0);
@@ -440,7 +462,7 @@ describe("DemoAlignedWorkbench", () => {
       },
     };
 
-    render(<DemoAlignedWorkbench caseData={sourceCase} initialTab="sources" />);
+    render(<DemoAlignedWorkbench caseData={sourceCase} initialTab="summary" />);
 
     const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
     expect(within(sourceRegion).getByText("蔡國卿")).toBeInTheDocument();
@@ -449,7 +471,9 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(sourceRegion).getByText("民國071年08月04日")).toBeInTheDocument();
     expect(within(sourceRegion).getByText("已找到建號 00084000")).toBeInTheDocument();
     expect(within(sourceRegion).getByText("待正式所有權資料後再比對")).toBeInTheDocument();
-    expect(within(sourceRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "正式資料匯入" }));
+    const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
+    expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
     expect(sourceRegion.textContent).not.toContain("候選建號");
     expect(sourceRegion.textContent).not.toMatch(/R02|便民系統/);
   });
@@ -484,14 +508,68 @@ describe("DemoAlignedWorkbench", () => {
       },
     };
 
-    render(<DemoAlignedWorkbench caseData={singleCandidateCase} initialTab="sources" />);
+    render(<DemoAlignedWorkbench caseData={singleCandidateCase} initialTab="formal-import" />);
 
-    const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
-    expect(within(sourceRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
-    expect(within(sourceRegion).queryByRole("button", { name: "確認" })).not.toBeInTheDocument();
-    expect(within(sourceRegion).queryByRole("button", { name: "取消" })).not.toBeInTheDocument();
-    expect(within(sourceRegion).queryByRole("button", { name: /暫用/ })).not.toBeInTheDocument();
-    expect(within(sourceRegion).queryByRole("button", { name: /確認 DK-9125-00084000/ })).not.toBeInTheDocument();
+    const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
+    expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
+    expect(within(importRegion).queryByRole("button", { name: "確認" })).not.toBeInTheDocument();
+    expect(within(importRegion).queryByRole("button", { name: "取消" })).not.toBeInTheDocument();
+    expect(within(importRegion).queryByRole("button", { name: /暫用/ })).not.toBeInTheDocument();
+    expect(within(importRegion).queryByRole("button", { name: /確認 DK-9125-00084000/ })).not.toBeInTheDocument();
+  });
+
+  it("shows imported PDF fields and missing reasons before opening PDF preview", () => {
+    const formalImportCase: CaseRow = {
+      ...caseRow,
+      owner_name: "蔡國卿",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-27T00:00:00.000Z",
+        totalCost: 20,
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "moi_api",
+            status: "success",
+            trustedForPdf: true,
+            data: {
+              building_number: "03045000",
+              area: 128.2,
+              main_building_area: 91.4,
+              auxiliary_area: 8.3,
+              common_area: 28.5,
+              parking_area: 0,
+              building_purpose: "住商用",
+              construction_date: "0710804",
+            },
+          },
+        },
+        candidate_options: [],
+        selected_candidate_ids: {},
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={formalImportCase} initialTab="pdf" />);
+
+    const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
+    const previewList = within(pdfRegion).getByLabelText("PDF 文字預覽清單");
+    expect(within(previewList).getByText("登記坪數")).toBeInTheDocument();
+    expect(within(previewList).getByText("128.2")).toBeInTheDocument();
+    expect(within(previewList).getByText("主建坪數")).toBeInTheDocument();
+    expect(within(previewList).getByText("91.4")).toBeInTheDocument();
+    expect(within(previewList).getByText("附屬建物")).toBeInTheDocument();
+    expect(within(previewList).getByText("公共設施")).toBeInTheDocument();
+    expect(within(previewList).getByText("車位坪數")).toBeInTheDocument();
+    expect(within(previewList).getByText("法定用途")).toBeInTheDocument();
+    expect(within(previewList).getByText("住商用")).toBeInTheDocument();
+    expect(within(previewList).getByText("Logo")).toBeInTheDocument();
+    expect(within(previewList).getByText("未設定品牌 Logo")).toBeInTheDocument();
+    expect(within(previewList).getByText("生活機能")).toBeInTheDocument();
+    expect(within(previewList).getByText("實價登錄行情")).toBeInTheDocument();
+    expect(within(previewList).getByText("土地增值稅估算")).toBeInTheDocument();
+    expect(within(previewList).getByText(/缺公告現值、前次移轉現值、成交價或持分/)).toBeInTheDocument();
+    expect(within(previewList).getByText("建物外觀")).toBeInTheDocument();
+    expect(within(previewList).getAllByText(/現場外觀照片/).length).toBeGreaterThan(0);
   });
 
   it("keeps candidate metadata and coordinates when supplement fields are saved", async () => {
@@ -590,5 +668,33 @@ describe("DemoAlignedWorkbench", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "PDF 檢查" }));
     expect(screen.getByText("已上傳圖資：1 項")).toBeInTheDocument();
+  });
+
+  it("imports exterior photo as a case asset and shows PDF override status", async () => {
+    render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
+
+    const supplementRegion = await screen.findByRole("region", { name: "補件與現場確認" });
+    const file = new File(["mock-image"], "front-door.png", { type: "image/png" });
+    fireEvent.change(within(supplementRegion).getByLabelText("建物外觀上傳"), {
+      target: { files: [file] },
+    });
+
+    await waitFor(() => {
+      expect(mockImportCaseAsset).toHaveBeenCalledWith({
+        caseId: caseRow.id,
+        kind: "exterior_photo",
+        fileName: "front-door.png",
+        mimeType: "image/png",
+        fileBytes: expect.any(Uint8Array),
+        source: "manual_upload",
+        metadata: { slot: "建物外觀" },
+      });
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "PDF 檢查" }));
+    const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
+    expect(within(pdfRegion).getByText("已上傳：front-door.png")).toBeInTheDocument();
+    expect(within(pdfRegion).getByText("已補件覆蓋")).toBeInTheDocument();
+    expect(within(pdfRegion).getByText(/優先使用此案件保存的現場外觀照片/)).toBeInTheDocument();
   });
 });
