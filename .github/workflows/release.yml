@@ -135,11 +135,13 @@ jobs:
             "--workflow-url", "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID",
             "--commit", $env:GITHUB_SHA,
             "--release-tag", $env:AIRE_RELEASE_TAG,
-            "--expected-publisher", $env:WINDOWS_SIGNING_EXPECTED_PUBLISHER,
             "--smart-screen", "not_observed",
             "--defender", "not_observed",
             "--windows-runtime-evidence", "artifacts/windows-runtime-smoke/report.json,artifacts/windows-runtime-smoke/aire-windows-runtime-smoke.png"
           )
+          if ($env:WINDOWS_SIGNING_EXPECTED_PUBLISHER) {
+            $args += @("--expected-publisher", $env:WINDOWS_SIGNING_EXPECTED_PUBLISHER)
+          }
           if ($env:CUSTOMER_RELEASE -eq "true") {
             $args += "--customer-release"
           }
