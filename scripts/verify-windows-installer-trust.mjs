@@ -39,14 +39,14 @@ function readAuthenticodeSignature(installerPath) {
   }
 
   const ps = spawnSync(
-    "powershell.exe",
+    "pwsh.exe",
     [
       "-NoProfile",
-      "-ExecutionPolicy",
-      "Bypass",
       "-Command",
       [
+        "& {",
         "param([string]$InstallerPath)",
+        "Import-Module Microsoft.PowerShell.Security -ErrorAction Stop",
         "$sig = Get-AuthenticodeSignature -FilePath $InstallerPath",
         "$out = [ordered]@{",
         "  status = [string]$sig.Status",
@@ -56,6 +56,7 @@ function readAuthenticodeSignature(installerPath) {
         "  timestampSubject = if ($sig.TimeStamperCertificate) { [string]$sig.TimeStamperCertificate.Subject } else { $null }",
         "}",
         "$out | ConvertTo-Json -Compress",
+        "}",
       ].join("\n"),
       installerPath,
     ],
