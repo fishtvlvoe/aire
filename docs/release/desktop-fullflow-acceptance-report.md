@@ -145,5 +145,9 @@ The customer installation problem is now separated from runtime smoke. Runtime s
 - Current unsigned baseline: `artifacts/smoke/windows/trust/unsigned-baseline-20260527.json`
 - Current unsigned installer status: `internal-only`
 - Customer release automation: `release.yml` supports `customer_release=true`; when enabled it requires Azure Artifact Signing, verifies Authenticode, writes trust metadata, and fails the workflow if the installer is not customer-release-ready.
+- Latest CI trust gate run: `https://github.com/fishtvlvoe/aire/actions/runs/26518763313`
+- Latest Windows installer SHA-256: `c7b293c6a0ca74ed7aced19236b91b5358f4cd2fe6a1a3a7e4c7e05cf13f28f2`
+- Latest trust metadata result: `signing.status=unsigned`, `releaseStatus=internal-only`, `customerReleaseReady=false`.
+- Latest runtime smoke result: `windows-installer-installed-and-app-process-launched`, main window title `AIRE 0.1.3`.
 
 Remaining external prerequisite: Azure Artifact Signing account, certificate profile, organization verification, and GitHub secrets must be configured before Windows installers can be marked customer-release-ready.

@@ -83,7 +83,7 @@ The historical checklist below is retained for traceability only. It does not co
 - [x] PDF preview/export reads saved data and does not start a paid query.
 - [x] macOS Desktop App wrapper launches with debug-only memory keyring and repeats the same source-of-truth workflow through `localhost:3000` E2E.
 - [x] Windows UTM runtime install/launch is partially verified: `artifacts/smoke/windows/aire-windows-installed-launch-login-20260527.png`.
-- [x] Windows GitHub Actions runtime smoke passed for the current branch: installer silent install + `AIRE 0.1.3` process/window observed in run `26513341136`.
-- [x] Windows installer trust gate is automated in CI and produces metadata, but current unsigned installer remains `internal-only`.
+- [x] Windows GitHub Actions runtime smoke passed for the current branch: installer silent install + `AIRE 0.1.3` process/window observed in run `26518763313`.
+- [x] Windows installer trust gate is automated in CI and produces metadata; latest run `26518763313` records `signing.status=unsigned`, `releaseStatus=internal-only`.
 - [ ] Windows customer release requires Azure Artifact Signing secrets and valid publisher verification before the installer can be marked customer-release-ready.
 - [ ] Windows fullflow still needs auth inside the installed Windows app, address-to-COP smoke, and PDF preview/export evidence.
