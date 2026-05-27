@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { KeyinSplitPage } from "@/components/KeyinSplitPage";
-import { casesApi } from "@/lib/cases-api";
+import { casesApi, coarseCasePropertyType } from "@/lib/cases-api";
 import { resolveRuntimeCaseId } from "@/lib/case-routes";
 
 export default function KeyinPage() {
@@ -18,7 +18,7 @@ export default function KeyinPage() {
       if (!id) return;
       const currentCase = await casesApi.get(id);
       if (!cancelled) {
-        setPropertyType(currentCase.property_type);
+        setPropertyType(coarseCasePropertyType(currentCase.property_type));
       }
     })();
 

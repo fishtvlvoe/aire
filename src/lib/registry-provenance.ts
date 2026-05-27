@@ -95,7 +95,7 @@ export interface RegistryProvenancePayload extends Record<string, unknown> {
 type ApiLikeResult = {
   success: boolean;
   data?: Record<string, unknown> | unknown[];
-  error?: string;
+  error?: unknown;
   source?: string;
 };
 
@@ -123,12 +123,25 @@ function trustedSourceForApiResult(source?: string): RegistrySource {
   return "unknown";
 }
 
-function classifyRegistryFailure(error?: string): {
+function normalizeFailureMessage(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  if (error == null) return "";
+  if (typeof error === "number" || typeof error === "boolean") return String(error);
+  if (isRecord(error) && typeof error.message === "string") return error.message;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function classifyRegistryFailure(error?: unknown): {
   status: Extract<RegistryStatus, "failed" | "unauthorized">;
   reason: string;
   action: string;
 } {
-  const message = error ?? "";
+  const message = normalizeFailureMessage(error);
   if (/ApiKeyNotConfigured|API key not set|未設定.*API/i.test(message)) {
     return {
       status: "failed",

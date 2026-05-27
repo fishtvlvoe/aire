@@ -9,8 +9,25 @@ export interface ParcelInfo {
   address: string;
   lot_number: string;
   building_number: string;
-  source?: "cop_moi" | "nlsc_cad" | "dev_fixture" | "mock";
+  section_name?: string;
+  section_code?: string;
+  land_office?: string;
+  source?: "cop_moi" | "easymap_r02" | "nlsc_cad" | "dev_fixture" | "mock";
   trusted_for_pdf?: boolean;
+  discovery_confidence?: "high" | "needs_selection" | "low";
+  object_type?: "building" | "land";
+  confirmation_state?: "unconfirmed" | "selected_candidate" | "confirmed";
+  building_area_sqm?: string;
+  total_floor_count?: string;
+  floor_label?: string;
+  completion_date_roc?: string;
+  age_years?: string;
+  main_use?: string;
+  land_area_sqm?: string;
+  announced_land_current_value?: string;
+  announced_land_value?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface ApiResult {
@@ -32,6 +49,9 @@ export interface BalanceInfo {
 }
 
 export interface BillingLineItem {
+  run_id?: string;
+  object_type?: "building" | "land" | "address" | "unknown";
+  object_type_label?: string;
   service_name: string;
   target: string;
   status_label: string;
@@ -131,9 +151,33 @@ export interface RegistryRunSyncResult {
   remote_run_id: string | null;
 }
 
+export interface PaidAddressResolverResult {
+  run_id: string;
+  candidates: ParcelInfo[];
+  total_cost: number;
+  total_cost_cents: number;
+  cache_hit: boolean;
+  source_run_id: string | null;
+}
+
 interface LocalAddressDiscoveryResponse {
   status: "candidate_found" | "manual_required";
+  source?: string;
+  normalizedAddress?: string;
   candidates: ParcelInfo[];
+  errors?: Array<{ source: string; code: string; message: string }>;
+  trustedForPdf?: false;
+  totalCostCents?: 0;
+  total_cost_cents?: 0;
+  cacheHit?: boolean;
+  sourceRunId?: string | null;
+  inputKind?: "doorplate" | "land_descriptor" | "incomplete";
+  intendedObjectType?: "building" | "land" | "unknown";
+  requiresCandidateSelection?: boolean;
+  candidateSelection?: {
+    state: "not_required" | "required" | "selected";
+    selectedRegistryKey: string | null;
+  };
 }
 
 interface LocalLandApiSettings {
@@ -176,15 +220,22 @@ async function fetchAddressDiscoveryFromLocalBackend(address: string): Promise<P
   }
 
   const result = (await response.json()) as LocalAddressDiscoveryResponse;
+  await recordLocalAddressDiscovery(address, result);
   if (result.status === "candidate_found") {
     return result.candidates ?? [];
   }
-  try {
-    await safeInvoke<ParcelInfo[]>("land_registry_address_lookup", { address });
-  } catch {
-    // no-op
-  }
   return [];
+}
+
+async function recordLocalAddressDiscovery(address: string, result: LocalAddressDiscoveryResponse): Promise<void> {
+  try {
+    await safeInvoke("record_local_address_discovery", {
+      address,
+      result,
+    });
+  } catch {
+    // Local Web uses this as evidence only; discovery result is already returned to the UI.
+  }
 }
 
 export async function addressLookup(address: string): Promise<ParcelInfo[]> {
@@ -196,7 +247,7 @@ export async function addressLookup(address: string): Promise<ParcelInfo[]> {
   }
 
   if (!(await isTauriEnv())) {
-    throw new NotInTauriError("請使用 AIRE 桌面版完成地址資料補齊");
+    throw new NotInTauriError("請使用 AIRE 桌面版完成物件資料補齊");
   }
   return invoke<ParcelInfo[]>("land_registry_address_lookup", { address });
 }
@@ -237,6 +288,10 @@ export async function formalPullData(caseId: string, apiIds: string[]): Promise<
   source_run_id: string | null;
 }> {
   return invoke("land_registry_formal_pull_data", { caseId, apiIds });
+}
+
+export async function paidAddressResolver(address: string): Promise<PaidAddressResolverResult> {
+  return invoke("land_registry_paid_address_resolver", { address });
 }
 
 export async function setApiKey(clientId: string, clientSecret: string): Promise<void> {
