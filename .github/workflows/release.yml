@@ -10,9 +10,14 @@ on:
         description: "Optional draft release tag to download an existing Windows setup.exe for runtime smoke"
         required: false
         default: ""
+      customer_release:
+        description: "Require trusted Windows code signing and customer-release-ready metadata"
+        required: false
+        default: "false"
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   build:
@@ -76,6 +81,78 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: "${{ matrix.args }}"
+
+      - name: Locate Windows installer
+        if: runner.os == 'Windows' && github.event.inputs.smoke_existing_release_tag == ''
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installer = Get-ChildItem src-tauri\target\release\bundle -Recurse -Filter "*setup.exe" |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if (-not $installer) {
+            throw "No Windows setup.exe installer found under src-tauri\target\release\bundle"
+          }
+          "WINDOWS_INSTALLER_PATH=$($installer.FullName)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          $version = node -p "require('./package.json').version"
+          "AIRE_RELEASE_TAG=aire-v$version" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Azure login for Windows signing
+        if: runner.os == 'Windows' && github.event.inputs.customer_release == 'true' && github.event.inputs.smoke_existing_release_tag == ''
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign Windows installer with Azure Artifact Signing
+        if: runner.os == 'Windows' && github.event.inputs.customer_release == 'true' && github.event.inputs.smoke_existing_release_tag == ''
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ secrets.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_TRUSTED_SIGNING_CERT_PROFILE }}
+          files: ${{ env.WINDOWS_INSTALLER_PATH }}
+          file-digest: SHA256
+          timestamp-rfc3161: "http://timestamp.acs.microsoft.com"
+          timestamp-digest: SHA256
+          description: "AIRE Windows installer"
+          description-url: "https://github.com/fishtvlvoe/aire"
+
+      - name: Verify Windows installer trust
+        if: runner.os == 'Windows' && github.event.inputs.smoke_existing_release_tag == ''
+        shell: pwsh
+        env:
+          CUSTOMER_RELEASE: ${{ github.event.inputs.customer_release }}
+          WINDOWS_SIGNING_EXPECTED_PUBLISHER: ${{ vars.WINDOWS_SIGNING_EXPECTED_PUBLISHER }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force artifacts\windows-installer-trust | Out-Null
+          $args = @(
+            "scripts\verify-windows-installer-trust.mjs",
+            "--installer", $env:WINDOWS_INSTALLER_PATH,
+            "--out", "artifacts\windows-installer-trust\metadata.json",
+            "--workflow-url", "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID",
+            "--commit", $env:GITHUB_SHA,
+            "--release-tag", $env:AIRE_RELEASE_TAG,
+            "--expected-publisher", $env:WINDOWS_SIGNING_EXPECTED_PUBLISHER,
+            "--smart-screen", "not_observed",
+            "--defender", "not_observed",
+            "--windows-runtime-evidence", "artifacts/windows-runtime-smoke/report.json,artifacts/windows-runtime-smoke/aire-windows-runtime-smoke.png"
+          )
+          if ($env:CUSTOMER_RELEASE -eq "true") {
+            $args += "--customer-release"
+          }
+          node @args
+
+      - name: Upload signed Windows release assets
+        if: runner.os == 'Windows' && github.event.inputs.customer_release == 'true' && github.event.inputs.smoke_existing_release_tag == ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          gh release upload $env:AIRE_RELEASE_TAG $env:WINDOWS_INSTALLER_PATH artifacts\windows-installer-trust\metadata.json --clobber
 
       - name: Windows runtime smoke
         if: runner.os == 'Windows'
@@ -164,3 +241,10 @@ jobs:
         with:
           name: windows-runtime-smoke
           path: artifacts/windows-runtime-smoke/
+
+      - name: Upload Windows installer trust metadata
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-trust
+          path: artifacts/windows-installer-trust/

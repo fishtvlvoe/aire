@@ -135,3 +135,15 @@ The current branch was rebuilt through `release.yml`; macOS and Windows type-che
 - Evidence screenshot: `artifacts/smoke/windows/github-runtime-smoke-26513341136/aire-windows-runtime-smoke.png`
 
 Result: Current branch Windows installer build, install, and launch smoke passed without using the local UTM UI. This is enough to say the Windows app can install and open. It is still not a full Windows address-to-COP/PDF acceptance run.
+
+### Windows Installer Trust Gate — 2026-05-27
+
+The customer installation problem is now separated from runtime smoke. Runtime smoke proves the app installs and opens; installer trust proves Windows shows a trusted publisher and the release is safe to hand to customers.
+
+- Trust script: `scripts/verify-windows-installer-trust.mjs`
+- Trust documentation: `docs/release/windows-installer-trust.md`
+- Current unsigned baseline: `artifacts/smoke/windows/trust/unsigned-baseline-20260527.json`
+- Current unsigned installer status: `internal-only`
+- Customer release automation: `release.yml` supports `customer_release=true`; when enabled it requires Azure Artifact Signing, verifies Authenticode, writes trust metadata, and fails the workflow if the installer is not customer-release-ready.
+
+Remaining external prerequisite: Azure Artifact Signing account, certificate profile, organization verification, and GitHub secrets must be configured before Windows installers can be marked customer-release-ready.
