@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, basename } from "node:path";
+import { dirname, basename, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 function parseArgs(argv) {
   const args = {};
@@ -177,6 +178,6 @@ function main() {
   console.log(JSON.stringify({ releaseStatus: metadata.releaseStatus, signingStatus: metadata.signing.status }));
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   main();
 }

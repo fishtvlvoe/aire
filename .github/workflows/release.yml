@@ -144,6 +144,9 @@ jobs:
             $args += "--customer-release"
           }
           node @args
+          if (-not (Test-Path "artifacts\windows-installer-trust\metadata.json")) {
+            throw "Windows installer trust metadata was not generated"
+          }
 
       - name: Upload signed Windows release assets
         if: runner.os == 'Windows' && github.event.inputs.customer_release == 'true' && github.event.inputs.smoke_existing_release_tag == ''
