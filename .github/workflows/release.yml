@@ -28,7 +28,6 @@ jobs:
             args: ""
 
     runs-on: ${{ matrix.platform }}
-    if: ${{ github.event.inputs.smoke_existing_release_tag == '' || matrix.platform == 'windows-latest' }}
 
     steps:
       - name: Checkout
