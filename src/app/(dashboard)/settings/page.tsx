@@ -47,6 +47,11 @@ type LandApiSettingsResponse = {
   secret: string;
 };
 
+type SessionResponse = {
+  authenticated?: boolean;
+  user?: { email?: string | null; role?: string | null } | null;
+};
+
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const slots = getPdfAssetSlots();
@@ -65,7 +70,7 @@ export default function SettingsPage() {
         : selectedSection === "registry-auth"
         ? "地政授權"
         : selectedSection === "plans"
-          ? "方案與升級"
+          ? "方案設定"
           : selectedSection === "pdf-assets"
             ? "PDF 圖資欄位"
             : "個人設定";
@@ -76,7 +81,7 @@ export default function SettingsPage() {
       : selectedSection === "registry-records"
         ? "查看每次資料補齊、正式查詢、快取命中與錯誤紀錄。"
       : selectedSection === "plans"
-        ? "目前方案、可用功能與升級入口集中在這裡。"
+        ? "目前帳號角色、方案、授權狀態與到期資訊集中在這裡。"
         : selectedSection === "registry-auth"
           ? "管理客戶自己的地政查詢帳號與連線測試。"
           : "管理個人名稱、Email 與 PDF 開啟密碼。";
@@ -251,22 +256,25 @@ function PlansAndUpgradePanel({ plans }: { plans: ReturnType<typeof getUpgradePl
     license: LicenseStatusResponse | null;
     landCredential: LandCredentialStatus;
     deviceSession: "active" | "missing";
+    accountRole: string;
   }>({
     trial: null,
     license: null,
     landCredential: "not-configured",
     deviceSession: "missing",
+    accountRole: "未確認",
   });
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const [trial, license, landSettings, deviceSession] = await Promise.all([
+        const [trial, license, landSettings, deviceSession, session] = await Promise.all([
           mockInvoke<TrialStatusResponse>("get_trial_status"),
           mockInvoke<LicenseStatusResponse>("get_license_status"),
           mockInvoke<LandApiSettingsResponse>("get_land_api_settings"),
           getDeviceSessionStatus(),
+          mockInvoke<SessionResponse>("get_session"),
         ]);
         if (cancelled) return;
         setAccountStatus({
@@ -275,10 +283,11 @@ function PlansAndUpgradePanel({ plans }: { plans: ReturnType<typeof getUpgradePl
           landCredential:
             landSettings.clientId?.trim() && landSettings.secret?.trim() ? "configured" : "not-configured",
           deviceSession: deviceSession.status,
+          accountRole: formatAccountRole(session.user?.role),
         });
       } catch {
         if (cancelled) return;
-        setAccountStatus({ trial: null, license: null, landCredential: "not-configured", deviceSession: "missing" });
+        setAccountStatus({ trial: null, license: null, landCredential: "not-configured", deviceSession: "missing", accountRole: "未確認" });
       }
     })();
     return () => {
@@ -291,6 +300,7 @@ function PlansAndUpgradePanel({ plans }: { plans: ReturnType<typeof getUpgradePl
       <section className="rounded-lg border p-4" aria-label="帳號與授權管理">
         <h2 className="text-base font-semibold">帳號與授權管理</h2>
         <dl className="mt-3 grid gap-2 text-sm md:grid-cols-3">
+          <SettingKv label="帳號角色" value={accountStatus.accountRole} />
           <SettingKv label="目前方案" value={formatPlanName(accountStatus.trial?.plan ?? "basic")} />
           <SettingKv label="試用狀態" value={formatTrialStatus(accountStatus.trial)} />
           <SettingKv label="授權狀態" value={formatLicenseStatus(accountStatus.license)} />
@@ -355,7 +365,14 @@ function formatTrialStatus(trial: TrialStatusResponse | null): string {
 function formatLicenseStatus(license: LicenseStatusResponse | null): string {
   if (!license || license.status === "none") return "尚未啟用";
   if (license.status === "expired") return "授權已過期";
-  return "已啟用";
+  return "已啟用（終身授權）";
+}
+
+function formatAccountRole(role?: string | null): string {
+  if (role === "admin") return "管理員";
+  if (role === "owner") return "擁有者";
+  if (role === "member") return "成員";
+  return "未確認";
 }
 
 function formatLandCredentialStatus(status: LandCredentialStatus): string {
@@ -507,6 +524,9 @@ function BillingPanel() {
 
 function BillingLedgerPanel() {
   const [rows, setRows] = useState<BillingLineItem[] | null>(null);
+  const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+  const [selectedRun, setSelectedRun] = useState<RegistryQueryRun | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -526,6 +546,19 @@ function BillingLedgerPanel() {
 
   const total = (rows ?? []).reduce((sum, row) => sum + row.cost, 0);
 
+  async function openBillingDetail(row: BillingLineItem) {
+    const rowKey = getBillingRowKey(row);
+    setSelectedRowKey((current) => (current === rowKey ? null : rowKey));
+    setSelectedRun(null);
+    setDetailError(null);
+    if (!row.run_id || selectedRowKey === rowKey) return;
+    try {
+      setSelectedRun(await getRegistryQueryRunDetail(row.run_id));
+    } catch (loadError) {
+      setDetailError(loadError instanceof Error ? loadError.message : "無法取得查詢明細");
+    }
+  }
+
   return (
     <article className="rounded-lg border p-4 xl:col-span-2">
       <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
@@ -539,20 +572,36 @@ function BillingLedgerPanel() {
       {!rows && !error ? <p className="mt-3 text-sm text-muted-foreground">載入查詢明細中…</p> : null}
       {rows ? (
         <div className="mt-3 overflow-hidden rounded-lg border">
-          <div className="grid grid-cols-[1.2fr_1.4fr_90px_1fr_80px] gap-3 border-b bg-slate-50 px-3 py-2 text-sm font-medium text-muted-foreground max-lg:hidden">
+          <div className="grid grid-cols-[80px_1.2fr_1.4fr_90px_1fr_80px_80px] gap-3 border-b bg-slate-50 px-3 py-2 text-sm font-medium text-muted-foreground max-lg:hidden">
+            <span>類型</span>
             <span>服務</span>
             <span>查詢目標</span>
             <span>狀態</span>
             <span>交易序號</span>
             <span className="text-right">費用</span>
+            <span className="text-right">明細</span>
           </div>
           {rows.map((row) => (
-            <div key={`${row.transaction_id}-${row.service_name}`} className="grid gap-2 border-b px-3 py-3 text-sm last:border-b-0 lg:grid-cols-[1.2fr_1.4fr_90px_1fr_80px]">
-              <span className="font-medium">{formatBillingServiceName(row.service_name)}</span>
-              <span>{row.target}</span>
-              <span>{row.status_label}</span>
-              <span className="truncate text-muted-foreground">{formatBillingTransactionId(row.transaction_id)}</span>
-              <strong className="text-right">{row.cost} 元</strong>
+            <div key={getBillingRowKey(row)} className="border-b text-sm last:border-b-0">
+              <div className="grid gap-2 px-3 py-3 lg:grid-cols-[80px_1.2fr_1.4fr_90px_1fr_80px_80px]">
+                <span className="font-medium">{formatBillingObjectType(row)}</span>
+                <span className="font-medium">{formatBillingServiceName(row.service_name)}</span>
+                <span>{row.target}</span>
+                <span>{row.status_label}</span>
+                <span className="truncate text-muted-foreground">{formatBillingTransactionId(row.transaction_id)}</span>
+                <strong className="text-right">{row.cost} 元</strong>
+                <button
+                  type="button"
+                  className="justify-self-end rounded-md border px-2 py-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!row.run_id}
+                  onClick={() => void openBillingDetail(row)}
+                >
+                  {selectedRowKey === getBillingRowKey(row) ? "收合" : "查看"}
+                </button>
+              </div>
+              {selectedRowKey === getBillingRowKey(row) ? (
+                <BillingRunDetail run={selectedRun} error={detailError} fallbackRow={row} />
+              ) : null}
             </div>
           ))}
         </div>
@@ -561,7 +610,74 @@ function BillingLedgerPanel() {
   );
 }
 
+function BillingRunDetail({
+  run,
+  error,
+  fallbackRow,
+}: {
+  run: RegistryQueryRun | null;
+  error: string | null;
+  fallbackRow: BillingLineItem;
+}) {
+  if (error) {
+    return <p className="border-t bg-red-50 px-3 py-3 text-sm text-destructive">明細載入失敗：{error}</p>;
+  }
+  if (!run) {
+    return <p className="border-t bg-slate-50 px-3 py-3 text-sm text-muted-foreground">載入明細中…</p>;
+  }
+
+  return (
+    <div role="region" className="border-t bg-slate-50 px-3 py-3 text-sm" aria-label="費用明細">
+      <dl className="grid gap-2 md:grid-cols-3">
+        <SettingKv label="查詢紀錄" value={run.id} />
+        <SettingKv label="查詢類型" value={formatBillingObjectType(fallbackRow)} />
+        <SettingKv label="快取" value={run.cache_hit ? "使用既有紀錄" : "新查詢"} />
+        <SettingKv label="來源紀錄" value={run.source_run_id ?? "無"} />
+        <SettingKv label="錯誤" value={run.error_message ? "有錯誤紀錄" : "無"} />
+        <SettingKv label="總費用" value={`${Math.round(run.total_cost_cents / 100)} 元`} />
+      </dl>
+      <div className="mt-3 rounded-md border bg-white">
+        <div className="grid grid-cols-[1.2fr_90px_90px_90px] gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground">
+          <span>服務</span>
+          <span>狀態</span>
+          <span>筆數</span>
+          <span className="text-right">費用</span>
+        </div>
+        {run.api_calls.length > 0 ? run.api_calls.map((call) => (
+          <div key={call.id} className="grid grid-cols-[1.2fr_90px_90px_90px] gap-2 border-b px-3 py-2 text-xs last:border-b-0">
+            <span>{formatBillingServiceName(call.service_code)}</span>
+            <span>{call.http_status >= 400 ? "失敗" : "成功"}</span>
+            <span>{call.return_rows}</span>
+            <strong className="text-right">{Math.round(call.cost_cents / 100)} 元</strong>
+          </div>
+        )) : (
+          <p className="px-3 py-2 text-xs text-muted-foreground">沒有扣款服務列。</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function getBillingRowKey(row: BillingLineItem): string {
+  return `${row.run_id ?? row.transaction_id}-${row.service_name}-${row.target}`;
+}
+
+function formatBillingObjectType(row: BillingLineItem): string {
+  if (row.object_type_label) return row.object_type_label;
+  if (row.object_type === "building") return "戶建";
+  if (row.object_type === "land") return "土地";
+  if (row.object_type === "address") return "門牌";
+  if (/建物|建號|building/i.test(`${row.service_name} ${row.target}`)) return "戶建";
+  if (/土地|地號|land/i.test(`${row.service_name} ${row.target}`)) return "土地";
+  if (/門牌|地址/i.test(`${row.service_name} ${row.target}`)) return "門牌";
+  return "其他";
+}
+
 function formatBillingServiceName(serviceName: string): string {
+  if (serviceName === "building_registry") return "建物標示資料";
+  if (serviceName === "building_ownership") return "建物所有權資料";
+  if (serviceName === "land_registry") return "土地標示資料";
+  if (serviceName === "land_ownership") return "土地所有權資料";
   if (/MOI_API_|COP|API/i.test(serviceName)) return getCustomerServiceLabel(serviceName);
   return serviceName;
 }

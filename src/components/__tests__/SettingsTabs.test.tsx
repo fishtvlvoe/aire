@@ -11,15 +11,11 @@ vi.mock("next/navigation", () => ({
 import { SettingsTabs } from "@/components/SettingsTabs";
 
 describe("SettingsTabs", () => {
-  it("renders three settings tabs with target routes", () => {
+  it("renders brand settings and audit log tabs only", () => {
     mockPathname = "/settings";
     render(<SettingsTabs />);
 
-    expect(screen.getByRole("link", { name: "一般設定" })).toHaveAttribute(
-      "href",
-      "/settings",
-    );
-    expect(screen.getByRole("link", { name: "品牌與交付資訊" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "品牌設定" })).toHaveAttribute(
       "href",
       "/settings/branding",
     );
@@ -27,19 +23,19 @@ describe("SettingsTabs", () => {
       "href",
       "/settings/logs",
     );
+    expect(screen.queryByRole("link", { name: "一般設定" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "個人設定" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "品牌與交付資訊" })).not.toBeInTheDocument();
   });
 
   it("highlights active tab by current route", () => {
     mockPathname = "/settings";
     const { rerender } = render(<SettingsTabs />);
-    expect(screen.getByRole("link", { name: "一般設定" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    expect(screen.queryByRole("link", { name: "一般設定" })).not.toBeInTheDocument();
 
     mockPathname = "/settings/branding";
     rerender(<SettingsTabs />);
-    expect(screen.getByRole("link", { name: "品牌與交付資訊" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "品牌設定" })).toHaveAttribute(
       "aria-current",
       "page",
     );
