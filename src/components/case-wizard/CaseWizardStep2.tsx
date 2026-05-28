@@ -196,7 +196,7 @@ function AddressDetectionPanel({ state }: { state: RegistryDetectionState }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 id="address-detection-heading" className="text-sm font-semibold">
-            地址資料補齊
+            物件資料補齊
           </h3>
           <p className="mt-1 break-words text-xs text-muted-foreground">
             {state.address || "尚未輸入地址"}

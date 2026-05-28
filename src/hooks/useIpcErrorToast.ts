@@ -7,7 +7,7 @@ export function useIpcErrorToast() {
   function handleError(err: unknown): void {
     const ipcErr = parseIpcError(err);
     if (ipcErr !== null) {
-      toast.error(formatIpcError(ipcErr.code));
+      toast.error(ipcErr.message || formatIpcError(ipcErr.code));
     } else {
       toast.error(err instanceof Error ? err.message : "操作失敗");
     }

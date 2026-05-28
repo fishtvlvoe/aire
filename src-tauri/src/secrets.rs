@@ -72,6 +72,26 @@ impl KeyringBackend for OsKeyring {
     }
 }
 
+pub fn should_use_memory_keyring(value: Option<&str>) -> bool {
+    matches!(
+        value.map(str::trim).map(str::to_ascii_lowercase).as_deref(),
+        Some("memory") | Some("mock") | Some("in-memory")
+    )
+}
+
+pub fn memory_keyring_enabled_from_env() -> bool {
+    cfg!(debug_assertions)
+        && should_use_memory_keyring(std::env::var("AIRE_KEYRING_BACKEND").ok().as_deref())
+}
+
+pub fn backend_from_env() -> Box<dyn KeyringBackend> {
+    if memory_keyring_enabled_from_env() {
+        Box::new(MockKeyring::new())
+    } else {
+        Box::new(OsKeyring)
+    }
+}
+
 fn classify(e: keyring::Error) -> CredError {
     // keyring crate v2 沒有明確的 "locked" variant，
     // PlatformFailure / NoStorageAccess 視為 LOCKED；其他視為 STORE_ERROR。
@@ -226,5 +246,21 @@ mod tests {
         mk.set_fail_mode(FailMode::StoreUnavailableOnSet);
         let err = set_credential(&mk, "license_key", "x").unwrap_err();
         assert_eq!(err.code, "STORE_ERROR");
+    }
+
+    #[test]
+    fn memory_keyring_flag_accepts_explicit_e2e_values() {
+        assert!(should_use_memory_keyring(Some("memory")));
+        assert!(should_use_memory_keyring(Some("mock")));
+        assert!(should_use_memory_keyring(Some("in-memory")));
+        assert!(should_use_memory_keyring(Some(" MEMORY ")));
+    }
+
+    #[test]
+    fn memory_keyring_flag_rejects_empty_or_unexpected_values() {
+        assert!(!should_use_memory_keyring(None));
+        assert!(!should_use_memory_keyring(Some("")));
+        assert!(!should_use_memory_keyring(Some("os")));
+        assert!(!should_use_memory_keyring(Some("true")));
     }
 }

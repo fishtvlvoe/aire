@@ -1,7 +1,7 @@
 import { safeInvoke } from "@/lib/tauri-bridge";
 import type { CaseRow } from "@/lib/cases-api";
 import type { CaseDossierData } from "./document";
-import { calculateTaxFees } from "@/lib/tax-calculator";
+import { estimateLandValueIncrementTax } from "@/lib/tax-calculator";
 import { queryNearbyAmenities, summarizeNearbyAmenities } from "@/lib/overpass-client";
 import { calculateBuildingAge } from "@/lib/registry-preview";
 import { storage, type BrandingData } from "@/lib/storage";
@@ -248,7 +248,7 @@ function formatRocDate(value?: string): string | undefined {
   const compact = trimmed.match(/^(\d{3})(\d{2})(\d{2})$/);
   if (compact) {
     const [, year, month, day] = compact;
-    return `民國${year}年${month}月${day}日`;
+    return `民國${year.padStart(3, "0")}年${month.padStart(2, "0")}月${day.padStart(2, "0")}日`;
   }
   return trimmed;
 }
@@ -857,6 +857,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   if (isLand) {
     const landReg = apiData["land_registry"]?.data;
+    const landOwnership = apiData["land_ownership"]?.data ?? apiData["co_owners"]?.data;
     const zoning = apiData["zoning"]?.data;
     const landValue = apiData["land_value"]?.data;
     const mortgagesRaw = apiData["mortgages"]?.data;
@@ -882,19 +883,16 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const landAskingPrice = 0; // 使用者尚未輸入時預設 0
     const landAnnouncedValue = safeGet(landValue, "announced_value", isNumber) ?? 0;
     const landAreaVal = safeGet(landReg, "area", isNumber) ?? 0;
-    if (landAnnouncedValue > 0 && landAreaVal > 0) {
-      base.taxCalculation = calculateTaxFees({
-        totalPrice: landAskingPrice,
-        announcedLandValue: landAnnouncedValue,
-        landArea: landAreaVal,
-        shareRatio: 1,
-        holdingYears: 1,
-        isFirstSale: false,
-        propertyType: "land",
-      });
-    } else {
-      base.taxCalculation = null;
-    }
+    base.taxCalculation = estimateLandValueIncrementTax({
+      totalPrice: landAskingPrice,
+      announcedLandValue: landAnnouncedValue,
+      previousTransferValue: safeGet(landOwnership, "previous_transfer_value", isNumber),
+      landArea: landAreaVal,
+      shareRatio: ratioValue(landOwnership),
+      holdingYears: 1,
+      isFirstSale: false,
+      propertyType: "land",
+    });
 
     return {
       ...base,
@@ -997,11 +995,19 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     base.aerialPhoto = aerialPhoto;
     base.floorPlanPhoto = floorPlanPhoto;
 
-    // ── 稅費試算（建物）──────────────────────────────────────────────────────
-    base.taxCalculation = null; // 建物版：askingPrice 未填前為 null
     const landArea = firstNumber(landReg, ["area", "land_area", "AREA"]);
     const ownershipRatio = ratioText(landOwnership) || ratioText(buildingOwnership);
-    const ownershipRatioNumber = ratioValue(landOwnership) ?? ratioValue(buildingOwnership);
+    const ownershipRatioNumber = ratioValue(landOwnership);
+    base.taxCalculation = estimateLandValueIncrementTax({
+      totalPrice: 0,
+      announcedLandValue: firstNumber(landReg, ["announced_value", "ALVALUE"]),
+      previousTransferValue: firstNumber(landOwnership, ["previous_transfer_value", "LTVALUE"]),
+      landArea,
+      shareRatio: ownershipRatioNumber,
+      holdingYears: 1,
+      isFirstSale: false,
+      propertyType: "building",
+    });
     const manualRooms = registrySupplement.valueByField.get("格局") ??
       firstString(manualSupplement, ["rooms"]);
     const manualDirection = registrySupplement.valueByField.get("座向") ??

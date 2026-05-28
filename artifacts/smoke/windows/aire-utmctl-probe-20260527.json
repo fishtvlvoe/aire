@@ -1,0 +1,49 @@
+﻿{
+    "capturedAt":  "2026-05-27T20:20:40.9394319+08:00",
+    "computerName":  "WIN-2BLOJSKJJ18",
+    "username":  "WIN-2BLOJSKJJ18$",
+    "userProfile":  "C:\\WINDOWS\\system32\\config\\systemprofile",
+    "localAppData":  "C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Local",
+    "appData":  "C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Roaming",
+    "installedExecutables":  [
+
+                             ],
+    "installedShortcuts":  [
+
+                           ],
+    "runningProcesses":  null,
+    "appDataCandidates":  [
+                              {
+                                  "path":  "C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Local\\com.fishot.aire",
+                                  "exists":  false
+                              },
+                              {
+                                  "path":  "C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Local\\AIRE",
+                                  "exists":  false
+                              },
+                              {
+                                  "path":  "C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Roaming\\AIRE",
+                                  "exists":  false
+                              },
+                              {
+                                  "path":  "C:\\WINDOWS\\system32\\config\\systemprofile\\AppData\\Roaming\\aire",
+                                  "exists":  false
+                              }
+                          ],
+    "users":  {
+                  "value":  [
+                                {
+                                    "Name":  "fish",
+                                    "FullName":  "C:\\Users\\fish"
+                                },
+                                {
+                                    "Name":  "Public",
+                                    "FullName":  "C:\\Users\\Public"
+                                }
+                            ],
+                  "Count":  2
+              },
+    "interactiveSessions":  [
+
+                            ]
+}

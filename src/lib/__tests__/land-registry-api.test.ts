@@ -16,7 +16,7 @@ vi.mock("../tauri-bridge", () => ({
   },
 }));
 
-import { addressLookup } from "../land-registry-api";
+import { addressLookup, formalPullData } from "../land-registry-api";
 
 describe("land-registry-api addressLookup", () => {
   const originalNodeEnv = process.env.NODE_ENV;
@@ -127,6 +127,71 @@ describe("land-registry-api addressLookup", () => {
     await expect(addressLookup("台南市東區裕農路288巷17號8樓之1")).resolves.toEqual(parcels);
     expect(mocks.safeInvoke).toHaveBeenCalledWith("land_registry_address_lookup", {
       address: "台南市東區裕農路288巷17號8樓之1",
+    });
+  });
+
+  it("uses the local formal proxy in browser development instead of falling back to mock registry data", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    mocks.isTauriEnv.mockResolvedValue(false);
+    mocks.safeInvoke
+      .mockResolvedValueOnce({ clientId: "cid", secret: "sec" })
+      .mockResolvedValueOnce({
+        id: "case-hsinchu",
+        land_registry_data: {
+          confirmed_registry_match: {
+            section_name: "兵南段",
+            land_no: "04140000",
+            building_no: "00084000",
+          },
+        },
+      });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          run_id: "local-web-run",
+          results: {
+            building_registry: {
+              success: true,
+              data: { BNO: "00084000" },
+              source: "api",
+            },
+          },
+          total_cost: 10,
+          cache_hit: false,
+          source_run_id: null,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ) as Response,
+    );
+
+    await expect(formalPullData("case-hsinchu", ["building_registry"])).resolves.toMatchObject({
+      run_id: "local-web-run",
+      results: {
+        building_registry: expect.objectContaining({ source: "api" }),
+      },
+    });
+    expect(fetchSpy).toHaveBeenCalledWith("/api/local/formal-pull-data", expect.any(Object));
+    expect(mocks.safeInvoke).toHaveBeenCalledWith("get_land_api_settings");
+    expect(mocks.safeInvoke).toHaveBeenCalledWith("get_case", { id: "case-hsinchu" });
+    fetchSpy.mockRestore();
+  });
+
+  it("uses the desktop backend command for formal import in Tauri mode", async () => {
+    mocks.isTauriEnv.mockResolvedValue(true);
+    mocks.safeInvoke.mockResolvedValue({
+      run_id: "run-001",
+      results: {},
+      total_cost: 0,
+      cache_hit: false,
+      source_run_id: null,
+    });
+
+    await expect(formalPullData("case-001", ["building_registry"])).resolves.toMatchObject({
+      run_id: "run-001",
+    });
+    expect(mocks.safeInvoke).toHaveBeenCalledWith("land_registry_formal_pull_data", {
+      caseId: "case-001",
+      apiIds: ["building_registry"],
     });
   });
 });

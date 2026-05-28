@@ -590,6 +590,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const pdfPendingRows = pdfReviewRows.filter((row) =>
     ["待補", "需人工", "待", "查詢未成功"].some((status) => row.status.includes(status)),
   );
+  const useFullWidthReviewSurface = activeTab === "formal-import" || activeTab === "summary" || activeTab === "pdf";
 
   useEffect(() => {
     setCaseDraft(caseData);
@@ -803,7 +804,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
         </div>
       </header>
 
-      <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div
+        className={`grid gap-5 ${useFullWidthReviewSurface ? "workbench-full-width" : "xl:grid-cols-[360px_minmax(0,1fr)]"}`}
+        data-testid="workbench-layout"
+      >
         <aside
           aria-label="物件摘要"
           className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
@@ -983,7 +987,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       return (
                         <article
                           key={candidate.candidate_id}
-                          className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[minmax(170px,1fr)_minmax(220px,1.5fr)_220px]"
+                          className="grid gap-3 border-b p-3 text-sm last:border-b-0 lg:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.6fr)_140px_minmax(220px,0.8fr)]"
                         >
                           <div>
                             <strong className="block">{candidate.normalized_parcel_id}</strong>
@@ -993,6 +997,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                           </div>
                           <div className="text-muted-foreground">
                             {candidateSummaryText(candidate) || "待候選資料查詢"}
+                          </div>
+                          <div>
+                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                              {candidateStatusLabel(candidate.query_status)}
+                            </span>
                           </div>
                           <div className="flex flex-wrap gap-2 md:justify-end">
                             {canImportFormal ? (
@@ -1051,7 +1060,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   </p>
                 </div>
               </div>
-              <table className="mt-3 w-full table-fixed overflow-hidden rounded-md border text-sm">
+              <table className="mt-3 w-full min-w-[760px] table-fixed overflow-hidden rounded-md border text-sm">
                 <colgroup>
                   <col className="w-[40%]" />
                   <col className="w-[40%]" />
@@ -1098,7 +1107,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       return (
                       <article
                         key={candidate.candidate_id}
-                        className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[minmax(170px,1fr)_minmax(220px,1.5fr)_190px]"
+                        className="grid gap-3 border-b p-3 text-sm last:border-b-0 lg:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.6fr)_140px_minmax(190px,0.8fr)]"
                       >
                         <div>
                           <strong className="block">{candidate.normalized_parcel_id}</strong>
@@ -1108,6 +1117,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         </div>
                         <div className="text-muted-foreground">
                           {candidateSummaryText(candidate) || "待候選資料查詢"}
+                        </div>
+                        <div>
+                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                            {candidateStatusLabel(candidate.query_status)}
+                          </span>
                         </div>
                         <div className="flex flex-wrap gap-2 md:justify-end">
                           {canImportFormal ? (
@@ -1373,8 +1387,8 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 <div className="rounded-md bg-slate-50 p-3">待確認欄位：{pdfPendingRows.length} 欄</div>
                 <div className="rounded-md bg-slate-50 p-3">已上傳圖資：{uploadedAssetCount} 項</div>
               </div>
-              <div className="mt-4 overflow-hidden rounded-lg border" aria-label="PDF 文字預覽清單">
-                <div className="grid gap-2 bg-slate-50 p-3 text-xs font-medium text-muted-foreground md:grid-cols-[150px_minmax(0,1fr)_150px_160px]">
+              <div className="mt-4 overflow-x-auto rounded-lg border" aria-label="PDF 文字預覽清單">
+                <div className="grid min-w-[860px] gap-2 bg-slate-50 p-3 text-xs font-medium text-muted-foreground md:grid-cols-[170px_minmax(320px,1fr)_180px_180px]">
                   <span>欄位</span>
                   <span>將寫入 PDF 的內容</span>
                   <span>來源</span>
@@ -1383,7 +1397,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 {pdfReviewRows.map((row) => (
                   <article
                     key={`${row.label}-${row.source}`}
-                    className="grid gap-2 border-t p-3 text-sm md:grid-cols-[150px_minmax(0,1fr)_150px_160px]"
+                    className="grid min-w-[860px] gap-2 border-t p-3 text-sm md:grid-cols-[170px_minmax(320px,1fr)_180px_180px]"
                   >
                     <strong>{row.label}</strong>
                     <span>{row.value || "待補"}</span>

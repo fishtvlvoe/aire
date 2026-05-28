@@ -61,44 +61,53 @@ test("visible Yunong pre-survey flow creates a case, records supplements, previe
   await page.getByLabel("案件名稱（選填）").fill("裕農路物調驗收");
   await page.getByLabel("案件編號（選填）").fill(CASE_NO);
 
-  await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
-  await expect(page.getByText("土地 1 筆 · 建物 4 筆")).toBeVisible();
-  await expect(page.getByTestId("case-lot-inputs").getByPlaceholder("地號（如 123-4）").first()).toHaveValue("");
+  await page.getByRole("button", { name: "查詢物件資料", exact: true }).click();
+  await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
+  await expect(page.getByText("土地 1 筆 · 建物 1 筆")).toBeVisible();
+  await expect(page.getByTestId("case-lot-inputs").getByPlaceholder("地號（如 123-4）").first()).toHaveValue("00700000");
+  await page.getByLabel("所有權人（選填）").fill("蔡國卿");
 
   await page.getByRole("button", { name: "建立案件", exact: true }).click();
-  await expect(page).toHaveURL(/\/cases\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/cases\/(?:[0-9a-f-]+|_\?caseId=[0-9a-f-]+)$/);
   await expect(page.getByRole("region", { name: "物件摘要" })).toContainText(YUNONG_ADDRESS);
   await expect(page.getByRole("region", { name: "欄位審核" })).toContainText("待確認");
-  await expect(page.getByRole("region", { name: "欄位審核" })).toContainText("查詢未成功");
+  await expect(page.getByRole("region", { name: "欄位審核" })).toContainText("候選資料");
   await expect(page.getByRole("region", { name: "本次調閱費用" })).toContainText("0 元");
   await expect(page.getByText("MOI_API_")).toHaveCount(0);
   await expect(page.getByText("COP309")).toHaveCount(0);
 
-  await page.getByRole("tab", { name: "補件/現場" }).click();
-  await page.getByLabel("姓名比對結果補件值").fill("蔡國卿");
-  await page.getByLabel("姓名比對結果補件來源").selectOption("屋主提供");
-  await page.getByLabel("姓名比對結果補件狀態").selectOption("已補");
-  await expect(page.getByLabel("姓名比對結果補件值")).toHaveValue("蔡國卿");
-  await page.getByLabel("建物現況回答").fill("現場尚待屋主確認漏水與增建狀況。");
+  await page.getByRole("tab", { name: "補件與現場" }).click();
+  await page.getByLabel("建物現況補件值").selectOption("正常使用");
+  await page.getByLabel("格局補件值").selectOption("3房2廳2衛");
+  await expect(page.getByLabel("格局補件值")).toHaveValue("3房2廳2衛");
+  await page.getByLabel("建物現況回答").selectOption("正常使用");
   await page.getByLabel("建物現況狀態").selectOption("加入補件");
   await page.getByLabel("地籍圖上傳").setInputFiles({
     name: "yunong-cadastral-placeholder.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.from("%PDF-1.4\n% AIRE acceptance placeholder\n"),
   });
+  await page.getByLabel("建物外觀上傳").setInputFiles({
+    name: "yunong-exterior-placeholder.png",
+    mimeType: "image/png",
+    buffer: Buffer.from([0x89, 0x50, 0x4E, 0x47]),
+  });
   await page.getByRole("button", { name: "加入補件清單" }).click();
   await expect(page.getByText("已加入補件清單")).toBeVisible();
 
-  await page.getByRole("tab", { name: "資料來源" }).click();
-  await expect(page.getByText("管理明細")).toBeVisible();
-  await page.getByText("管理明細").click();
-  await expect(page.getByText('"value": "蔡國卿"')).toBeVisible();
+  await page.getByRole("tab", { name: "物件資料總覽" }).click();
+  const managementDetails = page.getByTestId("demo-aligned-workbench").getByText("管理明細", { exact: true });
+  await expect(managementDetails).toBeVisible();
+  await managementDetails.click();
+  await expect(page.getByText('"ownerName": "蔡國卿"')).toBeVisible();
 
   await page.getByRole("tab", { name: "PDF 檢查" }).click();
-  await expect(page.getByText("已上傳圖資：1 項")).toBeVisible();
+  const pdfCheck = page.getByRole("region", { name: "PDF 檢查內容" });
+  await expect(page.getByText("已上傳圖資：2 項")).toBeVisible();
+  await expect(pdfCheck).toContainText("已上傳：yunong-exterior-placeholder.png");
   await page.getByRole("link", { name: "開啟 PDF 預覽" }).click();
 
-  await expect(page).toHaveURL(/\/cases\/[0-9a-f-]+\/preview$/);
+  await expect(page).toHaveURL(/\/cases\/(?:[0-9a-f-]+\/preview|_\/preview\?caseId=[0-9a-f-]+)$/);
   await expect(page.getByRole("heading", { name: "PDF 預覽" })).toBeVisible();
   await expect(page.getByTitle("PDF 預覽")).toBeVisible({ timeout: 60_000 });
 

@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-05-27T19:17:00+08:00",
+  "change": "desktop-windows-utm-runtime-acceptance",
+  "vm": {
+    "name": "AIRE-Windows-11-ARM64",
+    "runtime": "UTM",
+    "guest": "Windows 11 ARM64",
+    "cpuCores": 4,
+    "memory": "8 GB",
+    "disk": "80 GB",
+    "iso": "/Users/fishtv/Downloads/26100.4349.250607-1500.ge_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-tw.iso",
+    "localUser": "AIRE"
+  },
+  "guestTools": {
+    "status": "installed",
+    "installer": "UTM Guest Tools Installer"
+  },
+  "evidence": {
+    "desktopScreenshot": "artifacts/smoke/windows/utm-windows11-arm64-desktop-20260527.png"
+  },
+  "result": {
+    "vmCreation": "pass",
+    "windowsDesktopReached": "pass",
+    "aireInstallerRuntimeAcceptance": "not_started",
+    "nextAction": "Retrieve or build the Windows AIRE installer for the exact commit under test, then install it inside this VM."
+  }
+}

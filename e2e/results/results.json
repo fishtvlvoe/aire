@@ -66,249 +66,155 @@
   },
   "suites": [
     {
-      "title": "pdf-theme-a-visual.spec.ts",
-      "file": "pdf-theme-a-visual.spec.ts",
+      "title": "local-web-registry-pending-billing.spec.ts",
+      "file": "local-web-registry-pending-billing.spec.ts",
       "column": 0,
       "line": 0,
-      "specs": [],
-      "suites": [
+      "specs": [
         {
-          "title": "PDF 主題 A：淡雅 Minimal — 視覺對比",
-          "file": "pdf-theme-a-visual.spec.ts",
-          "line": 94,
-          "column": 6,
-          "specs": [
+          "title": "registry_pending case keeps sales flow moving and blocks paid formal data",
+          "ok": true,
+          "tags": [],
+          "tests": [
             {
-              "title": "封面：與 mockup 視覺差異 < 5%",
-              "ok": true,
-              "tags": [],
-              "tests": [
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-tauri",
+              "projectName": "chromium-tauri",
+              "results": [
                 {
-                  "timeout": 30000,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1481,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-05-27T10:28:59.948Z",
                   "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium-tauri",
-                  "projectName": "chromium-tauri",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1572,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-05-15T08:09:11.033Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
+                  "attachments": []
                 }
               ],
-              "id": "2ca970b70ce7065c4ccf-da67ad2f1014812ec0c4",
-              "file": "pdf-theme-a-visual.spec.ts",
-              "line": 112,
-              "column": 7
-            },
-            {
-              "title": "基本資訊頁：與 mockup 視覺差異 < 5%",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium-tauri",
-                  "projectName": "chromium-tauri",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1083,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-05-15T08:09:12.791Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "2ca970b70ce7065c4ccf-597cb13e6852f62865a1",
-              "file": "pdf-theme-a-visual.spec.ts",
-              "line": 126,
-              "column": 7
-            },
-            {
-              "title": "現況照片頁：與 mockup 視覺差異 < 5%",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium-tauri",
-                  "projectName": "chromium-tauri",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1055,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-05-15T08:09:13.884Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "2ca970b70ce7065c4ccf-ef4eb9e75f9107023b3d",
-              "file": "pdf-theme-a-visual.spec.ts",
-              "line": 139,
-              "column": 7
+              "status": "expected"
             }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "pdf-theme-c-visual.spec.ts",
-      "file": "pdf-theme-c-visual.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
+          ],
+          "id": "64cdef535b0442fbee3b-ca875ac06226aa0e2d67",
+          "file": "local-web-registry-pending-billing.spec.ts",
+          "line": 35,
+          "column": 5
+        },
         {
-          "title": "PDF 主題 C：科技優雅 Tech Elegant — 視覺對比",
-          "file": "pdf-theme-c-visual.spec.ts",
-          "line": 94,
-          "column": 6,
-          "specs": [
+          "title": "paid resolver is opt-in, creates candidate evidence, and billing drilldown shows saved run",
+          "ok": true,
+          "tags": [],
+          "tests": [
             {
-              "title": "封面：與 mockup 視覺差異 < 5%",
-              "ok": true,
-              "tags": [],
-              "tests": [
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-tauri",
+              "projectName": "chromium-tauri",
+              "results": [
                 {
-                  "timeout": 30000,
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2092,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-05-27T10:29:01.601Z",
                   "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium-tauri",
-                  "projectName": "chromium-tauri",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 2076,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-05-15T08:09:14.954Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
+                  "attachments": []
                 }
               ],
-              "id": "592681bcf5cdf8cbd750-23a8b122097e8d088859",
-              "file": "pdf-theme-c-visual.spec.ts",
-              "line": 112,
-              "column": 7
-            },
-            {
-              "title": "基本資訊頁：與 mockup 視覺差異 < 5%",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium-tauri",
-                  "projectName": "chromium-tauri",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1076,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-05-15T08:09:17.040Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "592681bcf5cdf8cbd750-52e36692ec5c7a7a1269",
-              "file": "pdf-theme-c-visual.spec.ts",
-              "line": 124,
-              "column": 7
-            },
-            {
-              "title": "現況照片頁：與 mockup 視覺差異 < 5%",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium-tauri",
-                  "projectName": "chromium-tauri",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 1085,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-05-15T08:09:18.125Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "592681bcf5cdf8cbd750-85769c178b220ae72f4e",
-              "file": "pdf-theme-c-visual.spec.ts",
-              "line": 136,
-              "column": 7
+              "status": "expected"
             }
-          ]
+          ],
+          "id": "64cdef535b0442fbee3b-1c1a0e10134b28aa325f",
+          "file": "local-web-registry-pending-billing.spec.ts",
+          "line": 67,
+          "column": 5
+        },
+        {
+          "title": "Victory pending case can be manually completed, formally imported, cached, and previewed as PDF",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-tauri",
+              "projectName": "chromium-tauri",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3300,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-05-27T10:29:03.717Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64cdef535b0442fbee3b-4c18dbeaece843ced551",
+          "file": "local-web-registry-pending-billing.spec.ts",
+          "line": 104,
+          "column": 5
+        },
+        {
+          "title": "live discovery matrix preserves zero-cost evidence before formal import",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium-tauri",
+              "projectName": "chromium-tauri",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11157,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-05-27T10:29:07.031Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "64cdef535b0442fbee3b-c046178e2b7b9e2429f2",
+          "file": "local-web-registry-pending-billing.spec.ts",
+          "line": 208,
+          "column": 5
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-05-15T08:09:10.478Z",
-    "duration": 8781.067000000001,
-    "expected": 6,
+    "startTime": "2026-05-27T10:28:59.365Z",
+    "duration": 18905.555,
+    "expected": 4,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { stampTax, deedTax, buildingTax, landPriceTax } from "../tax-calculator";
+import {
+  stampTax,
+  deedTax,
+  buildingTax,
+  landPriceTax,
+  estimateLandValueIncrementTax,
+} from "../tax-calculator";
 
 describe("stampTax", () => {
   it("calculates (contractPrice + officialValue × shareRatio) × 0.001", () => {
@@ -58,5 +64,38 @@ describe("landPriceTax", () => {
 
   it("calculates non-zero for valid inputs", () => {
     expect(landPriceTax(1000000, 365)).toBeGreaterThan(0);
+  });
+});
+
+describe("estimateLandValueIncrementTax", () => {
+  it("lists missing inputs in estimate mode instead of hiding land value tax", () => {
+    const result = estimateLandValueIncrementTax({
+      propertyType: "building",
+      announcedLandValue: null,
+      previousTransferValue: null,
+      totalPrice: null,
+      shareRatio: null,
+      landArea: 30,
+    });
+
+    expect(result.estimateMode).toBe(true);
+    expect(result.missingInputs).toEqual(["公告現值", "前次移轉現值", "成交價", "持分"]);
+    expect(result.warnings.join("")).toContain("不可視為正式稅額");
+  });
+
+  it("returns an estimated tax and basis when required inputs exist", () => {
+    const result = estimateLandValueIncrementTax({
+      propertyType: "building",
+      announcedLandValue: 120000,
+      previousTransferValue: 80000,
+      totalPrice: 10000000,
+      shareRatio: 0.25,
+      landArea: 100,
+    });
+
+    expect(result.estimateMode).toBe(true);
+    expect(result.missingInputs).toEqual([]);
+    expect(result.landValueIncrementTax).toBeGreaterThan(0);
+    expect(result.estimateBasis?.join("")).toContain("成交價 40%");
   });
 });

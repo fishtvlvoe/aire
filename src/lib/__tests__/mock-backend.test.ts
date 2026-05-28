@@ -733,6 +733,38 @@ describe("MockStore", () => {
     expect(detail.cop_response_json).toBeNull();
   });
 
+  it("returns drillable billing rows with registry object type and saved run id", async () => {
+    await mockInvoke("land_registry_set_api_key", {
+      clientId: "customer-org-client",
+      clientSecret: "customer-org-secret",
+    });
+    const result = await mockInvoke<{ run_id: string }>("land_registry_paid_address_resolver", {
+      address: "高雄市苓雅區苓雅路二段18巷8弄2號",
+    });
+
+    const rows = await mockInvoke<Array<{
+      run_id?: string;
+      object_type?: string;
+      object_type_label?: string;
+      service_name: string;
+      target: string;
+      transaction_id: string;
+      cost: number;
+    }>>("land_registry_list_billing_entries", {});
+
+    expect(rows).toEqual([
+      expect.objectContaining({
+        run_id: result.run_id,
+        object_type: "address",
+        object_type_label: "門牌",
+        service_name: "MOI_API_037",
+        target: "高雄市苓雅區苓雅路二段18巷8弄2號",
+        transaction_id: expect.stringMatching(/^tx-resolver-/),
+        cost: 30,
+      }),
+    ]);
+  });
+
   it("allows formal pull only after a paid resolver candidate is selected and confirmed", async () => {
     await mockInvoke("land_registry_set_api_key", {
       clientId: "customer-org-client",

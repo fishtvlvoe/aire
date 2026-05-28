@@ -463,6 +463,75 @@ describe("assembleDossierData — 土地版成功路徑", () => {
 });
 
 describe("assembleDossierData — 建物謄本自動帶入", () => {
+  it("東和路正式匯入資料會進入 PDF dossier 欄位，缺圖資與行情不會觸發付費查詢", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") {
+        return [
+          {
+            address: "台南市東區東和路45號",
+            area: 31.2,
+            total_price: 10000000,
+            unit_price: 320513,
+            date: "2025-12",
+          },
+        ];
+      }
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      case_name: "東和路47",
+      case_no: "AIRE-DONGHE-ASSEMBLY",
+      address: "台南市東區東和路47號3樓",
+      owner_name: "蔡國卿",
+      land_registry_data: trustedRegistryPayload({
+        building_registry: {
+          building_number: "03045000",
+          area: 128.2,
+          main_building_area: 91.4,
+          auxiliary_area: 8.3,
+          common_area: 28.5,
+          parking_area: 0,
+          building_purpose: "住商用",
+          construction_date: "0710804",
+          building_floor: "三層",
+          material: "鋼筋混凝土造",
+        },
+        building_ownership: {
+          owner_name: "蔡國卿",
+          numerator: 1,
+          denominator: 1,
+        },
+      }),
+    });
+
+    expect(result.cover?.propertyName).toBe("東和路47");
+    expect(result.propertySheet?.owner).toBe("蔡國卿");
+    expect(result.propertySheet?.registeredArea).toBeCloseTo(38.78, 2);
+    expect(result.propertySheet?.mainBuildingArea).toBeCloseTo(27.65, 2);
+    expect(result.propertySheet?.auxiliaryArea).toBeCloseTo(2.51, 2);
+    expect(result.propertySheet?.commonArea).toBeCloseTo(8.62, 2);
+    expect(result.propertySheet?.parkingArea).toBe(0);
+    expect(result.propertySheet?.legalUse).toBe("住商用");
+    expect(result.propertySheet?.material).toBe("鋼筋混凝土造");
+    expect(result.propertySheet?.constructionDate).toBe("民國071年08月04日");
+    expect(result.propertySheet?.buildingAge).toBeTruthy();
+    expect(result.propertySheet?.ownershipScope).toBe("1/1");
+    expect(result.transactionHistory).toHaveLength(1);
+    expect(result.taxCalculation?.estimateMode).toBe(true);
+    expect(result.taxCalculation?.missingInputs).toEqual(
+      expect.arrayContaining(["公告現值", "前次移轉現值", "成交價", "持分", "土地面積"]),
+    );
+    expect(result.exteriorPhoto).toBeNull();
+    expect(result.nearbyAmenities).toEqual([]);
+    expect(result.propertySheetSources?.registeredArea).toBeUndefined();
+    expect(mockInvoke).not.toHaveBeenCalledWith("land_registry_pull_data", expect.anything());
+  });
+
   it("真實地址 PDF 使用案件名稱，且不把 mock 權狀字號與樓層當成真實資料", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};
@@ -1566,6 +1635,46 @@ describe("assembleDossierData — 格局圖（現場手稿整理圖）", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("assembleDossierData — floorPlanPhoto", () => {
+  it("建物 PDF 優先使用目前案件的建物外觀補件，不改用自動街景", async () => {
+    const calls: Array<{ cmd: string; args: Record<string, unknown> | undefined }> = [];
+    mockInvoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {
+      calls.push({ cmd, args });
+      if (cmd === "list_case_assets") {
+        if (args?.kind === "exterior_photo") {
+          return [{ id: "asset-exterior", is_primary: true, review_status: "approved" }];
+        }
+        return [];
+      }
+      if (cmd === "read_case_asset_bytes") {
+        if (args?.asset_id === "asset-exterior") return { bytes: [7, 7, 7], mime: "image/png" };
+      }
+      if (cmd === "fetch_street_view") {
+        throw new Error("fetch_street_view should not be called when exterior_photo asset exists");
+      }
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: trustedRegistryPayload({
+        building_registry: { lat: 25.01, lng: 121.46 },
+      }),
+    });
+
+    expect(result.exteriorPhoto).toEqual(new Uint8Array([7, 7, 7]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        { cmd: "list_case_assets", args: { case_id: buildingCaseRow.id, kind: "exterior_photo" } },
+      ]),
+    );
+    expect(calls.map((call) => call.cmd)).not.toContain("fetch_street_view");
+  });
+
   it("土地 PDF 優先使用目前案件的補件圖資，不改打地政或地圖 API", async () => {
     const calls: Array<{ cmd: string; args: Record<string, unknown> | undefined }> = [];
     mockInvoke.mockImplementation(async (cmd: string, args?: Record<string, unknown>) => {

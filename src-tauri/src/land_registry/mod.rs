@@ -8,6 +8,7 @@ pub mod cache;
 /// Phase 3 實作時在各子模組加入實際代碼
 pub mod client;
 pub mod consent;
+pub mod discovery_contract;
 pub mod disk_resilience;
 pub mod easymap_r02;
 pub mod errors;

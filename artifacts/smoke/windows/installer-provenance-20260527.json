@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-05-27T19:41:40+08:00",
+  "change": "desktop-windows-utm-runtime-acceptance",
+  "installer": {
+    "filename": "AIRE_0.1.3_x64-setup.exe",
+    "localPath": "artifacts/smoke/windows/installer/AIRE_0.1.3_x64-setup.exe",
+    "size": 24070316,
+    "sha256": "cda8090a4f2f3a83477b20e6416d7c5734c29f423d493ed4456d7f03e1470c59"
+  },
+  "source": {
+    "type": "github-actions-release-asset",
+    "workflow": ".github/workflows/release.yml",
+    "workflowRunId": 26508229379,
+    "workflowRunUrl": "https://github.com/fishtvlvoe/aire/actions/runs/26508229379",
+    "windowsJob": "build (windows-latest, windows-x64)",
+    "headSha": "5958fa694235830166844b5c5dc902e68dc3a28d",
+    "headBranch": "feat/desktop-fullflow-r02-cop-parity-clean-v2",
+    "releaseTag": "aire-v0.1.3",
+    "releaseDraft": true,
+    "assetDigest": "sha256:cda8090a4f2f3a83477b20e6416d7c5734c29f423d493ed4456d7f03e1470c59"
+  },
+  "localWorktree": {
+    "head": "3104c927f1e09a0ef34b04a67c975b7e0c362244",
+    "dirty": true,
+    "note": "The installer represents the GitHub branch head, not the local dirty worktree."
+  },
+  "result": {
+    "packaging": "pass",
+    "runtimeAcceptance": "not_started",
+    "nextAction": "Install this artifact inside AIRE-Windows-11-ARM64 and capture launch evidence."
+  }
+}

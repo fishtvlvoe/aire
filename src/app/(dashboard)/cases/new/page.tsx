@@ -3,9 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
-import { casesApi, isCasePropertyType, type CasePropertyType, type CaseRow } from "@/lib/cases-api";
+import {
+  casesApi,
+  coarseCasePropertyType,
+  isCasePropertyType,
+  type CasePropertyType,
+  type CaseRow,
+} from "@/lib/cases-api";
 import { CaseLotInput } from "@/components/CaseLotInput";
 import { useIpcErrorToast } from "@/hooks/useIpcErrorToast";
+import { formatIpcError, parseIpcError } from "@/lib/ipc-error";
 import {
   classifyAddressLookupResult,
   getAddressFirstClassification,
@@ -167,6 +174,7 @@ export default function NewCasePage() {
         return;
       }
       const propertyType = (parsed.data.property_type ?? detected.propertyType) as CasePropertyType;
+      const backendPropertyType = coarseCasePropertyType(propertyType);
       const filteredLots = landLots.filter((s) => s.trim() !== "");
       const detectedLots = Array.from(
         new Set(detectedParcels.map((parcel) => parcel.lot_number?.trim()).filter(Boolean)),
@@ -177,7 +185,7 @@ export default function NewCasePage() {
           ? detectedLots
           : [parsed.data.land_lot_no || ""];
       const created = await casesApi.create({
-        property_type: propertyType,
+        property_type: backendPropertyType,
         land_lot_no: createAsRegistryPending ? "" : registryMatch.landNo || lots[0],
         land_lots: lots,
         building_lot_no: createAsRegistryPending ? null : registryMatch.buildingNo || null,
@@ -186,6 +194,7 @@ export default function NewCasePage() {
         case_no: parsed.data.case_no || null,
         case_name: parsed.data.case_name || null,
         land_registry_data: {
+          customer_property_type: propertyType,
           ...buildAddressLookupProvenance(detected, detectedParcels),
           ...(createAsRegistryPending
             ? {
@@ -218,7 +227,7 @@ export default function NewCasePage() {
       router.push(caseDetailHref(created.id));
     } catch (err) {
       handleError(err);
-      setSubmitError(err instanceof Error ? err.message : String(err));
+      setSubmitError(getSubmitErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -535,6 +544,12 @@ export default function NewCasePage() {
       </form>
     </main>
   );
+}
+
+function getSubmitErrorMessage(err: unknown): string {
+  const ipcError = parseIpcError(err);
+  if (ipcError) return ipcError.message || formatIpcError(ipcError.code);
+  return err instanceof Error ? err.message : String(err);
 }
 
 function buildAddressLookupProvenance(

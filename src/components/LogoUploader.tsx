@@ -16,6 +16,7 @@ const SUPPORTED_MIME = new Set([
 export function LogoUploader() {
   const inputId = useId();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [savedFileName, setSavedFileName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const alertRef = useRef<HTMLDivElement | null>(null);
   const errorRef = useRef<string | null>(null);
@@ -48,6 +49,33 @@ export function LogoUploader() {
       node.textContent = "";
     }
   }
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const stored = await safeInvoke<{
+          bytes?: number[];
+          mime?: string;
+          filename?: string;
+          uploadedAt?: string;
+        } | null>("load_logo");
+        if (cancelled || !stored?.bytes?.length || !stored.mime) return;
+        const blob = new Blob([new Uint8Array(stored.bytes)], { type: stored.mime });
+        const objectUrl = URL.createObjectURL(blob);
+        setPreviewUrl(objectUrl);
+        setSavedFileName(stored.filename ?? "已保存 Logo");
+      } catch {
+        // Web dev 或舊版 App 沒有保存 Logo 時，維持可上傳狀態。
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -87,10 +115,11 @@ export function LogoUploader() {
     try {
       const buffer = await file.arrayBuffer();
       const bytes = Array.from(new Uint8Array(buffer));
-      await safeInvoke("save_logo", { bytes, mime: file.type });
+      await safeInvoke("save_logo", { bytes, mime: file.type, filename: file.name });
 
       const nextPreview = URL.createObjectURL(file);
       setPreviewUrl(nextPreview);
+      setSavedFileName(file.name);
       if (previousPreview) {
         URL.revokeObjectURL(previousPreview);
       }
@@ -107,7 +136,9 @@ export function LogoUploader() {
       URL.revokeObjectURL(previewUrl);
     }
     setPreviewUrl(null);
+    setSavedFileName(null);
     clearErrorImmediate();
+    void safeInvoke("delete_logo").catch(() => undefined);
   }
 
   return (
@@ -145,6 +176,12 @@ export function LogoUploader() {
             alt="Logo 預覽"
             className="h-14 w-14 rounded border border-border object-contain"
           />
+          <div className="min-w-0 flex-1 text-sm">
+            <p className="font-medium">已保存 Logo</p>
+            {savedFileName ? (
+              <p className="truncate text-xs text-muted-foreground">{savedFileName}</p>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={handleDelete}

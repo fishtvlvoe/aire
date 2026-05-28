@@ -1,0 +1,129 @@
+{
+  "id": "1a60808a-1d93-4db4-a226-83aed985ab78",
+  "case_no": "PDF-YUNONG-1779810199037",
+  "case_name": "裕農路 PDF 回歸測試",
+  "property_type": "highrise",
+  "land_lot_no": "00700000",
+  "land_lots": [
+    "00700000"
+  ],
+  "building_lot_no": "00204000",
+  "address": "台南市東區裕農路288巷17號8樓之1",
+  "owner_name": "余啟彰",
+  "land_registry_data": {
+    "schema": "aire.registry-provenance.v1",
+    "generatedAt": "2026-05-26T15:43:23.027Z",
+    "parcelId": "DC-1556-00204000",
+    "totalCost": 20,
+    "entries": {
+      "land_registry": {
+        "apiId": "land_registry",
+        "source": "public_candidate",
+        "status": "candidate",
+        "trustedForPdf": false,
+        "data": {
+          "address": "裕農路２８８巷１７號八樓之１",
+          "lot_number": "00700000",
+          "parcel_id": "DC-1556-00204000"
+        },
+        "sourceNote": "公開或候選資料，物調表可先帶入，補件後才可升級為正式確認"
+      },
+      "building_registry": {
+        "apiId": "building_registry",
+        "source": "moi_api",
+        "status": "success",
+        "trustedForPdf": true,
+        "data": {
+          "area": 83.61,
+          "building_area": 83.61,
+          "purpose": "住家用",
+          "building_purpose": "住家用",
+          "construction_date": "0800829",
+          "building_number": "00204000",
+          "building_floor": "八層",
+          "total_floor_count": "012",
+          "address": "台南市東區裕農路288巷17號8樓之1"
+        }
+      },
+      "building_ownership": {
+        "apiId": "building_ownership",
+        "source": "moi_api",
+        "status": "success",
+        "trustedForPdf": true,
+        "data": {
+          "owner_name": "余啟彰",
+          "certificate_no": "",
+          "ownership_date": "",
+          "registration_reason": "",
+          "denominator": 1,
+          "numerator": 1
+        }
+      },
+      "manual_registry_supplement": {
+        "apiId": "manual_registry_supplement",
+        "source": "manual",
+        "status": "manual_confirmed",
+        "trustedForPdf": true,
+        "data": {
+          "rooms": "3房2廳2衛",
+          "sourceLabel": "屋主提供",
+          "sources": {
+            "rooms": "屋主提供",
+            "direction": "屋主提供",
+            "managementFee": "屋主提供"
+          },
+          "updatedFields": {
+            "格局": "3房2廳2衛",
+            "座向": "坐東朝西",
+            "管理費（元/月）": "1000-3000 元"
+          },
+          "direction": "坐東朝西",
+          "managementFee": "1000-3000 元"
+        }
+      }
+    },
+    "candidate_options": [
+      {
+        "candidate_id": "building:DC-1556-00204000",
+        "parcel_type": "building",
+        "section_code": "1556",
+        "section_name": "富強段",
+        "parcel_number": "00204000",
+        "normalized_parcel_id": "DC-1556-00204000",
+        "source": "public_reference",
+        "confidence_label": "same_address_candidate",
+        "official_status": "candidate_unconfirmed",
+        "query_status": "candidate_data_available",
+        "summary_fields": {
+          "registeredAreaPing": 25.29,
+          "legalUse": "住家用",
+          "constructionDate": "0800829",
+          "floor": "八層",
+          "age": "34年",
+          "totalFloorCount": "012",
+          "lat": 22.986217,
+          "lng": 120.228962
+        },
+        "warnings": [
+          "待屋主或權狀確認是否為目標戶別"
+        ]
+      }
+    ],
+    "coordinate_source": {
+      "lat": 22.986217,
+      "lng": 120.228962,
+      "source": "candidate_reference"
+    },
+    "confirmed_registry_match": {
+      "section_name": "富強段",
+      "land_no": "00700000",
+      "building_no": "00204000",
+      "status": "confirmed"
+    }
+  },
+  "current_step": 1,
+  "asking_price": null,
+  "status": "draft",
+  "created_at": 1779810201,
+  "updated_at": 1779810203
+}

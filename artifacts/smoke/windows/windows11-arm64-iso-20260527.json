@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-05-27T18:45:00+08:00",
+  "change": "desktop-windows-utm-runtime-acceptance",
+  "tool": "CrystalFetch",
+  "role": "ISO acquisition only",
+  "iso": {
+    "path": "/Users/fishtv/Downloads/26100.4349.250607-1500.ge_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-tw.iso",
+    "filename": "26100.4349.250607-1500.ge_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-tw.iso",
+    "size": "5.1G",
+    "sha256": "bd75f0d12a0a54b1e2d40a6b25fffa4eb62875f9e786b9af3bf5030f05f3f458"
+  },
+  "result": {
+    "isoAcquisition": "pass",
+    "windowsRuntimeAcceptance": "incomplete",
+    "note": "CrystalFetch download is not runtime acceptance. AIRE must still launch inside a Windows VM."
+  }
+}

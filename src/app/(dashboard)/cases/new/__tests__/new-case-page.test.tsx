@@ -15,6 +15,18 @@ vi.mock("@/hooks/useIpcErrorToast", () => ({
 }));
 
 vi.mock("@/lib/cases-api", () => ({
+  coarseCasePropertyType: (value: string) =>
+    [
+      "land",
+      "farmland",
+      "residential-land",
+      "industrial-land",
+      "commercial-land",
+      "village-land",
+      "other-land",
+    ].includes(value)
+      ? "land"
+      : "residential",
   isCasePropertyType: (value: string) =>
     [
       "residential",
@@ -150,7 +162,7 @@ describe("NewCasePage address-first flow", () => {
     });
   });
 
-  it("submits the user-corrected detailed property type", async () => {
+  it("submits a backend-compatible property type and preserves the user-corrected detailed type", async () => {
     render(<NewCasePage />);
 
     fireEvent.change(screen.getByLabelText("地址 *"), {
@@ -167,10 +179,36 @@ describe("NewCasePage address-first flow", () => {
     await waitFor(() => {
       expect(mockCreateCase).toHaveBeenCalledWith(
         expect.objectContaining({
-          property_type: "storefront",
+          property_type: "residential",
+          land_registry_data: expect.objectContaining({
+            customer_property_type: "storefront",
+          }),
         }),
       );
     });
+  });
+
+  it("shows the IPC error message instead of object text when case creation fails", async () => {
+    mockCreateCase.mockRejectedValueOnce({
+      code: "invalid_property_type",
+      message: "property_type 必須為 residential 或 land",
+    });
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "宜蘭縣五結鄉協和村親河路二段 1 號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("物件類型")).toHaveValue("residential");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("property_type 必須為 residential 或 land");
+    });
+    expect(screen.queryByText("[object Object]")).not.toBeInTheDocument();
   });
 
   it("offers paid resolver only after zero-cost discovery fails and keeps returned candidates unconfirmed", async () => {

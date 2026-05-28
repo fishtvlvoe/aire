@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-05-27T10:00:00+08:00",
+  "change": "desktop-windows-utm-runtime-acceptance",
+  "host": {
+    "system": "Darwin fish-Mac-mini 25.5.0",
+    "architecture": "arm64",
+    "availableDisk": "154GiB"
+  },
+  "git": {
+    "head": "3104c927f1e09a0ef34b04a67c975b7e0c362244",
+    "worktreeDirty": true
+  },
+  "tools": {
+    "utmApp": "/Applications/UTM.app",
+    "crystalFetchApp": "/Applications/CrystalFetch.app",
+    "utmctl": "not found in PATH",
+    "githubCli": "authenticated as fishtvlvoe"
+  },
+  "result": {
+    "hostPrerequisites": "pass",
+    "automationNote": "UTM GUI path is required because utmctl is not available in PATH.",
+    "nextAction": "Use CrystalFetch to download a Windows 11 ARM64 ISO, then create a Windows 11 ARM64 VM in UTM."
+  }
+}

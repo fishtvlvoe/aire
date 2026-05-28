@@ -52,6 +52,24 @@ pub struct NewRegistryQueryRun {
     pub created_at: i64,
 }
 
+#[derive(Debug, Clone)]
+pub struct NewRegistryQueryApiCall {
+    pub id: String,
+    pub run_id: String,
+    pub api_id: String,
+    pub service_name: Option<String>,
+    pub method: String,
+    pub endpoint: String,
+    pub http_status: Option<i64>,
+    pub cop_code: Option<String>,
+    pub cop_message: Option<String>,
+    pub transaction_id: Option<String>,
+    pub cost_cents: i64,
+    pub request_summary_json: Option<Value>,
+    pub response_summary_json: Option<Value>,
+    pub created_at: i64,
+}
+
 pub fn insert_registry_query_run(
     conn: &Connection,
     run: &NewRegistryQueryRun,
@@ -91,6 +109,40 @@ pub fn insert_registry_query_run(
             json_to_text(&run.generated_json)?,
             json_to_text(&run.error_summary_json)?,
             run.created_at,
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn insert_registry_query_api_call(
+    conn: &Connection,
+    call: &NewRegistryQueryApiCall,
+) -> Result<(), DbError> {
+    conn.execute(
+        "INSERT INTO registry_query_api_calls (
+            id, run_id, api_id, service_name, method, endpoint, http_status,
+            cop_code, cop_message, transaction_id, cost_cents,
+            request_summary_json, response_summary_json, created_at
+        ) VALUES (
+            ?1, ?2, ?3, ?4, ?5, ?6, ?7,
+            ?8, ?9, ?10, ?11,
+            ?12, ?13, ?14
+        )",
+        params![
+            call.id,
+            call.run_id,
+            call.api_id,
+            call.service_name,
+            call.method,
+            call.endpoint,
+            call.http_status,
+            call.cop_code,
+            call.cop_message,
+            call.transaction_id,
+            call.cost_cents,
+            json_to_text(&call.request_summary_json)?,
+            json_to_text(&call.response_summary_json)?,
+            call.created_at,
         ],
     )?;
     Ok(())

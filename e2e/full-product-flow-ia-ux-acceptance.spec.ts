@@ -21,7 +21,7 @@ test("customer-visible flow has unique pages and no duplicate same-scope control
   await expect(page.getByRole("heading", { name: "新增案件" })).toBeVisible();
 
   await page.getByLabel("地址 *").fill("台南市永康區勝利街58巷4號1樓");
-  await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
+  await page.getByRole("button", { name: "查詢物件資料", exact: true }).click();
   await expect(page.getByText("判斷結果").locator("..")).toContainText("建物");
   await expect(page.getByText("判斷結果").locator("..")).not.toContainText("農地");
   await expect(page.getByText("判斷結果").locator("..")).not.toContainText("農舍");

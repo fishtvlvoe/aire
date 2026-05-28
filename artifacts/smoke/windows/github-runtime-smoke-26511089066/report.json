@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-05-27T12:30:21.2632221+00:00",
+  "runner": "GitHub Actions 1000000675",
+  "installer": "D:\\a\\aire\\aire\\artifacts\\windows-runtime-input\\AIRE_0.1.3_x64-setup.exe",
+  "installerSha256": "cda8090a4f2f3a83477b20e6416d7c5734c29f423d493ed4456d7f03e1470c59",
+  "appExe": "C:\\Users\\runneradmin\\AppData\\Local\\AIRE\\AIRE.exe",
+  "processId": 4400,
+  "processName": "aire",
+  "mainWindowTitle": "AIRE 0.1.3",
+  "screenshot": "artifacts\\windows-runtime-smoke\\aire-windows-runtime-smoke.png",
+  "result": "windows-installer-installed-and-app-process-launched"
+}

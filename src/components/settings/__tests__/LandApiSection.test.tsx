@@ -14,21 +14,23 @@ vi.mock("@/lib/mock-backend", () => ({
 }));
 
 vi.mock("@/lib/land-registry-api", () => ({
+  getApiKey: vi.fn(),
   setApiKey: vi.fn(),
   testConnection: vi.fn(),
 }));
 
 import { mockInvoke } from "@/lib/mock-backend";
-import { setApiKey, testConnection } from "@/lib/land-registry-api";
+import { getApiKey, setApiKey, testConnection } from "@/lib/land-registry-api";
 
 const mockInvokeFn = vi.mocked(mockInvoke);
+const mockGetApiKey = vi.mocked(getApiKey);
 const mockSetApiKey = vi.mocked(setApiKey);
 const mockTestConnection = vi.mocked(testConnection);
 
 describe("LandApiSection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockInvokeFn.mockResolvedValueOnce({ clientId: "", secret: "" });
+    mockGetApiKey.mockResolvedValue(null);
     mockSetApiKey.mockResolvedValue(undefined);
     mockTestConnection.mockResolvedValue({ success: true, message: "連線成功", latency_ms: 123 } as never);
   });
@@ -63,8 +65,11 @@ describe("LandApiSection", () => {
     expect(testButton).not.toHaveAttribute("title");
   });
 
-  it("填入值後點儲存呼叫 save_land_api_settings", async () => {
-    mockInvokeFn.mockResolvedValueOnce({ success: true });
+  it("填入值後點儲存只呼叫正式地政金鑰 bridge，不寫 mock settings", async () => {
+    mockGetApiKey.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      client_id_masked: "****t-id",
+      has_secret: true,
+    });
 
     render(<LandApiSection />);
 
@@ -80,10 +85,31 @@ describe("LandApiSection", () => {
 
     await waitFor(() => {
       expect(mockSetApiKey).toHaveBeenCalledWith("my-client-id", "my-secret");
-      expect(mockInvokeFn).toHaveBeenCalledWith("save_land_api_settings", {
-        clientId: "my-client-id",
-        secret: "my-secret",
-      });
+      expect(mockInvokeFn).not.toHaveBeenCalledWith("save_land_api_settings", expect.anything());
+      expect(screen.getByText("已儲存地政查詢帳號")).toBeInTheDocument();
+      expect(screen.getByText("****t-id")).toBeInTheDocument();
+    });
+  });
+
+  it("已有 keychain 設定時可不重填安全碼直接測試連線", async () => {
+    mockGetApiKey.mockResolvedValueOnce({
+      client_id_masked: "****efd5",
+      has_secret: true,
+    });
+
+    render(<LandApiSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText("已儲存地政查詢帳號")).toBeInTheDocument();
+    });
+
+    const testButton = screen.getByRole("button", { name: "測試連線" });
+    expect(testButton).toBeEnabled();
+    fireEvent.click(testButton);
+
+    await waitFor(() => {
+      expect(mockSetApiKey).not.toHaveBeenCalled();
+      expect(mockTestConnection).toHaveBeenCalled();
     });
   });
 

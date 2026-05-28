@@ -20,6 +20,20 @@ export interface TaxResult {
   totalSellerCost: number;                  // 賣方成本小計
   totalBuyerCost: number;                   // 買方成本小計
   warnings: string[];
+  estimateMode?: boolean;                   // 是否為估算模式
+  estimateBasis?: string[];                 // 估算依據
+  missingInputs?: string[];                 // 缺少的資料
+}
+
+export interface LandValueIncrementTaxEstimateInput {
+  totalPrice?: number | null;
+  announcedLandValue?: number | null;
+  previousTransferValue?: number | null;
+  landArea?: number | null;
+  shareRatio?: number | null;
+  holdingYears?: number | null;
+  isFirstSale?: boolean;
+  propertyType: "land" | "building";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,5 +163,68 @@ export function calculateTaxFees(input: TaxInput): TaxResult {
     totalSellerCost,
     totalBuyerCost,
     warnings,
+  };
+}
+
+export function estimateLandValueIncrementTax(
+  input: LandValueIncrementTaxEstimateInput,
+): TaxResult {
+  const missingInputs: string[] = [];
+  if (!input.announcedLandValue || input.announcedLandValue <= 0) missingInputs.push("公告現值");
+  if (!input.previousTransferValue || input.previousTransferValue <= 0) missingInputs.push("前次移轉現值");
+  if (!input.totalPrice || input.totalPrice <= 0) missingInputs.push("成交價");
+  if (!input.shareRatio || input.shareRatio <= 0) missingInputs.push("持分");
+  if (!input.landArea || input.landArea <= 0) missingInputs.push("土地面積");
+
+  const estimateBasis = [
+    input.propertyType === "land" ? "土地交易以成交價全額估算土地價值" : "建物交易先以成交價 40% 估算土地價值",
+    "實際土地增值稅仍以主管機關核定為準",
+  ];
+
+  if (missingInputs.length > 0) {
+    return {
+      landValueIncrementTax: 0,
+      landValueIncrementTaxPreferential: 0,
+      deedTax: 0,
+      stampTax: 0,
+      registrationFee: 0,
+      scrivenerFee: 0,
+      totalSellerCost: 0,
+      totalBuyerCost: 0,
+      estimateMode: true,
+      estimateBasis,
+      missingInputs,
+      warnings: [
+        `土地增值稅為估算模式；缺少${missingInputs.join("、")}，不可視為正式稅額。`,
+      ],
+    };
+  }
+
+  const shareRatio = Math.min(Math.max(input.shareRatio!, 0), 1);
+  const currentLandValue = input.announcedLandValue! * input.landArea! * shareRatio;
+  const previousLandValue = input.previousTransferValue! * input.landArea! * shareRatio;
+  const dealLandValue = input.propertyType === "land" ? input.totalPrice! : input.totalPrice! * 0.4;
+  const estimateBaseValue = Math.max(currentLandValue, dealLandValue);
+  const appreciation = Math.max(0, estimateBaseValue - previousLandValue);
+  const landValueIncrementTax = calcLandValueIncrementTax(appreciation, previousLandValue);
+  const landValueIncrementTaxPreferential = Math.round(appreciation * 0.1);
+  const stamp = Math.round(input.totalPrice! * 0.001);
+  const registration = Math.round(input.totalPrice! * 0.001);
+  const deed = input.propertyType === "building" ? Math.round(input.totalPrice! * 0.06) : 0;
+  const scrivener = 12000;
+
+  return {
+    landValueIncrementTax,
+    landValueIncrementTaxPreferential,
+    deedTax: deed,
+    stampTax: stamp,
+    registrationFee: registration,
+    scrivenerFee: scrivener,
+    totalSellerCost: landValueIncrementTax + stamp,
+    totalBuyerCost: deed + stamp + registration + scrivener,
+    warnings: ["土地增值稅為估算模式，正式稅額仍以主管機關核定為準。"],
+    estimateMode: true,
+    estimateBasis,
+    missingInputs: [],
   };
 }

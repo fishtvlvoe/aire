@@ -2373,3 +2373,1478 @@ PDF preview fallback data SHALL not show fixed unrelated real-price rows for a d
 
 - **WHEN** real-price mock data returns a `date` field
 - **THEN** PDF dossier assembly SHALL map it to the transaction date shown in the PDF
+
+---
+### Requirement: Create-case flow SHALL persist registry confirmation state
+
+The create-case flow SHALL save discovery diagnostics, candidate data, normalized address, and confirmed registry match state before allowing formal COP lookup. Building cases SHALL require section, land number, and building number confirmation before formal pull. Land-only cases SHALL require section and land number and SHALL allow building number to remain empty.
+
+#### Scenario: Manual confirmation after discovery failure
+
+- **GIVEN** address discovery fails or is denied
+- **WHEN** the user manually enters section, land number, and building number and creates the case
+- **THEN** the case SHALL store `confirmed_registry_match`
+- **AND** the system SHALL be able to use that confirmed key for formal COP pull.
+
+#### Scenario: Unconfirmed candidate cannot trigger paid lookup
+
+- **GIVEN** a case has candidate discovery data but no confirmed registry match
+- **WHEN** formal COP lookup is requested
+- **THEN** the request SHALL fail with `registry_match_required`
+- **AND** no paid API call SHALL be created.
+
+#### Scenario: Multiple candidates require one confirmation
+
+- **GIVEN** discovery returns multiple land or building candidates
+- **WHEN** the user creates or updates the case without selecting exactly one candidate
+- **THEN** the case SHALL remain `registry_pending` or unconfirmed
+- **AND** formal COP lookup SHALL remain blocked
+- **AND** the UI SHALL show that one target must be selected or manually corrected.
+
+#### Scenario: Paid resolver candidate still requires confirmation
+
+- **GIVEN** a paid address-to-parcel resolver has returned candidate registry targets
+- **WHEN** the user creates or updates the case without confirming exactly one candidate
+- **THEN** the case SHALL remain `registry_pending` or unconfirmed
+- **AND** formal COP lookup SHALL remain blocked
+- **AND** the paid resolver run SHALL remain evidence only.
+
+
+<!-- @trace
+source: desktop-local-address-to-cop-e2e
+updated: 2026-05-27
+code:
+  - .opencode/skills/spectra-propose/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch2-20260527.png
+  - src/lib/pdf-engine/document.tsx
+  - e2e/results/results.json
+  - docs/gov-site-analysis/10-r01-opendata.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm6s-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-2s-20260527.png
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - docs/gov-site-analysis/05-nlsc-t09-mobile.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.json
+  - src-tauri/src/lib.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-20260527.png
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-billing-modal-20260527.png
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/components/LogoUploader.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-after-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-case-20260527.png
+  - docs/gov-site-analysis/06-easymap-z10.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-formal-tab-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-signed-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-open-case-20260527.png
+  - docs/gov-site-analysis/02-luz-landuse.md
+  - .opencode/skills/spectra-debug/SKILL.md
+  - docs/release/desktop-fullflow-acceptance-checklist.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-resume-front-20260527.png
+  - artifacts/smoke/macos/aire-0.1.3-local-launch-20260525-211448.png
+  - artifacts/smoke/local-web-logo-upload-persisted-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge2-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.json
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - src/lib/tax-calculator.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-macos-memory-keyring-parity-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-rebuild-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-app-front-20260527.png
+  - src-tauri/src/commands/cases.rs
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/gov-site-analysis/04-easymap-r02.md
+  - src/lib/registry-preview.ts
+  - artifacts/smoke/local-web-yunong-formal-import-case-20260526.json
+  - artifacts/smoke/local-web-easymap-r02-autofill-20260526.png
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.pdf
+  - .cursorrules
+  - src/lib/formal-cop-api-set.ts
+  - docs/gov-site-analysis/03-nsp-ngis.md
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - .opencode/commands/spectra-commit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-front-20260527.png
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - docs/gov-site-analysis/07-easymap-w10.md
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.pdf
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result2-20260527.png
+  - src-tauri/src/land_registry/mod.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-active-after-rebuild-20260527.png
+  - .opencode/commands/spectra-audit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-launch-20260527.png
+  - package.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase3-20260527.png
+  - artifacts/smoke/donghe-smoke-20260526.mjs
+  - src/lib/product-ui-demo-alignment.ts
+  - docs/sr-archive/absorbed-2026-05-26.tar.gz
+  - artifacts/smoke/local-web-new-case-object-query-copy-20260526.png
+  - src/components/disclosure-form-residential.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.pdf
+  - .opencode/commands/spectra-ask.md
+  - .opencode/commands/spectra-ingest.md
+  - .spectra.yaml
+  - artifacts/smoke/local-web-donghe-formal-button-images-20260526.pdf
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-6s-20260527.png
+  - src/lib/land-registry-api.ts
+  - docs/handoff/desktop-local-address-to-cop-e2e-handoff.md
+  - .opencode/commands/spectra-debug.md
+  - artifacts/smoke/local-registry-auth-debug-20260525.png
+  - artifacts/smoke/logo-upload-smoke-20260526.svg
+  - docs/gov-site-analysis/12-cop-platform-api.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase2-20260527.png
+  - src/components/SettingsTabs.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge-20260527.png
+  - src/app/(dashboard)/cases/new/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch-20260527.png
+  - docs/gov-site-analysis/08-easymap-index.md
+  - docs/desktop-r02-cop-flow-map.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-created-20260527.png
+  - src-tauri/src/db/registry_query_runs.rs
+  - src/lib/cases-api.ts
+  - src/app/(dashboard)/settings/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query3-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun2-20260527.png
+  - artifacts/smoke/local-web-workbench-r02-source-smoke-20260526.png
+  - src/lib/server/local-address-discovery-proxy.ts
+  - artifacts/smoke/macos/aire-binary-run-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-disappear-activate-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query4-20260527.png
+  - scripts/smoke-pdf-imported-fields.mjs
+  - src-tauri/src/land_registry/pull.rs
+  - artifacts/smoke/local-web-donghe-formal-button-source-20260526.png
+  - src-tauri/src/land_registry/discovery_contract.rs
+  - docs/gov-site-analysis/README.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm2s-20260527.png
+  - .opencode/commands/spectra-apply.md
+  - src/lib/disclosure-schema-land.ts
+  - artifacts/smoke/local-web-workbench-source-values-clean-20260526.png
+  - .opencode/commands/spectra-drift.md
+  - src/lib/page-contracts/house-field-survey.ts
+  - artifacts/smoke/local-web-multiple-candidate-selection-20260526.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-source-roc-check-20260527.png
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-focused-20260527.png
+  - artifacts/smoke/local-web-pdf-preview-r02-fields-20260526.png
+  - src/lib/registry-discovery-contract.ts
+  - artifacts/smoke/macos/aire-app-run-20260527.log
+  - src/lib/registry-provenance.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.txt
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-review-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-modal-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.pdf
+  - artifacts/smoke/local-web-new-case-object-query-after-lookup-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-kill-reopen-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.pdf
+  - artifacts/smoke/logo-debug-page-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-before-auth-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-single-instance-20260527.png
+  - .opencode/commands/spectra-archive.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-front-20260527.png
+  - artifacts/smoke/windows-runtime-blocker-20260527.json
+  - AGENTS.md
+  - .opencode/commands/spectra-discuss.md
+  - src/lib/mock-backend.ts
+  - artifacts/smoke/local-web-logo-upload-regression-20260526.mjs
+  - src/lib/product-navigation-ia.ts
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-launch-20260527.png
+  - docs/release/desktop-fullflow-acceptance-report.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-pid-front-20260527.png
+  - .opencode/skills/spectra-apply/SKILL.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-import-result-reactivated-20260527.png
+  - docs/gov-site-analysis/09-plvr-opendata.md
+  - src/app/api/local/address-discovery/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-formal-click-20260527.png
+  - GEMINI.md
+  - artifacts/smoke/macos/aire-trace-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-confirm-monitor-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-preview-after-formal-20260526.png
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/gov-site-analysis/01-plvr-main.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-restart-front-20260527.png
+  - artifacts/smoke/logo-debug-after-upload-20260526.png
+  - artifacts/smoke/local-web-yunong-supplement-selects-20260526.png
+  - artifacts/smoke/local-web-yunong-formal-import-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-binaryrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.txt
+  - docs/gov-site-analysis/11-nlsc-s09-soa.md
+  - src/app/(dashboard)/layout.tsx
+  - e2e/results/playwright-report/index.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-reload-20260527.png
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-imported-fields.pdf
+  - .opencode/commands/spectra-propose.md
+  - .opencode/skills/spectra-commit/SKILL.md
+  - src/components/disclosure-form-land.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-before-20260526.png
+  - src/components/PullParcelDataButton.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-manual-building-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-formal-click-20260527.png
+  - docs/address-land-discovery-decision-flow.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-post-confirm-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-reopen-after-import-20260527.png
+  - .opencode/skills/spectra-drift/SKILL.md
+  - src-tauri/src/secrets.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result-20260527.png
+tests:
+  - src-tauri/tests/donghe_moi_api_015_live.rs
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - src/app/(dashboard)/settings/__tests__/settings-page.test.tsx
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - e2e/candidate-parcel-options-presurvey.spec.ts
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - e2e/product-auth-functional-flow.spec.ts
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - src/components/__tests__/KeyinSplitPage.survey-fields.test.tsx
+  - e2e/product-ui-demo-alignment.spec.ts
+  - e2e/complete-presurvey-property-sheet-flow.spec.ts
+  - src/lib/__tests__/formal-cop-api-set.test.ts
+  - src/lib/__tests__/registry-discovery-contract.test.ts
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - src-tauri/tests/donghe_discovery_live.rs
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/lib/__tests__/product-ui-demo-alignment.test.ts
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+  - e2e/full-product-flow-ia-ux-acceptance.spec.ts
+  - e2e/local-web-registry-pending-billing.spec.ts
+-->
+
+---
+### Requirement: Duplicate property entry SHALL autofill and warn
+
+When the user enters an address or registry key already known to the local AIRE DB, the system SHALL warn the user and autofill reusable data instead of silently creating duplicate work or repeating paid queries.
+
+#### Scenario: Same normalized address exists
+
+- **GIVEN** local DB contains discovery data for the same normalized address
+- **WHEN** a user enters that address again
+- **THEN** the UI SHALL show that existing information was found
+- **AND** section, land number, building number, and candidate details SHALL be auto-filled from local DB.
+
+#### Scenario: Same confirmed registry key exists on another case
+
+- **GIVEN** local DB contains an existing case with the same confirmed registry key
+- **WHEN** the user confirms that registry key on a new case
+- **THEN** the UI SHALL show `系統中已有同樣資訊` or equivalent customer-readable warning
+- **AND** the user SHALL be able to open the existing case or explicitly continue creating a new case.
+
+
+<!-- @trace
+source: desktop-local-address-to-cop-e2e
+updated: 2026-05-27
+code:
+  - .opencode/skills/spectra-propose/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch2-20260527.png
+  - src/lib/pdf-engine/document.tsx
+  - e2e/results/results.json
+  - docs/gov-site-analysis/10-r01-opendata.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm6s-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-2s-20260527.png
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - docs/gov-site-analysis/05-nlsc-t09-mobile.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.json
+  - src-tauri/src/lib.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-20260527.png
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-billing-modal-20260527.png
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/components/LogoUploader.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-after-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-case-20260527.png
+  - docs/gov-site-analysis/06-easymap-z10.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-formal-tab-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-signed-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-open-case-20260527.png
+  - docs/gov-site-analysis/02-luz-landuse.md
+  - .opencode/skills/spectra-debug/SKILL.md
+  - docs/release/desktop-fullflow-acceptance-checklist.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-resume-front-20260527.png
+  - artifacts/smoke/macos/aire-0.1.3-local-launch-20260525-211448.png
+  - artifacts/smoke/local-web-logo-upload-persisted-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge2-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.json
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - src/lib/tax-calculator.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-macos-memory-keyring-parity-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-rebuild-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-app-front-20260527.png
+  - src-tauri/src/commands/cases.rs
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/gov-site-analysis/04-easymap-r02.md
+  - src/lib/registry-preview.ts
+  - artifacts/smoke/local-web-yunong-formal-import-case-20260526.json
+  - artifacts/smoke/local-web-easymap-r02-autofill-20260526.png
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.pdf
+  - .cursorrules
+  - src/lib/formal-cop-api-set.ts
+  - docs/gov-site-analysis/03-nsp-ngis.md
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - .opencode/commands/spectra-commit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-front-20260527.png
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - docs/gov-site-analysis/07-easymap-w10.md
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.pdf
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result2-20260527.png
+  - src-tauri/src/land_registry/mod.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-active-after-rebuild-20260527.png
+  - .opencode/commands/spectra-audit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-launch-20260527.png
+  - package.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase3-20260527.png
+  - artifacts/smoke/donghe-smoke-20260526.mjs
+  - src/lib/product-ui-demo-alignment.ts
+  - docs/sr-archive/absorbed-2026-05-26.tar.gz
+  - artifacts/smoke/local-web-new-case-object-query-copy-20260526.png
+  - src/components/disclosure-form-residential.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.pdf
+  - .opencode/commands/spectra-ask.md
+  - .opencode/commands/spectra-ingest.md
+  - .spectra.yaml
+  - artifacts/smoke/local-web-donghe-formal-button-images-20260526.pdf
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-6s-20260527.png
+  - src/lib/land-registry-api.ts
+  - docs/handoff/desktop-local-address-to-cop-e2e-handoff.md
+  - .opencode/commands/spectra-debug.md
+  - artifacts/smoke/local-registry-auth-debug-20260525.png
+  - artifacts/smoke/logo-upload-smoke-20260526.svg
+  - docs/gov-site-analysis/12-cop-platform-api.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase2-20260527.png
+  - src/components/SettingsTabs.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge-20260527.png
+  - src/app/(dashboard)/cases/new/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch-20260527.png
+  - docs/gov-site-analysis/08-easymap-index.md
+  - docs/desktop-r02-cop-flow-map.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-created-20260527.png
+  - src-tauri/src/db/registry_query_runs.rs
+  - src/lib/cases-api.ts
+  - src/app/(dashboard)/settings/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query3-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun2-20260527.png
+  - artifacts/smoke/local-web-workbench-r02-source-smoke-20260526.png
+  - src/lib/server/local-address-discovery-proxy.ts
+  - artifacts/smoke/macos/aire-binary-run-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-disappear-activate-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query4-20260527.png
+  - scripts/smoke-pdf-imported-fields.mjs
+  - src-tauri/src/land_registry/pull.rs
+  - artifacts/smoke/local-web-donghe-formal-button-source-20260526.png
+  - src-tauri/src/land_registry/discovery_contract.rs
+  - docs/gov-site-analysis/README.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm2s-20260527.png
+  - .opencode/commands/spectra-apply.md
+  - src/lib/disclosure-schema-land.ts
+  - artifacts/smoke/local-web-workbench-source-values-clean-20260526.png
+  - .opencode/commands/spectra-drift.md
+  - src/lib/page-contracts/house-field-survey.ts
+  - artifacts/smoke/local-web-multiple-candidate-selection-20260526.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-source-roc-check-20260527.png
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-focused-20260527.png
+  - artifacts/smoke/local-web-pdf-preview-r02-fields-20260526.png
+  - src/lib/registry-discovery-contract.ts
+  - artifacts/smoke/macos/aire-app-run-20260527.log
+  - src/lib/registry-provenance.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.txt
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-review-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-modal-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.pdf
+  - artifacts/smoke/local-web-new-case-object-query-after-lookup-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-kill-reopen-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.pdf
+  - artifacts/smoke/logo-debug-page-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-before-auth-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-single-instance-20260527.png
+  - .opencode/commands/spectra-archive.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-front-20260527.png
+  - artifacts/smoke/windows-runtime-blocker-20260527.json
+  - AGENTS.md
+  - .opencode/commands/spectra-discuss.md
+  - src/lib/mock-backend.ts
+  - artifacts/smoke/local-web-logo-upload-regression-20260526.mjs
+  - src/lib/product-navigation-ia.ts
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-launch-20260527.png
+  - docs/release/desktop-fullflow-acceptance-report.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-pid-front-20260527.png
+  - .opencode/skills/spectra-apply/SKILL.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-import-result-reactivated-20260527.png
+  - docs/gov-site-analysis/09-plvr-opendata.md
+  - src/app/api/local/address-discovery/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-formal-click-20260527.png
+  - GEMINI.md
+  - artifacts/smoke/macos/aire-trace-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-confirm-monitor-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-preview-after-formal-20260526.png
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/gov-site-analysis/01-plvr-main.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-restart-front-20260527.png
+  - artifacts/smoke/logo-debug-after-upload-20260526.png
+  - artifacts/smoke/local-web-yunong-supplement-selects-20260526.png
+  - artifacts/smoke/local-web-yunong-formal-import-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-binaryrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.txt
+  - docs/gov-site-analysis/11-nlsc-s09-soa.md
+  - src/app/(dashboard)/layout.tsx
+  - e2e/results/playwright-report/index.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-reload-20260527.png
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-imported-fields.pdf
+  - .opencode/commands/spectra-propose.md
+  - .opencode/skills/spectra-commit/SKILL.md
+  - src/components/disclosure-form-land.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-before-20260526.png
+  - src/components/PullParcelDataButton.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-manual-building-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-formal-click-20260527.png
+  - docs/address-land-discovery-decision-flow.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-post-confirm-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-reopen-after-import-20260527.png
+  - .opencode/skills/spectra-drift/SKILL.md
+  - src-tauri/src/secrets.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result-20260527.png
+tests:
+  - src-tauri/tests/donghe_moi_api_015_live.rs
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - src/app/(dashboard)/settings/__tests__/settings-page.test.tsx
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - e2e/candidate-parcel-options-presurvey.spec.ts
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - e2e/product-auth-functional-flow.spec.ts
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - src/components/__tests__/KeyinSplitPage.survey-fields.test.tsx
+  - e2e/product-ui-demo-alignment.spec.ts
+  - e2e/complete-presurvey-property-sheet-flow.spec.ts
+  - src/lib/__tests__/formal-cop-api-set.test.ts
+  - src/lib/__tests__/registry-discovery-contract.test.ts
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - src-tauri/tests/donghe_discovery_live.rs
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/lib/__tests__/product-ui-demo-alignment.test.ts
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+  - e2e/full-product-flow-ia-ux-acceptance.spec.ts
+  - e2e/local-web-registry-pending-billing.spec.ts
+-->
+
+---
+### Requirement: Property type SHALL be auto-filled and editable
+
+The system SHALL auto-fill property type from discovery and formal data while allowing the user to correct it. R02 SHALL provide coarse building-or-land classification from input intent and candidate data, and COP formal data SHALL refine the property type. Doorplate, floor, lane, alley, and unit-number inputs SHALL preserve building intent even when discovery only resolves the underlying land number.
+
+#### Scenario: Formal data refines property type
+
+- **GIVEN** a case has confirmed registry key and COP formal data
+- **WHEN** the system parses building use, floor, total floor, zoning, or land-use fields
+- **THEN** the case SHALL be classified into an available property type such as farmland, townhouse, apartment, highrise, residential-land, farmhouse, studio, storefront, factory, industrial-land, commercial-land, village-land, or other-land
+- **AND** the user SHALL be able to edit the classification before finalizing the case.
+
+#### Scenario: Land descriptor creates land-classification path
+
+- **GIVEN** the user enters a section and land number without building number
+- **WHEN** discovery resolves a land candidate
+- **THEN** the case SHALL use the land classification path
+- **AND** the user SHALL be able to choose farmland, commercial land, residential land, industrial land, or other land before formal data refines the type.
+
+#### Scenario: Doorplate with only land result stays building-intent pending
+
+- **GIVEN** the user enters a doorplate or floor address
+- **AND** discovery resolves section and land number but cannot resolve building number
+- **WHEN** the case classification is shown
+- **THEN** the case SHALL remain building-intent
+- **AND** the UI SHALL ask the user to confirm or fill the building number
+- **AND** the case SHALL NOT be silently converted into a land-classification path.
+
+#### Scenario: Land descriptor may expose building candidates without changing land intent
+
+- **GIVEN** the user enters a section and land number as a land descriptor
+- **AND** zero-cost land detail returns related building candidates
+- **WHEN** the case classification is shown
+- **THEN** the primary case SHALL remain a land-intent path unless the user selects a building candidate
+- **AND** selecting a building candidate SHALL create a building confirmation path that still requires user confirmation before formal COP.
+
+
+<!-- @trace
+source: desktop-local-address-to-cop-e2e
+updated: 2026-05-27
+code:
+  - .opencode/skills/spectra-propose/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch2-20260527.png
+  - src/lib/pdf-engine/document.tsx
+  - e2e/results/results.json
+  - docs/gov-site-analysis/10-r01-opendata.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm6s-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-2s-20260527.png
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - docs/gov-site-analysis/05-nlsc-t09-mobile.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.json
+  - src-tauri/src/lib.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-20260527.png
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-billing-modal-20260527.png
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/components/LogoUploader.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-after-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-case-20260527.png
+  - docs/gov-site-analysis/06-easymap-z10.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-formal-tab-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-signed-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-open-case-20260527.png
+  - docs/gov-site-analysis/02-luz-landuse.md
+  - .opencode/skills/spectra-debug/SKILL.md
+  - docs/release/desktop-fullflow-acceptance-checklist.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-resume-front-20260527.png
+  - artifacts/smoke/macos/aire-0.1.3-local-launch-20260525-211448.png
+  - artifacts/smoke/local-web-logo-upload-persisted-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge2-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.json
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - src/lib/tax-calculator.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-macos-memory-keyring-parity-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-rebuild-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-app-front-20260527.png
+  - src-tauri/src/commands/cases.rs
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/gov-site-analysis/04-easymap-r02.md
+  - src/lib/registry-preview.ts
+  - artifacts/smoke/local-web-yunong-formal-import-case-20260526.json
+  - artifacts/smoke/local-web-easymap-r02-autofill-20260526.png
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.pdf
+  - .cursorrules
+  - src/lib/formal-cop-api-set.ts
+  - docs/gov-site-analysis/03-nsp-ngis.md
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - .opencode/commands/spectra-commit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-front-20260527.png
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - docs/gov-site-analysis/07-easymap-w10.md
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.pdf
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result2-20260527.png
+  - src-tauri/src/land_registry/mod.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-active-after-rebuild-20260527.png
+  - .opencode/commands/spectra-audit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-launch-20260527.png
+  - package.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase3-20260527.png
+  - artifacts/smoke/donghe-smoke-20260526.mjs
+  - src/lib/product-ui-demo-alignment.ts
+  - docs/sr-archive/absorbed-2026-05-26.tar.gz
+  - artifacts/smoke/local-web-new-case-object-query-copy-20260526.png
+  - src/components/disclosure-form-residential.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.pdf
+  - .opencode/commands/spectra-ask.md
+  - .opencode/commands/spectra-ingest.md
+  - .spectra.yaml
+  - artifacts/smoke/local-web-donghe-formal-button-images-20260526.pdf
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-6s-20260527.png
+  - src/lib/land-registry-api.ts
+  - docs/handoff/desktop-local-address-to-cop-e2e-handoff.md
+  - .opencode/commands/spectra-debug.md
+  - artifacts/smoke/local-registry-auth-debug-20260525.png
+  - artifacts/smoke/logo-upload-smoke-20260526.svg
+  - docs/gov-site-analysis/12-cop-platform-api.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase2-20260527.png
+  - src/components/SettingsTabs.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge-20260527.png
+  - src/app/(dashboard)/cases/new/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch-20260527.png
+  - docs/gov-site-analysis/08-easymap-index.md
+  - docs/desktop-r02-cop-flow-map.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-created-20260527.png
+  - src-tauri/src/db/registry_query_runs.rs
+  - src/lib/cases-api.ts
+  - src/app/(dashboard)/settings/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query3-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun2-20260527.png
+  - artifacts/smoke/local-web-workbench-r02-source-smoke-20260526.png
+  - src/lib/server/local-address-discovery-proxy.ts
+  - artifacts/smoke/macos/aire-binary-run-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-disappear-activate-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query4-20260527.png
+  - scripts/smoke-pdf-imported-fields.mjs
+  - src-tauri/src/land_registry/pull.rs
+  - artifacts/smoke/local-web-donghe-formal-button-source-20260526.png
+  - src-tauri/src/land_registry/discovery_contract.rs
+  - docs/gov-site-analysis/README.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm2s-20260527.png
+  - .opencode/commands/spectra-apply.md
+  - src/lib/disclosure-schema-land.ts
+  - artifacts/smoke/local-web-workbench-source-values-clean-20260526.png
+  - .opencode/commands/spectra-drift.md
+  - src/lib/page-contracts/house-field-survey.ts
+  - artifacts/smoke/local-web-multiple-candidate-selection-20260526.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-source-roc-check-20260527.png
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-focused-20260527.png
+  - artifacts/smoke/local-web-pdf-preview-r02-fields-20260526.png
+  - src/lib/registry-discovery-contract.ts
+  - artifacts/smoke/macos/aire-app-run-20260527.log
+  - src/lib/registry-provenance.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.txt
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-review-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-modal-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.pdf
+  - artifacts/smoke/local-web-new-case-object-query-after-lookup-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-kill-reopen-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.pdf
+  - artifacts/smoke/logo-debug-page-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-before-auth-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-single-instance-20260527.png
+  - .opencode/commands/spectra-archive.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-front-20260527.png
+  - artifacts/smoke/windows-runtime-blocker-20260527.json
+  - AGENTS.md
+  - .opencode/commands/spectra-discuss.md
+  - src/lib/mock-backend.ts
+  - artifacts/smoke/local-web-logo-upload-regression-20260526.mjs
+  - src/lib/product-navigation-ia.ts
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-launch-20260527.png
+  - docs/release/desktop-fullflow-acceptance-report.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-pid-front-20260527.png
+  - .opencode/skills/spectra-apply/SKILL.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-import-result-reactivated-20260527.png
+  - docs/gov-site-analysis/09-plvr-opendata.md
+  - src/app/api/local/address-discovery/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-formal-click-20260527.png
+  - GEMINI.md
+  - artifacts/smoke/macos/aire-trace-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-confirm-monitor-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-preview-after-formal-20260526.png
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/gov-site-analysis/01-plvr-main.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-restart-front-20260527.png
+  - artifacts/smoke/logo-debug-after-upload-20260526.png
+  - artifacts/smoke/local-web-yunong-supplement-selects-20260526.png
+  - artifacts/smoke/local-web-yunong-formal-import-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-binaryrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.txt
+  - docs/gov-site-analysis/11-nlsc-s09-soa.md
+  - src/app/(dashboard)/layout.tsx
+  - e2e/results/playwright-report/index.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-reload-20260527.png
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-imported-fields.pdf
+  - .opencode/commands/spectra-propose.md
+  - .opencode/skills/spectra-commit/SKILL.md
+  - src/components/disclosure-form-land.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-before-20260526.png
+  - src/components/PullParcelDataButton.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-manual-building-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-formal-click-20260527.png
+  - docs/address-land-discovery-decision-flow.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-post-confirm-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-reopen-after-import-20260527.png
+  - .opencode/skills/spectra-drift/SKILL.md
+  - src-tauri/src/secrets.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result-20260527.png
+tests:
+  - src-tauri/tests/donghe_moi_api_015_live.rs
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - src/app/(dashboard)/settings/__tests__/settings-page.test.tsx
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - e2e/candidate-parcel-options-presurvey.spec.ts
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - e2e/product-auth-functional-flow.spec.ts
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - src/components/__tests__/KeyinSplitPage.survey-fields.test.tsx
+  - e2e/product-ui-demo-alignment.spec.ts
+  - e2e/complete-presurvey-property-sheet-flow.spec.ts
+  - src/lib/__tests__/formal-cop-api-set.test.ts
+  - src/lib/__tests__/registry-discovery-contract.test.ts
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - src-tauri/tests/donghe_discovery_live.rs
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/lib/__tests__/product-ui-demo-alignment.test.ts
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+  - e2e/full-product-flow-ia-ux-acceptance.spec.ts
+  - e2e/local-web-registry-pending-billing.spec.ts
+-->
+
+---
+### Requirement: Registry pending cases SHALL be creatable after discovery failure
+
+The create-case flow SHALL allow a `registry_pending` case when address discovery cannot produce section, land number, or building number. A `registry_pending` case SHALL preserve the user-entered address and discovery diagnostics, SHALL route the missing registry data to supplements or manual confirmation, and SHALL NOT permit formal COP lookup or trusted PDF output until registry confirmation is completed.
+
+#### Scenario: Discovery failure creates a pending case
+
+- **GIVEN** address discovery returns no trustworthy section, land number, or building number
+- **WHEN** the user creates a case from the address form
+- **THEN** the case SHALL be created with `registry_pending`
+- **AND** the case SHALL preserve the address, discovery status, readable failure reason, and missing registry fields
+- **AND** formal COP lookup SHALL remain blocked with `registry_match_required`.
+
+#### Scenario: Pending case becomes confirmed after manual registry input
+
+- **GIVEN** a case is in `registry_pending`
+- **WHEN** the user later enters and confirms section, land number, and building number when applicable
+- **THEN** the case SHALL store `confirmed_registry_match`
+- **AND** formal COP lookup SHALL become available for that confirmed registry key.
+
+
+<!-- @trace
+source: desktop-local-address-to-cop-e2e
+updated: 2026-05-27
+code:
+  - .opencode/skills/spectra-propose/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch2-20260527.png
+  - src/lib/pdf-engine/document.tsx
+  - e2e/results/results.json
+  - docs/gov-site-analysis/10-r01-opendata.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm6s-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-2s-20260527.png
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - docs/gov-site-analysis/05-nlsc-t09-mobile.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.json
+  - src-tauri/src/lib.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-20260527.png
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-billing-modal-20260527.png
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/components/LogoUploader.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-after-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-case-20260527.png
+  - docs/gov-site-analysis/06-easymap-z10.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-formal-tab-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-signed-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-open-case-20260527.png
+  - docs/gov-site-analysis/02-luz-landuse.md
+  - .opencode/skills/spectra-debug/SKILL.md
+  - docs/release/desktop-fullflow-acceptance-checklist.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-resume-front-20260527.png
+  - artifacts/smoke/macos/aire-0.1.3-local-launch-20260525-211448.png
+  - artifacts/smoke/local-web-logo-upload-persisted-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge2-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.json
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - src/lib/tax-calculator.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-macos-memory-keyring-parity-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-rebuild-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-app-front-20260527.png
+  - src-tauri/src/commands/cases.rs
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/gov-site-analysis/04-easymap-r02.md
+  - src/lib/registry-preview.ts
+  - artifacts/smoke/local-web-yunong-formal-import-case-20260526.json
+  - artifacts/smoke/local-web-easymap-r02-autofill-20260526.png
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.pdf
+  - .cursorrules
+  - src/lib/formal-cop-api-set.ts
+  - docs/gov-site-analysis/03-nsp-ngis.md
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - .opencode/commands/spectra-commit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-front-20260527.png
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - docs/gov-site-analysis/07-easymap-w10.md
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.pdf
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result2-20260527.png
+  - src-tauri/src/land_registry/mod.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-active-after-rebuild-20260527.png
+  - .opencode/commands/spectra-audit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-launch-20260527.png
+  - package.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase3-20260527.png
+  - artifacts/smoke/donghe-smoke-20260526.mjs
+  - src/lib/product-ui-demo-alignment.ts
+  - docs/sr-archive/absorbed-2026-05-26.tar.gz
+  - artifacts/smoke/local-web-new-case-object-query-copy-20260526.png
+  - src/components/disclosure-form-residential.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.pdf
+  - .opencode/commands/spectra-ask.md
+  - .opencode/commands/spectra-ingest.md
+  - .spectra.yaml
+  - artifacts/smoke/local-web-donghe-formal-button-images-20260526.pdf
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-6s-20260527.png
+  - src/lib/land-registry-api.ts
+  - docs/handoff/desktop-local-address-to-cop-e2e-handoff.md
+  - .opencode/commands/spectra-debug.md
+  - artifacts/smoke/local-registry-auth-debug-20260525.png
+  - artifacts/smoke/logo-upload-smoke-20260526.svg
+  - docs/gov-site-analysis/12-cop-platform-api.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase2-20260527.png
+  - src/components/SettingsTabs.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge-20260527.png
+  - src/app/(dashboard)/cases/new/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch-20260527.png
+  - docs/gov-site-analysis/08-easymap-index.md
+  - docs/desktop-r02-cop-flow-map.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-created-20260527.png
+  - src-tauri/src/db/registry_query_runs.rs
+  - src/lib/cases-api.ts
+  - src/app/(dashboard)/settings/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query3-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun2-20260527.png
+  - artifacts/smoke/local-web-workbench-r02-source-smoke-20260526.png
+  - src/lib/server/local-address-discovery-proxy.ts
+  - artifacts/smoke/macos/aire-binary-run-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-disappear-activate-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query4-20260527.png
+  - scripts/smoke-pdf-imported-fields.mjs
+  - src-tauri/src/land_registry/pull.rs
+  - artifacts/smoke/local-web-donghe-formal-button-source-20260526.png
+  - src-tauri/src/land_registry/discovery_contract.rs
+  - docs/gov-site-analysis/README.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm2s-20260527.png
+  - .opencode/commands/spectra-apply.md
+  - src/lib/disclosure-schema-land.ts
+  - artifacts/smoke/local-web-workbench-source-values-clean-20260526.png
+  - .opencode/commands/spectra-drift.md
+  - src/lib/page-contracts/house-field-survey.ts
+  - artifacts/smoke/local-web-multiple-candidate-selection-20260526.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-source-roc-check-20260527.png
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-focused-20260527.png
+  - artifacts/smoke/local-web-pdf-preview-r02-fields-20260526.png
+  - src/lib/registry-discovery-contract.ts
+  - artifacts/smoke/macos/aire-app-run-20260527.log
+  - src/lib/registry-provenance.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.txt
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-review-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-modal-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.pdf
+  - artifacts/smoke/local-web-new-case-object-query-after-lookup-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-kill-reopen-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.pdf
+  - artifacts/smoke/logo-debug-page-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-before-auth-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-single-instance-20260527.png
+  - .opencode/commands/spectra-archive.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-front-20260527.png
+  - artifacts/smoke/windows-runtime-blocker-20260527.json
+  - AGENTS.md
+  - .opencode/commands/spectra-discuss.md
+  - src/lib/mock-backend.ts
+  - artifacts/smoke/local-web-logo-upload-regression-20260526.mjs
+  - src/lib/product-navigation-ia.ts
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-launch-20260527.png
+  - docs/release/desktop-fullflow-acceptance-report.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-pid-front-20260527.png
+  - .opencode/skills/spectra-apply/SKILL.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-import-result-reactivated-20260527.png
+  - docs/gov-site-analysis/09-plvr-opendata.md
+  - src/app/api/local/address-discovery/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-formal-click-20260527.png
+  - GEMINI.md
+  - artifacts/smoke/macos/aire-trace-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-confirm-monitor-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-preview-after-formal-20260526.png
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/gov-site-analysis/01-plvr-main.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-restart-front-20260527.png
+  - artifacts/smoke/logo-debug-after-upload-20260526.png
+  - artifacts/smoke/local-web-yunong-supplement-selects-20260526.png
+  - artifacts/smoke/local-web-yunong-formal-import-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-binaryrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.txt
+  - docs/gov-site-analysis/11-nlsc-s09-soa.md
+  - src/app/(dashboard)/layout.tsx
+  - e2e/results/playwright-report/index.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-reload-20260527.png
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-imported-fields.pdf
+  - .opencode/commands/spectra-propose.md
+  - .opencode/skills/spectra-commit/SKILL.md
+  - src/components/disclosure-form-land.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-before-20260526.png
+  - src/components/PullParcelDataButton.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-manual-building-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-formal-click-20260527.png
+  - docs/address-land-discovery-decision-flow.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-post-confirm-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-reopen-after-import-20260527.png
+  - .opencode/skills/spectra-drift/SKILL.md
+  - src-tauri/src/secrets.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result-20260527.png
+tests:
+  - src-tauri/tests/donghe_moi_api_015_live.rs
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - src/app/(dashboard)/settings/__tests__/settings-page.test.tsx
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - e2e/candidate-parcel-options-presurvey.spec.ts
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - e2e/product-auth-functional-flow.spec.ts
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - src/components/__tests__/KeyinSplitPage.survey-fields.test.tsx
+  - e2e/product-ui-demo-alignment.spec.ts
+  - e2e/complete-presurvey-property-sheet-flow.spec.ts
+  - src/lib/__tests__/formal-cop-api-set.test.ts
+  - src/lib/__tests__/registry-discovery-contract.test.ts
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - src-tauri/tests/donghe_discovery_live.rs
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/lib/__tests__/product-ui-demo-alignment.test.ts
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+  - e2e/full-product-flow-ia-ux-acceptance.spec.ts
+  - e2e/local-web-registry-pending-billing.spec.ts
+-->
+
+---
+### Requirement: Property type SHALL expose customer-facing categories
+
+Case creation and case editing SHALL expose customer-facing property type options, not only internal `residential` and `land` categories. The available options SHALL include highrise building, apartment, townhouse, existing house, farmhouse, land, farmland, storefront, factory, and other.
+
+#### Scenario: User opens the property type dropdown
+
+- **WHEN** the user opens the property type dropdown on case creation or case editing
+- **THEN** the UI SHALL show customer-readable options for highrise building, apartment, townhouse, existing house, farmhouse, land, farmland, storefront, factory, and other
+- **AND** existing records stored as `residential` or `land` SHALL still load through a backward-compatible mapping.
+
+
+<!-- @trace
+source: desktop-local-address-to-cop-e2e
+updated: 2026-05-27
+code:
+  - .opencode/skills/spectra-propose/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch2-20260527.png
+  - src/lib/pdf-engine/document.tsx
+  - e2e/results/results.json
+  - docs/gov-site-analysis/10-r01-opendata.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm6s-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-2s-20260527.png
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - docs/gov-site-analysis/05-nlsc-t09-mobile.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.json
+  - src-tauri/src/lib.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-20260527.png
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-billing-modal-20260527.png
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/components/LogoUploader.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-after-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-case-20260527.png
+  - docs/gov-site-analysis/06-easymap-z10.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-formal-tab-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-signed-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-open-case-20260527.png
+  - docs/gov-site-analysis/02-luz-landuse.md
+  - .opencode/skills/spectra-debug/SKILL.md
+  - docs/release/desktop-fullflow-acceptance-checklist.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-resume-front-20260527.png
+  - artifacts/smoke/macos/aire-0.1.3-local-launch-20260525-211448.png
+  - artifacts/smoke/local-web-logo-upload-persisted-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge2-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.json
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - src/lib/tax-calculator.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-macos-memory-keyring-parity-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-rebuild-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-app-front-20260527.png
+  - src-tauri/src/commands/cases.rs
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/gov-site-analysis/04-easymap-r02.md
+  - src/lib/registry-preview.ts
+  - artifacts/smoke/local-web-yunong-formal-import-case-20260526.json
+  - artifacts/smoke/local-web-easymap-r02-autofill-20260526.png
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.pdf
+  - .cursorrules
+  - src/lib/formal-cop-api-set.ts
+  - docs/gov-site-analysis/03-nsp-ngis.md
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - .opencode/commands/spectra-commit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-front-20260527.png
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - docs/gov-site-analysis/07-easymap-w10.md
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.pdf
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result2-20260527.png
+  - src-tauri/src/land_registry/mod.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-active-after-rebuild-20260527.png
+  - .opencode/commands/spectra-audit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-launch-20260527.png
+  - package.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase3-20260527.png
+  - artifacts/smoke/donghe-smoke-20260526.mjs
+  - src/lib/product-ui-demo-alignment.ts
+  - docs/sr-archive/absorbed-2026-05-26.tar.gz
+  - artifacts/smoke/local-web-new-case-object-query-copy-20260526.png
+  - src/components/disclosure-form-residential.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.pdf
+  - .opencode/commands/spectra-ask.md
+  - .opencode/commands/spectra-ingest.md
+  - .spectra.yaml
+  - artifacts/smoke/local-web-donghe-formal-button-images-20260526.pdf
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-6s-20260527.png
+  - src/lib/land-registry-api.ts
+  - docs/handoff/desktop-local-address-to-cop-e2e-handoff.md
+  - .opencode/commands/spectra-debug.md
+  - artifacts/smoke/local-registry-auth-debug-20260525.png
+  - artifacts/smoke/logo-upload-smoke-20260526.svg
+  - docs/gov-site-analysis/12-cop-platform-api.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase2-20260527.png
+  - src/components/SettingsTabs.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge-20260527.png
+  - src/app/(dashboard)/cases/new/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch-20260527.png
+  - docs/gov-site-analysis/08-easymap-index.md
+  - docs/desktop-r02-cop-flow-map.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-created-20260527.png
+  - src-tauri/src/db/registry_query_runs.rs
+  - src/lib/cases-api.ts
+  - src/app/(dashboard)/settings/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query3-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun2-20260527.png
+  - artifacts/smoke/local-web-workbench-r02-source-smoke-20260526.png
+  - src/lib/server/local-address-discovery-proxy.ts
+  - artifacts/smoke/macos/aire-binary-run-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-disappear-activate-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query4-20260527.png
+  - scripts/smoke-pdf-imported-fields.mjs
+  - src-tauri/src/land_registry/pull.rs
+  - artifacts/smoke/local-web-donghe-formal-button-source-20260526.png
+  - src-tauri/src/land_registry/discovery_contract.rs
+  - docs/gov-site-analysis/README.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm2s-20260527.png
+  - .opencode/commands/spectra-apply.md
+  - src/lib/disclosure-schema-land.ts
+  - artifacts/smoke/local-web-workbench-source-values-clean-20260526.png
+  - .opencode/commands/spectra-drift.md
+  - src/lib/page-contracts/house-field-survey.ts
+  - artifacts/smoke/local-web-multiple-candidate-selection-20260526.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-source-roc-check-20260527.png
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-focused-20260527.png
+  - artifacts/smoke/local-web-pdf-preview-r02-fields-20260526.png
+  - src/lib/registry-discovery-contract.ts
+  - artifacts/smoke/macos/aire-app-run-20260527.log
+  - src/lib/registry-provenance.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.txt
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-review-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-modal-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.pdf
+  - artifacts/smoke/local-web-new-case-object-query-after-lookup-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-kill-reopen-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.pdf
+  - artifacts/smoke/logo-debug-page-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-before-auth-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-single-instance-20260527.png
+  - .opencode/commands/spectra-archive.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-front-20260527.png
+  - artifacts/smoke/windows-runtime-blocker-20260527.json
+  - AGENTS.md
+  - .opencode/commands/spectra-discuss.md
+  - src/lib/mock-backend.ts
+  - artifacts/smoke/local-web-logo-upload-regression-20260526.mjs
+  - src/lib/product-navigation-ia.ts
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-launch-20260527.png
+  - docs/release/desktop-fullflow-acceptance-report.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-pid-front-20260527.png
+  - .opencode/skills/spectra-apply/SKILL.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-import-result-reactivated-20260527.png
+  - docs/gov-site-analysis/09-plvr-opendata.md
+  - src/app/api/local/address-discovery/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-formal-click-20260527.png
+  - GEMINI.md
+  - artifacts/smoke/macos/aire-trace-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-confirm-monitor-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-preview-after-formal-20260526.png
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/gov-site-analysis/01-plvr-main.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-restart-front-20260527.png
+  - artifacts/smoke/logo-debug-after-upload-20260526.png
+  - artifacts/smoke/local-web-yunong-supplement-selects-20260526.png
+  - artifacts/smoke/local-web-yunong-formal-import-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-binaryrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.txt
+  - docs/gov-site-analysis/11-nlsc-s09-soa.md
+  - src/app/(dashboard)/layout.tsx
+  - e2e/results/playwright-report/index.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-reload-20260527.png
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-imported-fields.pdf
+  - .opencode/commands/spectra-propose.md
+  - .opencode/skills/spectra-commit/SKILL.md
+  - src/components/disclosure-form-land.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-before-20260526.png
+  - src/components/PullParcelDataButton.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-manual-building-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-formal-click-20260527.png
+  - docs/address-land-discovery-decision-flow.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-post-confirm-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-reopen-after-import-20260527.png
+  - .opencode/skills/spectra-drift/SKILL.md
+  - src-tauri/src/secrets.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result-20260527.png
+tests:
+  - src-tauri/tests/donghe_moi_api_015_live.rs
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - src/app/(dashboard)/settings/__tests__/settings-page.test.tsx
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - e2e/candidate-parcel-options-presurvey.spec.ts
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - e2e/product-auth-functional-flow.spec.ts
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - src/components/__tests__/KeyinSplitPage.survey-fields.test.tsx
+  - e2e/product-ui-demo-alignment.spec.ts
+  - e2e/complete-presurvey-property-sheet-flow.spec.ts
+  - src/lib/__tests__/formal-cop-api-set.test.ts
+  - src/lib/__tests__/registry-discovery-contract.test.ts
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - src-tauri/tests/donghe_discovery_live.rs
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/lib/__tests__/product-ui-demo-alignment.test.ts
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+  - e2e/full-product-flow-ia-ux-acceptance.spec.ts
+  - e2e/local-web-registry-pending-billing.spec.ts
+-->
+
+---
+### Requirement: Survey fields SHALL differ for building and land cases
+
+The object survey form SHALL show fields appropriate to the selected registry object type. Building cases SHALL collect building-specific facts. Land cases SHALL collect land-specific facts. Shared supplement assets SHALL still be owned by the current case object.
+
+#### Scenario: Building survey is shown
+
+- **GIVEN** the case is classified as a building object
+- **WHEN** the user opens the object survey
+- **THEN** the form SHALL include building-oriented fields such as floor, total floors, layout, condition, main use, management state, floor plan, and interior photos.
+
+#### Scenario: Land survey is shown
+
+- **GIVEN** the case is classified as a land object
+- **WHEN** the user opens the object survey
+- **THEN** the form SHALL include land-oriented fields such as zoning or use category, current use, road access, frontage, depth, cadastral map, aerial map, and landmark map.
+
+<!-- @trace
+source: desktop-local-address-to-cop-e2e
+updated: 2026-05-27
+code:
+  - .opencode/skills/spectra-propose/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch2-20260527.png
+  - src/lib/pdf-engine/document.tsx
+  - e2e/results/results.json
+  - docs/gov-site-analysis/10-r01-opendata.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm6s-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-2s-20260527.png
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - docs/gov-site-analysis/05-nlsc-t09-mobile.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.json
+  - src-tauri/src/lib.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-20260527.png
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-billing-modal-20260527.png
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/components/LogoUploader.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-after-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-case-20260527.png
+  - docs/gov-site-analysis/06-easymap-z10.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-formal-tab-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-signed-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-open-case-20260527.png
+  - docs/gov-site-analysis/02-luz-landuse.md
+  - .opencode/skills/spectra-debug/SKILL.md
+  - docs/release/desktop-fullflow-acceptance-checklist.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-resume-front-20260527.png
+  - artifacts/smoke/macos/aire-0.1.3-local-launch-20260525-211448.png
+  - artifacts/smoke/local-web-logo-upload-persisted-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge2-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.json
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - src/lib/tax-calculator.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-macos-memory-keyring-parity-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-rebuild-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-app-front-20260527.png
+  - src-tauri/src/commands/cases.rs
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/gov-site-analysis/04-easymap-r02.md
+  - src/lib/registry-preview.ts
+  - artifacts/smoke/local-web-yunong-formal-import-case-20260526.json
+  - artifacts/smoke/local-web-easymap-r02-autofill-20260526.png
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.pdf
+  - .cursorrules
+  - src/lib/formal-cop-api-set.ts
+  - docs/gov-site-analysis/03-nsp-ngis.md
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - .opencode/commands/spectra-commit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-front-20260527.png
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - docs/gov-site-analysis/07-easymap-w10.md
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.pdf
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result2-20260527.png
+  - src-tauri/src/land_registry/mod.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-active-after-rebuild-20260527.png
+  - .opencode/commands/spectra-audit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-launch-20260527.png
+  - package.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase3-20260527.png
+  - artifacts/smoke/donghe-smoke-20260526.mjs
+  - src/lib/product-ui-demo-alignment.ts
+  - docs/sr-archive/absorbed-2026-05-26.tar.gz
+  - artifacts/smoke/local-web-new-case-object-query-copy-20260526.png
+  - src/components/disclosure-form-residential.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.pdf
+  - .opencode/commands/spectra-ask.md
+  - .opencode/commands/spectra-ingest.md
+  - .spectra.yaml
+  - artifacts/smoke/local-web-donghe-formal-button-images-20260526.pdf
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-6s-20260527.png
+  - src/lib/land-registry-api.ts
+  - docs/handoff/desktop-local-address-to-cop-e2e-handoff.md
+  - .opencode/commands/spectra-debug.md
+  - artifacts/smoke/local-registry-auth-debug-20260525.png
+  - artifacts/smoke/logo-upload-smoke-20260526.svg
+  - docs/gov-site-analysis/12-cop-platform-api.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase2-20260527.png
+  - src/components/SettingsTabs.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge-20260527.png
+  - src/app/(dashboard)/cases/new/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch-20260527.png
+  - docs/gov-site-analysis/08-easymap-index.md
+  - docs/desktop-r02-cop-flow-map.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-created-20260527.png
+  - src-tauri/src/db/registry_query_runs.rs
+  - src/lib/cases-api.ts
+  - src/app/(dashboard)/settings/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query3-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun2-20260527.png
+  - artifacts/smoke/local-web-workbench-r02-source-smoke-20260526.png
+  - src/lib/server/local-address-discovery-proxy.ts
+  - artifacts/smoke/macos/aire-binary-run-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-disappear-activate-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query4-20260527.png
+  - scripts/smoke-pdf-imported-fields.mjs
+  - src-tauri/src/land_registry/pull.rs
+  - artifacts/smoke/local-web-donghe-formal-button-source-20260526.png
+  - src-tauri/src/land_registry/discovery_contract.rs
+  - docs/gov-site-analysis/README.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm2s-20260527.png
+  - .opencode/commands/spectra-apply.md
+  - src/lib/disclosure-schema-land.ts
+  - artifacts/smoke/local-web-workbench-source-values-clean-20260526.png
+  - .opencode/commands/spectra-drift.md
+  - src/lib/page-contracts/house-field-survey.ts
+  - artifacts/smoke/local-web-multiple-candidate-selection-20260526.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-source-roc-check-20260527.png
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-focused-20260527.png
+  - artifacts/smoke/local-web-pdf-preview-r02-fields-20260526.png
+  - src/lib/registry-discovery-contract.ts
+  - artifacts/smoke/macos/aire-app-run-20260527.log
+  - src/lib/registry-provenance.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.txt
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-review-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-modal-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.pdf
+  - artifacts/smoke/local-web-new-case-object-query-after-lookup-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-kill-reopen-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.pdf
+  - artifacts/smoke/logo-debug-page-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-before-auth-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-single-instance-20260527.png
+  - .opencode/commands/spectra-archive.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-front-20260527.png
+  - artifacts/smoke/windows-runtime-blocker-20260527.json
+  - AGENTS.md
+  - .opencode/commands/spectra-discuss.md
+  - src/lib/mock-backend.ts
+  - artifacts/smoke/local-web-logo-upload-regression-20260526.mjs
+  - src/lib/product-navigation-ia.ts
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-launch-20260527.png
+  - docs/release/desktop-fullflow-acceptance-report.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-pid-front-20260527.png
+  - .opencode/skills/spectra-apply/SKILL.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-import-result-reactivated-20260527.png
+  - docs/gov-site-analysis/09-plvr-opendata.md
+  - src/app/api/local/address-discovery/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-formal-click-20260527.png
+  - GEMINI.md
+  - artifacts/smoke/macos/aire-trace-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-confirm-monitor-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-preview-after-formal-20260526.png
+  - .opencode/skills/spectra-ask/SKILL.md
+  - docs/gov-site-analysis/01-plvr-main.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-restart-front-20260527.png
+  - artifacts/smoke/logo-debug-after-upload-20260526.png
+  - artifacts/smoke/local-web-yunong-supplement-selects-20260526.png
+  - artifacts/smoke/local-web-yunong-formal-import-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-binaryrun-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.txt
+  - docs/gov-site-analysis/11-nlsc-s09-soa.md
+  - src/app/(dashboard)/layout.tsx
+  - e2e/results/playwright-report/index.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-reload-20260527.png
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-imported-fields.pdf
+  - .opencode/commands/spectra-propose.md
+  - .opencode/skills/spectra-commit/SKILL.md
+  - src/components/disclosure-form-land.tsx
+  - artifacts/smoke/local-web-yunong-formal-import-source-before-20260526.png
+  - src/components/PullParcelDataButton.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-manual-building-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-formal-click-20260527.png
+  - docs/address-land-discovery-decision-flow.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-post-confirm-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-reopen-after-import-20260527.png
+  - .opencode/skills/spectra-drift/SKILL.md
+  - src-tauri/src/secrets.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result-20260527.png
+tests:
+  - src-tauri/tests/donghe_moi_api_015_live.rs
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - src/app/(dashboard)/settings/__tests__/settings-page.test.tsx
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src/lib/pdf-engine/__tests__/document-land-government-format.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - e2e/candidate-parcel-options-presurvey.spec.ts
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - e2e/product-auth-functional-flow.spec.ts
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - src/components/__tests__/KeyinSplitPage.survey-fields.test.tsx
+  - e2e/product-ui-demo-alignment.spec.ts
+  - e2e/complete-presurvey-property-sheet-flow.spec.ts
+  - src/lib/__tests__/formal-cop-api-set.test.ts
+  - src/lib/__tests__/registry-discovery-contract.test.ts
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - src-tauri/tests/donghe_discovery_live.rs
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/lib/__tests__/product-ui-demo-alignment.test.ts
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+  - e2e/full-product-flow-ia-ux-acceptance.spec.ts
+  - e2e/local-web-registry-pending-billing.spec.ts
+-->

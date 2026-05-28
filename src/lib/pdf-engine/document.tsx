@@ -180,6 +180,9 @@ export interface CaseDossierData {
     totalSellerCost: number;
     totalBuyerCost: number;
     warnings: string[];
+    estimateMode?: boolean;
+    estimateBasis?: string[];
+    missingInputs?: string[];
   } | null;
   surveyData?: Record<string, boolean | null> | null;
   exteriorPhoto?: Uint8Array | null;

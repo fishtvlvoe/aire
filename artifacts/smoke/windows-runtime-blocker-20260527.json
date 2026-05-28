@@ -1,0 +1,39 @@
+{
+  "date": "2026-05-27",
+  "change": "desktop-local-address-to-cop-e2e",
+  "host": {
+    "os": "macOS 26.5",
+    "kernel": "Darwin fish-Mac-mini 25.5.0 RELEASE_ARM64_T8132 arm64"
+  },
+  "windowsRuntime": {
+    "status": "blocked",
+    "reason": "No local Windows VM or Windows runner is available in this macOS session.",
+    "checkedTools": {
+      "qemu-system-x86_64": null,
+      "multipass": null,
+      "utmctl": null,
+      "VBoxManage": null,
+      "vmrun": null,
+      "act": null,
+      "gh": "/Users/fishtv/bin/gh"
+    }
+  },
+  "ciEvidence": {
+    "workflow": ".github/workflows/release.yml",
+    "windowsJob": "windows-latest",
+    "latestReleaseRun": {
+      "id": 26398171467,
+      "url": "https://github.com/fishtvlvoe/aire/actions/runs/26398171467",
+      "headSha": "9453d12657a48399483c04eec16adc1a2a978bfa",
+      "conclusion": "success"
+    },
+    "currentLocalHead": "3104c927",
+    "note": "The latest successful Windows CI artifact is historical evidence from an older clean commit. This macOS session cannot execute Windows install, launch, or fullflow runtime smoke for the current dirty worktree."
+  },
+  "localArtifacts": {
+    "macosApp": "src-tauri/target/release/bundle/macos/AIRE.app",
+    "macosDmg": "src-tauri/target/release/bundle/dmg/AIRE_0.1.3_aarch64.dmg",
+    "windowsInstaller": null
+  },
+  "releaseDecision": "Do not claim Windows runtime pass from this machine. The current SR records Windows runtime as explicitly blocked with evidence; a real Windows VM or GitHub Actions run on the final commit is still required before a public Windows release."
+}

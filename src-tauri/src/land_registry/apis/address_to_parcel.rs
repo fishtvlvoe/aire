@@ -18,6 +18,30 @@ pub struct ParcelInfo {
     pub building_number: String,
     pub source: String,
     pub trusted_for_pdf: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub section_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub section_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub land_office: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discovery_confidence: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confirmation_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub building_area_sqm: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_floor_count: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub floor_label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completion_date_roc: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub age_years: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub main_use: Option<String>,
 }
 
 pub struct AddressToParcelEndpoint;
@@ -62,6 +86,18 @@ impl LandRegistryEndpoint<Vec<ParcelInfo>> for AddressToParcelEndpoint {
                     building_number: no.to_string(),
                     source: "cop_moi".to_string(),
                     trusted_for_pdf: true,
+                    section_name: None,
+                    section_code: Some(sec.to_string()),
+                    land_office: Some(unit.to_string()),
+                    discovery_confidence: None,
+                    object_type: Some("building".to_string()),
+                    confirmation_state: Some("unconfirmed".to_string()),
+                    building_area_sqm: None,
+                    total_floor_count: None,
+                    floor_label: None,
+                    completion_date_roc: None,
+                    age_years: None,
+                    main_use: None,
                 }])
             }
         }

@@ -64,7 +64,10 @@ describe("CLU-001 — 3 MiB file is rejected without IPC call", () => {
       expect(screen.getByRole("alert")).toBeInTheDocument();
     });
 
-    expect(mockSafeInvoke).not.toHaveBeenCalled();
+    expect(mockSafeInvoke).not.toHaveBeenCalledWith(
+      "save_logo",
+      expect.anything(),
+    );
   });
 
   it("error message 包含 '過大' 或 '超過' 或 'MiB' 提示", async () => {
@@ -152,5 +155,32 @@ describe("CLU-003 — SVG/AVIF file is accepted", () => {
   it("accept 屬性包含 SVG 與 AVIF", async () => {
     const input = screen.getByTestId("logo-file-input");
     expect(input).toHaveAttribute("accept", "image/png,image/jpeg,image/svg+xml,image/avif");
+  });
+});
+
+describe("品牌設定 Logo 持久化狀態", () => {
+  beforeEach(() => {
+    mockSafeInvoke.mockReset();
+    mockSafeInvoke.mockImplementation((command: string) => {
+      if (command === "load_logo") {
+        return Promise.resolve({
+          bytes: [137, 80, 78, 71],
+          mime: "image/png",
+          filename: "brand-logo.png",
+          uploadedAt: "2026-05-26T12:00:00.000Z",
+        });
+      }
+      return Promise.resolve({ success: true });
+    });
+  });
+
+  it("重新進入品牌設定時顯示已保存 Logo 狀態", async () => {
+    render(<LogoUploader />);
+
+    await waitFor(() => {
+      expect(screen.getByText("已保存 Logo")).toBeInTheDocument();
+    });
+    expect(screen.getByText("brand-logo.png")).toBeInTheDocument();
+    expect(mockSafeInvoke).toHaveBeenCalledWith("load_logo");
   });
 });

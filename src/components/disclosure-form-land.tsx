@@ -28,6 +28,7 @@ import { useDraftAutosave, loadDraft } from "@/lib/use-draft-autosave";
 import { cn } from "@/lib/utils";
 import { RealtorLicenseField } from "@/components/RealtorLicenseField";
 import { PullParcelDataButton } from "@/components/PullParcelDataButton";
+import { selectFormalCopApiSet } from "@/lib/formal-cop-api-set";
 
 /**
  * 經紀人證號 + 驗證狀態（#1d Stage 7.3）
@@ -46,14 +47,8 @@ interface RealtorLicenseDraftSlice {
   realtor_license_verification_status?: RealtorLicenseVerificationStatus;
 }
 
-/** 土地表單預設查詢的地政 API（排除建物相關） */
-const LAND_API_IDS = [
-  "land_registry",
-  "co_owners",
-  "land_value",
-  "mortgages",
-  "zoning",
-];
+/** 土地沒有建號時只走最小土地正式查詢 API set。 */
+const LAND_API_IDS = selectFormalCopApiSet({ buildingNo: null, propertyType: "land" });
 
 export interface DisclosureFormLandProps {
   caseId: string;

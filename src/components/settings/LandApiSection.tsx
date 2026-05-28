@@ -2,24 +2,19 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { mockInvoke } from "@/lib/mock-backend";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ComingSoonCard } from "@/components/ComingSoonCard";
-import { setApiKey, testConnection } from "@/lib/land-registry-api";
-
-type LandApiSettingsResponse = {
-  clientId: string;
-  secret: string;
-};
+import { getApiKey, setApiKey, testConnection, type ApiKeyInfo } from "@/lib/land-registry-api";
 
 export function LandApiSection() {
   const [loading, setLoading] = React.useState(true);
   const [clientId, setClientId] = React.useState("");
   const [secret, setSecret] = React.useState("");
+  const [storedKey, setStoredKey] = React.useState<ApiKeyInfo | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [testing, setTesting] = React.useState(false);
   const [connectionStatus, setConnectionStatus] = React.useState<{
@@ -34,10 +29,9 @@ export function LandApiSection() {
     async function load() {
       setLoading(true);
       try {
-        const res = await mockInvoke<LandApiSettingsResponse>("get_land_api_settings");
+        const res = await getApiKey();
         if (cancelled) return;
-        setClientId(res.clientId ?? "");
-        setSecret(res.secret ?? "");
+        setStoredKey(res);
       } finally {
         if (cancelled) return;
         setLoading(false);
@@ -51,16 +45,21 @@ export function LandApiSection() {
   }, []);
 
   const hasValues = clientId.trim().length > 0 && secret.trim().length > 0;
-  const actionsDisabled = !hasValues || loading || saving || testing;
+  const canTest = hasValues || storedKey !== null;
+  const saveDisabled = !hasValues || loading || saving || testing;
+  const testDisabled = !canTest || loading || saving || testing;
 
   async function handleSave() {
     setSaving(true);
     try {
-      await setApiKey(clientId, secret);
-      await mockInvoke("save_land_api_settings", { clientId, secret });
+      await setApiKey(clientId.trim(), secret.trim());
+      setStoredKey(await getApiKey());
+      setClientId("");
+      setSecret("");
       toast.success("地政查詢帳號已儲存");
-    } catch {
-      toast.error("儲存失敗，請重試");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "儲存失敗，請重試";
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -70,8 +69,12 @@ export function LandApiSection() {
     setTesting(true);
     setConnectionStatus(null);
     try {
-      await setApiKey(clientId, secret);
-      await mockInvoke("save_land_api_settings", { clientId, secret });
+      if (hasValues) {
+        await setApiKey(clientId.trim(), secret.trim());
+        setStoredKey(await getApiKey());
+        setClientId("");
+        setSecret("");
+      }
       const result = await testConnection();
       const data = {
         success: result.success,
@@ -84,9 +87,10 @@ export function LandApiSection() {
       } else {
         toast.error(data.error ?? "連線失敗");
       }
-    } catch {
-      setConnectionStatus({ success: false, error: "連線逾時" });
-      toast.error("連線逾時");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "連線逾時";
+      setConnectionStatus({ success: false, error: message });
+      toast.error(message);
     } finally {
       setTesting(false);
     }
@@ -122,12 +126,32 @@ export function LandApiSection() {
               </a>
             </div>
 
+            {storedKey !== null && (
+              <div className="rounded-lg border bg-emerald-50 p-4 text-sm text-emerald-900">
+                <div className="font-semibold">已儲存地政查詢帳號</div>
+                <div className="mt-2 grid gap-2 md:grid-cols-2">
+                  <div className="rounded-md bg-white px-3 py-2">
+                    <div className="text-xs text-muted-foreground">帳號識別碼</div>
+                    <div className="font-mono text-sm">{storedKey.client_id_masked}</div>
+                  </div>
+                  <div className="rounded-md bg-white px-3 py-2">
+                    <div className="text-xs text-muted-foreground">安全碼</div>
+                    <div className="font-medium">{storedKey.has_secret ? "已設定" : "尚未設定"}</div>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-emerald-800">
+                  安全碼儲存在本機系統鑰匙圈，不會在畫面顯示原文；要更換時請重新輸入整組帳號與安全碼。
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="land-api-client-id">帳號識別碼</Label>
               <Input
                 id="land-api-client-id"
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
+                placeholder={storedKey ? "輸入新帳號以更換" : undefined}
               />
             </div>
 
@@ -138,18 +162,19 @@ export function LandApiSection() {
                 type="password"
                 value={secret}
                 onChange={(e) => setSecret(e.target.value)}
+                placeholder={storedKey ? "輸入新安全碼以更換" : undefined}
               />
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleSave} disabled={actionsDisabled}>
+              <Button onClick={handleSave} disabled={saveDisabled}>
                 儲存
               </Button>
               <Button
                 variant="outline"
                 onClick={handleTestConnection}
-                disabled={actionsDisabled}
-                title={!hasValues ? "請先填入帳號識別碼和安全碼" : undefined}
+                disabled={testDisabled}
+                title={!canTest ? "請先填入帳號識別碼和安全碼" : undefined}
               >
                 測試連線
               </Button>

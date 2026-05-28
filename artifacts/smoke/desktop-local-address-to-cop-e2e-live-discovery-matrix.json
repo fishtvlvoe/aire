@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-05-27T10:29:18.167Z",
+  "matrix": [
+    {
+      "id": "tainan-doorplate",
+      "address": "台南市東區東和路47號3樓",
+      "preferredStatus": "candidate_found",
+      "status": "manual_required",
+      "inputKind": "doorplate",
+      "intendedObjectType": "building",
+      "candidateCount": 0,
+      "requiresCandidateSelection": false,
+      "totalCostCents": 0,
+      "firstCandidate": null,
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_r02_unavailable",
+          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
+    },
+    {
+      "id": "kaohsiung-correct-doorplate",
+      "address": "高雄市苓雅區苓雅二路189巷2號",
+      "preferredStatus": "candidate_found",
+      "status": "manual_required",
+      "inputKind": "doorplate",
+      "intendedObjectType": "building",
+      "candidateCount": 0,
+      "requiresCandidateSelection": false,
+      "totalCostCents": 0,
+      "firstCandidate": null,
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_r02_unavailable",
+          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
+    },
+    {
+      "id": "kaohsiung-typo-doorplate",
+      "address": "高雄市苓雅區苓雅路二段18巷8弄2號",
+      "preferredStatus": "manual_required",
+      "status": "manual_required",
+      "inputKind": "doorplate",
+      "intendedObjectType": "building",
+      "candidateCount": 0,
+      "requiresCandidateSelection": false,
+      "totalCostCents": 0,
+      "firstCandidate": null,
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_r02_unavailable",
+          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
+    },
+    {
+      "id": "land-descriptor",
+      "address": "台南市東區富強段70地號",
+      "preferredStatus": "candidate_found",
+      "status": "candidate_found",
+      "inputKind": "land_descriptor",
+      "intendedObjectType": "land",
+      "candidateCount": 1,
+      "requiresCandidateSelection": false,
+      "totalCostCents": 0,
+      "firstCandidate": {
+        "address": "台南市東區富強段70地號",
+        "lot_number": "00700000",
+        "section_name": "富強段",
+        "section_code": "1556",
+        "land_office": "DC",
+        "source": "easymap_r02",
+        "trusted_for_pdf": false,
+        "parcel_id": "DC-1556-00700000",
+        "building_number": "",
+        "discovery_confidence": "high",
+        "object_type": "land",
+        "confirmation_state": "unconfirmed"
+      },
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_http_500",
+          "message": "EasyMap R02 /LandDesc_ajax_detail returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
+    },
+    {
+      "id": "not-found",
+      "address": "無法自動補齊地址",
+      "preferredStatus": "manual_required",
+      "status": "manual_required",
+      "inputKind": "incomplete",
+      "intendedObjectType": "unknown",
+      "candidateCount": 0,
+      "requiresCandidateSelection": false,
+      "totalCostCents": 0,
+      "firstCandidate": null,
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_r02_unavailable",
+          "message": "address_parse_failed"
+        }
+      ]
+    },
+    {
+      "id": "multi-building-candidates",
+      "address": "台南市東區東和路47號",
+      "preferredStatus": "candidate_found",
+      "status": "manual_required",
+      "inputKind": "doorplate",
+      "intendedObjectType": "building",
+      "candidateCount": 0,
+      "requiresCandidateSelection": false,
+      "totalCostCents": 0,
+      "firstCandidate": null,
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_r02_unavailable",
+          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
+    }
+  ]
+}

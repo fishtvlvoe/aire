@@ -51,6 +51,8 @@ export const HOUSE_FIELD_SURVEY_COMMON_FIELDS: readonly FieldSurveyFieldTemplate
   textField("balcony_orientation", "陽台座向"),
   textField("building_orientation", "大樓座向"),
   textField("sale_floor", "銷售樓別"),
+  textField("total_floor_count", "總樓層"),
+  textField("layout", "格局"),
   textField("legal_use", "用途"),
   textField("current_status", "現況"),
   textField("rent", "租金"),
@@ -94,6 +96,8 @@ export const HOUSE_FIELD_SURVEY_PHOTO_FIELDS: readonly FieldSurveyFieldTemplate[
   textField("public_facility_photo", "公設圖"),
   textField("road_photo", "臨路圖（四角往中心）"),
   textField("community_entrance_photo", "社區出入口圖"),
+  textField("floor_plan_photo", "格局圖"),
+  textField("interior_photos", "室內照片"),
 ];
 
 const typeFieldMap: Record<HousePropertySurveyType, readonly FieldSurveyFieldTemplate[]> = {

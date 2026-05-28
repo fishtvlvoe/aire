@@ -62,6 +62,7 @@ export interface BillingLineItem {
 
 export interface ApiKeyInfo {
   client_id_masked: string;
+  client_secret_masked?: string;
   has_secret: boolean;
 }
 
@@ -185,6 +186,17 @@ interface LocalLandApiSettings {
   secret?: string;
 }
 
+interface LocalCaseWithRegistryData {
+  id?: string;
+  land_registry_data?: {
+    confirmed_registry_match?: {
+      section_name?: string | null;
+      land_no?: string | null;
+      building_no?: string | null;
+    } | null;
+  } | null;
+}
+
 async function readLocalLandApiSettings(): Promise<LocalLandApiSettings> {
   try {
     return await safeInvoke<LocalLandApiSettings>("get_land_api_settings");
@@ -207,7 +219,7 @@ async function fetchAddressDiscoveryFromLocalBackend(address: string): Promise<P
       secret: settings.secret ?? "",
       allowMockFallback: true,
     }),
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(20000),
   });
 
   if (!response.ok) {
@@ -236,6 +248,45 @@ async function recordLocalAddressDiscovery(address: string, result: LocalAddress
   } catch {
     // Local Web uses this as evidence only; discovery result is already returned to the UI.
   }
+}
+
+async function formalPullDataFromLocalBackend(caseId: string, apiIds: string[]) {
+  if (typeof window === "undefined") {
+    throw new NotInTauriError("請使用 AIRE 桌面版完成正式資料匯入");
+  }
+  const settings = await readLocalLandApiSettings();
+  const caseRow = await safeInvoke<LocalCaseWithRegistryData>("get_case", { id: caseId });
+  const target = caseRow.land_registry_data?.confirmed_registry_match;
+  if (!target) {
+    throw new Error("registry_match_required");
+  }
+  const response = await fetch("/api/local/formal-pull-data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      caseId,
+      apiIds,
+      clientId: settings.clientId ?? "",
+      secret: settings.secret ?? "",
+      target,
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const payload = await response.json().catch(() => null) as
+    | {
+        run_id: string;
+        results: Record<string, unknown>;
+        total_cost: number;
+        cache_hit: boolean;
+        source_run_id: string | null;
+        message?: string;
+        error?: string;
+      }
+    | null;
+  if (!response.ok || !payload) {
+    throw new Error(payload?.message || payload?.error || "local_formal_pull_failed");
+  }
+  return payload;
 }
 
 export async function addressLookup(address: string): Promise<ParcelInfo[]> {
@@ -287,6 +338,15 @@ export async function formalPullData(caseId: string, apiIds: string[]): Promise<
   cache_hit: boolean;
   source_run_id: string | null;
 }> {
+  if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+    const inTauri = await isTauriEnv();
+    if (!inTauri) {
+      return formalPullDataFromLocalBackend(caseId, apiIds);
+    }
+  }
+  if (!(await isTauriEnv())) {
+    throw new NotInTauriError("請使用 AIRE 桌面版完成正式資料匯入");
+  }
   return invoke("land_registry_formal_pull_data", { caseId, apiIds });
 }
 
@@ -299,7 +359,14 @@ export async function setApiKey(clientId: string, clientSecret: string): Promise
 }
 
 export async function getApiKey(): Promise<ApiKeyInfo | null> {
-  return invoke<ApiKeyInfo | null>("land_registry_get_api_key");
+  const info = await invoke<(ApiKeyInfo & { client_secret_masked?: string }) | null>(
+    "land_registry_get_api_key",
+  );
+  if (!info) return null;
+  return {
+    ...info,
+    has_secret: info.has_secret ?? Boolean(info.client_secret_masked),
+  };
 }
 
 export async function testConnection(): Promise<ConnectionTestResult> {

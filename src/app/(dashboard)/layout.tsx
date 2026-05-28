@@ -128,7 +128,7 @@ function BrowserMockStateNotice() {
     <div className="border-b bg-amber-50 px-4 py-2 text-xs font-medium text-amber-900" role="status">
       本瀏覽器本機測試資料
       <span className="ml-2 font-normal text-amber-800">
-        不同瀏覽器或不同 Chrome profile 不會自動同步；可用資料來源頁下載管理資料對齊測試內容，重置請清除本機測試資料。正式交付請以桌面 App 或共享後端資料為準。
+        不同瀏覽器或不同 Chrome profile 不會自動同步；可在資料來源頁檢視管理明細對齊測試內容，重置請清除本機測試資料。正式交付請以桌面 App 或共享後端資料為準。
       </span>
     </div>
   );

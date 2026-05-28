@@ -10,9 +10,10 @@ use std::path::Path;
 use tauri::State;
 
 use crate::db::{cases, oplog};
+use crate::db::registry_query_runs::{insert_registry_query_run, NewRegistryQueryRun};
 use crate::DbState;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct IpcError {
     pub code: String,
     pub message: String,
@@ -65,16 +66,48 @@ pub struct ExportRegistryPayloadInput {
     pub payload: Value,
 }
 
-fn resolve_land_lots(land_lots: Option<Vec<String>>, land_lot_no: &str) -> Result<(String, Vec<String>), IpcError> {
+#[derive(Debug, Clone, Serialize)]
+pub struct ConfirmedRegistryMatch {
+    pub case_id: String,
+    pub section_name: String,
+    pub land_no: String,
+    pub building_no: Option<String>,
+    pub confirmed_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ConfirmRegistryMatchResult {
+    pub success: bool,
+    #[serde(rename = "match")]
+    pub match_info: ConfirmedRegistryMatch,
+}
+
+fn resolve_land_lots(
+    land_lots: Option<Vec<String>>,
+    land_lot_no: &str,
+    allow_empty: bool,
+) -> Result<(String, Vec<String>), IpcError> {
     let lots: Vec<String> = match land_lots {
         Some(v) => v.into_iter().filter(|s| !s.trim().is_empty()).collect(),
         None => vec![land_lot_no.to_string()],
     };
     if lots.is_empty() {
+        if allow_empty {
+            return Ok((String::new(), Vec::new()));
+        }
         return Err(IpcError::new("missing_field", "地號為必填（land_lots 不可全為空字串）"));
     }
     let primary = lots[0].clone();
     Ok((primary, lots))
+}
+
+fn is_registry_pending_case(input: &CreateCaseInput) -> bool {
+    input
+        .land_registry_data
+        .as_ref()
+        .and_then(|value| value.get("registry_status"))
+        .and_then(|value| value.as_str())
+        == Some("registry_pending")
 }
 
 fn now_secs() -> i64 {
@@ -112,11 +145,15 @@ pub async fn create_case(
             "property_type 必須為 residential 或 land",
         ));
     }
-    if input.land_lot_no.trim().is_empty() || input.address.trim().is_empty() {
-        return Err(IpcError::new("missing_field", "地號與地址為必填"));
+    let registry_pending = is_registry_pending_case(&input);
+    if input.address.trim().is_empty() {
+        return Err(IpcError::new("missing_field", "地址為必填"));
+    }
+    if input.land_lot_no.trim().is_empty() && !registry_pending {
+        return Err(IpcError::new("missing_field", "地號為必填"));
     }
 
-    let (land_lot_no, land_lots) = resolve_land_lots(input.land_lots, &input.land_lot_no)?;
+    let (land_lot_no, land_lots) = resolve_land_lots(input.land_lots, &input.land_lot_no, registry_pending)?;
     let now = now_secs();
     let c = cases::Case {
         id: uuid::Uuid::new_v4().to_string(),
@@ -184,7 +221,7 @@ pub async fn update_case(
 
     if input.land_lots.is_some() || input.land_lot_no.is_some() {
         let requested_land_lot_no = input.land_lot_no.unwrap_or_else(|| existing.land_lot_no.clone());
-        let (land_lot_no, land_lots) = resolve_land_lots(input.land_lots, &requested_land_lot_no)?;
+        let (land_lot_no, land_lots) = resolve_land_lots(input.land_lots, &requested_land_lot_no, false)?;
         existing.land_lot_no = land_lot_no;
         existing.land_lots = land_lots;
     }
@@ -246,6 +283,112 @@ pub async fn export_registry_payload(args: ExportRegistryPayloadInput) -> Result
     std::fs::write(target, format!("{content}\n"))
         .map_err(|error| IpcError::new("file_io", format!("寫入謄本資料失敗：{error}")))?;
     Ok(args.outputPath)
+}
+
+pub fn confirm_case_registry_match_core(
+    conn: &Connection,
+    case_id: &str,
+    section_name: &str,
+    land_no: &str,
+    building_no: Option<&str>,
+    confirmed_at: i64,
+) -> Result<ConfirmedRegistryMatch, IpcError> {
+    let section_name = section_name.trim();
+    let land_no = land_no.trim();
+    let building_no = building_no.map(str::trim).filter(|value| !value.is_empty());
+    if case_id.trim().is_empty() || section_name.is_empty() || land_no.is_empty() {
+        return Err(IpcError::new("registry_match_required", "請先確認地段與地號"));
+    }
+
+    let mut c = cases::get_case(conn, case_id).map_err(|e| IpcError::new(&e.code, e.message))?;
+    let confirmed_json = serde_json::json!({
+        "section_name": section_name,
+        "land_no": land_no,
+        "building_no": building_no,
+        "status": "confirmed",
+        "confirmed_at": confirmed_at,
+    });
+    let mut land_registry_data = c.land_registry_data.take().unwrap_or_else(|| serde_json::json!({}));
+    if !land_registry_data.is_object() {
+        land_registry_data = serde_json::json!({});
+    }
+    land_registry_data["confirmed_registry_match"] = confirmed_json;
+    c.land_lot_no = land_no.to_string();
+    c.land_lots = vec![land_no.to_string()];
+    c.building_lot_no = building_no.map(str::to_string);
+    c.land_registry_data = Some(land_registry_data);
+    c.updated_at = confirmed_at;
+    cases::update_case(conn, &c).map_err(|e| IpcError::new(&e.code, e.message))?;
+
+    let registry_key = format!(
+        "confirmed:{}:{}:{}",
+        section_name,
+        land_no,
+        building_no.unwrap_or("land-only")
+    );
+    insert_registry_query_run(
+        conn,
+        &NewRegistryQueryRun {
+            id: uuid::Uuid::new_v4().to_string(),
+            case_id: Some(case_id.to_string()),
+            registry_key,
+            input_kind: "registry_key".to_string(),
+            input_address: Some(c.address.clone()),
+            normalized_address: Some(c.address.trim().replace('台', "臺")),
+            office_code: None,
+            office_name: None,
+            section_code: None,
+            section_name: Some(section_name.to_string()),
+            land_no: Some(land_no.to_string()),
+            building_no: building_no.map(str::to_string),
+            confirmation_status: "confirmed".to_string(),
+            status: "confirmed".to_string(),
+            cache_hit: false,
+            source_run_id: None,
+            total_cost_cents: 0,
+            r02_payload_json: None,
+            cop_payload_json: None,
+            generated_json: Some(serde_json::json!({
+                "confirmedRegistryMatch": {
+                    "sectionName": section_name,
+                    "landNo": land_no,
+                    "buildingNo": building_no,
+                }
+            })),
+            error_summary_json: None,
+            created_at: confirmed_at,
+        },
+    )
+    .map_err(|error| IpcError::new("registry_query_run_insert_failed", error.to_string()))?;
+
+    Ok(ConfirmedRegistryMatch {
+        case_id: case_id.to_string(),
+        section_name: section_name.to_string(),
+        land_no: land_no.to_string(),
+        building_no: building_no.map(str::to_string),
+        confirmed_at,
+    })
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn confirm_case_registry_match(
+    caseId: String,
+    sectionName: String,
+    landNo: String,
+    buildingNo: Option<String>,
+    db: State<'_, DbState>,
+) -> Result<ConfirmRegistryMatchResult, IpcError> {
+    let conn = lock(&db)?;
+    let match_info = confirm_case_registry_match_core(
+        &conn,
+        &caseId,
+        &sectionName,
+        &landNo,
+        buildingNo.as_deref(),
+        now_secs(),
+    )?;
+    Ok(ConfirmRegistryMatchResult { success: true, match_info })
 }
 
 /// 標示案件為填入中（draft → keyin）。
@@ -381,6 +524,35 @@ mod tests {
         assert_eq!(after.status, "completed");
     }
 
+    #[test]
+    fn confirm_case_registry_match_persists_case_and_query_run() {
+        let conn = open_in_memory();
+        let c = sample("ffffffff-ffff-4fff-8fff-ffffffffffff");
+        cases::insert_case(&conn, &c).unwrap();
+
+        let confirmed = confirm_case_registry_match_core(
+            &conn,
+            &c.id,
+            "富強段",
+            "00700000",
+            Some("00165000"),
+            1_779_648_000,
+        )
+        .unwrap();
+
+        assert_eq!(confirmed.section_name, "富強段");
+        let updated = cases::get_case(&conn, &c.id).unwrap();
+        assert_eq!(updated.land_lot_no, "00700000");
+        assert_eq!(updated.building_lot_no.as_deref(), Some("00165000"));
+        assert_eq!(updated.land_registry_data.unwrap()["confirmed_registry_match"]["status"], "confirmed");
+
+        let runs = crate::db::registry_query_runs::list_registry_query_run_rows(&conn, Some("富強段")).unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].case_id.as_deref(), Some(c.id.as_str()));
+        assert_eq!(runs[0].confirmation_status, "confirmed");
+        assert_eq!(runs[0].total_cost_cents, 0);
+    }
+
     // multi-lot TDD 紅燈測試（AC-1~AC-2，Task 1.1）
     #[test]
     fn create_case_with_multiple_lots() {
@@ -398,6 +570,31 @@ mod tests {
         let lots: Vec<String> = vec!["".into(), "".into()];
         let filtered: Vec<String> = lots.into_iter().filter(|s| !s.trim().is_empty()).collect();
         assert!(filtered.is_empty());
+    }
+
+    #[test]
+    fn resolve_land_lots_allows_empty_for_registry_pending_case() {
+        let input = CreateCaseInput {
+            property_type: "residential".into(),
+            land_lot_no: "".into(),
+            address: "台南市永康區勝利街58巷4號".into(),
+            owner_name: None,
+            case_no: None,
+            case_name: None,
+            building_lot_no: None,
+            asking_price: None,
+            land_lots: Some(vec!["".into()]),
+            land_registry_data: Some(serde_json::json!({
+                "registry_status": "registry_pending",
+                "missing_registry_fields": ["地段", "地號"]
+            })),
+            current_step: None,
+        };
+
+        assert!(is_registry_pending_case(&input));
+        let (primary, lots) = resolve_land_lots(input.land_lots, &input.land_lot_no, true).unwrap();
+        assert_eq!(primary, "");
+        assert!(lots.is_empty());
     }
 
     // mark_completed 的核心轉換邏輯（直接測 db layer + 模擬命令邏輯）

@@ -1,6 +1,6 @@
 # AIRE SR Active Index
 
-更新日期：2026-05-25
+更新日期：2026-05-26
 
 這份檔案是新對話接手 AIRE SR / SDD 工作時的入口。先讀這份，再決定是否要讀 `openspec/changes/` 裡的 change。不要直接把所有舊 SR 都當成目前要做的工作。
 
@@ -8,18 +8,18 @@
 
 | 順序 | SR | 狀態 | 用途 | 下一步 |
 | --- | --- | --- | --- | --- |
-| 0 | `desktop-system-flow-blueprint-html` | 已建立 | 內部圖表式 HTML 藍圖：整理本機、Desktop App、驗收、授權、OO 串接與自動更新的完整路線。 | 接手前先看 `docs/aire-desktop-system-blueprint-2026-05-25.html`。 |
-| 1 | `desktop-local-address-to-cop-e2e` | 進行中 / 阻塞修正 | 先打通本機 Web 與 Desktop App 共用的地址 discovery、地政鍵確認、COP formal pull、費用/cache/error/JSON 保存與物調/PDF 串接。 | 完成這個 SR 前，不得把 Desktop fullflow 視為可驗收，也不得壓正式 App。 |
-| 2 | `desktop-fullflow-r02-cop-parity` | 排隊 | 本期主線：把 AIRE 做成 Mac/Windows 桌面完整版，從地址輸入、地段地號建號對標、客戶 COP 查詢、物調補件、HTML 預覽到 PDF。 | 先等 `desktop-local-address-to-cop-e2e` 通過，再回到這個 SR 驗收。 |
-| 3 | `desktop-fullflow-release-acceptance-gate` | 排隊 | 驗收門檻：確認 Desktop fullflow、macOS/Windows、OO 授權、客戶 COP、JSON、費用、cache、error log、PDF 都有證據。 | 完成第 2 項後立刻跑驗收。 |
-| 4 | `desktop-auto-update-macos-windows` | 排隊 | 下一期：本期桌面完整版通過 macOS 與 Windows 實機驗收後，再補自動更新通知、下載、重啟更新與發版流程。 | 完成第 3 項後才開始。 |
+| 0 | `desktop-system-flow-blueprint-html` | 已封存 / 歷史參考 | 內部圖表式 HTML 藍圖：整理本機、Desktop App、驗收、授權、OO 串接與自動更新的完整路線。 | 僅作背景，不作完成依據。 |
+| 1 | `desktop-local-address-to-cop-e2e` | 進行中 / 唯一主線 | 先完成本機 Web：R02 discovery、`registry_pending`、人工確認、正式 COP、本機 DB、cache、補件圖資、費用明細與 PDF；再做 App parity。 | 完成這個 SR 並留下 Web/App/DB/cache/PDF 證據前，不得把 Desktop fullflow 視為可驗收，也不得壓正式 App。 |
+| 2 | `desktop-fullflow-r02-cop-parity` | 已封存 / 被吸收 | 舊桌面完整版主線；存活需求已併入 `desktop-local-address-to-cop-e2e`。 | 不再單獨實作或驗收。 |
+| 3 | `desktop-fullflow-release-acceptance-gate` | 已封存 / 被吸收 | 舊 release gate；證據要求已併入 `desktop-local-address-to-cop-e2e` tasks 5.4 / 6.8。 | 不再單獨實作或驗收。 |
+| 4 | `desktop-auto-update-macos-windows` | 已封存 / 延後 | 自動更新不是本期範圍。 | `desktop-local-address-to-cop-e2e` 完整驗收後，另開新 SR。 |
 
 ## 接手規則
 
 1. 預設先讀 `docs/aire-desktop-system-blueprint-2026-05-25.html`，再讀上表 SR。
 2. `desktop-local-address-to-cop-e2e` 未完成前，不要壓正式 App、不要做 Windows/macOS release acceptance、不要開始 auto-update。
-3. `desktop-fullflow-r02-cop-parity` 未完成前，不要跑 release acceptance gate。
-4. `desktop-fullflow-release-acceptance-gate` 未通過前，不要實作自動更新。
+3. `desktop-local-address-to-cop-e2e` 的完成證據必須包含查詢 JSON、費用、cache hit、sourceRunId、error log、PDF artifact 與本機 DB 證據。
+4. 舊的 `desktop-fullflow-r02-cop-parity` 與 `desktop-fullflow-release-acceptance-gate` 報告只能當歷史參考，不得拿來抵充目前 SR 驗收。
 5. 客戶前台 UI 不顯示 R02、便民系統、COP、API、Helper、JSON、payload、adapter、parser 等技術詞。
 6. `/cases/new` 是客戶唯一的地址查詢入口；底層候選查詢與正式地政查詢都藏在系統流程中。
 7. `查詢紀錄` 只看費用、cache、錯誤、JSON 與追溯，不放查詢表單或試用狀態。
@@ -31,11 +31,17 @@
 
 以下 SR 不應該被新對話當成當前主線。需要時只能作為歷史參考，不能覆蓋目前的桌面完整版方向。
 
+2026-05-26 被吸收或延後的 SR 已移到 `docs/sr-archive/absorbed-2026-05-26.tar.gz`，保留歷史內容但不再出現在 `spectra list` active changes。
+
 | SR | 處理方式 | 原因 |
 | --- | --- | --- |
-| `address-first-registry-match-and-query-ledger` | Parked / 歷史參考 | 地址優先、cache、ledger 的存活需求已收斂進 `desktop-fullflow-r02-cop-parity`。 |
-| `disclosure-registry-autofill-system-update` | Parked / 歷史參考 | 物調與地政資料自動帶入需求已收斂進桌面完整版主線。 |
-| `opcos-aire-license-serial-integration` | Parked / 歷史參考 | OPCOS 授權仍重要，但本期客戶可用完整桌面 app 優先。 |
+| `address-first-registry-match-and-query-ledger` | 已封存 / 被吸收 | 地址優先、cache、ledger、多候選與付費查詢閘門已收斂進 `desktop-local-address-to-cop-e2e`。 |
+| `disclosure-registry-autofill-system-update` | 已封存 / 被吸收 | 物調、PDF 與地政資料自動帶入需求已收斂進 `desktop-local-address-to-cop-e2e`。 |
+| `opcos-aire-license-serial-integration` | 已封存 / 延後參考 | OPCOS 授權仍重要，但本 SR 只保留「App 登入從 SaaS 取得 AIRE 授權碼」作為差異，其餘流程不得分叉。 |
+| `desktop-fullflow-r02-cop-parity` | 已封存 / 被吸收 | 舊桌面完整版主線已被 `desktop-local-address-to-cop-e2e` 取代。 |
+| `desktop-fullflow-release-acceptance-gate` | 已封存 / 被吸收 | 舊驗收門檻已被 `desktop-local-address-to-cop-e2e` 取代。 |
+| `desktop-auth-credential-fulfillment-smoke` | 已封存 / 被吸收 | App 登入差異收斂為 SaaS AIRE 授權碼，其他流程不得分叉。 |
+| `desktop-auto-update-macos-windows` | 已封存 / 延後 | 自動更新是下一期能力，不屬於本 SR。 |
 | `refine-product-navigation-ia` | 已完成 / 歷史參考 | UI 導航整理已不再是本期主線。 |
 | `fix-cr-review-persistence-and-supplement-routing` | 已完成 / 歷史參考 | 修正項已完成，不應重開。 |
 | `settings-plan-upgrade-profile-redesign` | 已完成 / 歷史參考 | 設定頁方向保留，但不單獨作為本期主線。 |
@@ -57,20 +63,14 @@ desktop-system-flow-blueprint-html
   |  確認本機 -> App -> 驗收 -> OO -> 更新的順序
   v
 desktop-local-address-to-cop-e2e
+  |  本機 Web 先完成
   |  本機 Web 可查 discovery 狀態
+  |  discovery 失敗仍可建立 registry_pending
   |  地政鍵確認後可打 COP formal pull
   |  JSON / 費用 / cache / error log 可追
+  |  sourceRunId / 本機 DB 證據可追
+  |  補件圖資屬於單一案件/物件
   |  物調 / PDF 只讀保存資料
-  v
-desktop-fullflow-r02-cop-parity
-  |  macOS 實機可用
-  |  Windows 實機可用
-  |  地址 -> 對標 -> COP -> 物調 -> PDF 跑通
-  v
-desktop-fullflow-release-acceptance-gate
-  |  JSON / 費用 / cache / error log 可追
-  |  OO 授權 / 客戶 COP 設定可驗
-  |  macOS + Windows 驗收報告完整
   v
 驗收通過後
   |

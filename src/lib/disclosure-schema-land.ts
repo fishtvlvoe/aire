@@ -36,6 +36,7 @@ export const landSchema = z.object({
   land_lot_no: z.string().optional(),
   land_area: PositiveDecimal.optional(),
   zoning_use: z.string().optional(),
+  current_use: z.string().optional(),
   urban_district: z.string().optional(),
   land_category: z.string().optional(),
 
@@ -52,9 +53,17 @@ export const landSchema = z.object({
 
   // === 現況（current condition）tab ===
   condition_access: TriState.optional(),
+  road_access: z.string().optional(),
+  frontage: PositiveDecimal.optional(),
+  depth: PositiveDecimal.optional(),
   condition_boundary_clear: TriState.optional(),
   condition_tenant_present: TriState.optional(),
   condition_defects_notes: z.string().optional(),
+
+  // === 圖資（assets）tab ===
+  cadastral_map: z.string().optional(),
+  aerial_map: z.string().optional(),
+  landmark_map: z.string().optional(),
 });
 
 export type LandPayload = z.infer<typeof landSchema>;
@@ -94,6 +103,7 @@ export const landFormTabs: FormTab[] = [
       { key: "land_lot_no", label: "地號", type: "text", required: true },
       { key: "land_area", label: "土地面積（平方公尺）", type: "number" },
       { key: "zoning_use", label: "使用分區", type: "text" },
+      { key: "current_use", label: "地目 / 使用現況", type: "text" },
       { key: "urban_district", label: "都市計畫區", type: "text" },
       { key: "land_category", label: "土地分類", type: "text" },
     ],
@@ -126,9 +136,21 @@ export const landFormTabs: FormTab[] = [
     label: "現況",
     fields: [
       { key: "condition_access", label: "通行情形正常", type: "tristate" },
+      { key: "road_access", label: "臨路", type: "text" },
+      { key: "frontage", label: "面寬", type: "number" },
+      { key: "depth", label: "深度", type: "number" },
       { key: "condition_boundary_clear", label: "界址清楚", type: "tristate" },
       { key: "condition_tenant_present", label: "現有承租人", type: "tristate" },
       { key: "condition_defects_notes", label: "瑕疵備註", type: "textarea" },
+    ],
+  },
+  {
+    id: "assets",
+    label: "圖資",
+    fields: [
+      { key: "cadastral_map", label: "地籍圖", type: "text" },
+      { key: "aerial_map", label: "空拍圖", type: "text" },
+      { key: "landmark_map", label: "地標圖", type: "text" },
     ],
   },
 ];
@@ -150,13 +172,18 @@ export function getRequiredFields(type: "land"): RequiredField[] {
 export const landDefaults: LandPayload = {
   land_lot_no: "",
   zoning_use: "",
+  current_use: "",
   urban_district: "",
   land_category: "",
   ownership_type: "",
   mortgage_status: "",
   other_rights: "",
   condition_access: "unknown",
+  road_access: "",
   condition_boundary_clear: "unknown",
   condition_tenant_present: "unknown",
   condition_defects_notes: "",
+  cadastral_map: "",
+  aerial_map: "",
+  landmark_map: "",
 };

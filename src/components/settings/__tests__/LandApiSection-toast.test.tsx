@@ -19,13 +19,14 @@ vi.mock("@/lib/mock-backend", () => ({
 }));
 
 vi.mock("@/lib/land-registry-api", () => ({
+  getApiKey: vi.fn(async () => null),
   setApiKey: vi.fn(async () => undefined),
   testConnection: vi.fn(async () => ({ success: false, message: "認證失敗" })),
 }));
 
 import { LandApiSection } from "../LandApiSection";
 import { mockInvoke } from "@/lib/mock-backend";
-import { testConnection } from "@/lib/land-registry-api";
+import { getApiKey, testConnection } from "@/lib/land-registry-api";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -33,6 +34,7 @@ beforeEach(() => {
     if (cmd === "get_land_api_settings") return Promise.resolve({ clientId: "", secret: "" });
     return Promise.resolve({ success: true });
   });
+  vi.mocked(getApiKey).mockResolvedValue(null);
   vi.mocked(testConnection).mockResolvedValue({ success: false, message: "認證失敗" });
 });
 

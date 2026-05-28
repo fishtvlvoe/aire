@@ -511,11 +511,57 @@ describe("DemoAlignedWorkbench", () => {
     render(<DemoAlignedWorkbench caseData={singleCandidateCase} initialTab="formal-import" />);
 
     const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
+    expect(screen.getByTestId("workbench-layout")).toHaveClass("workbench-full-width");
     expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
     expect(within(importRegion).queryByRole("button", { name: "確認" })).not.toBeInTheDocument();
     expect(within(importRegion).queryByRole("button", { name: "取消" })).not.toBeInTheDocument();
     expect(within(importRegion).queryByRole("button", { name: /暫用/ })).not.toBeInTheDocument();
     expect(within(importRegion).queryByRole("button", { name: /確認 DK-9125-00084000/ })).not.toBeInTheDocument();
+  });
+
+  it("does not show mock Taipei formal registry data for a Hsinchu case", () => {
+    const hsinchuCase: CaseRow = {
+      ...caseRow,
+      case_name: "新竹市北區四維路",
+      address: "新竹市北區四維路130號4樓之3",
+      land_lot_no: "0010000",
+      building_lot_no: "01262000",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-28T00:00:00.000Z",
+        totalCost: 0,
+        entries: {
+          building_registry: {
+            apiId: "building_registry",
+            source: "mock",
+            status: "success",
+            trustedForPdf: false,
+            data: {
+              building_number: "建號 778-2",
+              address: "台北市大安區和平東路一段 100 號五樓之三",
+              construction_date: "2015-06-15",
+            },
+          },
+          building_ownership: {
+            apiId: "building_ownership",
+            source: "mock",
+            status: "success",
+            trustedForPdf: false,
+            data: {
+              certificate_no: "北松字第012345號",
+            },
+          },
+        },
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={hsinchuCase} initialTab="pdf" />);
+
+    const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
+    expect(screen.getByTestId("workbench-layout")).toHaveClass("workbench-full-width");
+    expect(pdfRegion.textContent).not.toContain("台北市大安區和平東路");
+    expect(pdfRegion.textContent).not.toContain("建號 778-2");
+    expect(pdfRegion.textContent).not.toContain("北松字第012345號");
   });
 
   it("shows imported PDF fields and missing reasons before opening PDF preview", () => {

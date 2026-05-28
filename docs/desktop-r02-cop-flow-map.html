@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AIRE 本機 Web / Desktop：EasyMap R02 到 COP 流程對照圖</title>
+  <style>
+    :root {
+      --ink: #17211d;
+      --muted: #60706a;
+      --line: #cad8d1;
+      --paper: #f7f8f3;
+      --panel: #ffffff;
+      --r02: #0f766e;
+      --cop: #b45309;
+      --store: #365314;
+      --warn: #a16207;
+      --bad: #991b1b;
+      --soft-r02: #e0f2ef;
+      --soft-cop: #fff3da;
+      --soft-store: #eef6df;
+      --shadow: 0 18px 55px rgba(23, 33, 29, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(135deg, rgba(15, 118, 110, 0.08), transparent 34%),
+        linear-gradient(225deg, rgba(180, 83, 9, 0.08), transparent 38%),
+        var(--paper);
+      color: var(--ink);
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.55;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 40px 0 64px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 820px;
+      font-size: clamp(32px, 6vw, 72px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 18px 0 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .decision-box {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .decision-box strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .decision-box p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .band {
+      margin-top: 18px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.74);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .band h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .step {
+      min-height: 170px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 14px;
+      position: relative;
+    }
+
+    .step::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -13px;
+      width: 13px;
+      height: 2px;
+      background: var(--line);
+    }
+
+    .step:last-child::after {
+      display: none;
+    }
+
+    .step .num {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 10px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .step.r02 {
+      background: var(--soft-r02);
+      border-color: rgba(15, 118, 110, 0.35);
+    }
+
+    .step.cop {
+      background: var(--soft-cop);
+      border-color: rgba(180, 83, 9, 0.35);
+    }
+
+    .step.store {
+      background: var(--soft-store);
+      border-color: rgba(54, 83, 20, 0.28);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .panel p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 13px;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .tag.r02 {
+      background: var(--soft-r02);
+      border-color: rgba(15, 118, 110, 0.35);
+    }
+
+    .tag.cop {
+      background: var(--soft-cop);
+      border-color: rgba(180, 83, 9, 0.35);
+    }
+
+    .tag.store {
+      background: var(--soft-store);
+      border-color: rgba(54, 83, 20, 0.28);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef3ee;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .callout {
+      border-left: 5px solid var(--warn);
+      background: #fff8e6;
+      padding: 14px 16px;
+      border-radius: 6px;
+      color: #4f3513;
+    }
+
+    .no-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .no-list li {
+      border: 1px solid rgba(153, 27, 27, 0.18);
+      border-radius: 8px;
+      background: #fff5f5;
+      padding: 12px;
+      color: var(--bad);
+      font-weight: 600;
+    }
+
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .checklist li {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .step::after {
+        top: auto;
+        left: 50%;
+        right: auto;
+        bottom: -13px;
+        width: 2px;
+        height: 13px;
+      }
+
+      .checklist {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div>
+        <h1>AIRE 本機 Web / Desktop 地政流程對照圖</h1>
+        <p class="lead">
+          這頁是用來核對我們對流程的共同理解：先用 EasyMap R02 找地段、地號、建號，再由使用者確認，最後才用客戶自己的 COP 憑證查正式資料。
+        </p>
+      </div>
+      <aside class="decision-box">
+        <strong>目前要鎖定的核心認知</strong>
+        <p>地址不能直接被當成 COP 正式查詢條件；R02 是候選 discovery，COP 是確認後的正式付費資料來源。</p>
+      </aside>
+    </section>
+
+    <section class="band">
+      <h2>主流程</h2>
+      <div class="flow" aria-label="地址到 PDF 的流程">
+        <article class="step">
+          <span class="num">1</span>
+          <h3>輸入地址</h3>
+          <p>使用者在新增案件輸入門牌地址。這只是 discovery input，不是正式查詢 key。</p>
+        </article>
+        <article class="step r02">
+          <span class="num">2</span>
+          <h3>EasyMap R02 查候選</h3>
+          <p>本機 Web 透過 local proxy，Desktop 透過 Tauri/Rust，去 R02 找地段、地號、建號。</p>
+        </article>
+        <article class="step r02">
+          <span class="num">3</span>
+          <h3>人工確認地政鍵</h3>
+          <p>R02 回來的是候選資料。使用者必須確認正確的地段、地號、建號。</p>
+        </article>
+        <article class="step cop">
+          <span class="num">4</span>
+          <h3>按分類查 COP</h3>
+          <p>系統依物件分類選最小必要 API 組合，用客戶自己的 COP 憑證查正式資料。</p>
+        </article>
+        <article class="step store">
+          <span class="num">5</span>
+          <h3>保存正式 JSON</h3>
+          <p>保存 raw JSON、parsed JSON、費用、cache hit、sourceRunId、錯誤紀錄。</p>
+        </article>
+        <article class="step store">
+          <span class="num">6</span>
+          <h3>帶入物調與 PDF</h3>
+          <p>物調、HTML 預覽、PDF 只讀已保存 JSON，不重新打 COP。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="band">
+      <h2>資料來源責任分界</h2>
+      <div class="grid-3">
+        <article class="panel">
+          <h3>EasyMap R02</h3>
+          <p>只負責從地址找到候選的地段、地號、建號。</p>
+          <div class="tag-row">
+            <span class="tag r02">候選資料</span>
+            <span class="tag r02">不視為正式謄本</span>
+            <span class="tag r02">可供人工確認</span>
+          </div>
+        </article>
+        <article class="panel">
+          <h3>COP</h3>
+          <p>只在地政鍵確認後執行正式查詢，且依分類選最小必要 API。</p>
+          <div class="tag-row">
+            <span class="tag cop">正式資料</span>
+            <span class="tag cop">客戶憑證</span>
+            <span class="tag cop">付費/計費</span>
+          </div>
+        </article>
+        <article class="panel">
+          <h3>AIRE 本機資料庫</h3>
+          <p>保存查詢結果與證據，讓後續流程不必重複打付費查詢。</p>
+          <div class="tag-row">
+            <span class="tag store">raw JSON</span>
+            <span class="tag store">parsed JSON</span>
+            <span class="tag store">ledger</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="band">
+      <h2>COP 最小 API 組合</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>案件型態</th>
+            <th>觸發條件</th>
+            <th>預設要查的 COP API</th>
+            <th>不該做的事</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>建物案件</td>
+            <td>R02 或人工確認後有建號。</td>
+            <td>building_registry, building_ownership, land_registry, land_value, mortgages, building_other_rights, zoning</td>
+            <td>不要只用地址打 COP；不要全部 API 無差別查。</td>
+          </tr>
+          <tr>
+            <td>土地案件</td>
+            <td>只有地段、地號，沒有建號。</td>
+            <td>land_registry, land_value, co_owners, mortgages, zoning</td>
+            <td>不要查建物 API；沒有建號時不要假造建號。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="band">
+      <h2>案件分類推導</h2>
+      <div class="grid-2">
+        <article class="panel">
+          <h3>R02 階段只能粗判斷</h3>
+          <p>有建號先判定為建物類；只有地號先判定為土地類。R02 不足以直接判斷完整物件分類。</p>
+          <div class="tag-row">
+            <span class="tag r02">建物類</span>
+            <span class="tag r02">土地類</span>
+            <span class="tag r02">待確認</span>
+          </div>
+        </article>
+        <article class="panel">
+          <h3>COP 回來後細分類</h3>
+          <p>用用途、構造、樓層、總樓層、土地使用分區與土地類別推導細分類，並讓使用者可修改。</p>
+          <div class="tag-row">
+            <span class="tag cop">農地</span>
+            <span class="tag cop">透天別墅</span>
+            <span class="tag cop">公寓</span>
+            <span class="tag cop">大樓華廈</span>
+            <span class="tag cop">建地/住宅地</span>
+            <span class="tag cop">農舍</span>
+            <span class="tag cop">套房</span>
+            <span class="tag cop">店面</span>
+            <span class="tag cop">廠房</span>
+            <span class="tag cop">工業地</span>
+            <span class="tag cop">商業地</span>
+            <span class="tag cop">鄉村區建地</span>
+            <span class="tag cop">其他土地</span>
+          </div>
+        </article>
+      </div>
+      <div class="callout" style="margin-top:16px;">
+        系統可以自動帶入分類，但 UI 要標示為系統判斷並提供人工覆核；不能只剩「成屋 / 土地」兩類。
+      </div>
+    </section>
+
+    <section class="band">
+      <h2>禁止事項</h2>
+      <ul class="no-list">
+        <li>不能把 mock 0001/0001/0001 當作自動補齊成功。</li>
+        <li>不能用地址直接觸發正式 COP 付費查詢。</li>
+        <li>不能在未確認地段、地號、建號前打 COP。</li>
+        <li>不能在 HTML 預覽或 PDF 生成時重新打 COP。</li>
+        <li>不能把客戶 COP 憑證放在 browser bundle、localStorage 或可見 payload。</li>
+      </ul>
+    </section>
+
+    <section class="band">
+      <h2>核對清單</h2>
+      <ul class="checklist">
+        <li><span class="label">入口</span>/cases/new 是唯一地址查詢入口。</li>
+        <li><span class="label">Discovery</span>先 R02 找候選地段、地號、建號。</li>
+        <li><span class="label">確認</span>使用者確認後才進正式 COP 查詢。</li>
+        <li><span class="label">分類</span>系統自動帶入完整分類，且可人工修改。</li>
+        <li><span class="label">API</span>依分類查最小必要 COP API 組合。</li>
+        <li><span class="label">保存</span>正式 JSON 與 ledger 寫入本機資料庫。</li>
+        <li><span class="label">重查</span>同物件先走 cache，不重複扣費。</li>
+        <li><span class="label">輸出</span>物調、預覽、PDF 只讀保存資料。</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

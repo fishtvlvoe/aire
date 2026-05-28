@@ -114,7 +114,7 @@ describe("CaseWizardStep2", () => {
     );
 
     expect(screen.getByText("謄本資料預覽")).toBeInTheDocument();
-    expect(screen.getByText("地址資料補齊")).toBeInTheDocument();
+    expect(screen.getByText("物件資料補齊")).toBeInTheDocument();
     expect(screen.getByText("地政自動判斷")).toBeInTheDocument();
     expect(screen.getByText("土地 + 建物")).toBeInTheDocument();
     expect(screen.queryByText("物件類型")).toBeNull();
@@ -138,7 +138,7 @@ describe("CaseWizardStep2", () => {
       />,
     );
 
-    expect(screen.getByText("地址資料補齊")).toBeInTheDocument();
+    expect(screen.getByText("物件資料補齊")).toBeInTheDocument();
     expect(screen.getByText("需人工確認")).toBeInTheDocument();
     expect(screen.getByText("系統還沒有從地址讀到明確的地號或建號。")).toBeInTheDocument();
     expect(screen.getByLabelText("地號")).toBeInTheDocument();

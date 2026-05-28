@@ -60,13 +60,13 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   await page.getByLabel("所有權人（選填）").fill("余啟彰");
   await page.getByLabel("案件名稱（選填）").fill("裕農路候選物調驗收");
   await page.getByLabel("案件編號（選填）").fill(CASE_NO);
-  await page.getByRole("button", { name: "判斷地政資料", exact: true }).click();
+  await page.getByRole("button", { name: "查詢物件資料", exact: true }).click();
 
   await expect(page.getByText("土地 1 筆 · 建物 4 筆")).toBeVisible();
   await expect(page.getByLabel("物件類型")).toBeVisible();
   await page.getByRole("button", { name: "建立案件", exact: true }).click();
 
-  await expect(page).toHaveURL(/\/cases\/[0-9a-f-]+$/);
+  await expect(page).toHaveURL(/\/cases\/(?:[0-9a-f-]+|_\?caseId=[0-9a-f-]+)$/);
   await page.getByRole("tab", { name: "資料來源" }).click();
 
   const candidateRegion = page.getByRole("region", { name: "候選土地建物清單" });
@@ -89,7 +89,7 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   await expect(page.getByText(/selected_candidate/)).toBeVisible();
 
   await page.getByRole("link", { name: "預覽 PDF" }).click();
-  await expect(page).toHaveURL(/\/cases\/[0-9a-f-]+\/preview$/);
+  await expect(page).toHaveURL(/\/cases\/(?:[0-9a-f-]+\/preview|_\/preview\?caseId=[0-9a-f-]+)$/);
   await expect(page.getByRole("heading", { name: "PDF 預覽" })).toBeVisible();
   await expect(page.getByTitle("PDF 預覽")).toBeVisible({ timeout: 60_000 });
 
@@ -118,7 +118,7 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   expect(pdfText).toContain("車位坪數");
   expect(pdfText).toMatch(/車位坪數\s*0\.00/);
   expect(pdfText).toContain("住家用");
-  expect(pdfText).toContain("083/10/18");
+  expect(pdfText).toContain("民國083年10月18日");
   expect(pdfText).toContain("8樓之1");
   expect(pdfText).toMatch(/103\.31|103\.32/);
   expect(pdfText).toContain("DC-1556-00165000");

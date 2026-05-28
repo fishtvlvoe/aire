@@ -32,6 +32,7 @@ import { useDraftAutosave, loadDraft } from "@/lib/use-draft-autosave";
 import { cn } from "@/lib/utils";
 import { RealtorLicenseField } from "@/components/RealtorLicenseField";
 import { PullParcelDataButton } from "@/components/PullParcelDataButton";
+import { selectFormalCopApiSet } from "@/lib/formal-cop-api-set";
 import { FieldSketchFloorPlanPanel } from "@/components/FieldSketchFloorPlanPanel";
 
 /**
@@ -51,16 +52,8 @@ interface RealtorLicenseDraftSlice {
   realtor_license_verification_status?: RealtorLicenseVerificationStatus;
 }
 
-/** 成屋表單預設查詢的七支地政 API */
-const RESIDENTIAL_API_IDS = [
-  "building_registry",
-  "land_registry",
-  "co_owners",
-  "land_value",
-  "mortgages",
-  "building_ownership",
-  "zoning",
-];
+/** 成屋有建號時只走最小建物正式查詢 API set，避免不必要扣款。 */
+const RESIDENTIAL_API_IDS = selectFormalCopApiSet({ buildingNo: "confirmed-building" });
 
 export interface DisclosureFormResidentialProps {
   caseId: string;

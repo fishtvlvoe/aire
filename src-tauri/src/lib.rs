@@ -112,6 +112,30 @@ fn get_trial_status() -> TrialStatusInfo {
     }
 }
 
+fn seed_e2e_land_registry_keyring(
+    backend: &dyn secrets::KeyringBackend,
+) -> Result<(), secrets::CredError> {
+    let client_id = match std::env::var("AIRE_E2E_LAND_REGISTRY_CLIENT_ID") {
+        Ok(value) if !value.trim().is_empty() => value,
+        _ => return Ok(()),
+    };
+    let client_secret = match std::env::var("AIRE_E2E_LAND_REGISTRY_CLIENT_SECRET") {
+        Ok(value) if !value.trim().is_empty() => value,
+        _ => return Ok(()),
+    };
+
+    let payload = serde_json::json!({
+        "client_id": client_id,
+        "client_secret": client_secret,
+    });
+
+    secrets::set_credential(
+        backend,
+        land_registry::api_key_storage::LAND_REGISTRY_API_KEY_NAME,
+        &payload.to_string(),
+    )
+}
+
 // ── legal_clauses IPC commands ────────────────────────────────────────────────
 
 /// 從本地快取取得單筆法條（同步，無 HTTP）
@@ -232,8 +256,15 @@ pub fn run() {
                 );
             }
 
+            let keyring_backend = secrets::backend_from_env();
+            if secrets::memory_keyring_enabled_from_env() {
+                seed_e2e_land_registry_keyring(keyring_backend.as_ref()).map_err(|err| {
+                    format!("failed to seed E2E land registry credentials: {err}")
+                })?;
+            }
+
             app.manage(DbState(Mutex::new(conn)));
-            app.manage(KeyringState(Box::new(secrets::OsKeyring)));
+            app.manage(KeyringState(keyring_backend));
             app.manage(AsyncIpcState {
                 db_path,
                 http_client,
@@ -266,6 +297,7 @@ pub fn run() {
             commands::cases::update_case,
             commands::cases::delete_case,
             commands::cases::export_registry_payload,
+            commands::cases::confirm_case_registry_match,
             commands::cases::mark_completed,
             commands::cases::mark_keyin,
             commands::drafts::save_draft,
@@ -291,6 +323,7 @@ pub fn run() {
             land_registry::easymap_r02::land_registry_parse_r02_result_text,
             land_registry::easymap_r02::land_registry_record_r02_result_text,
             land_registry::pull::land_registry_pull_data,
+            land_registry::pull::land_registry_formal_pull_data,
             db::registry_query_runs::list_registry_query_runs,
             db::registry_query_runs::get_registry_query_run_detail,
             land_registry::saas_sync::land_registry_sync_query_run_to_saas,
