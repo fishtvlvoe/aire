@@ -18,11 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 專案使用 pnpm（package.json packageManager 欄位 + pnpm-lock.yaml），無 package-lock.json
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
+          cache: "pnpm"
 
       - name: Install Chromium for Puppeteer
         run: |
@@ -30,10 +36,10 @@ jobs:
           sudo apt-get install -y chromium-browser
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Run tests
-        run: npm run test
+        run: pnpm test
 
       - name: Build
-        run: npm run build
+        run: pnpm build

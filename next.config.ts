@@ -1,17 +1,16 @@
 import type { NextConfig } from "next";
 
-// AIRE 是 Tauri 桌面 App，Next.js 採 static export 模式
-// 設計依據：openspec/changes/aire-desktop-phase1/design.md D1
+// AIRE 本機 runtime 模式：Next.js standalone server 在使用者本機 127.0.0.1 執行
+// 設計依據：openspec/changes/browser-local-runtime-mvp/design.md Decision 6
 const nextConfig: NextConfig = {
-  // 靜態匯出到 out/，Tauri 的 frontendDist 指向此目錄（dev 模式不套用，避免動態路由限制）
-  output: process.env.NODE_ENV === "production" ? "export" : undefined,
-  // static export 不支援動態圖片優化
+  // standalone 模式：產出 .next/standalone/server.js，供本機 Node runtime 啟動
+  // （舊模式為 static export 給 Tauri frontendDist，已 park — 見 src-tauri/PARKED.md）
+  output: "standalone",
+  // standalone 模式同樣需要關閉動態圖片優化（本機 server 無 CDN 圖片優化服務）
   images: {
     unoptimized: true,
   },
-  // 桌面 App 不需要 React Strict Mode 重複渲染干擾 IPC 行為
   reactStrictMode: true,
-  // Tauri 不走 server，避免 trailingSlash 問題用預設 false
   trailingSlash: false,
 };
 

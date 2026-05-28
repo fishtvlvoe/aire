@@ -1,0 +1,6 @@
+# node-runtime/ 目錄
+#
+# 此目錄放 bundled Node.js Windows binary（node.exe + node_modules 等必要檔）。
+# 因為 node.exe 超過 GitHub 50MB 限制，不入版控（已加入 .gitignore）。
+#
+# 請依 installer/README.md 的指示手動下載後放在這裡。

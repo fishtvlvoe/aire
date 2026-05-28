@@ -1,9 +1,27 @@
+# =============================================================================
+# [PARKED — 2026-05-28] Tauri Release Pipeline
+#
+# 此 workflow 已退出 production pipeline。
+# 原因：AIRE 改用 browser-local-runtime（Next.js standalone server），
+#        next.config.ts 的 output 已從 "export" 改為 "standalone"，
+#        out/ 目錄不再產生，Tauri frontendDist: "../out" 會失效。
+#
+# 恢復方式：
+#   1. 把 next.config.ts output 改回 "export"（或條件式 export in production）
+#   2. 確認 src-tauri/tauri.conf.json frontendDist 指向正確產出目錄
+#   3. 把下方 on: 的 push/tags trigger 還原
+#   4. 刪除此說明區塊
+#
+# 詳見：openspec/changes/browser-local-runtime-mvp/design.md Decision 6
+#       src-tauri/PARKED.md
+# =============================================================================
 name: Tauri Release
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  # [PARKED] push tag trigger 已停用，改為只能手動觸發（避免意外執行 Tauri build）
+  # push:
+  #   tags:
+  #     - "v*.*.*"
   workflow_dispatch:
     inputs:
       smoke_existing_release_tag:

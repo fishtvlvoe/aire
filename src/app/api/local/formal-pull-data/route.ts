@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pullFormalRegistryLocally, type LocalFormalPullInput } from "@/lib/server/local-formal-pull-proxy";
 
-export const dynamic = "force-static";
+// 本機正式地籍資料 pull proxy：在本機 standalone server 上直接呼叫 COP API。
+// 設計依據：openspec/changes/browser-local-runtime-mvp/design.md Decision 5, Decision 6
+// （舊版在 production 主動回 local_proxy_unavailable、Tauri 走 IPC — 已廢除）
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json(
-      { error: "local_proxy_unavailable", message: "請使用 AIRE 桌面版完成正式資料匯入" },
-      { status: 400 },
-    );
-  }
-
   let payload: LocalFormalPullInput;
   try {
     payload = (await request.json()) as LocalFormalPullInput;

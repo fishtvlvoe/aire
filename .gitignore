@@ -21,6 +21,12 @@
 /build
 /dist-electron
 
+# 本機 runtime build 產物（browser-local-runtime-mvp，含 node_modules 與 native binding，不入版控）
+/dist-local-runtime/
+# bundled Node runtime（installer 用，從官方下載，不入版控，保留 .gitkeep）
+/installer/node-runtime/*
+!/installer/node-runtime/.gitkeep
+
 # misc
 .DS_Store
 *.pem

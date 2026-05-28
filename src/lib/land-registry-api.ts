@@ -1,4 +1,5 @@
 import { isTauriEnv, NotInTauriError, safeInvoke } from "./tauri-bridge";
+import { localApiFetch } from "./local-api/client";
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   return safeInvoke<T>(cmd, args);
@@ -210,7 +211,7 @@ async function fetchAddressDiscoveryFromLocalBackend(address: string): Promise<P
     return [];
   }
   const settings = await readLocalLandApiSettings();
-  const response = await fetch("/api/local/address-discovery", {
+  const response = await localApiFetch("/api/local/address-discovery", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -260,7 +261,7 @@ async function formalPullDataFromLocalBackend(caseId: string, apiIds: string[]) 
   if (!target) {
     throw new Error("registry_match_required");
   }
-  const response = await fetch("/api/local/formal-pull-data", {
+  const response = await localApiFetch("/api/local/formal-pull-data", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -350,6 +351,12 @@ export async function formalPullData(caseId: string, apiIds: string[]): Promise<
   return invoke("land_registry_formal_pull_data", { caseId, apiIds });
 }
 
+/**
+ * @deprecated Rust 端 `land_registry_paid_address_resolver` 尚未實作（無 Rust 對應命令）。
+ * browser-local-runtime-mvp Wave 3 確認為 dead IPC 呼叫。
+ * 呼叫者：cases/new/page.tsx → 應改走 /api/local/address-discovery（EasyMap R02 免費路徑）。
+ * 此函式保留以避免編譯錯誤，待 cases/new/page.tsx 改線後移除。
+ */
 export async function paidAddressResolver(address: string): Promise<PaidAddressResolverResult> {
   return invoke("land_registry_paid_address_resolver", { address });
 }

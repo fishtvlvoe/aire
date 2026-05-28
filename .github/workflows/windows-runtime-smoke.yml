@@ -1,3 +1,17 @@
+# =============================================================================
+# [PARKED — 2026-05-28] Windows Desktop Runtime Smoke（Tauri 版）
+#
+# 此 workflow 依賴 Tauri build 產出的 setup.exe，已隨 Tauri pipeline 一併 park。
+# 原因：AIRE 改用 browser-local-runtime，next.config.ts output 改為 "standalone"，
+#        Tauri build 不再執行，此 smoke test 失去意義。
+#
+# 恢復方式：
+#   同 release.yml 的恢復步驟（需先恢復 Tauri build pipeline）。
+#   詳見 src-tauri/PARKED.md 與 openspec/changes/browser-local-runtime-mvp/design.md Decision 6
+#
+# 此 workflow 仍保留 workflow_dispatch 觸發，允許手動執行確認狀態，
+# 但在 Tauri build 未恢復前執行必定失敗（pnpm tauri build 找不到 out/）。
+# =============================================================================
 name: Windows Desktop Runtime Smoke
 
 on:
