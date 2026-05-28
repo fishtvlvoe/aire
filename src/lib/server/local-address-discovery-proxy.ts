@@ -349,11 +349,17 @@ class EasyMapClient {
 
   private async resolveTownCode(cityCode: string, townName: string): Promise<string> {
     const fallbackCode = lookupKnownTownCode(cityCode, townName);
+    // 取 cityName 做反查（R02 的 getTownList 需要 cityName + doorPlateType 才會回傳完整鄉鎮清單）
+    const cityName = Object.entries(CITY_CODE_BY_NAME).find(([, code]) => code === cityCode)?.[0] ?? "";
     try {
       const payload = await this.requestText("/City_json_getTownList", {
         method: "POST",
         token: await this.loadToken(),
-        body: { cityCode },
+        body: {
+          cityCode,
+          cityName,
+          doorPlateType: "A", // A = 地政門牌（預設）
+        },
       });
       const towns = parseEasyMapTownListPayload(payload);
       const normalizedTarget = normalizeAdministrativeName(townName);
@@ -361,8 +367,9 @@ class EasyMapClient {
       if (town) {
         return town.id;
       }
-    } catch {
+    } catch (err) {
       // R02 occasionally rejects town-list token requests; known codes keep zero-cost discovery usable.
+      console.error("[resolveTownCode] getTownList failed:", err);
     }
     if (fallbackCode) return fallbackCode;
     throw new Error("easymap_town_not_found");

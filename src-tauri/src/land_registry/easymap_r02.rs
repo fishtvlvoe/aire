@@ -503,7 +503,7 @@ impl EasyMapR02Client {
             .ok_or_else(|| r02_failure(address, "address_parse_failed", "門牌格式無法解析"))?;
 
         self.request_text("/Index", "GET", None, HashMap::new()).await?;
-        let town_code = self.resolve_town_code(address, &parts.city_code, &parts.town_name).await?;
+        let town_code = self.resolve_town_code(address, &parts.city_code, &parts.city_name, &parts.town_name).await?;
         let token = self.load_token().await?;
         let list_payload = self
             .request_text(
@@ -585,7 +585,7 @@ impl EasyMapR02Client {
         let parsed = parse_land_descriptor(address)
             .ok_or_else(|| r02_failure(address, "land_descriptor_parse_failed", "地段地號格式無法解析"))?;
         self.request_text("/Index", "GET", None, HashMap::new()).await?;
-        let town_code = self.resolve_town_code(address, &parsed.city_code, &parsed.town_name).await?;
+        let town_code = self.resolve_town_code(address, &parsed.city_code, &parsed.city_name, &parsed.town_name).await?;
         let token = self.load_token().await?;
         let section_payload = self
             .request_text(
@@ -668,21 +668,28 @@ impl EasyMapR02Client {
         &mut self,
         address: &str,
         city_code: &str,
+        city_name: &str,
         town_name: &str,
     ) -> Result<String, R02ParseFailure> {
         let fallback = lookup_known_town_code(city_code, town_name);
         let Ok(token) = self.load_token().await else {
             return fallback.ok_or_else(|| r02_failure(address, "easymap_town_not_found", "查無行政區"));
         };
+        // R02 的 getTownList 需要 cityName + doorPlateType 才會回傳完整鄉鎮清單（實證：只送 cityCode 回空）
         let payload = self
             .request_text(
                 "/City_json_getTownList",
                 "POST",
                 Some(token),
-                HashMap::from([("cityCode".to_string(), city_code.to_string())]),
+                HashMap::from([
+                    ("cityCode".to_string(), city_code.to_string()),
+                    ("cityName".to_string(), city_name.to_string()),
+                    ("doorPlateType".to_string(), "A".to_string()), // A = 地政門牌（預設）
+                ]),
             )
             .await;
         let Ok(payload) = payload else {
+            tracing::error!("[resolve_town_code] getTownList failed for cityCode={}", city_code);
             return fallback.ok_or_else(|| r02_failure(address, "easymap_town_not_found", "查無行政區"));
         };
         let towns = parse_easy_map_town_list_payload(&payload);

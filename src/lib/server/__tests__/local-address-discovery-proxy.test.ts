@@ -739,4 +739,40 @@ describe("local-address-discovery-proxy", () => {
     });
     expect(mockInvokeFn).toHaveBeenCalledWith("list_registry_query_runs", {});
   });
+
+  // 驗證 getTownList body 包含完整欄位（R02 缺少 cityName/doorPlateType 會回空陣列）
+  it("sends cityName and doorPlateType in getTownList request body for Taipei city", async () => {
+    let townListRequestBody = "";
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/R02/Index")) {
+        return new Response("<html></html>", { status: 200 });
+      }
+      if (url.endsWith("/R02/pages/setToken.jsp")) {
+        return new Response(`
+          <input type="hidden" name="struts.token.name" value="token" />
+          <input type="hidden" name="token" value="tok-test" />
+        `, { status: 200 });
+      }
+      if (url.endsWith("/R02/City_json_getTownList")) {
+        townListRequestBody = String(init?.body ?? "");
+        // 回傳台北信義區（id=17）
+        return Response.json([{ id: "17", name: "信義區" }]);
+      }
+      if (url.endsWith("/R02/Door_json_getDoorList")) {
+        return Response.json({ msg: "", results: [] });
+      }
+      return new Response("", { status: 200 });
+    }));
+
+    await discoverAddressLocally("台北市信義區信義路五段7號");
+
+    // body 必須含 cityCode=A、cityName=臺北市、doorPlateType=A、struts.token.name=token、token=tok-test
+    const params = new URLSearchParams(townListRequestBody);
+    expect(params.get("cityCode")).toBe("A");
+    expect(params.get("cityName")).toBe("臺北市");
+    expect(params.get("doorPlateType")).toBe("A");
+    expect(params.get("struts.token.name")).toBe("token");
+    expect(params.get("token")).toBe("tok-test");
+  });
 });
