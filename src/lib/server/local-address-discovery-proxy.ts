@@ -367,6 +367,12 @@ class EasyMapClient {
       if (town) {
         return town.id;
       }
+      // 省轄市（新竹市、嘉義市、基隆市等）全市共用單一地政事務所，
+      // getTownList 只回 [{id, name:市名}] 一筆、不分區，找不到區名屬正常 → 用唯一那筆。
+      // 直轄市/縣回多筆各區，上面 find 已精確命中，不會落到這裡。
+      if (towns.length === 1) {
+        return towns[0].id;
+      }
     } catch (err) {
       // R02 occasionally rejects town-list token requests; known codes keep zero-cost discovery usable.
       console.error("[resolveTownCode] getTownList failed:", err);
