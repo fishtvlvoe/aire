@@ -11,7 +11,8 @@ import {
   type ParsedDiscoveryInput,
 } from "@/lib/registry-discovery-contract";
 
-const EASYMAP_BASE_URL = "https://easymap.moi.gov.tw/R02";
+const EASYMAP_R02_BASE_URL = "https://easymap.moi.gov.tw/R02";
+const EASYMAP_Z10WEB_BASE_URL = "https://easymap.moi.gov.tw/Z10Web";
 
 export type AddressDiscoveryStatus = "candidate_found" | "manual_required";
 
@@ -146,7 +147,9 @@ class EasyMapUpstreamError extends Error {
 }
 
 class EasyMapClient {
-  private cookies = new Map<string, string>();
+  // R02 和 Z10Web 各自維護 cookie（同 session 不相容）
+  private r02Cookies = new Map<string, string>();
+  private z10Cookies = new Map<string, string>();
 
   async discover(address: string): Promise<EasyMapDiscoveryPayload> {
     const classification = classifyDiscoveryInput(address);
@@ -156,110 +159,256 @@ class EasyMapClient {
     if (classification.inputKind !== "doorplate") {
       throw new Error("address_parse_failed");
     }
-    return this.discoverDoorplate(address);
+    return this.discoverDoorplateViaZ10Web(address);
   }
 
-  private async discoverDoorplate(address: string): Promise<EasyMapDiscoveryPayload> {
+  /**
+   * Z10Web 門牌→地號查詢序列（R02 Door_json_getDoorList 已故障）
+   * 1. GET /Z10Web/Normal → 建立 session cookie
+   * 2. POST layout/setToken.jsp → token
+   * 3. POST HouseholdDoorPlate_ajax_list → 門牌候選 HTML (data-road 屬性)
+   * 4. POST HouseholdDoorPlate_json_detail → {x, y} WGS84 坐標
+   * 5. POST Land_json_getMapImageLayersByCoord → cityCode/townCode/office/sectNo/sectName/landNo
+   * 6. POST LandDesc_ajax_detail → HTML 詳情（面積/公告現值/公告地價/建號）
+   */
+  private async discoverDoorplateViaZ10Web(address: string): Promise<EasyMapDiscoveryPayload> {
     const parts = parseTaiwanAddress(address);
     if (!parts) {
       throw new Error("address_parse_failed");
     }
 
-    await this.requestText("/Index", { method: "GET", withToken: false });
-    const townCode = await this.resolveTownCode(parts.cityCode, parts.townName);
-    const token = await this.loadToken();
-    const listPayload = await this.requestText("/Door_json_getDoorList", {
+    // 步驟1：建立 Z10Web session
+    await this.z10RequestText("/Normal", { method: "GET", withToken: false });
+
+    // 步驟2+3：取候選門牌清單（HTML）
+    const token = await this.z10LoadToken();
+    const listHtml = await this.z10RequestText("/HouseholdDoorPlate_ajax_list", {
       method: "POST",
       token,
       body: {
-        city: parts.cityCode,
-        area: townCode,
-        road: parts.roadName,
-        doorPlate: parts.roadName,
-        doorPlateType: "A",
-        lane: parts.laneName,
-        alley: parts.alleyName,
-        no: parts.no,
+        cityCode: parts.cityCode,
         cityName: parts.cityName,
         townName: parts.townName,
+        roadName: parts.roadName,
+        laneName: parts.laneName,
+        alleyName: parts.alleyName,
+        no: parts.no,
       },
     });
-    const parentCandidates = parseEasyMapDoorCandidateListPayload(listPayload);
-    const parent = pickBestDoorCandidate(parentCandidates, address);
-    if (!parent) {
+
+    // 從 HTML 抓 data-road 屬性（全型地址字串）
+    const doorplateCandidates = parseZ10WebDoorplateListHtml(listHtml);
+    if (doorplateCandidates.length === 0) {
       return { candidates: [], errors: [] };
     }
 
-    let candidates = [parent];
-    if (parent.mergeSameDoorCount > 0) {
-      const fullPayload = await this.requestText("/Door_json_getFullDoorListByA", {
-        method: "POST",
-        token: await this.loadToken(),
-        body: {
-          city: parent.cityCode || parts.cityCode,
-          area: parent.townCode,
-          doorPlate: parent.sourceDoorplate || parent.doorplate,
-          doorPlateType: "A",
-        },
-      });
-      const fullCandidates = parseEasyMapDoorCandidateListPayload(fullPayload);
-      if (fullCandidates.length > 0) {
-        candidates = fullCandidates;
-      }
+    // 選最符合門號的候選
+    const bestDoorplate = pickBestZ10WebDoorplate(doorplateCandidates, address);
+    if (!bestDoorplate) {
+      return { candidates: [], errors: [] };
     }
 
-    const selectedCandidates = selectDoorCandidatesForAddress(candidates, address);
-    const parcels: ParcelInfo[] = [];
-    for (const candidate of selectedCandidates.slice(0, 20)) {
-      const description = await this.loadBuildingDescription(candidate);
-      const coordinate = await this.loadLandCenterCoordinate(candidate);
-      parcels.push(buildDoorParcel(address, candidate, description, coordinate));
+    // 步驟4：門牌→WGS84 坐標
+    const coordToken = await this.z10LoadToken();
+    const coordJson = await this.z10RequestJson<{ x?: number; y?: number }>("/HouseholdDoorPlate_json_detail", {
+      method: "POST",
+      token: coordToken,
+      body: {
+        cityCode: parts.cityCode,
+        cityName: parts.cityName,
+        townName: parts.townName,
+        doorPlate: bestDoorplate,
+      },
+    });
+    const wgs84x = coordJson.x;
+    const wgs84y = coordJson.y;
+    if (!wgs84x || !wgs84y) {
+      return { candidates: [], errors: [] };
     }
+
+    // 步驟5：坐標→地籍圖層（地段/地號）
+    const layerToken = await this.z10LoadToken();
+    const layerJson = await this.z10RequestJson<Record<string, unknown>>("/Land_json_getMapImageLayersByCoord", {
+      method: "POST",
+      token: layerToken,
+      body: {
+        wgs84x: String(wgs84x),
+        wgs84y: String(wgs84y),
+      },
+    });
+    const landCandidate = parseZ10WebMapLayerPayload(layerJson);
+    if (!landCandidate) {
+      return { candidates: [], errors: [] };
+    }
+
+    // 步驟6：地號→詳情
+    const descResult = await this.z10LoadLandDescription(landCandidate);
     return {
-      candidates: normalizeParcelCandidateMetadata(parcels),
-      errors: [],
+      candidates: buildZ10WebLandParcels(address, landCandidate, descResult.description),
+      errors: descResult.errors,
     };
   }
 
-  private async loadBuildingDescription(candidate: EasyMapDoorCandidate): Promise<EasyMapBuildingDescription> {
+  private async z10LoadLandDescription(landCandidate: EasyMapLandCandidate): Promise<{
+    description: EasyMapLandDescription;
+    errors: DiscoveryError[];
+  }> {
     try {
-      const html = await this.requestText("/BuildingDesc_ajax_detail", {
+      const token = await this.z10LoadToken();
+      const html = await this.z10RequestText("/LandDesc_ajax_detail", {
         method: "POST",
-        token: await this.loadToken(),
+        token,
         body: {
-          office: candidate.office,
-          sectNo: candidate.buildingSectionCode || candidate.sectionCode,
-          buildingNo: candidate.buildingNo,
+          cityCode: landCandidate.cityCode,
+          townCode: landCandidate.townCode,
+          office: landCandidate.office,
+          sectNo: landCandidate.sectionCode,
+          landNo: formatEasyMapLandNoForDetail(landCandidate.landNo),
         },
       });
-      return parseEasyMapBuildingDescriptionHtml(html);
-    } catch {
-      return emptyBuildingDescription();
+      return {
+        description: parseEasyMapLandDescriptionHtml(html),
+        errors: [],
+      };
+    } catch (error) {
+      return {
+        description: emptyLandDescription(),
+        errors: [normalizeEasyMapUpstreamError(error)],
+      };
     }
   }
 
-  private async loadLandCenterCoordinate(
-    candidate: EasyMapDoorCandidate,
-  ): Promise<EasyMapDoorCoordinate | null> {
-    try {
-      const payload = await this.requestText("/Map_json_getMapCenter", {
-        method: "POST",
-        token: await this.loadToken(),
-        body: {
-          office: candidate.office,
-          sectNo: firstListValue(candidate.sectionCode),
-          landNo: firstListValue(candidate.landNo),
-          qryResult: "M2",
-        },
-      });
-      const parsed = JSON.parse(payload) as Record<string, unknown>;
-      const lng = typeof parsed.X === "number" ? parsed.X : Number(parsed.X);
-      const lat = typeof parsed.Y === "number" ? parsed.Y : Number(parsed.Y);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-      return { lat, lng };
-    } catch {
-      return null;
+  private async z10LoadToken(): Promise<string> {
+    const html = await this.z10RequestText("/layout/setToken.jsp", { method: "POST", withToken: false });
+    const token = html.match(/name=["']token["']\s+value=["']([^"']+)["']/)?.[1];
+    if (!token) {
+      throw new Error("easymap_z10web_token_missing");
     }
+    return token;
+  }
+
+  private async z10RequestJson<T>(path: string, options: EasyMapRequestOptions): Promise<T> {
+    const text = await this.z10RequestText(path, options);
+    return JSON.parse(text) as T;
+  }
+
+  private async z10RequestText(path: string, options: EasyMapRequestOptions): Promise<string> {
+    const body = new URLSearchParams();
+    for (const [key, value] of Object.entries(options.body ?? {})) {
+      body.set(key, value);
+    }
+    if (options.token) {
+      body.set("struts.token.name", "token");
+      body.set("token", options.token);
+    }
+    if (process.env.NODE_ENV !== "test") {
+      return this.z10RequestTextWithNodeHttps(path, options, body);
+    }
+
+    const response = await fetch(`${EASYMAP_Z10WEB_BASE_URL}${path}`, {
+      method: options.method,
+      headers: {
+        accept: options.method === "POST" ? "application/json, text/javascript, text/html, */*; q=0.01" : "text/html,*/*",
+        referer: `${EASYMAP_Z10WEB_BASE_URL}/Normal`,
+        "user-agent": "Mozilla/5.0 AIRE-local-discovery",
+        ...(options.method === "POST" ? { "x-requested-with": "XMLHttpRequest" } : {}),
+        ...(options.method === "POST" ? { "content-type": "application/x-www-form-urlencoded;charset=UTF-8" } : {}),
+        ...(this.z10CookieHeader() ? { cookie: this.z10CookieHeader() } : {}),
+      },
+      body: options.method === "POST" ? body : undefined,
+      redirect: "follow",
+      signal: AbortSignal.timeout(8000),
+    });
+    this.z10StoreCookies(response.headers);
+    const text = await response.text();
+    if (!response.ok) {
+      throw new EasyMapUpstreamError(
+        `easymap_z10web_http_${response.status}`,
+        `EasyMap Z10Web ${path} returned http_status=${response.status}`,
+      );
+    }
+    return text;
+  }
+
+  private async z10RequestTextWithNodeHttps(
+    path: string,
+    options: EasyMapRequestOptions,
+    body: URLSearchParams,
+  ): Promise<string> {
+    const url = new URL(`${EASYMAP_Z10WEB_BASE_URL}${path}`);
+    const bodyText = body.toString();
+    const headers: Record<string, string | number> = {
+      accept: options.method === "POST" ? "application/json, text/javascript, text/html, */*; q=0.01" : "text/html,*/*",
+      referer: `${EASYMAP_Z10WEB_BASE_URL}/Normal`,
+      "user-agent": "Mozilla/5.0 AIRE-local-discovery",
+      ...(this.z10CookieHeader() ? { cookie: this.z10CookieHeader() } : {}),
+    };
+    if (options.method === "POST") {
+      headers["content-type"] = "application/x-www-form-urlencoded;charset=UTF-8";
+      headers["content-length"] = Buffer.byteLength(bodyText);
+      headers["x-requested-with"] = "XMLHttpRequest";
+    }
+
+    return await new Promise<string>((resolve, reject) => {
+      const request = https.request(
+        url,
+        {
+          method: options.method,
+          headers,
+          timeout: 8000,
+        },
+        (response) => {
+          for (const value of response.headers["set-cookie"] ?? []) {
+            this.z10StoreCookieValue(value);
+          }
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk: Buffer) => chunks.push(chunk));
+          response.on("end", () => {
+            const text = Buffer.concat(chunks).toString("utf8");
+            if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
+              reject(new EasyMapUpstreamError(
+                `easymap_z10web_http_${response.statusCode ?? 0}`,
+                `EasyMap Z10Web ${path} returned http_status=${response.statusCode ?? 0}: ${summarizeUpstreamText(text)}`,
+              ));
+              return;
+            }
+            resolve(text);
+          });
+        },
+      );
+      request.on("timeout", () => {
+        request.destroy(new Error(`EasyMap Z10Web ${path} timed out`));
+      });
+      request.on("error", reject);
+      if (options.method === "POST") {
+        request.write(bodyText);
+      }
+      request.end();
+    });
+  }
+
+  private z10CookieHeader(): string {
+    return Array.from(this.z10Cookies.entries())
+      .map(([key, value]) => `${key}=${value}`)
+      .join("; ");
+  }
+
+  private z10StoreCookies(headers: Headers): void {
+    const getSetCookie = (headers as Headers & { getSetCookie?: () => string[] }).getSetCookie;
+    const values = getSetCookie ? getSetCookie.call(headers) : splitSetCookieHeader(headers.get("set-cookie"));
+    for (const value of values) {
+      const [pair] = value.split(";");
+      const index = pair.indexOf("=");
+      if (index <= 0) continue;
+      this.z10Cookies.set(pair.slice(0, index).trim(), pair.slice(index + 1).trim());
+    }
+  }
+
+  private z10StoreCookieValue(value: string): void {
+    const [pair] = value.split(";");
+    const index = pair.indexOf("=");
+    if (index <= 0) return;
+    this.z10Cookies.set(pair.slice(0, index).trim(), pair.slice(index + 1).trim());
   }
 
   private async loadLandDescription(landCandidate: EasyMapLandCandidate): Promise<{
@@ -267,9 +416,9 @@ class EasyMapClient {
     errors: DiscoveryError[];
   }> {
     try {
-      const landDescriptionHtml = await this.requestText("/LandDesc_ajax_detail", {
+      const landDescriptionHtml = await this.r02RequestText("/LandDesc_ajax_detail", {
         method: "POST",
-        token: await this.loadToken(),
+        token: await this.r02LoadToken(),
         body: {
           cityCode: landCandidate.cityCode,
           townCode: landCandidate.townCode,
@@ -300,11 +449,11 @@ class EasyMapClient {
       throw new Error("land_descriptor_parse_failed");
     }
 
-    await this.requestText("/Index", { method: "GET", withToken: false });
+    await this.r02RequestText("/Index", { method: "GET", withToken: false });
     const townCode = await this.resolveTownCode(cityCode, townName);
-    const sectionPayload = await this.requestText("/City_json_getSectionList", {
+    const sectionPayload = await this.r02RequestText("/City_json_getSectionList", {
       method: "POST",
-      token: await this.loadToken(),
+      token: await this.r02LoadToken(),
       body: {
         cityCode,
         area: townCode,
@@ -322,9 +471,9 @@ class EasyMapClient {
 
     let locatedLand = { ...section, landNo };
     try {
-      const locatePayload = await this.requestText("/Land_json_locate", {
+      const locatePayload = await this.r02RequestText("/Land_json_locate", {
         method: "POST",
-        token: await this.loadToken(),
+        token: await this.r02LoadToken(),
         body: {
           cityName: section.cityName || cityName,
           townName: section.townName || townName,
@@ -337,7 +486,7 @@ class EasyMapClient {
       });
       locatedLand = parseEasyMapLandByCoordinatePayload(locatePayload) ?? locatedLand;
     } catch {
-      // Old R02 can return 500 for map locating while LandDesc_ajax_detail still returns the parcel attributes.
+      // R02 有時地圖定位回 500，但 LandDesc_ajax_detail 仍可查到地段屬性。
     }
 
     const landDescription = await this.loadLandDescription(locatedLand);
@@ -352,9 +501,9 @@ class EasyMapClient {
     // 取 cityName 做反查（R02 的 getTownList 需要 cityName + doorPlateType 才會回傳完整鄉鎮清單）
     const cityName = Object.entries(CITY_CODE_BY_NAME).find(([, code]) => code === cityCode)?.[0] ?? "";
     try {
-      const payload = await this.requestText("/City_json_getTownList", {
+      const payload = await this.r02RequestText("/City_json_getTownList", {
         method: "POST",
-        token: await this.loadToken(),
+        token: await this.r02LoadToken(),
         body: {
           cityCode,
           cityName,
@@ -374,15 +523,15 @@ class EasyMapClient {
         return towns[0].id;
       }
     } catch (err) {
-      // R02 occasionally rejects town-list token requests; known codes keep zero-cost discovery usable.
+      // R02 偶爾拒絕 town-list token 請求，已知 code 讓零成本查詢繼續可用。
       console.error("[resolveTownCode] getTownList failed:", err);
     }
     if (fallbackCode) return fallbackCode;
     throw new Error("easymap_town_not_found");
   }
 
-  private async loadToken(): Promise<string> {
-    const html = await this.requestText("/pages/setToken.jsp", { method: "POST", withToken: false });
+  private async r02LoadToken(): Promise<string> {
+    const html = await this.r02RequestText("/pages/setToken.jsp", { method: "POST", withToken: false });
     const token = html.match(/name=["']token["']\s+value=["']([^"']+)["']/)?.[1];
     if (!token) {
       throw new Error("easymap_token_missing");
@@ -390,12 +539,12 @@ class EasyMapClient {
     return token;
   }
 
-  private async requestJson<T>(path: string, options: EasyMapRequestOptions): Promise<T> {
-    const text = await this.requestText(path, options);
+  private async r02RequestJson<T>(path: string, options: EasyMapRequestOptions): Promise<T> {
+    const text = await this.r02RequestText(path, options);
     return JSON.parse(text) as T;
   }
 
-  private async requestText(path: string, options: EasyMapRequestOptions): Promise<string> {
+  private async r02RequestText(path: string, options: EasyMapRequestOptions): Promise<string> {
     const body = new URLSearchParams();
     for (const [key, value] of Object.entries(options.body ?? {})) {
       body.set(key, value);
@@ -405,24 +554,24 @@ class EasyMapClient {
       body.set("token", options.token);
     }
     if (process.env.NODE_ENV !== "test") {
-      return this.requestTextWithNodeHttps(path, options, body);
+      return this.r02RequestTextWithNodeHttps(path, options, body);
     }
 
-    const response = await fetch(`${EASYMAP_BASE_URL}${path}`, {
+    const response = await fetch(`${EASYMAP_R02_BASE_URL}${path}`, {
       method: options.method,
       headers: {
         accept: options.method === "POST" ? "application/json, text/javascript, text/html, */*; q=0.01" : "text/html,*/*",
-        referer: `${EASYMAP_BASE_URL}/Index`,
+        referer: `${EASYMAP_R02_BASE_URL}/Index`,
         "user-agent": "Mozilla/5.0 AIRE-local-discovery",
         ...(options.method === "POST" ? { "x-requested-with": "XMLHttpRequest" } : {}),
         ...(options.method === "POST" ? { "content-type": "application/x-www-form-urlencoded;charset=UTF-8" } : {}),
-        ...(this.cookieHeader() ? { cookie: this.cookieHeader() } : {}),
+        ...(this.r02CookieHeader() ? { cookie: this.r02CookieHeader() } : {}),
       },
       body: options.method === "POST" ? body : undefined,
       redirect: "follow",
       signal: AbortSignal.timeout(8000),
     });
-    this.storeCookies(response.headers);
+    this.r02StoreCookies(response.headers);
     const text = await response.text();
     if (text.trim().toUpperCase() === "PERMISSION DENIED") {
       throw new EasyMapUpstreamError(
@@ -439,18 +588,18 @@ class EasyMapClient {
     return text;
   }
 
-  private async requestTextWithNodeHttps(
+  private async r02RequestTextWithNodeHttps(
     path: string,
     options: EasyMapRequestOptions,
     body: URLSearchParams,
   ): Promise<string> {
-    const url = new URL(`${EASYMAP_BASE_URL}${path}`);
+    const url = new URL(`${EASYMAP_R02_BASE_URL}${path}`);
     const bodyText = body.toString();
     const headers: Record<string, string | number> = {
       accept: options.method === "POST" ? "application/json, text/javascript, text/html, */*; q=0.01" : "text/html,*/*",
-      referer: `${EASYMAP_BASE_URL}/Index`,
+      referer: `${EASYMAP_R02_BASE_URL}/Index`,
       "user-agent": "Mozilla/5.0 AIRE-local-discovery",
-      ...(this.cookieHeader() ? { cookie: this.cookieHeader() } : {}),
+      ...(this.r02CookieHeader() ? { cookie: this.r02CookieHeader() } : {}),
     };
     if (options.method === "POST") {
       headers["content-type"] = "application/x-www-form-urlencoded;charset=UTF-8";
@@ -468,7 +617,7 @@ class EasyMapClient {
         },
         (response) => {
           for (const value of response.headers["set-cookie"] ?? []) {
-            this.storeCookieValue(value);
+            this.r02StoreCookieValue(value);
           }
           const chunks: Buffer[] = [];
           response.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -503,28 +652,28 @@ class EasyMapClient {
     });
   }
 
-  private cookieHeader(): string {
-    return Array.from(this.cookies.entries())
+  private r02CookieHeader(): string {
+    return Array.from(this.r02Cookies.entries())
       .map(([key, value]) => `${key}=${value}`)
       .join("; ");
   }
 
-  private storeCookies(headers: Headers): void {
+  private r02StoreCookies(headers: Headers): void {
     const getSetCookie = (headers as Headers & { getSetCookie?: () => string[] }).getSetCookie;
     const values = getSetCookie ? getSetCookie.call(headers) : splitSetCookieHeader(headers.get("set-cookie"));
     for (const value of values) {
       const [pair] = value.split(";");
       const index = pair.indexOf("=");
       if (index <= 0) continue;
-      this.cookies.set(pair.slice(0, index).trim(), pair.slice(index + 1).trim());
+      this.r02Cookies.set(pair.slice(0, index).trim(), pair.slice(index + 1).trim());
     }
   }
 
-  private storeCookieValue(value: string): void {
+  private r02StoreCookieValue(value: string): void {
     const [pair] = value.split(";");
     const index = pair.indexOf("=");
     if (index <= 0) return;
-    this.cookies.set(pair.slice(0, index).trim(), pair.slice(index + 1).trim());
+    this.r02Cookies.set(pair.slice(0, index).trim(), pair.slice(index + 1).trim());
   }
 }
 
@@ -595,6 +744,94 @@ function normalizeEasyMapUpstreamError(error: unknown): DiscoveryError {
     code: "easymap_r02_unavailable",
     message: error instanceof Error ? error.message : "地址資料需要人工確認",
   };
+}
+
+/**
+ * 解析 Z10Web HouseholdDoorPlate_ajax_list 回傳的 HTML，
+ * 抓取所有 [role='result'] 元素的 data-road 屬性（全型門牌字串）。
+ */
+function parseZ10WebDoorplateListHtml(html: string): string[] {
+  const matches = Array.from(html.matchAll(/data-road="([^"]+)"/g));
+  return matches.map((m) => m[1]).filter(Boolean);
+}
+
+/**
+ * 從 Z10Web ajax_list 候選中，選最符合輸入地址門號的門牌。
+ * 優先完整符合，次選尾端符合，最後 fallback 第一筆。
+ */
+function pickBestZ10WebDoorplate(candidates: string[], inputAddress: string): string | null {
+  if (candidates.length === 0) return null;
+  const target = normalizeAddressForMatch(inputAddress);
+  return (
+    candidates.find((c) => normalizeAddressForMatch(c) === target) ??
+    candidates.find((c) => target.endsWith(normalizeAddressForMatch(c).replace(/^\S+?[縣市]\S+?[區鄉鎮市]/, ""))) ??
+    candidates[0] ??
+    null
+  );
+}
+
+/**
+ * 解析 Z10Web Land_json_getMapImageLayersByCoord 回傳的 JSON，
+ * 轉為 EasyMapLandCandidate。
+ */
+function parseZ10WebMapLayerPayload(json: Record<string, unknown>): EasyMapLandCandidate | null {
+  const cityName = pickString(json, "cityName");
+  const townName = pickString(json, "townName");
+  const cityCode = pickString(json, "cityCode");
+  const townCode = pickString(json, "townCode");
+  const office = pickString(json, "office");
+  const sectionCode = pickString(json, "sectNo");
+  const sectionName = pickString(json, "sectName");
+  const landNoRaw = pickString(json, "landNo");
+  const landNo = landNoRaw ? normalizeLandNo(landNoRaw) : null;
+  if (!cityCode || !townCode || !office || !sectionCode || !sectionName || !landNo) {
+    return null;
+  }
+  return {
+    cityName: cityName ?? "",
+    townName: townName ?? "",
+    cityCode,
+    townCode,
+    office,
+    sectionCode,
+    sectionName,
+    landNo,
+  };
+}
+
+/**
+ * 用 Z10Web 查到的地段/地號資料，建立 ParcelInfo 候選（land 或 building 類型）。
+ * source 標為 "easymap_z10web" 以便區分來源。
+ *
+ * 建號來源：LandDesc_ajax_detail HTML 中的 getBuildDetail(...) 連結，
+ * 由 parseEasyMapLandDescriptionHtml 解析為 description.buildingNumbers 陣列。
+ * 一筆地號可能對應多個建號（常見於建物分割）；
+ * 此處取第一個建號作為代表候選，讓使用者在 UI 選取正確的建號。
+ */
+function buildZ10WebLandParcels(
+  inputAddress: string,
+  land: EasyMapLandCandidate,
+  description: EasyMapLandDescription,
+): ParcelInfo[] {
+  const base = {
+    address: inputAddress,
+    lot_number: land.landNo,
+    section_name: land.sectionName,
+    section_code: land.sectionCode,
+    land_office: land.office,
+    source: "easymap_z10web" as const,
+    trusted_for_pdf: false,
+    land_area_sqm: description.landAreaSqm ?? undefined,
+    announced_land_current_value: description.announcedLandCurrentValue ?? undefined,
+    announced_land_value: description.announcedLandValue ?? undefined,
+  };
+  // 取第一個建號（LandDesc HTML 裡 getBuildDetail 連結順序）；無建號則為純土地
+  const buildingNumber = description.buildingNumbers[0] ?? "";
+  return normalizeParcelCandidateMetadata([{
+    ...base,
+    parcel_id: `${land.office}-${land.sectionCode}-${buildingNumber || land.landNo}`,
+    building_number: buildingNumber,
+  }]);
 }
 
 async function getLatestDiscoveryRun(address: string): Promise<RegistryQueryRun | null> {

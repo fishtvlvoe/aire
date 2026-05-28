@@ -13,7 +13,7 @@ export interface ParcelInfo {
   section_name?: string;
   section_code?: string;
   land_office?: string;
-  source?: "cop_moi" | "easymap_r02" | "nlsc_cad" | "dev_fixture" | "mock";
+  source?: "cop_moi" | "easymap_r02" | "easymap_z10web" | "nlsc_cad" | "dev_fixture" | "mock";
   trusted_for_pdf?: boolean;
   discovery_confidence?: "high" | "needs_selection" | "low";
   object_type?: "building" | "land";

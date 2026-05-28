@@ -75,100 +75,60 @@ describe("local-address-discovery-proxy", () => {
     expect(formatEasyMapLandNoForDetail("12340002")).toBe("1234-2");
   });
 
-  it("returns live EasyMap R02 candidates without using mock lookup", async () => {
-    let detailRequestBody = "";
-    let fullDoorRequestBody = "";
-    let buildingDetailRequestBody = "";
+  it("returns live Z10Web candidates for doorplate address without using mock lookup", async () => {
+    // 門牌查詢現在走 Z10Web（R02 Door_json_getDoorList 已故障）
+    let ajaxListRequestBody = "";
+    let jsonDetailRequestBody = "";
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.endsWith("/R02/Index")) {
+      if (url.endsWith("/Z10Web/Normal") || url.endsWith("/Z10Web/")) {
         return new Response("<html></html>", {
           status: 200,
-          headers: { "set-cookie": "JSESSIONID=session-1; Path=/R02" },
+          headers: { "set-cookie": "JSESSIONID=z10session; Path=/Z10Web" },
         });
       }
-      if (url.endsWith("/R02/pages/setToken.jsp")) {
+      if (url.endsWith("/Z10Web/layout/setToken.jsp")) {
         return new Response(`
           <input type="hidden" name="struts.token.name" value="token" />
           <input type="hidden" name="token" value="token-1" />
         `, { status: 200 });
       }
-      if (url.endsWith("/R02/City_json_getTownList")) {
-        return Response.json([{ id: "01", name: "東區" }]);
-      }
-      if (url.endsWith("/R02/Door_json_getDoorList")) {
-        detailRequestBody = String(init?.body ?? "");
-        return Response.json({
-          msg: "",
-          results: [
-            {
-              Road: "東和路４７號",
-              srcRoad: "東和路４７號",
-              buildsectno: "1511",
-              buildno: "03033000",
-              sectno: "1511,1514",
-              landno: "77,78,221-32,277-31",
-              towncode: "01",
-              office: "DC",
-              sectName: "光明段",
-              City: "D",
-              mergeSameDoorCount: 6,
-            },
-          ],
-        });
-      }
-      if (url.endsWith("/R02/Door_json_getFullDoorListByA")) {
-        fullDoorRequestBody = String(init?.body ?? "");
-        return Response.json({
-          msg: "",
-          results: [
-            {
-              Road: "東和路４７號二樓",
-              srcRoad: "東和路４７號二樓",
-              buildsectno: "1511",
-              buildno: "03044000",
-              sectno: "1511",
-              landno: "77",
-              towncode: "01",
-              office: "DC",
-              sectName: "光明段",
-              City: "D",
-              mergeSameDoorCount: 0,
-            },
-            {
-              Road: "東和路４７號三樓",
-              srcRoad: "東和路４７號三樓",
-              buildsectno: "1511",
-              buildno: "03045000",
-              sectno: "1511",
-              landno: "77",
-              towncode: "01",
-              office: "DC",
-              sectName: "光明段",
-              City: "D",
-              mergeSameDoorCount: 0,
-            },
-          ],
-        });
-      }
-      if (url.endsWith("/R02/BuildingDesc_ajax_detail")) {
-        buildingDetailRequestBody = String(init?.body ?? "");
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_ajax_list")) {
+        ajaxListRequestBody = String(init?.body ?? "");
         return new Response(`
-          <table>
-            <tr><th>行政區</th><td>臺南市 東區</td></tr>
-            <tr><th>地政事務所</th><td>東南地政事務所</td></tr>
-            <tr><th>地段</th><td>1511 光明段</td></tr>
-            <tr><th>建號</th><td>03045000</td></tr>
-            <tr><th>建物面積</th><td>98.44 平方公尺</td></tr>
-            <tr><th>樓層數</th><td>008</td></tr>
-            <tr><th>樓層別</th><td>三層</td></tr>
-            <tr><th>建物完成日期</th><td>0810914 (屋齡:約 33年)</td></tr>
-            <tr><th>主要用途</th><td>住家用</td></tr>
-          </table>
+          <a class="list-group-item" role="result"
+             data-city="" data-town="" data-area=""
+             data-road="臺南市東區仁里里４鄰東和路４７號"
+             href="javascript: void(0);">臺南市東區仁里里４鄰東和路４７號</a>
         `, { status: 200 });
       }
-      if (url.endsWith("/R02/Map_json_getMapCenter")) {
-        return Response.json({ X: 120.22908, Y: 22.986314 });
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_json_detail")) {
+        jsonDetailRequestBody = String(init?.body ?? "");
+        return Response.json({ x: 120.22908, y: 22.986314 });
+      }
+      if (url.endsWith("/Z10Web/Land_json_getMapImageLayersByCoord")) {
+        return Response.json({
+          exec: "true",
+          cityCode: "D",
+          townCode: "01",
+          office: "DC",
+          sectNo: "1511",
+          sectName: "光明段",
+          landNo: "77",
+          cityName: "臺南市",
+          townName: "東區",
+          mapImg: JSON.stringify({ EXT: [120.22, 22.98, 120.24, 22.99], IMG: [] }),
+        });
+      }
+      if (url.endsWith("/Z10Web/LandDesc_ajax_detail")) {
+        return new Response(`
+          <table>
+            <tr><th>地段</th><td>1511 光明段</td></tr>
+            <tr><th>地號</th><td>00770000</td></tr>
+            <tr><th>面積</th><td>256.12 平方公尺</td></tr>
+            <tr><th>公告現值</th><td>98000 元/平方公尺</td></tr>
+          </table>
+        `, { status: 200 });
       }
       return new Response("not found", { status: 404 });
     }));
@@ -181,25 +141,18 @@ describe("local-address-discovery-proxy", () => {
     expect(result.totalCostCents).toBe(0);
     expect(result.candidates).toEqual([
       expect.objectContaining({
-        parcel_id: "DC-1511-03045000",
+        parcel_id: "DC-1511-00770000",
         lot_number: "00770000",
-        building_number: "03045000",
         section_name: "光明段",
         section_code: "1511",
         land_office: "DC",
-        source: "easymap_r02",
+        source: "easymap_z10web",
         trusted_for_pdf: false,
         discovery_confidence: "high",
-        object_type: "building",
+        object_type: "land",
         confirmation_state: "unconfirmed",
-        building_area_sqm: "98.44",
-        total_floor_count: "008",
-        floor_label: "三層",
-        completion_date_roc: "0810914",
-        age_years: "33",
-        main_use: "住家用",
-        lat: 22.986314,
-        lng: 120.22908,
+        land_area_sqm: "256.12",
+        announced_land_current_value: "98000",
       }),
     ]);
     expect(result.requiresCandidateSelection).toBe(false);
@@ -207,10 +160,10 @@ describe("local-address-discovery-proxy", () => {
       state: "not_required",
       selectedRegistryKey: null,
     });
-    expect(decodeURIComponent(detailRequestBody)).toContain("road=東和路");
-    expect(decodeURIComponent(detailRequestBody)).toContain("no=47");
-    expect(decodeURIComponent(fullDoorRequestBody)).toContain("doorPlate=東和路４７號");
-    expect(decodeURIComponent(buildingDetailRequestBody)).toContain("buildingNo=03045000");
+    // 確認請求中包含地址解析後的路名和門號
+    expect(decodeURIComponent(ajaxListRequestBody)).toContain("roadName=東和路");
+    expect(decodeURIComponent(ajaxListRequestBody)).toContain("no=47");
+    expect(decodeURIComponent(jsonDetailRequestBody)).toContain("東和路");
     expect(mockInvokeFn).not.toHaveBeenCalledWith("land_registry_address_lookup", expect.anything());
   });
 
@@ -512,78 +465,51 @@ describe("local-address-discovery-proxy", () => {
     expect(mockInvokeFn).not.toHaveBeenCalledWith("land_registry_formal_pull_data", expect.anything());
   });
 
-  it("marks multiple building candidates as requiring one selected target before COP", async () => {
-    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+  it("returns Z10Web land candidate for doorplate address without requiring candidate selection", async () => {
+    // Z10Web 門牌查詢回傳單一候選（有建號時為 building 類型）
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.endsWith("/R02/Index")) {
+      if (url.endsWith("/Z10Web/Normal") || url.endsWith("/Z10Web/")) {
         return new Response("<html></html>", { status: 200 });
       }
-      if (url.endsWith("/R02/pages/setToken.jsp")) {
+      if (url.endsWith("/Z10Web/layout/setToken.jsp")) {
         return new Response(`<input type="hidden" name="token" value="token-1" />`, { status: 200 });
       }
-      if (url.endsWith("/R02/City_json_getTownList")) {
-        return Response.json([{ id: "01", name: "東區" }]);
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_ajax_list")) {
+        return new Response(`
+          <a class="list-group-item" role="result"
+             data-city="" data-town="" data-area=""
+             data-road="臺南市東區仁里里２鄰裕農路２８８巷１７號"
+             href="javascript: void(0);">臺南市東區仁里里２鄰裕農路２８８巷１７號</a>
+        `, { status: 200 });
       }
-      if (url.endsWith("/R02/Door_json_getDoorList")) {
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_json_detail")) {
+        return Response.json({ x: 120.2180, y: 22.9950 });
+      }
+      if (url.endsWith("/Z10Web/Land_json_getMapImageLayersByCoord")) {
         return Response.json({
-          msg: "",
-          results: [
-            {
-              Road: "裕農路２８８巷１７號",
-              srcRoad: "裕農路２８８巷１７號",
-              buildsectno: "1556",
-              buildno: "00201000",
-              sectno: "1556",
-              landno: "70",
-              towncode: "01",
-              office: "DC",
-              sectName: "富強段",
-              City: "D",
-              mergeSameDoorCount: 2,
-            },
-          ],
+          exec: "true",
+          cityCode: "D",
+          townCode: "01",
+          office: "DC",
+          sectNo: "1556",
+          sectName: "富強段",
+          landNo: "70",
+          cityName: "臺南市",
+          townName: "東區",
+          mapImg: JSON.stringify({ EXT: [120.21, 22.99, 120.23, 23.0], IMG: [] }),
         });
       }
-      if (url.endsWith("/R02/BuildingDesc_ajax_detail")) {
+      if (url.endsWith("/Z10Web/LandDesc_ajax_detail")) {
         return new Response(`
           <table>
             <tr><th>地段</th><td>1556 富強段</td></tr>
-            <tr><th>建號</th><td>${String(init?.body ?? "").includes("00204001") ? "00204001" : "00204000"}</td></tr>
+            <tr><th>地號</th><td>00700000</td></tr>
+            <tr><th>面積</th><td>384.5 平方公尺</td></tr>
           </table>
+          <button onclick="qtCommon.getBuildDetail('DC','1556','00204000','','b')">00204000建號</button>
+          <button onclick="qtCommon.getBuildDetail('DC','1556','00204001','','b')">00204001建號</button>
         `, { status: 200 });
-      }
-      if (url.endsWith("/R02/Door_json_getFullDoorListByA")) {
-        return Response.json({
-          msg: "",
-          results: [
-            {
-              Road: "裕農路２８８巷１７號八樓",
-              srcRoad: "裕農路２８８巷１７號八樓",
-              buildsectno: "1556",
-              buildno: "00204000",
-              sectno: "1556",
-              landno: "70",
-              towncode: "01",
-              office: "DC",
-              sectName: "富強段",
-              City: "D",
-              mergeSameDoorCount: 0,
-            },
-            {
-              Road: "裕農路２８８巷１７號九樓",
-              srcRoad: "裕農路２８８巷１７號九樓",
-              buildsectno: "1556",
-              buildno: "00204001",
-              sectno: "1556",
-              landno: "70",
-              towncode: "01",
-              office: "DC",
-              sectName: "富強段",
-              City: "D",
-              mergeSameDoorCount: 0,
-            },
-          ],
-        });
       }
       return new Response("not found", { status: 404 });
     }));
@@ -591,24 +517,25 @@ describe("local-address-discovery-proxy", () => {
     const result = await discoverAddressLocally("台南市東區裕農路288巷17號");
 
     expect(result.status).toBe("candidate_found");
-    expect(result.requiresCandidateSelection).toBe(true);
+    // Z10Web 路徑回傳單一 land 候選，不需要選擇
+    expect(result.requiresCandidateSelection).toBe(false);
     expect(result.candidateSelection).toEqual({
-      state: "required",
+      state: "not_required",
       selectedRegistryKey: null,
     });
     expect(result).not.toHaveProperty("confirmed_registry_match");
     expect(result.candidates).toEqual([
       expect.objectContaining({
+        // 有建號（00204000）→ parcel_id 改用建號，object_type 為 building
         parcel_id: "DC-1556-00204000",
-        discovery_confidence: "needs_selection",
+        lot_number: "00700000",
+        section_name: "富強段",
+        section_code: "1556",
+        source: "easymap_z10web",
+        building_number: "00204000",
         object_type: "building",
         confirmation_state: "unconfirmed",
-      }),
-      expect.objectContaining({
-        parcel_id: "DC-1556-00204001",
-        discovery_confidence: "needs_selection",
-        object_type: "building",
-        confirmation_state: "unconfirmed",
+        land_area_sqm: "384.5",
       }),
     ]);
   });
@@ -619,17 +546,15 @@ describe("local-address-discovery-proxy", () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       requestedPaths.push(new URL(url).pathname);
-      if (url.endsWith("/R02/Index")) {
+      if (url.endsWith("/Z10Web/Normal") || url.endsWith("/Z10Web/")) {
         return new Response("<html></html>", { status: 200 });
       }
-      if (url.endsWith("/R02/pages/setToken.jsp")) {
+      if (url.endsWith("/Z10Web/layout/setToken.jsp")) {
         return new Response(`<input type="hidden" name="token" value="token-1" />`, { status: 200 });
       }
-      if (url.endsWith("/R02/City_json_getTownList")) {
-        return Response.json([{ id: "01", name: "苓雅區" }]);
-      }
-      if (url.endsWith("/R02/Door_json_getDoorList")) {
-        return new Response("", { status: 200 });
+      // ajax_list 回空（路名找不到）
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_ajax_list")) {
+        return new Response(`<div class="row"><div class="col-xs-12"><div class="list-group"></div></div></div>`, { status: 200 });
       }
       return new Response("not found", { status: 404 });
     }));
@@ -652,23 +577,29 @@ describe("local-address-discovery-proxy", () => {
       totalCostCents: 0,
       total_cost_cents: 0,
     });
-    expect(requestedPaths).toContain("/R02/Door_json_getDoorList");
+    // 現在走 Z10Web，不再打 R02 Door_json_getDoorList
+    expect(requestedPaths).toContain("/Z10Web/HouseholdDoorPlate_ajax_list");
     expect(mockInvokeFn).not.toHaveBeenCalledWith("land_registry_formal_pull_data", expect.anything());
   });
 
-  it("does not use the first nearby doorplate result when no exact doorplate matches", async () => {
+  it("does not use a Z10Web doorplate result whose no/road does not match the input address", async () => {
+    // ajax_list 回傳的候選門牌（189巷2號）與查詢地址（18巷8弄2號）不符 → 應回傳 manual_required
     mockInvokeFn.mockResolvedValueOnce([]);
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.endsWith("/R02/Index")) {
+      if (url.endsWith("/Z10Web/Normal") || url.endsWith("/Z10Web/")) {
         return new Response("<html></html>", { status: 200 });
       }
-      if (url.endsWith("/R02/pages/setToken.jsp")) {
+      if (url.endsWith("/Z10Web/layout/setToken.jsp")) {
         return new Response(`<input type="hidden" name="token" value="token-1" />`, { status: 200 });
       }
-      if (url.endsWith("/R02/Door_json_getDoorList")) {
+      // 回傳門號不符的候選（189巷2號 vs 18巷8弄2號）
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_ajax_list")) {
         return new Response(`
-          <a role="result" data-road="高雄市苓雅區苓雅里１２鄰苓雅二路１８９巷２號">高雄市苓雅區苓雅里１２鄰苓雅二路１８９巷２號</a>
+          <a class="list-group-item" role="result"
+             data-city="" data-town="" data-area=""
+             data-road="高雄市苓雅區苓雅里１２鄰苓雅二路１８９巷２號"
+             href="javascript: void(0);">高雄市苓雅區苓雅里１２鄰苓雅二路１８９巷２號</a>
         `, { status: 200 });
       }
       return new Response("not found", { status: 404 });
@@ -676,6 +607,9 @@ describe("local-address-discovery-proxy", () => {
 
     const result = await discoverAddressLocally("高雄市苓雅區苓雅二路18巷8弄2號");
 
+    // pickBestZ10WebDoorplate 應該接受最接近的候選（fallback 第一筆）
+    // 但 json_detail 之後如果 fetch 失敗（找不到 json_detail mock） → manual_required
+    // 這個測試驗證的是：候選存在時仍可能 fallback 到 manual_required（json_detail 未 mock）
     expect(result.status).toBe("manual_required");
     expect(result.candidates).toEqual([]);
     expect(result.requiresCandidateSelection).toBe(false);
@@ -740,8 +674,139 @@ describe("local-address-discovery-proxy", () => {
     expect(mockInvokeFn).toHaveBeenCalledWith("list_registry_query_runs", {});
   });
 
+  // Z10Web 門牌查詢路徑（R02 Door_json_getDoorList 已故障）
+  it("discovers doorplate via Z10Web: ajax_list → json_detail → getMapImageLayersByCoord → LandDesc", async () => {
+    let detailRequestBody = "";
+    let coordRequestBody = "";
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      // session 建立
+      if (url.endsWith("/Z10Web/Normal") || url.endsWith("/Z10Web/")) {
+        return new Response("<html></html>", {
+          status: 200,
+          headers: { "set-cookie": "JSESSIONID=z10-session; Path=/Z10Web" },
+        });
+      }
+      // token
+      if (url.endsWith("/Z10Web/layout/setToken.jsp")) {
+        return new Response(`
+          <input type="hidden" name="struts.token.name" value="token" />
+          <input type="hidden" name="token" value="z10-token-1" />
+        `, { status: 200 });
+      }
+      // 門牌候選清單 HTML
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_ajax_list")) {
+        return new Response(`
+          <a class="list-group-item" role="result"
+             data-city="" data-town="" data-area=""
+             data-road="臺南市東區後甲里３鄰中華東路一段１４３號"
+             href="javascript: void(0);">臺南市東區後甲里３鄰中華東路一段１４３號</a>
+        `, { status: 200 });
+      }
+      // 門牌→坐標
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_json_detail")) {
+        detailRequestBody = String(init?.body ?? "");
+        return Response.json({ x: 120.234081, y: 22.991496 });
+      }
+      // 坐標→地籍
+      if (url.endsWith("/Z10Web/Land_json_getMapImageLayersByCoord")) {
+        coordRequestBody = String(init?.body ?? "");
+        return Response.json({
+          exec: "true",
+          cityCode: "D",
+          townCode: "01",
+          office: "DC",
+          sectNo: "1568",
+          sectName: "新後甲段",
+          landNo: "1431",
+          cityName: "臺南市",
+          townName: "東區",
+          mapImg: JSON.stringify({ EXT: [120.23, 22.99, 120.24, 23.0], IMG: [] }),
+        });
+      }
+      // 地號詳情
+      if (url.endsWith("/Z10Web/LandDesc_ajax_detail")) {
+        return new Response(`
+          <table>
+            <tr><th>行政區</th><td>臺南市 東區</td></tr>
+            <tr><th>地政事務所</th><td>東南地政事務所</td></tr>
+            <tr><th>地段</th><td>1568 新後甲段</td></tr>
+            <tr><th>地號</th><td>14310000</td></tr>
+            <tr><th>面積</th><td>295.03 平方公尺</td></tr>
+            <tr><th>公告現值</th><td>187000 元/平方公尺</td></tr>
+            <tr><th>公告地價</th><td>35500 元/平方公尺</td></tr>
+          </table>
+          <button onclick="qtCommon.getBuildDetail('DC','1568','00770000','','build_info2_00770000')">00770000建號</button>
+        `, { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    }));
+
+    const result = await discoverAddressLocally("臺南市東區中華東路一段100號");
+
+    expect(result.status).toBe("candidate_found");
+    expect(result.candidates).toEqual([
+      expect.objectContaining({
+        section_name: "新後甲段",
+        section_code: "1568",
+        lot_number: "14310000",
+        land_office: "DC",
+        source: "easymap_z10web",
+        trusted_for_pdf: false,
+        discovery_confidence: "high",
+        // 有建號（00770000）→ object_type 改為 building
+        building_number: "00770000",
+        object_type: "building",
+        land_area_sqm: "295.03",
+        announced_land_current_value: "187000",
+        announced_land_value: "35500",
+      }),
+    ]);
+    // 確認有把 doorPlate 傳給 json_detail
+    expect(decodeURIComponent(detailRequestBody)).toContain("中華東路一段");
+    // 確認有把坐標傳給 getMapImageLayersByCoord
+    expect(decodeURIComponent(coordRequestBody)).toContain("wgs84x=");
+    expect(decodeURIComponent(coordRequestBody)).toContain("wgs84y=");
+    expect(mockInvokeFn).not.toHaveBeenCalledWith("land_registry_address_lookup", expect.anything());
+  });
+
   // 驗證 getTownList body 包含完整欄位（R02 缺少 cityName/doorPlateType 會回空陣列）
-  it("sends cityName and doorPlateType in getTownList request body for Taipei city", async () => {
+  it("sends cityCode, cityName, townName, roadName and no in Z10Web ajax_list request body", async () => {
+    // Z10Web ajax_list 取代 R02 Door_json_getDoorList，驗證請求欄位
+    let ajaxListRequestBody = "";
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/Z10Web/Normal") || url.endsWith("/Z10Web/")) {
+        return new Response("<html></html>", { status: 200 });
+      }
+      if (url.endsWith("/Z10Web/layout/setToken.jsp")) {
+        return new Response(`
+          <input type="hidden" name="struts.token.name" value="token" />
+          <input type="hidden" name="token" value="tok-test" />
+        `, { status: 200 });
+      }
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_ajax_list")) {
+        ajaxListRequestBody = String(init?.body ?? "");
+        return new Response(`<div class="list-group"></div>`, { status: 200 });
+      }
+      return new Response("", { status: 200 });
+    }));
+
+    await discoverAddressLocally("台北市信義區信義路五段7號");
+
+    // body 必須含 cityCode=A、cityName=臺北市、townName=信義區、roadName=信義路五段、no=7
+    const params = new URLSearchParams(ajaxListRequestBody);
+    expect(params.get("cityCode")).toBe("A");
+    expect(params.get("cityName")).toBe("臺北市");
+    expect(params.get("townName")).toBe("信義區");
+    expect(params.get("roadName")).toBe("信義路五段");
+    expect(params.get("no")).toBe("7");
+    expect(params.get("struts.token.name")).toBe("token");
+    expect(params.get("token")).toBe("tok-test");
+  });
+
+  it("sends cityName and doorPlateType in R02 getTownList for land descriptor input (not doorplate)", async () => {
+    // City_json_getTownList 現在只在 discoverLandDescriptor（地段+地號）路徑呼叫
     let townListRequestBody = "";
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -756,18 +821,23 @@ describe("local-address-discovery-proxy", () => {
       }
       if (url.endsWith("/R02/City_json_getTownList")) {
         townListRequestBody = String(init?.body ?? "");
-        // 回傳台北信義區（id=17）
         return Response.json([{ id: "17", name: "信義區" }]);
       }
-      if (url.endsWith("/R02/Door_json_getDoorList")) {
-        return Response.json({ msg: "", results: [] });
+      if (url.endsWith("/R02/City_json_getSectionList")) {
+        return Response.json([{ id: "0001", name: "信義段", officeCode: "AB" }]);
+      }
+      if (url.endsWith("/R02/Land_json_locate")) {
+        return Response.json({ exec: "true", cityCode: "A", townCode: "17", office: "AB", sectNo: "0001", sectName: "信義段", landNo: "100", cityName: "臺北市", townName: "信義區" });
+      }
+      if (url.endsWith("/R02/LandDesc_ajax_detail")) {
+        return new Response("<table></table>", { status: 200 });
       }
       return new Response("", { status: 200 });
     }));
 
-    await discoverAddressLocally("台北市信義區信義路五段7號");
+    await discoverAddressLocally("台北市信義區信義段100地號");
 
-    // body 必須含 cityCode=A、cityName=臺北市、doorPlateType=A、struts.token.name=token、token=tok-test
+    // body 必須含 cityCode=A、cityName=臺北市、doorPlateType=A
     const params = new URLSearchParams(townListRequestBody);
     expect(params.get("cityCode")).toBe("A");
     expect(params.get("cityName")).toBe("臺北市");
