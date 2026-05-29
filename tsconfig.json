@@ -51,6 +51,7 @@
     "0520",
     "src-tauri",
     "cloudflare-worker",
+    "dist-local-runtime",
     "legacy",
     "out",
     ".next"

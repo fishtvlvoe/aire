@@ -42,19 +42,24 @@ describe("Login page", () => {
     expect(screen.getByRole("button", { name: "顯示密碼" })).toBeInTheDocument();
 
     // login button
+    expect(screen.getByRole("tab", { name: "帳號密碼" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "一次性登入碼" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^登入$/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "使用一次性登入碼" })).toBeInTheDocument();
 
     // forgot password
     expect(screen.getByRole("link", { name: "忘記密碼" })).toHaveAttribute(
       "href",
       "https://opcos.me/forgot-password",
     );
-    expect(screen.getByText("使用 AIRE 桌面版帳號登入")).toBeInTheDocument();
-    expect(screen.getByText("Google 或 LINE 購買用戶請先在 opcos.me 產生桌面登入碼。")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "用 Google 或 LINE 購買？" })).toHaveAttribute(
+    expect(screen.getByText("登入 AIRE 桌面版")).toBeInTheDocument();
+    expect(screen.getByText("使用 AIRE 桌面版帳號登入。Google 或 LINE 購買用戶請改用一次性登入碼。")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "取得桌面登入碼" })).toHaveAttribute(
       "href",
       "https://opcos.me/products/aire?intent=desktop-login",
+    );
+    expect(screen.getByRole("link", { name: "建立帳號或購買" })).toHaveAttribute(
+      "href",
+      "https://opcos.me/products/aire",
     );
 
     // no license/activation/serial key UI
@@ -71,15 +76,20 @@ describe("Login page", () => {
     });
     render(<LoginPage />);
 
+    fireEvent.click(screen.getByRole("tab", { name: "一次性登入碼" }));
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("一次性桌面登入碼")).toBeInTheDocument();
+    });
+
     fireEvent.change(
       (screen.queryByPlaceholderText(/email/i) ??
         document.querySelector('input[type="email"]'))!,
       { target: { value: "admin@test.aire" } },
     );
-    fireEvent.change(screen.getByPlaceholderText("一次性桌面登入碼（可選）"), {
+    fireEvent.change(screen.getByPlaceholderText("一次性桌面登入碼"), {
       target: { value: "OTC-ADMIN-2026" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "使用一次性登入碼" }));
+    fireEvent.click(screen.getByRole("button", { name: "使用桌面碼" }));
 
     await waitFor(() => {
       expect(mockBootstrap).toHaveBeenCalledWith("admin@test.aire", "OTC-ADMIN-2026");
@@ -132,6 +142,19 @@ describe("Login page", () => {
 
     expect(screen.getByText("請輸入 AIRE 桌面版帳號與密碼")).toBeInTheDocument();
     expect(mockLogin).not.toHaveBeenCalled();
+  });
+
+  it("bootstrap login requires email and code", async () => {
+    render(<LoginPage />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "一次性登入碼" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "使用桌面碼" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "使用桌面碼" }));
+
+    expect(screen.getByText("請輸入 Email 與一次性桌面登入碼")).toBeInTheDocument();
+    expect(mockBootstrap).not.toHaveBeenCalled();
   });
 
   it("failed login — INVALID_CREDENTIALS shows 帳號或密碼錯誤", async () => {

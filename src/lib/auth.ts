@@ -90,9 +90,11 @@ async function invokeAuthCommand<T>(
 function shouldUseLocalAuthFallback(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return (
+    message.includes("LocalApiNotWiredError") ||
     message.includes("此功能需在 AIRE 桌面 App 中使用") ||
     message.includes("not found") ||
     message.includes("unknown command") ||
-    message.includes("Command")
+    message.includes("Command") ||
+    message.includes('command "')
   );
 }

@@ -82,12 +82,12 @@ test("login errors stay user-readable for invalid and expired test accounts", as
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill("wrong@example.com");
   await page.getByPlaceholder("密碼").fill("wrong");
-  await page.getByRole("button", { name: "登入" }).click();
+  await page.getByRole("button", { name: "登入", exact: true }).click();
   await expect(page.getByText("帳號或密碼錯誤")).toBeVisible();
 
   await page.getByPlaceholder("Email").fill("expired@test.aire");
   await page.getByPlaceholder("密碼").fill("password");
-  await page.getByRole("button", { name: "登入" }).click();
+  await page.getByRole("button", { name: "登入", exact: true }).click();
   await expect(page.getByText("帳號已過期")).toBeVisible();
 });
 
@@ -95,7 +95,7 @@ async function login(page: Page, email: string, password: string) {
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("密碼").fill(password);
-  await page.getByRole("button", { name: "登入" }).click();
+  await page.getByRole("button", { name: "登入", exact: true }).click();
 }
 
 async function preserveSessionForFutureNavigations(page: Page, role: "admin" | "user") {

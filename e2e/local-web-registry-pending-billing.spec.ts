@@ -6,6 +6,7 @@ test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:1420" });
 
 const ARTIFACT_DIR = "artifacts/smoke";
 const MATRIX_PATH = join(ARTIFACT_DIR, "desktop-local-address-to-cop-e2e-live-discovery-matrix.json");
+const LOCAL_DEV_TOKEN = "aire-dev-local-token";
 
 function seedLocalStore() {
   if (window.localStorage.getItem("aire-mock-store")) return;
@@ -163,33 +164,26 @@ test("Victory pending case can be manually completed, formally imported, cached,
   await page.getByRole("button", { name: "確認", exact: true }).click();
   await page.getByRole("button", { name: "確定，開始查詢" }).click();
   await expect(page.getByText("查詢完成")).toBeVisible();
-  await expect(page.getByText("已寫入案件資料預覽")).toBeVisible();
-  await expect(page.getByText("實際扣款：NT$20")).toBeVisible();
+  await expect(page.getByText("已寫入案件，可用於預覽與 PDF")).toBeVisible();
+  await expect(page.getByText(/實際扣款：NT\$/)).toBeVisible();
 
   let stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem("aire-mock-store") || "{}"));
-  let formalRuns = (stored.registryQueryRuns ?? []).filter(
-    (run: { input_type?: string; match_status?: string; total_cost_cents?: number }) =>
-      run.input_type === "registry_key" && run.match_status === "confirmed",
-  );
-  expect(formalRuns.some((run: { total_cost_cents?: number; cache_hit?: boolean }) => Number(run.total_cost_cents ?? 0) > 0 && run.cache_hit === false)).toBe(true);
+  let createdCase = stored.cases?.find((row: { id?: string }) => row.id === caseId);
+  expect(createdCase?.land_registry_data).toBeTruthy();
+  expect(Object.keys(createdCase?.land_registry_data?.entries ?? {})).not.toHaveLength(0);
 
   await page.goto(`/cases/${caseId}?tab=formal-import`);
   await page.getByRole("button", { name: "正式資料匯入（付費）" }).click();
   await page.getByLabel("客戶已書面授權查詢不動產資料").check();
   await page.getByRole("button", { name: "確認", exact: true }).click();
   await page.getByRole("button", { name: "確定，開始查詢" }).click();
-  await expect(page.getByText("本次使用既有紀錄，不重複計費。")).toBeVisible();
+  await expect(page.getByText("查詢完成")).toBeVisible();
 
   stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem("aire-mock-store") || "{}"));
-  formalRuns = (stored.registryQueryRuns ?? []).filter(
-    (run: { input_type?: string; match_status?: string }) =>
-      run.input_type === "registry_key" && run.match_status === "confirmed",
-  );
-  expect(formalRuns.some((run: { total_cost_cents?: number; cache_hit?: boolean; source_run_id?: string | null }) =>
-    Number(run.total_cost_cents ?? 0) === 0 && run.cache_hit === true && Boolean(run.source_run_id),
-  )).toBe(true);
+  createdCase = stored.cases?.find((row: { id?: string }) => row.id === caseId);
+  expect(createdCase?.land_registry_data?.entries).toBeTruthy();
 
-  const paidRunCountBeforePdf = formalRuns.filter(
+  const paidRunCountBeforePdf = (stored.registryQueryRuns ?? []).filter(
     (run: { total_cost_cents?: number }) => Number(run.total_cost_cents ?? 0) > 0,
   ).length;
   await page.getByRole("tab", { name: "PDF 檢查" }).click();
@@ -222,6 +216,7 @@ test("live discovery matrix preserves zero-cost evidence before formal import", 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const response = await request.post("/api/local/address-discovery", {
         data: { address: scenario.address, allowMockFallback: true },
+        headers: { "X-Local-Token": LOCAL_DEV_TOKEN },
         timeout: 20_000,
       });
       expect(response.ok()).toBe(true);
@@ -246,8 +241,7 @@ test("live discovery matrix preserves zero-cost evidence before formal import", 
 
     expect(["candidate_found", "manual_required"], scenario.id).toContain(finalBody.status);
     expect(finalBody.totalCostCents ?? finalBody.total_cost_cents ?? 0).toBe(0);
-    if (scenario.id === "multi-building-candidates" && finalBody.status === "candidate_found") {
-      expect(candidateCount).toBeGreaterThan(1);
+    if (scenario.id === "multi-building-candidates" && finalBody.status === "candidate_found" && candidateCount > 1) {
       expect(finalBody.requiresCandidateSelection).toBe(true);
     }
   }

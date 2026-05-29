@@ -91,6 +91,26 @@ describe("auth helpers", () => {
     });
   });
 
+  it("falls back to local desktop auth on LocalApiNotWiredError", async () => {
+    mockSafeInvoke.mockRejectedValue(
+      new Error('LocalApiNotWiredError: command "login" 尚未對接 Node 本機 API'),
+    );
+    mockLocalInvoke.mockResolvedValue({
+      success: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
+
+    await expect(login("admin@test.aire", "password")).resolves.toEqual({
+      success: true,
+      user: { email: "admin@test.aire", role: "admin" },
+    });
+
+    expect(mockLocalInvoke).toHaveBeenCalledWith("login", {
+      email: "admin@test.aire",
+      password: "password",
+    });
+  });
+
   it("exchanges bootstrap code and reads device session status", async () => {
     mockSafeInvoke
       .mockResolvedValueOnce({

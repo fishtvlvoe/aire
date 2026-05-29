@@ -1,6 +1,6 @@
 # AIRE SR Active Index
 
-更新日期：2026-05-26
+更新日期：2026-05-29
 
 這份檔案是新對話接手 AIRE SR / SDD 工作時的入口。先讀這份，再決定是否要讀 `openspec/changes/` 裡的 change。不要直接把所有舊 SR 都當成目前要做的工作。
 
@@ -9,15 +9,15 @@
 | 順序 | SR | 狀態 | 用途 | 下一步 |
 | --- | --- | --- | --- | --- |
 | 0 | `desktop-system-flow-blueprint-html` | 已封存 / 歷史參考 | 內部圖表式 HTML 藍圖：整理本機、Desktop App、驗收、授權、OO 串接與自動更新的完整路線。 | 僅作背景，不作完成依據。 |
-| 1 | `desktop-local-address-to-cop-e2e` | 進行中 / 唯一主線 | 先完成本機 Web：R02 discovery、`registry_pending`、人工確認、正式 COP、本機 DB、cache、補件圖資、費用明細與 PDF；再做 App parity。 | 完成這個 SR 並留下 Web/App/DB/cache/PDF 證據前，不得把 Desktop fullflow 視為可驗收，也不得壓正式 App。 |
+| 1 | `desktop-local-address-to-cop-e2e` | 進行中 / 唯一主線 | 先完成本機 Web 與 Mac App：地址查詢、confirmed key、正式 COP、本機 DB、cache、費用明細、公告值、實價登錄與 PDF；Windows 驗收延後。 | 完成這個 SR 並留下 Web/Mac/DB/cache/PDF 證據前，不得把 Desktop fullflow 視為可驗收，也不得壓正式 App。 |
 | 2 | `desktop-fullflow-r02-cop-parity` | 已封存 / 被吸收 | 舊桌面完整版主線；存活需求已併入 `desktop-local-address-to-cop-e2e`。 | 不再單獨實作或驗收。 |
-| 3 | `desktop-fullflow-release-acceptance-gate` | 已封存 / 被吸收 | 舊 release gate；證據要求已併入 `desktop-local-address-to-cop-e2e` tasks 5.4 / 6.8。 | 不再單獨實作或驗收。 |
+| 3 | `desktop-fullflow-release-acceptance-gate` | 已封存 / 被吸收 | 舊 release gate；證據要求已併入 `desktop-local-address-to-cop-e2e`。 | 不再單獨實作或驗收。 |
 | 4 | `desktop-auto-update-macos-windows` | 已封存 / 延後 | 自動更新不是本期範圍。 | `desktop-local-address-to-cop-e2e` 完整驗收後，另開新 SR。 |
 
 ## 接手規則
 
 1. 預設先讀 `docs/aire-desktop-system-blueprint-2026-05-25.html`，再讀上表 SR。
-2. `desktop-local-address-to-cop-e2e` 未完成前，不要壓正式 App、不要做 Windows/macOS release acceptance、不要開始 auto-update。
+2. `desktop-local-address-to-cop-e2e` 未完成前，不要壓正式 App、不要恢復 Windows acceptance、不要開始 auto-update。
 3. `desktop-local-address-to-cop-e2e` 的完成證據必須包含查詢 JSON、費用、cache hit、sourceRunId、error log、PDF artifact 與本機 DB 證據。
 4. 舊的 `desktop-fullflow-r02-cop-parity` 與 `desktop-fullflow-release-acceptance-gate` 報告只能當歷史參考，不得拿來抵充目前 SR 驗收。
 5. 客戶前台 UI 不顯示 R02、便民系統、COP、API、Helper、JSON、payload、adapter、parser 等技術詞。
@@ -25,7 +25,13 @@
 7. `查詢紀錄` 只看費用、cache、錯誤、JSON 與追溯，不放查詢表單或試用狀態。
 8. `系統設定` 承接方案、授權、試用、客戶 COP 憑證狀態與未來更新設定。
 9. 完成任何 SR 前都要跑 `spectra analyze <change> --json` 與 `spectra validate <change>`。
-10. 涉及桌面 app 時，不能只跑 build；macOS 與 Windows 都要能安裝、啟動、跑通主流程並留下驗收紀錄。
+10. 當前完成定義以本機 Web 與 macOS 主流程為先；Windows 驗收屬下一順位，待主線穩定後再恢復。
+
+## 2026-05-29 收斂決策
+
+- `mvp-land-lookup-unify` 已 park。原因：lookup 契約仍保留參考價值，但目前不再單獨作為 active 開發面；其有效需求由 `desktop-local-address-to-cop-e2e` 主線承接。
+- `browser-local-runtime-mvp` 已 park。原因：剩餘工作以 Windows runtime / 環境驗收為主，非目前 Mac first 主線 blocker。
+- 現在 `spectra list` 應只剩 `desktop-local-address-to-cop-e2e` 為 active change。
 
 ## 歷史或暫停 SR
 
@@ -42,6 +48,8 @@
 | `desktop-fullflow-release-acceptance-gate` | 已封存 / 被吸收 | 舊驗收門檻已被 `desktop-local-address-to-cop-e2e` 取代。 |
 | `desktop-auth-credential-fulfillment-smoke` | 已封存 / 被吸收 | App 登入差異收斂為 SaaS AIRE 授權碼，其他流程不得分叉。 |
 | `desktop-auto-update-macos-windows` | 已封存 / 延後 | 自動更新是下一期能力，不屬於本 SR。 |
+| `mvp-land-lookup-unify` | 已 park / 主線吸收中 | 地址查詢契約仍可作歷史參考，但 active 開發已收斂到 `desktop-local-address-to-cop-e2e`。 |
+| `browser-local-runtime-mvp` | 已 park / Windows 延後 | 剩餘工作以 Windows runtime 驗收為主，不是目前 Mac first 主線 blocker。 |
 | `refine-product-navigation-ia` | 已完成 / 歷史參考 | UI 導航整理已不再是本期主線。 |
 | `fix-cr-review-persistence-and-supplement-routing` | 已完成 / 歷史參考 | 修正項已完成，不應重開。 |
 | `settings-plan-upgrade-profile-redesign` | 已完成 / 歷史參考 | 設定頁方向保留，但不單獨作為本期主線。 |

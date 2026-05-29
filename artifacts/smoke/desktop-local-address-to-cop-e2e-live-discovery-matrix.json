@@ -1,43 +1,60 @@
 {
-  "generatedAt": "2026-05-27T10:29:18.167Z",
+  "generatedAt": "2026-05-29T11:26:38.960Z",
   "matrix": [
     {
       "id": "tainan-doorplate",
       "address": "台南市東區東和路47號3樓",
       "preferredStatus": "candidate_found",
-      "status": "manual_required",
+      "status": "candidate_found",
       "inputKind": "doorplate",
       "intendedObjectType": "building",
-      "candidateCount": 0,
+      "candidateCount": 1,
       "requiresCandidateSelection": false,
       "totalCostCents": 0,
-      "firstCandidate": null,
-      "errors": [
-        {
-          "source": "easymap_r02",
-          "code": "easymap_r02_unavailable",
-          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
-        }
-      ]
+      "firstCandidate": {
+        "address": "台南市東區東和路47號3樓",
+        "lot_number": "00022132",
+        "section_name": "東光段",
+        "section_code": "1514",
+        "land_office": "DC",
+        "source": "easymap_z10web",
+        "trusted_for_pdf": false,
+        "parcel_id": "DC-1514-00022132",
+        "building_number": "",
+        "discovery_confidence": "high",
+        "object_type": "land",
+        "confirmation_state": "unconfirmed"
+      },
+      "errors": []
     },
     {
       "id": "kaohsiung-correct-doorplate",
       "address": "高雄市苓雅區苓雅二路189巷2號",
       "preferredStatus": "candidate_found",
-      "status": "manual_required",
+      "status": "candidate_found",
       "inputKind": "doorplate",
       "intendedObjectType": "building",
-      "candidateCount": 0,
+      "candidateCount": 1,
       "requiresCandidateSelection": false,
       "totalCostCents": 0,
-      "firstCandidate": null,
-      "errors": [
-        {
-          "source": "easymap_r02",
-          "code": "easymap_r02_unavailable",
-          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
-        }
-      ]
+      "firstCandidate": {
+        "address": "高雄市苓雅區苓雅二路189巷2號",
+        "lot_number": "04900000",
+        "section_name": "苓雅寮段",
+        "section_code": "0903",
+        "land_office": "EB",
+        "source": "easymap_z10web",
+        "trusted_for_pdf": false,
+        "land_area_sqm": "417.0",
+        "announced_land_current_value": "68000",
+        "announced_land_value": "22000",
+        "parcel_id": "EB-0903-04247000",
+        "building_number": "04247000",
+        "discovery_confidence": "high",
+        "object_type": "building",
+        "confirmation_state": "unconfirmed"
+      },
+      "errors": []
     },
     {
       "id": "kaohsiung-typo-doorplate",
@@ -54,7 +71,7 @@
         {
           "source": "easymap_r02",
           "code": "easymap_r02_unavailable",
-          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+          "message": "EasyMap Z10Web /HouseholdDoorPlate_json_detail returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
         }
       ]
     },
@@ -76,19 +93,16 @@
         "land_office": "DC",
         "source": "easymap_r02",
         "trusted_for_pdf": false,
+        "land_area_sqm": "1655.78",
+        "announced_land_current_value": "45500",
+        "announced_land_value": "9100",
         "parcel_id": "DC-1556-00700000",
         "building_number": "",
         "discovery_confidence": "high",
         "object_type": "land",
         "confirmation_state": "unconfirmed"
       },
-      "errors": [
-        {
-          "source": "easymap_r02",
-          "code": "easymap_http_500",
-          "message": "EasyMap R02 /LandDesc_ajax_detail returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
-        }
-      ]
+      "errors": []
     },
     {
       "id": "not-found",
@@ -113,20 +127,27 @@
       "id": "multi-building-candidates",
       "address": "台南市東區東和路47號",
       "preferredStatus": "candidate_found",
-      "status": "manual_required",
+      "status": "candidate_found",
       "inputKind": "doorplate",
       "intendedObjectType": "building",
-      "candidateCount": 0,
+      "candidateCount": 1,
       "requiresCandidateSelection": false,
       "totalCostCents": 0,
-      "firstCandidate": null,
-      "errors": [
-        {
-          "source": "easymap_r02",
-          "code": "easymap_r02_unavailable",
-          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
-        }
-      ]
+      "firstCandidate": {
+        "address": "台南市東區東和路47號",
+        "lot_number": "00022132",
+        "section_name": "東光段",
+        "section_code": "1514",
+        "land_office": "DC",
+        "source": "easymap_z10web",
+        "trusted_for_pdf": false,
+        "parcel_id": "DC-1514-00022132",
+        "building_number": "",
+        "discovery_confidence": "high",
+        "object_type": "land",
+        "confirmation_state": "unconfirmed"
+      },
+      "errors": []
     }
   ]
 }

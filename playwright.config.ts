@@ -14,7 +14,7 @@ export default defineConfig({
     ['json', { outputFile: 'e2e/results/results.json' }],
   ],
   use: {
-    baseURL: 'http://localhost:1420', // Tauri dev server 預設 port
+    baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:1420', // 可覆蓋到 local web / local runtime
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

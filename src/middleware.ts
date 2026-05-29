@@ -12,7 +12,7 @@
  * 不保護：/api/health（launcher polling 判斷 server 就緒）
  */
 import { NextRequest, NextResponse } from "next/server";
-import { LOCAL_TOKEN_HEADER } from "@/lib/local-api/contract";
+import { LOCAL_DEV_TOKEN, LOCAL_TOKEN_HEADER } from "@/lib/local-api/contract";
 
 export const config = {
   // 只攔 /api/local/*，/api/health 不在此 matcher 內
@@ -50,7 +50,9 @@ function timingSafeEqualEdge(a: string, b: string): boolean {
 
 export default function middleware(request: NextRequest) {
   // 從環境變數讀取合法 token（launcher 啟動時注入）
-  const validToken = process.env.AIRE_LOCAL_TOKEN ?? "";
+  const validToken =
+    process.env.AIRE_LOCAL_TOKEN ??
+    (process.env.NODE_ENV === "development" ? LOCAL_DEV_TOKEN : "");
 
   // token 未設定（如開發環境未設 env）→ 拒絕所有請求，要求明確設定
   if (!validToken) {

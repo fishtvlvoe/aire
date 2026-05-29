@@ -154,4 +154,11 @@ describe("CaseWizardStep2", () => {
     expect(screen.queryByText("現場必問工作台")).toBeNull();
     expect(screen.queryByText("秘書後補工作台")).toBeNull();
   });
+
+  it("tells the user they can continue with a reference PDF before paid formal query", () => {
+    render(<CaseWizardStep2 caseData={baseCase} />);
+
+    expect(screen.getByText("免費前查與正式查詢的可用欄位都會顯示在這裡；未正式查詢時仍可先做參考版說明書。")).toBeInTheDocument();
+    expect(screen.getByText("尚未讀到正式謄本資料。你可以先用免費前查資料繼續整理案件與預覽 PDF；若之後需要正式資料，再進行付費查詢。")).toBeInTheDocument();
+  });
 });

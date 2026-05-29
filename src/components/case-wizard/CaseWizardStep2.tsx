@@ -239,7 +239,7 @@ function RegistryPreviewPanel({
         <div>
           <h3 className="text-base font-semibold">謄本資料預覽</h3>
           <p className="text-sm text-muted-foreground">
-            拉完謄本後，這裡會顯示可帶入不動產說明書的欄位。
+            免費前查與正式查詢的可用欄位都會顯示在這裡；未正式查詢時仍可先做參考版說明書。
           </p>
         </div>
         <span className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground">
@@ -249,7 +249,7 @@ function RegistryPreviewPanel({
 
       {sections.length === 0 ? (
         <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">
-          尚未讀到謄本資料。請先正式查詢；若資料查不到，後續欄位會保留空白讓業務手寫。
+          尚未讀到正式謄本資料。你可以先用免費前查資料繼續整理案件與預覽 PDF；若之後需要正式資料，再進行付費查詢。
         </div>
       ) : (
         <div className="grid gap-4 2xl:grid-cols-2">

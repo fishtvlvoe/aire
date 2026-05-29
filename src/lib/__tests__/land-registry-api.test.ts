@@ -24,10 +24,12 @@ describe("land-registry-api addressLookup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    (window as unknown as Record<string, unknown>).__AIRE_LOCAL_TOKEN__ = "test-local-token";
   });
 
   afterEach(() => {
     vi.stubEnv("NODE_ENV", originalNodeEnv);
+    delete (window as unknown as Record<string, unknown>).__AIRE_LOCAL_TOKEN__;
   });
 
   it("uses the local backend in development browser mode instead of blocking local E2E", async () => {
@@ -174,6 +176,22 @@ describe("land-registry-api addressLookup", () => {
     expect(mocks.safeInvoke).toHaveBeenCalledWith("get_land_api_settings");
     expect(mocks.safeInvoke).toHaveBeenCalledWith("get_case", { id: "case-hsinchu" });
     fetchSpy.mockRestore();
+  });
+
+  it("rejects formal import when the case has no confirmed registry match", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    mocks.isTauriEnv.mockResolvedValue(false);
+    mocks.safeInvoke
+      .mockResolvedValueOnce({ clientId: "cid", secret: "sec" })
+      .mockResolvedValueOnce({
+        id: "case-no-match",
+        land_registry_data: {},
+      });
+
+    await expect(formalPullData("case-no-match", ["building_registry"])).rejects.toThrow(
+      "registry_match_required",
+    );
+    expect(mocks.safeInvoke).toHaveBeenCalledWith("get_case", { id: "case-no-match" });
   });
 
   it("uses the desktop backend command for formal import in Tauri mode", async () => {

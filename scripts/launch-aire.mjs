@@ -219,11 +219,13 @@ async function main() {
 
   console.log("▶ AIRE Launcher");
   console.log("  port     :", port);
+  console.log("  token    :", token.slice(0, 8) + "...");
   console.log("  data dir :", dataDir);
   console.log("  URL      :", url);
 
   // 確保資料目錄存在
   fs.mkdirSync(dataDir, { recursive: true });
+
 
   // spawn server（繼承 stdout/stderr 讓使用者看到 log）
   const serverEnv = {
@@ -235,12 +237,11 @@ async function main() {
     NODE_ENV: "production",
   };
 
-  // 使用 next dev（開發 server，綁定 127.0.0.1 本機安全）
-  // 本機 runtime 無需優化，dev server 足夠
-  const serverProcess = spawn("pnpm", ["dev"], {
+  // 啟動 dist-local-runtime/server.js（Next.js standalone server）
+  const serverProcess = spawn("node", [SERVER_JS], {
     env: serverEnv,
     stdio: "inherit",
-    cwd: ROOT,
+    cwd: path.join(ROOT, "dist-local-runtime"),
   });
 
   serverProcess.on("error", (err) => {
@@ -270,6 +271,17 @@ async function main() {
     console.error("✗", err.message);
     serverProcess.kill("SIGTERM");
     process.exit(1);
+  }
+
+  // server 就緒後，立即初始化 token（避免 build-time env 捕獲）
+  try {
+    await http.get(
+      { hostname: BIND_HOST, port, path: `/api/init?token=${encodeURIComponent(token)}`, timeout: 2000 },
+      (res) => res.resume()
+    );
+  } catch (err) {
+    // init API 失敗不致命，token 會保留為空
+    console.warn("⚠ 無法初始化 token，前端可能無法認證本機 API");
   }
 
   console.log("✓ AIRE runtime 就緒，開啟瀏覽器...");
