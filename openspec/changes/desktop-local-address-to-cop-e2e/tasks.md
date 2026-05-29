@@ -55,6 +55,7 @@
 - [ ] 4B.2 把免費前查的 query ledger 與付費正式查的成本紀錄分開保存，避免後續 PDF 或工作台把兩者混成同一來源。驗證：focused vitest 通過。
 - [x] 4B.3 對應 Requirement `Paid query consent and cost SHALL be explicit before formal COP runs`：正式查詢前必須揭露用途、價格、失敗仍可能計費。
 - [x] 4B.4 正式查詢扣款 modal 顯示逐項費用明細，明確列出每個查詢項目各自費用，以及付費後會取得的正式資料。驗證：`pnpm exec vitest run src/components/__tests__/PreChargeConfirmDialog.test.tsx src/components/__tests__/PullParcelDataButton.test.tsx` 通過。
+- [x] 4B.5 正式資料匯入頁不得把 `manual-*` 人工確認紀錄當成可付費查詢 key；只有 `office_code / section_code / land_no / building_no` 完整且格式正確的候選可顯示付費匯入。驗證：`pnpm exec vitest run src/components/__tests__/DemoAlignedWorkbench.test.tsx`、`pnpm exec vitest run src/lib/server/__tests__/local-formal-pull-proxy.test.ts src/lib/__tests__/land-registry-api.test.ts` 通過。
 
 ## 5. Mac 驗收
 

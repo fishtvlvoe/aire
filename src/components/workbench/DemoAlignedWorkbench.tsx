@@ -374,11 +374,14 @@ function findFormalImportTarget(
     : null;
   const confirmedParcelIds = registry?.confirmed_parcel_ids ?? {};
   const explicitTarget = candidates.find((candidate) =>
-    candidate.confirmation_state === "confirmed" ||
-    confirmedParcelIds[candidate.parcel_type] === candidate.candidate_id,
+    hasCompleteFormalRegistryKey(candidate) &&
+      (
+        candidate.confirmation_state === "confirmed" ||
+        confirmedParcelIds[candidate.parcel_type] === candidate.candidate_id
+      ),
   );
   if (explicitTarget) return explicitTarget;
-  if (manualConfirmedTarget) return manualConfirmedTarget;
+  if (manualConfirmedTarget && hasCompleteFormalRegistryKey(manualConfirmedTarget)) return manualConfirmedTarget;
   return null;
 }
 
@@ -419,32 +422,65 @@ function buildManualConfirmedCandidate(caseDraft: CaseRow): CandidateParcelOptio
 }
 
 function buildConfirmedRegistryMatchFromCandidate(candidate: CandidateParcelOption) {
-  const officeCode =
-    candidate.office_code?.trim() ||
-    normalizedParcelIdPart(candidate.normalized_parcel_id, 0) ||
-    null;
-  const sectionCode =
-    candidate.section_code?.trim() ||
-    normalizedParcelIdPart(candidate.normalized_parcel_id, 1) ||
-    null;
-  const landNo =
-    candidate.land_no?.trim() ||
-    (candidate.parcel_type === "land" ? candidate.parcel_number?.trim() : null) ||
-    null;
-  const buildingNo =
-    candidate.building_no?.trim() ||
-    (candidate.parcel_type === "building" ? candidate.parcel_number?.trim() : null) ||
-    null;
-
   return {
-    office_code: officeCode,
-    section_code: sectionCode,
+    office_code: getCandidateOfficeCode(candidate),
+    section_code: getCandidateSectionCode(candidate),
     section_name: candidate.section_name?.trim() || null,
-    land_no: landNo,
-    building_no: buildingNo,
+    land_no: getCandidateLandNo(candidate),
+    building_no: getCandidateBuildingNo(candidate),
     registry_key: candidate.normalized_parcel_id || null,
     status: "confirmed" as const,
   };
+}
+
+function getCandidateOfficeCode(candidate: CandidateParcelOption): string | null {
+  return candidate.office_code?.trim() || normalizedParcelIdPart(candidate.normalized_parcel_id, 0) || null;
+}
+
+function getCandidateSectionCode(candidate: CandidateParcelOption): string | null {
+  return candidate.section_code?.trim() || normalizedParcelIdPart(candidate.normalized_parcel_id, 1) || null;
+}
+
+function getCandidateLandNo(candidate: CandidateParcelOption): string | null {
+  return (
+    candidate.land_no?.trim() ||
+    (candidate.parcel_type === "land" ? candidate.parcel_number?.trim() : null) ||
+    null
+  );
+}
+
+function getCandidateBuildingNo(candidate: CandidateParcelOption): string | null {
+  return (
+    candidate.building_no?.trim() ||
+    (candidate.parcel_type === "building" ? candidate.parcel_number?.trim() : null) ||
+    null
+  );
+}
+
+function hasCompleteFormalRegistryKey(candidate: CandidateParcelOption): boolean {
+  const officeCode = getCandidateOfficeCode(candidate);
+  const sectionCode = getCandidateSectionCode(candidate);
+  const landNo = getCandidateLandNo(candidate);
+  const buildingNo = getCandidateBuildingNo(candidate);
+  if (!isFormalOfficeCode(officeCode) || !isFormalSectionCode(sectionCode) || !isFormalObjectNo(landNo)) {
+    return false;
+  }
+  if (candidate.parcel_type === "building" && !isFormalObjectNo(buildingNo)) {
+    return false;
+  }
+  return true;
+}
+
+function isFormalOfficeCode(value: string | null): boolean {
+  return /^[A-Z0-9]{2}$/i.test(value ?? "");
+}
+
+function isFormalSectionCode(value: string | null): boolean {
+  return /^\d{4}$/.test(value ?? "");
+}
+
+function isFormalObjectNo(value: string | null): boolean {
+  return /^\d{8}$/.test(value ?? "");
 }
 
 function normalizedParcelIdPart(parcelId: string, index: number): string | null {
@@ -1132,7 +1168,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   </div>
                   <div className="mt-3 overflow-hidden rounded-md border bg-white">
                     {candidateOptions.map((candidate) => {
-                      const canImportFormal = formalImportTarget?.candidate_id === candidate.candidate_id;
+                      const hasFormalKey = hasCompleteFormalRegistryKey(candidate);
+                      const canImportFormal =
+                        hasFormalKey && formalImportTarget?.candidate_id === candidate.candidate_id;
+                      const confirmedButIncomplete =
+                        candidate.confirmation_state === "confirmed" && !hasFormalKey;
                       return (
                         <article
                           key={candidate.candidate_id}
@@ -1167,6 +1207,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                                   }));
                                 }}
                               />
+                            ) : confirmedButIncomplete ? (
+                              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[17px] text-amber-800">
+                                前次確認缺正式查詢代碼，請確認下方完整候選後再匯入。
+                              </div>
                             ) : (
                               <>
                                 <button

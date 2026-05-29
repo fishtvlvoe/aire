@@ -573,6 +573,8 @@ describe("DemoAlignedWorkbench", () => {
             parcel_type: "building",
             section_code: "9125",
             section_name: "東和段",
+            land_no: "00083000",
+            building_no: "00084000",
             parcel_number: "00084000",
             normalized_parcel_id: "DK-9125-00084000",
             source: "public_reference",
@@ -598,6 +600,85 @@ describe("DemoAlignedWorkbench", () => {
     const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
     expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
     expect(within(importRegion).queryByRole("button", { name: "確認 DK-9125-00084000" })).not.toBeInTheDocument();
+  });
+
+  it("does not allow paid import from a manual confirmation that lacks the formal COP key", async () => {
+    const incompleteManualCase: CaseRow = {
+      ...caseRow,
+      case_name: "兵南段測試",
+      land_lot_no: "00295000",
+      building_lot_no: "00296000",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-29T00:00:00.000Z",
+        totalCost: 0,
+        entries: {},
+        confirmed_registry_match: {
+          section_name: "兵南段",
+          land_no: "00295000",
+          building_no: "00296000",
+          registry_key: "manual-兵南段-00296000",
+          status: "confirmed",
+        },
+        candidate_options: [
+          {
+            candidate_id: "building:DK-9125-00296000",
+            parcel_type: "building",
+            office_code: "DK",
+            section_code: "9125",
+            section_name: "兵南段",
+            land_no: "00295000",
+            building_no: "00296000",
+            parcel_number: "00296000",
+            normalized_parcel_id: "DK-9125-00296000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            summary_fields: {
+              floor: "1樓",
+            },
+            warnings: [],
+          },
+        ],
+      },
+    };
+    mockUpdateCase.mockImplementation(async (_id, input) => ({
+      ...incompleteManualCase,
+      ...input,
+    }));
+
+    render(<DemoAlignedWorkbench caseData={incompleteManualCase} initialTab="formal-import" />);
+
+    const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
+    const manualRow = within(importRegion).getByText("manual-兵南段-00296000").closest("article");
+    expect(manualRow).not.toBeNull();
+    expect(within(manualRow as HTMLElement).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
+    expect(within(manualRow as HTMLElement).getByText("前次確認缺正式查詢代碼，請確認下方完整候選後再匯入。")).toBeInTheDocument();
+    expect(within(importRegion).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
+
+    fireEvent.click(within(importRegion).getByRole("button", { name: "確認 DK-9125-00296000" }));
+
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(
+        incompleteManualCase.id,
+        expect.objectContaining({
+          building_lot_no: "00296000",
+          land_lot_no: "00295000",
+          land_lots: ["00295000"],
+          land_registry_data: expect.objectContaining({
+            confirmed_registry_match: expect.objectContaining({
+              office_code: "DK",
+              section_code: "9125",
+              section_name: "兵南段",
+              land_no: "00295000",
+              building_no: "00296000",
+              registry_key: "DK-9125-00296000",
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   it("does not show mock Taipei formal registry data for a Hsinchu case", () => {
