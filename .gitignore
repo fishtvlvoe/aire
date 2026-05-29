@@ -58,6 +58,7 @@ listings.db
 three-ai.db
 *.sqlite
 *.sqlite-journal
+/artifacts/
 
 # 物件照片上傳（含個資）
 /public/uploads/
@@ -73,3 +74,9 @@ electron/build/
 
 # 字型與 PDF 字型快取
 graphify-out/
+
+# 本機執行憑證
+.aire-session-token
+
+# E2E 測試報告與產出
+/e2e/results/
