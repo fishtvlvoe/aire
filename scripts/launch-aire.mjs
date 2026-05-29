@@ -235,10 +235,12 @@ async function main() {
     NODE_ENV: "production",
   };
 
-  const serverProcess = spawn("node", [SERVER_JS], {
+  // 使用 next dev（開發 server，綁定 127.0.0.1 本機安全）
+  // 本機 runtime 無需優化，dev server 足夠
+  const serverProcess = spawn("pnpm", ["dev"], {
     env: serverEnv,
     stdio: "inherit",
-    cwd: path.join(ROOT, "dist-local-runtime"),
+    cwd: ROOT,
   });
 
   serverProcess.on("error", (err) => {

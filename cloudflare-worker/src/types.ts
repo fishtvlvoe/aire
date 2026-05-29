@@ -1,12 +1,6 @@
-export interface LicenseRecord {
-  status: "inactive" | "active" | "revoked";
-  device_id?: string;
-  device_name?: string;
-  os_version?: string;
-  activated_at?: string;
-  valid_until?: string | null;
-}
+/**
+ * Cloudflare Workers 類型定義
+ * 用於 Wrangler 部署
+ */
 
-export interface Env {
-  LICENSES: KVNamespace;
-}
+export interface Env {}

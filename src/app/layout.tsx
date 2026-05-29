@@ -18,25 +18,20 @@ export const metadata: Metadata = {
 };
 
 /**
- * 從環境變數讀取 session token（launcher 啟動時設定 AIRE_LOCAL_TOKEN）。
- * Server Component 安全注入：env 只在 server 端可見，不洩漏給前端 bundle。
- * 前端透過 window.__AIRE_LOCAL_TOKEN__ 讀取，放入每次 /api/local/* 請求 header。
+ * Session token 動態載入
+ *
+ * 改為 client-side 的 App Initialization 讀取 /api/config。
+ * 移除 build time 注入邏輯（process.env 在 build time 被捕獲，launcher 運行時設定無效）。
  */
-function getLocalTokenForInjection(): string {
-  return process.env.AIRE_LOCAL_TOKEN ?? "";
-}
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const token = getLocalTokenForInjection();
-
   return (
     <html lang="zh-Hant">
       <head>
-        {/* 注入 session token — launcher 啟動時設 AIRE_LOCAL_TOKEN 環境變數
-            dangerouslySetInnerHTML 注入純 hex 字串，token 不含使用者輸入，無 XSS 風險 */}
+        {/* 佔位符：會由 client 端初始化腳本覆蓋 */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__AIRE_LOCAL_TOKEN__ = ${JSON.stringify(token)};`,
+            __html: `window.__AIRE_LOCAL_TOKEN__ = "";`,
           }}
         />
       </head>
