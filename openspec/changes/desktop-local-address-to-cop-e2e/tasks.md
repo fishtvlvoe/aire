@@ -52,6 +52,7 @@
 - [x] 4B.1 在 `/cases/new` 明確區分免費前查區塊與正式付費查詢按鈕，讓使用者知道哪些資料現在可直接看、哪些動作會花錢。驗證：`src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx` 通過。
 - [ ] 4B.2 把免費前查的 query ledger 與付費正式查的成本紀錄分開保存，避免後續 PDF 或工作台把兩者混成同一來源。驗證：focused vitest 通過。
 - [x] 4B.3 對應 Requirement `Paid query consent and cost SHALL be explicit before formal COP runs`：正式查詢前必須揭露用途、價格、失敗仍可能計費。
+- [x] 4B.4 正式查詢扣款 modal 顯示逐項費用明細，明確列出每個查詢項目各自費用，以及付費後會取得的正式資料。驗證：`pnpm exec vitest run src/components/__tests__/PreChargeConfirmDialog.test.tsx src/components/__tests__/PullParcelDataButton.test.tsx` 通過。
 
 ## 5. Mac 驗收
 

@@ -43,6 +43,7 @@ vi.mock("@/components/OwnerAuthorizationDialog", () => ({
 vi.mock("@/components/PreChargeConfirmDialog", () => ({
   PreChargeConfirmDialog: (props: {
     apiCount: number;
+    apiIds?: string[];
     estimatedCost: number;
     open: boolean;
     onConfirm: () => void;
@@ -52,6 +53,7 @@ vi.mock("@/components/PreChargeConfirmDialog", () => ({
       <div>
         <span>預計查詢項目：{props.apiCount} 項</span>
         <span>預估費用：NT${props.estimatedCost}</span>
+        <span>查詢明細：{(props.apiIds ?? []).join(",")}</span>
         <button type="button" onClick={props.onConfirm}>
           扣款確認
         </button>
@@ -150,6 +152,8 @@ describe("PullParcelDataButton", () => {
       const savedPayload = expect.objectContaining({
         schema: "aire.registry-provenance.v1",
         totalCost: 90,
+        isPaid: true,
+        pricingNote: "付費正式查詢：已於執行前確認費用與授權，結果可作為正式地政資料來源",
         entries: expect.objectContaining({
           land_registry: expect.objectContaining({
             source: "moi_api",
@@ -262,6 +266,7 @@ describe("PullParcelDataButton", () => {
 
     expect(screen.getByText("預計查詢項目：2 項")).toBeInTheDocument();
     expect(screen.getByText("預估費用：NT$20")).toBeInTheDocument();
+    expect(screen.getByText("查詢明細：building_registry,building_ownership")).toBeInTheDocument();
     expect(mocks.formalPullData).not.toHaveBeenCalled();
   });
 

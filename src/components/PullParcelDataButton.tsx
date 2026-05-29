@@ -152,6 +152,8 @@ export function PullParcelDataButton({
     const payload = createRegistryProvenancePayload({
       parcelId,
       totalCost: sourceTotalCost,
+      isPaid: true,
+      pricingNote: "付費正式查詢：已於執行前確認費用與授權，結果可作為正式地政資料來源",
       results: sourceResults,
       manualEntries: sourceManualEntries,
     });
@@ -331,6 +333,7 @@ export function PullParcelDataButton({
 
       <PreChargeConfirmDialog
         apiCount={apiIds.length}
+        apiIds={apiIds}
         estimatedCost={estimatedCost}
         open={step === "charge-dialog"}
         onConfirm={handleChargeConfirm}
