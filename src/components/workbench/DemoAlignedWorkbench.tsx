@@ -382,6 +382,13 @@ function findFormalImportTarget(
   );
   if (explicitTarget) return explicitTarget;
   if (manualConfirmedTarget && hasCompleteFormalRegistryKey(manualConfirmedTarget)) return manualConfirmedTarget;
+  if (manualConfirmedTarget) {
+    const matchingFormalCandidate = candidates.find((candidate) =>
+      hasCompleteFormalRegistryKey(candidate) &&
+      candidateMatchesManualConfirmation(candidate, manualConfirmedTarget),
+    );
+    if (matchingFormalCandidate) return matchingFormalCandidate;
+  }
   return null;
 }
 
@@ -455,6 +462,27 @@ function getCandidateBuildingNo(candidate: CandidateParcelOption): string | null
     (candidate.parcel_type === "building" ? candidate.parcel_number?.trim() : null) ||
     null
   );
+}
+
+function candidateMatchesManualConfirmation(
+  candidate: CandidateParcelOption,
+  manual: CandidateParcelOption,
+): boolean {
+  const candidateLandNo = getCandidateLandNo(candidate);
+  const manualLandNo = getCandidateLandNo(manual);
+  const candidateBuildingNo = getCandidateBuildingNo(candidate);
+  const manualBuildingNo = getCandidateBuildingNo(manual);
+  const sameLand = Boolean(candidateLandNo && manualLandNo && candidateLandNo === manualLandNo);
+  const sameBuilding =
+    !manualBuildingNo ||
+    Boolean(candidateBuildingNo && candidateBuildingNo === manualBuildingNo);
+  const candidateSectionName = candidate.section_name?.trim();
+  const manualSectionName = manual.section_name?.trim();
+  const sameSection =
+    !candidateSectionName ||
+    !manualSectionName ||
+    candidateSectionName === manualSectionName;
+  return sameLand && sameBuilding && sameSection;
 }
 
 function hasCompleteFormalRegistryKey(candidate: CandidateParcelOption): boolean {
@@ -887,7 +915,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     persistSupplementDraft({ registryDrafts: nextDrafts });
   }
 
-  async function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed" | "cleared") {
+  function buildCandidateSelectionUpdate(
+    candidate: CandidateParcelOption,
+    mode: "selected" | "confirmed" | "cleared",
+  ): { input: UpdateCaseInput; landRegistryData: RegistryProvenancePayload } {
     const nextLandRegistryDataBase = mode === "cleared"
       ? clearCandidateSelection(caseDraft.land_registry_data, candidate)
       : mergeCandidateSelection(caseDraft.land_registry_data, candidate, mode);
@@ -913,6 +944,16 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
         updateInput.land_lots = confirmedMatch.land_no ? [confirmedMatch.land_no] : [];
       }
     }
+    return { input: updateInput, landRegistryData: nextLandRegistryData };
+  }
+
+  async function persistCandidateSelectionBeforePull(candidate: CandidateParcelOption) {
+    const { input } = buildCandidateSelectionUpdate(candidate, "confirmed");
+    await casesApi.update(caseDraft.id, input);
+  }
+
+  async function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed" | "cleared") {
+    const { input: updateInput, landRegistryData: nextLandRegistryData } = buildCandidateSelectionUpdate(candidate, mode);
     setSavingCandidateId(candidate.candidate_id);
     try {
       const updated = await casesApi.update(caseDraft.id, updateInput);
@@ -1209,6 +1250,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                                 parcelId={candidate.normalized_parcel_id}
                                 apiIds={formalImportApiIds}
                                 label="正式資料匯入（付費）"
+                                beforePull={() => persistCandidateSelectionBeforePull(candidate)}
                                 preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
                                 onSaved={(data) => {
                                   setCaseDraft((current) => ({

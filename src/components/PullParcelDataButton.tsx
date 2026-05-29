@@ -29,6 +29,7 @@ interface PullParcelDataButtonProps {
   parcelId: string;
   apiIds: string[];
   label?: string;
+  beforePull?: () => Promise<void>;
   preparePayload?: (data: Record<string, unknown>) => Record<string, unknown>;
   onPreview?: (data: Record<string, unknown> | null) => void;
   onSaved?: (data: Record<string, unknown>) => void;
@@ -46,6 +47,7 @@ export function PullParcelDataButton({
   parcelId,
   apiIds,
   label = "正式查詢",
+  beforePull,
   preparePayload,
   onPreview,
   onSaved,
@@ -89,6 +91,7 @@ export function PullParcelDataButton({
   async function handleChargeConfirm() {
     setStep("pulling");
     try {
+      await beforePull?.();
       const result = await formalPullData(caseId, apiIds);
       const normalizedResults = result.results as Record<string, ApiResult>;
       setResults(normalizedResults);

@@ -157,8 +157,41 @@ test("Victory pending case can be manually completed, formally imported, cached,
     return stored.cases?.find((row: { case_no?: string }) => row.case_no === "VICTORY-E2E-001")?.id ?? null;
   });
   expect(caseId).toBeTruthy();
+  await page.evaluate((targetCaseId) => {
+    const stored = JSON.parse(window.localStorage.getItem("aire-mock-store") || "{}");
+    const created = stored.cases?.find((row: { id?: string }) => row.id === targetCaseId);
+    if (created?.land_registry_data) {
+      created.land_registry_data.candidate_options = [
+        ...(created.land_registry_data.candidate_options ?? []),
+        {
+          candidate_id: "building:DK-9125-00084000",
+          parcel_type: "building",
+          office_code: "DK",
+          section_code: "9125",
+          section_name: "兵南段",
+          land_no: "04140000",
+          building_no: "00084000",
+          parcel_number: "00084000",
+          normalized_parcel_id: "DK-9125-00084000",
+          source: "public_reference",
+          confidence_label: "same_address_candidate",
+          official_status: "candidate_unconfirmed",
+          query_status: "candidate_data_available",
+          summary_fields: { floor: "1樓" },
+          warnings: [],
+        },
+      ];
+      window.localStorage.setItem("aire-mock-store", JSON.stringify(stored));
+    }
+  }, caseId);
 
-  await page.getByRole("tab", { name: "正式資料匯入" }).click();
+  await page.goto(`/cases/${caseId}?tab=formal-import`);
+  await expect(page.getByRole("region", { name: "正式資料匯入" })).toBeVisible();
+  const firstConfirmButton = page.getByRole("button", { name: /^確認 / }).first();
+  if ((await firstConfirmButton.count()) > 0) {
+    await firstConfirmButton.click();
+    await expect(page.getByRole("button", { name: "正式資料匯入（付費）" })).toBeVisible();
+  }
   await page.getByRole("button", { name: "正式資料匯入（付費）" }).click();
   await page.getByLabel("客戶已書面授權查詢不動產資料").check();
   await page.getByRole("button", { name: "確認", exact: true }).click();
