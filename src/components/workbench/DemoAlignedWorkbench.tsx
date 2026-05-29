@@ -581,6 +581,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     useState<RegistrySupplementDraftByField>({});
   const [editingField, setEditingField] = useState<string | null>(null);
   const [caseDraft, setCaseDraft] = useState(caseData);
+  const [savingCandidateId, setSavingCandidateId] = useState<string | null>(null);
   const [fieldCorrections, setFieldCorrections] = useState<Record<string, string>>({});
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
   const [showRegistryManagementDetails, setShowRegistryManagementDetails] = useState(false);
@@ -886,7 +887,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     persistSupplementDraft({ registryDrafts: nextDrafts });
   }
 
-  function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed" | "cleared") {
+  async function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed" | "cleared") {
     const nextLandRegistryDataBase = mode === "cleared"
       ? clearCandidateSelection(caseDraft.land_registry_data, candidate)
       : mergeCandidateSelection(caseDraft.land_registry_data, candidate, mode);
@@ -912,12 +913,18 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
         updateInput.land_lots = confirmedMatch.land_no ? [confirmedMatch.land_no] : [];
       }
     }
-    setCaseDraft((current) => ({
-      ...current,
-      ...updateInput,
-      land_registry_data: nextLandRegistryData,
-    }));
-    void casesApi.update(caseDraft.id, updateInput);
+    setSavingCandidateId(candidate.candidate_id);
+    try {
+      const updated = await casesApi.update(caseDraft.id, updateInput);
+      setCaseDraft((current) => ({
+        ...current,
+        ...updateInput,
+        updated_at: updated.updated_at ?? current.updated_at,
+        land_registry_data: updated.land_registry_data ?? nextLandRegistryData,
+      }));
+    } finally {
+      setSavingCandidateId(null);
+    }
   }
 
   function updatePdfReviewRow(row: PdfReviewRow, value: string) {
@@ -1170,9 +1177,12 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                     {candidateOptions.map((candidate) => {
                       const hasFormalKey = hasCompleteFormalRegistryKey(candidate);
                       const canImportFormal =
-                        hasFormalKey && formalImportTarget?.candidate_id === candidate.candidate_id;
+                        !savingCandidateId &&
+                        hasFormalKey &&
+                        formalImportTarget?.candidate_id === candidate.candidate_id;
                       const confirmedButIncomplete =
                         candidate.confirmation_state === "confirmed" && !hasFormalKey;
+                      const isSavingCandidate = savingCandidateId === candidate.candidate_id;
                       return (
                         <article
                           key={candidate.candidate_id}
@@ -1216,16 +1226,18 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                                 <button
                                   className="rounded-md border bg-white px-3 py-2 text-[17px]"
                                   type="button"
-                                  onClick={() => updateCandidateSelection(candidate, "selected")}
+                                  disabled={Boolean(savingCandidateId)}
+                                  onClick={() => void updateCandidateSelection(candidate, "selected")}
                                 >
-                                  暫用 {candidate.normalized_parcel_id}
+                                  {isSavingCandidate ? "保存中…" : `暫用 ${candidate.normalized_parcel_id}`}
                                 </button>
                                 <button
                                   className="rounded-md bg-slate-950 px-3 py-2 text-[17px] text-white"
                                   type="button"
-                                  onClick={() => updateCandidateSelection(candidate, "confirmed")}
+                                  disabled={Boolean(savingCandidateId)}
+                                  onClick={() => void updateCandidateSelection(candidate, "confirmed")}
                                 >
-                                  確認 {candidate.normalized_parcel_id}
+                                  {isSavingCandidate ? "保存中…" : `確認 ${candidate.normalized_parcel_id}`}
                                 </button>
                               </>
                             )}

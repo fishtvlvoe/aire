@@ -215,6 +215,8 @@ function candidateRegistryPayload() {
         query_status: "candidate_data_available",
         summary_fields: {
           landAreaSqm: 120.5,
+          announcedLandCurrentValue: 50000,
+          announcedLandValue: 45000,
           zoning: "住宅區",
           buildingCoverage: "60%",
           floorAreaRatio: "200%",
@@ -992,6 +994,8 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.propertySheet?.landNumber).toBe("00700000");
     expect(result.propertySheet?.zoning).toBe("住宅區");
     expect(result.propertySheet?.landArea).toBe(120.5);
+    expect(result.announcedLandValue).toBe(50000);
+    expect(result.assessedLandValue).toBe(45000);
     expect(result.propertySheet?.registeredArea).toBe(31.25);
     expect(result.propertySheet?.mainBuildingArea).toBe(23.1);
     expect(result.propertySheet?.legalUse).toBe("住家用");

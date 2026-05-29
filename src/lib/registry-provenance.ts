@@ -28,6 +28,8 @@ export interface CandidateSummaryFields {
   commonAreaPing?: number;
   parkingAreaPing?: number;
   landAreaSqm?: number;
+  announcedLandCurrentValue?: number;
+  announcedLandValue?: number;
   legalUse?: string;
   constructionDate?: string;
   material?: string;

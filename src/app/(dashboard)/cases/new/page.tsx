@@ -131,7 +131,7 @@ export default function NewCasePage() {
     try {
       const address = values.address.trim();
       if (address) {
-        void loadRealPriceRecords(address);
+        await loadRealPriceRecords(address);
       }
       const existingParcels = values.address.trim() ? await loadExistingAddressParcels(values.address) : [];
       const parcels = existingParcels.length > 0 ? existingParcels : values.address.trim() ? await addressLookup(values.address) : [];
@@ -231,7 +231,7 @@ export default function NewCasePage() {
         case_name: parsed.data.case_name || null,
         land_registry_data: {
           customer_property_type: propertyType,
-          ...buildAddressLookupProvenance(detected, detectedParcels),
+          ...buildAddressLookupProvenance(detected, detectedParcels, realPriceRecords),
           ...(createAsRegistryPending
             ? {
                 registry_status: "registry_pending",
@@ -316,7 +316,7 @@ export default function NewCasePage() {
     }
   }
 
-  async function loadRealPriceRecords(address: string) {
+  async function loadRealPriceRecords(address: string): Promise<RealPriceRecord[]> {
     setRealPriceLoading(true);
     setRealPriceQueried(true);
     setRealPriceError(null);
@@ -325,12 +325,15 @@ export default function NewCasePage() {
       const district = extractDistrictForRealPrice(address);
       if (!district) {
         setRealPriceRecords([]);
-        return;
+        return [];
       }
       const records = await queryRealPrice(district, extractRealPriceKeyword(address, district), 20, address);
-      setRealPriceRecords(Array.isArray(records) ? records.slice(0, 20) : []);
+      const nextRecords = Array.isArray(records) ? records.slice(0, 20) : [];
+      setRealPriceRecords(nextRecords);
+      return nextRecords;
     } catch {
       setRealPriceError("目前無法取得成交行情");
+      return [];
     } finally {
       setRealPriceLoading(false);
     }
@@ -744,6 +747,7 @@ function getSubmitErrorMessage(err: unknown): string {
 function buildAddressLookupProvenance(
   classification: AddressFirstClassification,
   parcels: ParcelInfo[],
+  realPriceRecords: RealPriceRecord[] = [],
 ) {
   const [primaryParcel] = parcels;
   const results: Parameters<typeof createRegistryProvenancePayload>[0]["results"] = {};
@@ -857,6 +861,14 @@ function buildAddressLookupProvenance(
       success: false,
       source: "moi_api",
       error: "COP317 門牌建號查詢未取得單一候選，請人工確認地號或建號",
+    };
+  }
+
+  if (realPriceRecords.length > 0) {
+    results.real_price_query = {
+      success: true,
+      source: "public_candidate",
+      data: realPriceRecords.slice(0, 20).map((record) => ({ ...record })),
     };
   }
 

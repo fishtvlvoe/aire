@@ -190,10 +190,20 @@ describe("NewCasePage address-first flow", () => {
   });
 
   it("submits a backend-compatible property type and preserves the user-corrected detailed type", async () => {
+    mockQueryRealPrice.mockResolvedValueOnce([
+      {
+        address: "宜蘭縣五結鄉親河路二段1號",
+        type: "住宅大樓",
+        area: 30,
+        total_price: 9000000,
+        unit_price: 300000,
+        transaction_date: "2026-05-01",
+      },
+    ]);
     render(<NewCasePage />);
 
     fireEvent.change(screen.getByLabelText("地址 *"), {
-      target: { value: "宜蘭縣五結鄉協和村親河路二段 1 號" },
+      target: { value: "台南市東區東和路47號3樓" },
     });
     fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
 
@@ -211,6 +221,19 @@ describe("NewCasePage address-first flow", () => {
             customer_property_type: "storefront",
             isPaid: false,
             pricingNote: "免費前查：地址候選、附近實價登錄與參考欄位，不產生成本",
+            entries: expect.objectContaining({
+              real_price_query: expect.objectContaining({
+                source: "public_candidate",
+                status: "candidate",
+                trustedForPdf: false,
+                data: expect.arrayContaining([
+                  expect.objectContaining({
+                    address: "宜蘭縣五結鄉親河路二段1號",
+                    unit_price: 300000,
+                  }),
+                ]),
+              }),
+            }),
           }),
         }),
       );

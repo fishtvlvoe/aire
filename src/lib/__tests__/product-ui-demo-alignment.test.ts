@@ -368,6 +368,24 @@ describe("product-ui-demo-alignment contract", () => {
         entries: {},
         candidate_options: [
           {
+            candidate_id: "land:DK-9125-04080000",
+            parcel_type: "land",
+            section_code: "9125",
+            section_name: "兵南段",
+            parcel_number: "04080000",
+            normalized_parcel_id: "DK-9125-04080000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            summary_fields: {
+              landAreaSqm: 66.29,
+              announcedLandCurrentValue: 41400,
+              announcedLandValue: 7700,
+            },
+            warnings: [],
+          },
+          {
             candidate_id: "building:DK-9125-00084000",
             parcel_type: "building",
             section_code: "9125",
@@ -408,6 +426,24 @@ describe("product-ui-demo-alignment contract", () => {
           fieldName: "建物面積",
           value: "38.78 坪",
           helper: "建物面積",
+          serviceName: "公開物件資料",
+        }),
+        expect.objectContaining({
+          fieldName: "土地面積",
+          value: "66.29 平方公尺",
+          helper: "土地面積",
+          serviceName: "公開物件資料",
+        }),
+        expect.objectContaining({
+          fieldName: "公告土地現值",
+          value: "41,400 元/平方公尺",
+          helper: "公告土地現值",
+          serviceName: "公開物件資料",
+        }),
+        expect.objectContaining({
+          fieldName: "公告地價",
+          value: "7,700 元/平方公尺",
+          helper: "公告地價",
           serviceName: "公開物件資料",
         }),
         expect.objectContaining({

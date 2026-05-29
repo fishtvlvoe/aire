@@ -280,6 +280,10 @@ function applyDossierEditableSnapshot(data: CaseDossierData, persisted: unknown)
     data.landArea = landArea;
     propertySheet.landArea = landArea;
   }
+  const announcedLandValue = numberFromEditable(values.get("公告土地現值") ?? values.get("公告現值"));
+  if (announcedLandValue !== undefined) data.announcedLandValue = announcedLandValue;
+  const assessedLandValue = numberFromEditable(values.get("公告地價"));
+  if (assessedLandValue !== undefined) data.assessedLandValue = assessedLandValue;
   const realPrice = values.get("實價登錄行情");
   if (realPrice) data.surroundingTransactionPrice = realPrice;
   const propertySheetSources = { ...(data.propertySheetSources ?? {}) };
@@ -288,6 +292,8 @@ function applyDossierEditableSnapshot(data: CaseDossierData, persisted: unknown)
   if (buildingAge) propertySheetSources.buildingAge = "PDF 前置審核";
   if (registeredArea !== undefined) propertySheetSources.registeredArea = "PDF 前置審核";
   if (landArea !== undefined) propertySheetSources.landArea = "PDF 前置審核";
+  if (announcedLandValue !== undefined) propertySheetSources.announcedLandValue = "PDF 前置審核";
+  if (assessedLandValue !== undefined) propertySheetSources.assessedLandValue = "PDF 前置審核";
   return {
     ...data,
     propertySheet,
@@ -502,6 +508,20 @@ function decorateCandidateOptions(
           : candidate.confirmation_state ?? "unconfirmed",
     };
   });
+}
+
+function readPersistedRealPriceRecords(payload: unknown): unknown[] {
+  if (!isRegistryProvenancePayload(payload)) return [];
+  const entry = payload.entries.real_price_query;
+  if (
+    !entry ||
+    entry.status !== "candidate" ||
+    entry.source !== "public_candidate" ||
+    !Array.isArray(entry.data)
+  ) {
+    return [];
+  }
+  return entry.data;
 }
 
 function normalizeLegalClauseRecord(clause: unknown): string | null {
@@ -775,8 +795,11 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   let recentSaleCount: number | undefined;
   try {
     const district = extractDistrict(caseRow.address ?? "");
+    const persistedRealPriceRecords = readPersistedRealPriceRecords(persisted);
     const keyword = extractRealPriceKeyword(caseRow.address ?? "", district) || (isLand ? caseRow.land_lot_no : caseRow.address ?? "");
-    const records = await queryRealPrice(district, keyword, 5, caseRow.address ?? "");
+    const records = persistedRealPriceRecords.length > 0
+      ? persistedRealPriceRecords
+      : await queryRealPrice(district, keyword, 5, caseRow.address ?? "");
     const comparableRecords = Array.isArray(records)
       ? filterComparableRealPriceRecords(records, district)
       : [];
@@ -1183,6 +1206,12 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       textFromSummary(buildingCandidateFields, "age") ||
       textFromSummary(inferredFields, "age");
     const resolvedLandArea = landArea ?? numberFromSummary(landCandidateFields, "landAreaSqm");
+    const resolvedAnnouncedLandCurrentValue =
+      firstNumber(landReg, ["announced_value", "announced_land_current_value", "ALVALUE"]) ??
+      numberFromSummary(landCandidateFields, "announcedLandCurrentValue");
+    const resolvedAnnouncedLandValue =
+      firstNumber(landReg, ["assessed_value", "announced_land_value", "ALPRICE"]) ??
+      numberFromSummary(landCandidateFields, "announcedLandValue");
     const candidateOwnershipRatio = textFromSummary(buildingCandidateFields, "landOwnershipRatio");
     const inferredOwnershipRatio = textFromSummary(inferredFields, "landOwnershipRatio");
     const resolvedOwnershipRatio =
@@ -1207,6 +1236,8 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     setSourceIfValue(propertySheetSources, "landNumber", selectedLandCandidate?.parcel_number, CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "zoning", textFromSummary(landCandidateFields, "zoning"), CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "landArea", numberFromSummary(landCandidateFields, "landAreaSqm"), CANDIDATE_SOURCE_LABEL);
+    setSourceIfValue(propertySheetSources, "announcedLandValue", numberFromSummary(landCandidateFields, "announcedLandCurrentValue"), CANDIDATE_SOURCE_LABEL);
+    setSourceIfValue(propertySheetSources, "assessedLandValue", numberFromSummary(landCandidateFields, "announcedLandValue"), CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "buildingCoverage", textFromSummary(landCandidateFields, "buildingCoverage"), CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "floorAreaRatio", textFromSummary(landCandidateFields, "floorAreaRatio"), CANDIDATE_SOURCE_LABEL);
     if (trustedRegisteredArea === undefined) {
@@ -1289,11 +1320,25 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       setSourceIfValue(propertySheetSources, "shareArea", resolvedOwnershipRatioNumber, INFERRED_SOURCE_LABEL);
     }
 
+    base.taxCalculation = estimateLandValueIncrementTax({
+      totalPrice: 0,
+      announcedLandValue: resolvedAnnouncedLandCurrentValue,
+      previousTransferValue: firstNumber(landOwnership, ["previous_transfer_value", "LTVALUE"]),
+      landArea: resolvedLandArea,
+      shareRatio: resolvedOwnershipRatioNumber,
+      holdingYears: 1,
+      isFirstSale: false,
+      propertyType: "building",
+    });
+
     return applyDossierEditableSnapshot({
       ...base,
       buildingArea:
         firstNumber(buildingReg, ["area", "building_area", "AREA"]) ??
         pingToSquareMeters(resolvedRegisteredArea),
+      landArea: resolvedLandArea,
+      announcedLandValue: resolvedAnnouncedLandCurrentValue,
+      assessedLandValue: resolvedAnnouncedLandValue,
       buildingPurpose: resolvedLegalUse,
       constructionDate: resolvedConstructionDate,
       buildingCertificateNo: cleanKnownPlaceholderText(

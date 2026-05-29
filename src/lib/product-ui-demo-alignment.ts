@@ -552,8 +552,11 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
     ? extractRegistryFailureReasons(registry)
     : [];
   const hasProvenance = isRegistryProvenancePayload(registry);
+  const landCandidate = findDisplayCandidate(registry, "land");
+  const landCandidateFields = landCandidate?.summary_fields;
   const buildingCandidate = findDisplayCandidate(registry, "building");
   const buildingCandidateFields = buildingCandidate?.summary_fields;
+  const realPriceEntry = getProvenanceEntry(registry, "real_price_query");
 
   const numerator = ownership?.numerator;
   const denominator = ownership?.denominator;
@@ -633,6 +636,53 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
       helper: "主要用途",
       value: legalUse,
       ...buildingStatus,
+    });
+  }
+
+  const landStatus = { serviceName: "公開物件資料", statusLabel: "候選資料", amountLabel: "0 元" };
+  const landAreaSqm = numberFromSummary(landCandidateFields, "landAreaSqm");
+  if (landAreaSqm !== undefined) {
+    appendOrUpdateFieldRow(rows, {
+      fieldName: "土地面積",
+      helper: "土地面積",
+      value: `${landAreaSqm.toLocaleString("zh-TW")} 平方公尺`,
+      ...landStatus,
+    });
+  }
+
+  const announcedLandCurrentValue = numberFromSummary(landCandidateFields, "announcedLandCurrentValue");
+  if (announcedLandCurrentValue !== undefined) {
+    appendOrUpdateFieldRow(rows, {
+      fieldName: "公告土地現值",
+      helper: "公告土地現值",
+      value: `${announcedLandCurrentValue.toLocaleString("zh-TW")} 元/平方公尺`,
+      ...landStatus,
+    });
+  }
+
+  const announcedLandValue = numberFromSummary(landCandidateFields, "announcedLandValue");
+  if (announcedLandValue !== undefined) {
+    appendOrUpdateFieldRow(rows, {
+      fieldName: "公告地價",
+      helper: "公告地價",
+      value: `${announcedLandValue.toLocaleString("zh-TW")} 元/平方公尺`,
+      ...landStatus,
+    });
+  }
+
+  if (
+    realPriceEntry?.status === "candidate" &&
+    realPriceEntry.source === "public_candidate" &&
+    Array.isArray(realPriceEntry.data) &&
+    realPriceEntry.data.length > 0
+  ) {
+    appendOrUpdateFieldRow(rows, {
+      fieldName: "實價登錄行情",
+      helper: "附近成交行情",
+      value: `已取得 ${realPriceEntry.data.length} 筆附近成交行情`,
+      serviceName: "免費附近行情",
+      statusLabel: "候選資料",
+      amountLabel: "0 元",
     });
   }
 
