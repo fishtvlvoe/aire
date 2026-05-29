@@ -7267,3 +7267,149 @@ tests:
   - e2e/full-product-flow-ia-ux-acceptance.spec.ts
   - e2e/local-web-registry-pending-billing.spec.ts
 -->
+
+---
+### Requirement: Address-to-parcel results SHALL be consistent across runtimes
+
+The address-to-parcel lookup SHALL return identical ParcelInfo results regardless of whether it is invoked from the local Web runtime or the Desktop App runtime, because both SHALL resolve through the same registry-discovery-contract source of truth.
+
+#### Scenario: Consistent ParcelInfo across Web and Desktop
+
+- **WHEN** a property address is looked up from the Web runtime and from the Desktop runtime
+- **THEN** the returned ParcelInfo list SHALL be identical in count and field values
+- **AND** each ParcelInfo SHALL contain parcel_id, address, lot_number, and building_number
+
+<!-- @trace
+source: mvp-land-lookup-unify
+updated: 2026-05-29
+code:
+  - docs/workbench-redesign-prototype/01-field-review.html
+  - e2e/results/playwright-report/trace/defaultSettingsView.BDKsFU3c.css
+  - src/lib/local-api/client.ts
+  - docs/workbench-redesign-prototype/06-pricing-modal.html
+  - e2e/results/playwright-report/index.html
+  - e2e/results/playwright-report/trace/xtermModule.DYP7pi_n.css
+  - src/app/api/local/pdf/route.ts
+  - docs/workbench-redesign-prototype/05-pdf-check.html
+  - scripts/launch-aire.cmd
+  - installer/node-runtime/.gitkeep
+  - .aire-session-token
+  - playwright.config.ts
+  - src/app/login/page.tsx
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/lib/init-config.ts
+  - .github/workflows/ci.yml
+  - e2e/results/playwright-report/trace/index.CzXZzn5A.css
+  - src/lib/server/local-address-discovery-proxy.ts
+  - .npmrc
+  - installer/aire-installer.nsi
+  - src/lib/local-api/session-token.ts
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - src/components/RealPricePanel.tsx
+  - src/lib/case-routes.ts
+  - src/lib/server/local-formal-pull-proxy.ts
+  - installer/launch-aire-win.vbs
+  - cloudflare-worker/tsconfig.json
+  - docs/workbench-redesign-prototype/02-supplements.html
+  - scripts/build-local-runtime.mjs
+  - src/lib/real-price-query.ts
+  - e2e/results/playwright-report/trace/codeMirrorModule.DYBRYzYX.css
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - installer/README.md
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/app/api/local/cases/route.ts
+  - installer/PROVENANCE.md
+  - next.config.ts
+  - src/app/layout.tsx
+  - e2e/results/playwright-report/trace/uiMode.C2Efnu2P.js
+  - cloudflare-worker/src/types.ts
+  - package.json
+  - src/lib/local-api/contract.ts
+  - src/middleware.ts
+  - e2e/results/playwright-report/trace/assets/urlMatch-BYQrIQwR.js
+  - src/app/api/local/formal-pull-data/route.ts
+  - .github/workflows/windows-runtime-smoke.yml
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - src/lib/registry-provenance.ts
+  - e2e/results/playwright-report/trace/uiMode.html
+  - src/lib/local-api/cases-store.ts
+  - e2e/results/playwright-report/trace/manifest.webmanifest
+  - e2e/results/playwright-report/trace/snapshot.v8KI4P3m.js
+  - src/lib/pdf-engine/document.tsx
+  - src/app/api/health/route.ts
+  - src/lib/auth.ts
+  - src/lib/server/twinkle-real-price.ts
+  - e2e/results/playwright-report/trace/index.html
+  - e2e/results/playwright-report/trace/sw.bundle.js
+  - e2e/results/playwright-report/trace/uiMode.Btcz36p_.css
+  - src/app/\(dashboard\)/layout.tsx
+  - src/components/PreChargeConfirmDialog.tsx
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - e2e/results/playwright-report/trace/assets/codeMirrorModule-Ds_H_9Yq.js
+  - .github/workflows/release.yml
+  - src/lib/local-api/pdf-write-service.ts
+  - src/lib/mock-backend.ts
+  - src-tauri/PARKED.md
+  - e2e/results/playwright-report/trace/index.BCnMPevh.js
+  - src/app/api/config/route.ts
+  - e2e/results/playwright-report/trace/assets/defaultSettingsView-D31xz8zv.js
+  - src/components/PullParcelDataButton.tsx
+  - e2e/results/results.json
+  - src/app/api/init/route.ts
+  - src/lib/pdf-blocks/property-data-sheet.tsx
+  - docs/debug-easymap-getdoorlist.md
+  - src/app/api/local/cop-credential/route.ts
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - src/app/api/local/real-price/route.ts
+  - src/app/api/local/address-discovery/route.ts
+  - e2e/results/playwright-report/trace/snapshot.html
+  - src/lib/local-api/cop-credential-store.ts
+  - e2e/results/playwright-report/trace/playwright-logo.svg
+  - e2e/results/playwright-report/trace/codicon.DCmgc-ay.ttf
+  - src/lib/land-registry-api.ts
+  - tsconfig.json
+  - docs/workbench-redesign-prototype/04-summary.html
+  - docs/workbench-redesign-prototype/03-formal-import.html
+  - src/lib/export-pdf.ts
+  - src/app/(dashboard)/cases/new/page.tsx
+  - src/lib/local-api/data-dir.ts
+  - docs/workbench-redesign-prototype/index.html
+  - scripts/launch-aire.mjs
+  - src/lib/tauri-bridge.ts
+  - src/app/api/local/cases/[id]/route.ts
+tests:
+  - src/lib/__tests__/auth.test.ts
+  - src/app/login/__tests__/page.test.tsx
+  - src/lib/local-api/__tests__/session-token-middleware.test.ts
+  - src/components/__tests__/RealPricePanel.test.tsx
+  - e2e/product-auth-functional-flow.spec.ts
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/lib/server/__tests__/local-formal-pull-proxy.test.ts
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - src/components/__tests__/PreChargeConfirmDialog.test.tsx
+  - src/lib/local-api/__tests__/data-dir.test.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/lib/local-api/__tests__/cases-persistence.test.ts
+  - src/lib/pdf-blocks/__tests__/property-data-sheet.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/app/api/local/cop-credential/test/route.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - e2e/desktop-auth-credential-fulfillment-smoke.spec.ts
+  - src/lib/local-api/__tests__/cop-credential.test.ts
+  - src/lib/server/__tests__/twinkle-real-price.test.ts
+  - src/lib/local-api/__tests__/middleware-integration.test.ts
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+  - e2e/local-web-registry-pending-billing.spec.ts
+  - src/app/api/health/__tests__/route.test.ts
+  - src/app/(dashboard)/cases/[id]/__tests__/page.test.tsx
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/local-api/__tests__/pdf-two-phase.test.ts
+  - src/lib/__tests__/registry-provenance.test.ts
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/lib/__tests__/tauri-bridge.test.ts
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src/lib/__tests__/real-price-query.test.ts
+  - src/app/api/local/real-price/__tests__/route.test.ts
+-->
