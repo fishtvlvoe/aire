@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>補件與現場 - Workbench Prototype</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #fff;
+        --line: #d9dde5;
+        --text: #17191e;
+        --muted: #6b7280;
+        --soft: #f5fbf8;
+        --badge: #fff6df;
+        --badge-text: #b86902;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+        font-size: 17px;
+      }
+      .shell { max-width: 1600px; margin: 0 auto; }
+      .back {
+        color: var(--muted);
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 12px;
+        font-size: 17px;
+      }
+      .summary,
+      .workspace {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+      }
+      .summary { padding: 18px 20px; }
+      .summary-title {
+        margin: 0 0 10px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      table { width: 100%; border-collapse: collapse; }
+      .summary-table {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .summary-table th,
+      .summary-table td {
+        border-right: 1px solid var(--line);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+      .summary-table th:last-child,
+      .summary-table td:last-child { border-right: 0; }
+      .summary-table thead th {
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .summary-table tbody td {
+        background: var(--soft);
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+      }
+      .name,
+      .metric {
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .address {
+        color: #4b5563;
+        line-height: 1.5;
+        font-size: 12px;
+      }
+      .badge-cell {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: var(--badge);
+        color: var(--badge-text);
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .workspace {
+        margin-top: 18px;
+        padding: 24px;
+      }
+      .workspace-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+      }
+      .workspace-title {
+        margin: 0 0 8px;
+        font-size: 17px;
+        font-weight: 900;
+      }
+      .workspace-sub {
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.6;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: #fff6df;
+        color: #b86902;
+        padding: 8px 12px;
+        font-size: 17px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+      .tab {
+        border: 2px solid #1f2937;
+        border-radius: 16px;
+        padding: 12px 16px;
+        font-size: 17px;
+        font-weight: 900;
+        background: #fff;
+      }
+      .tab.active {
+        background: #16181d;
+        color: #fff;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+        margin-top: 24px;
+      }
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 22px;
+        background: #fff;
+      }
+      .panel h3 {
+        margin: 0 0 12px;
+        font-size: 17px;
+      }
+      .q {
+        border-top: 1px solid #e5e7eb;
+        padding: 18px 0;
+      }
+      .q:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .q b {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 17px;
+      }
+      .muted-text {
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.7;
+      }
+      .pill {
+        display: inline-flex;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #eef2f7;
+        color: #667085;
+        font-weight: 800;
+        font-size: 17px;
+      }
+      .upload {
+        border: 2px dashed #cfd5df;
+        border-radius: 20px;
+        padding: 18px;
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <a class="back" href="./index.html">← 返回 prototype 清單</a>
+
+      <section class="summary">
+        <div class="summary-title">物件摘要</div>
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>名稱</th>
+              <th>地址</th>
+              <th>地政組成</th>
+              <th>已帶入</th>
+              <th>待補件</th>
+              <th>待確認</th>
+              <th>資料狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="name">四維路</div></td>
+              <td><div class="address">新竹市北區四維路130號4樓之3</div></td>
+              <td><div class="metric">土地 2 筆｜建物 1 筆</div></td>
+              <td><div class="metric">2 件</div></td>
+              <td><div class="metric">3 件</div></td>
+              <td><div class="metric">12 欄</div></td>
+              <td><span class="badge-cell">參考版資料｜本次費用 0 元</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="workspace">
+        <div class="workspace-head">
+          <div>
+            <h2 class="workspace-title">欄位審核</h2>
+            <div class="workspace-sub">同一條摘要列保留在上方，主區塊完整留給補件、現場提問與資料上傳。</div>
+          </div>
+          <div class="status-chip">12 欄待確認</div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab">欄位初審</div>
+          <div class="tab active">補件與現場</div>
+          <div class="tab">正式資料匯入</div>
+          <div class="tab">物件資料總覽</div>
+          <div class="tab">PDF 檢查</div>
+        </div>
+
+        <div class="grid">
+          <div class="panel">
+            <h3>現場必問</h3>
+            <div class="q">
+              <b>建物現況</b>
+              <div class="muted-text">目前是否有漏水、壁癌、增建、結構或其他瑕疵？</div>
+            </div>
+            <div class="q">
+              <b>設備與瑕疵</b>
+              <div class="muted-text">冷氣、熱水器、衛浴、廚具哪些保留，哪些需揭露？</div>
+            </div>
+            <div class="q">
+              <b>周邊環境</b>
+              <div class="muted-text">噪音、停車、嫌惡設施、管理費、鄰里糾紛是否需要揭露？</div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>補件清單</h3>
+            <div class="q">
+              <b>格局圖</b>
+              <span class="pill">待補件</span>
+            </div>
+            <div class="q">
+              <b>建物外觀照片</b>
+              <span class="pill">待補件</span>
+            </div>
+            <div class="q">
+              <b>現場照片</b>
+              <span class="pill">已取得 3 張</span>
+            </div>
+            <div class="upload">拖拉或點擊上傳地籍圖、格局圖、外觀照片、Line 圖片。</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+  </html>

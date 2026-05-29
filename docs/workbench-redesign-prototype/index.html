@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AIRE Workbench UI Prototype</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --line: #d9dde3;
+        --text: #16181d;
+        --muted: #6b7280;
+        --soft: #edf7f3;
+        --soft-line: #b8ebd8;
+        --amber-bg: #fff8e8;
+        --amber-line: #f4d38d;
+        --amber-text: #9a5b00;
+        --black: #1d1b19;
+        --radius: 22px;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 40px 24px 80px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      }
+      .wrap { max-width: 1120px; margin: 0 auto; }
+      h1 { margin: 0 0 12px; font-size: 36px; }
+      p.lead { margin: 0 0 28px; color: var(--muted); font-size: 18px; line-height: 1.6; }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 28px;
+        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 18px;
+      }
+      a.page {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        background: linear-gradient(180deg, #fff, #fbfcfd);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 20px;
+        min-height: 168px;
+      }
+      a.page:hover { border-color: #a4acb8; }
+      .eyebrow {
+        display: inline-flex;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #f3f4f6;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      h2 { margin: 14px 0 8px; font-size: 24px; }
+      .desc { color: var(--muted); line-height: 1.7; font-size: 15px; }
+      ul {
+        margin: 16px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+        line-height: 1.8;
+        font-size: 14px;
+      }
+      code {
+        background: #f3f4f6;
+        border-radius: 8px;
+        padding: 2px 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>AIRE Workbench 新版 UI 草稿</h1>
+      <p class="lead">
+        這組 HTML 只用來對齊版型與資訊密度，不代表最終實作細節。重點是先確認：
+        <code>物件摘要</code> 怎麼收、主工作區怎麼放大、以及 <code>NT$20</code> 的付費說明怎麼變透明。
+      </p>
+
+      <div class="card">
+        <div class="grid">
+          <a class="page" href="./01-field-review.html">
+            <span class="eyebrow">頁面 01</span>
+            <h2>欄位初審</h2>
+            <div class="desc">上方摘要條 + 單欄主工作區。拿掉左側大型摘要欄。</div>
+            <ul>
+              <li>主區塊變寬</li>
+              <li>摘要只保留一行核心數字</li>
+              <li>適合作為主基底版型</li>
+            </ul>
+          </a>
+
+          <a class="page" href="./02-supplements.html">
+            <span class="eyebrow">頁面 02</span>
+            <h2>補件與現場</h2>
+            <div class="desc">同一套 header，主區塊換成補件與現場確認內容。</div>
+            <ul>
+              <li>維持同一個摘要條</li>
+              <li>主工作區可容納更寬的補件列表</li>
+            </ul>
+          </a>
+
+          <a class="page" href="./03-formal-import.html">
+            <span class="eyebrow">頁面 03</span>
+            <h2>正式資料匯入</h2>
+            <div class="desc">把付費查詢前的價值說明、查詢內容、差異說清楚。</div>
+            <ul>
+              <li>先說明免費前查 vs 正式查詢</li>
+              <li>按鈕前先理解，不直接只有價錢</li>
+            </ul>
+          </a>
+
+          <a class="page" href="./04-summary.html">
+            <span class="eyebrow">頁面 04</span>
+            <h2>物件資料總覽</h2>
+            <div class="desc">把來源、資料等級、待補欄位集中到一頁。</div>
+            <ul>
+              <li>reference / formal 明確標示</li>
+              <li>適合檢查資料完整度</li>
+            </ul>
+          </a>
+
+          <a class="page" href="./05-pdf-check.html">
+            <span class="eyebrow">頁面 05</span>
+            <h2>PDF 檢查</h2>
+            <div class="desc">看進 PDF 的內容有哪些、哪些還是參考資料。</div>
+            <ul>
+              <li>避免沒正式資料時誤認為正式版</li>
+              <li>讓輸出前檢查更直接</li>
+            </ul>
+          </a>
+
+          <a class="page" href="./06-pricing-modal.html">
+            <span class="eyebrow">頁面 06</span>
+            <h2>付費說明 Modal</h2>
+            <div class="desc">專門看 NT$20 的說明方式，回答「拿到什麼、為什麼要付」。</div>
+            <ul>
+              <li>查詢項目</li>
+              <li>取得資料</li>
+              <li>計費說明</li>
+            </ul>
+          </a>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>

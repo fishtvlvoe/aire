@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>付費說明 Modal - Workbench Prototype</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(18, 22, 28, .34), rgba(18, 22, 28, .34)),
+          #f6f7f9;
+        display: grid;
+        place-items: center;
+        font-family: "Noto Sans TC", sans-serif;
+        color: #17191e;
+      }
+      .modal {
+        width: min(980px, calc(100vw - 48px));
+        background: #fff;
+        border: 1px solid #dadde4;
+        border-radius: 30px;
+        padding: 34px;
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+      }
+      .head { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; }
+      .title { font-size: 30px; font-weight: 900; margin-bottom: 10px; }
+      .lead { color:#6b7280; font-size: 18px; line-height: 1.7; }
+      .x { font-size: 42px; color:#666; line-height:1; }
+      .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top: 26px; }
+      .panel { border:1px solid #dadde4; border-radius:24px; padding:22px; background:#fff; }
+      .panel h3 { margin:0 0 12px; font-size:20px; }
+      ul { margin:0; padding-left:18px; color:#525866; line-height:1.9; }
+      .pricebox {
+        margin-top: 18px;
+        border: 1px solid #f2d28a;
+        background: #fff8e8;
+        border-radius: 24px;
+        padding: 22px 24px;
+      }
+      .pricebox .row { display:flex; justify-content:space-between; align-items:center; font-size: 22px; font-weight:900; }
+      .pricebox .sub { margin-top: 10px; color:#6b7280; line-height:1.8; font-size:15px; }
+      .actions { display:flex; justify-content:flex-end; gap:14px; margin-top: 24px; }
+      .btn { border-radius:18px; padding:16px 28px; font-size:20px; font-weight:900; }
+      .ghost { border:2px solid #2b2d31; background:#fff; }
+      .primary { border:2px solid #1d1b19; background:#1d1b19; color:#fff; }
+    </style>
+  </head>
+  <body>
+    <section class="modal">
+      <div class="head">
+        <div>
+          <div class="title">確認正式查詢與扣款</div>
+          <div class="lead">
+            這一步會向地政資訊系統取得正式資料。前面的地址候選、附近實價登錄與參考欄位都屬於免費前查，不會收費。
+          </div>
+        </div>
+        <div class="x">×</div>
+      </div>
+
+      <div class="grid">
+        <div class="panel">
+          <h3>本次查詢項目</h3>
+          <ul>
+            <li>建物謄本</li>
+            <li>建物所有權資料</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>查詢後會取得</h3>
+          <ul>
+            <li>建號、面積、用途、樓層、建築完成日期</li>
+            <li>所有權人、權利範圍、登記日期</li>
+            <li>寫入案件，供正式版 PDF 使用</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pricebox">
+        <div class="row">
+          <span>本次預估費用</span>
+          <span>NT$20</span>
+        </div>
+        <div class="sub">
+          計費來源為正式地政資料查詢。實際費用依上游查詢結果計算，可能與預估略有差異；若地政系統回應異常，部分查詢仍可能計費。
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn ghost">取消</button>
+        <button class="btn primary">確認，開始查詢正式資料</button>
+      </div>
+    </section>
+  </body>
+  </html>

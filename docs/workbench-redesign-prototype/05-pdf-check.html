@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF 檢查 - Workbench Prototype</title>
+    <style>
+      body { margin: 0; padding: 24px; background: #f6f7f9; color: #17191e; font-family: "Noto Sans TC", sans-serif; font-size: 17px; }
+      .shell { max-width: 1600px; margin: 0 auto; }
+      .back { color: #6b7280; text-decoration: none; display: inline-block; margin-bottom: 12px; font-size: 17px; }
+      .summary, .workspace { background: #fff; border: 1px solid #dadde4; border-radius: 24px; padding: 24px; box-shadow: 0 8px 24px rgba(15,23,42,.04); }
+      .summary { margin-bottom: 18px; }
+      .summary-line { display:flex; flex-wrap:wrap; gap:12px; align-items:center; line-height:1.6; }
+      .summary-line .label, .summary-line .name { font-weight: 900; }
+      .summary-line .addr { color:#6b7280; }
+      .head { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; }
+      .badge { border-radius:999px; background:#ecfdf3; color:#067647; padding:8px 12px; font-size:17px; font-weight:800; }
+      .tabs { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+      .tab { border:2px solid #1f2937; border-radius:16px; padding:12px 16px; font-weight:900; font-size:17px; background:#fff; }
+      .tab.active { background:#16181d; color:#fff; }
+      .banner { margin-top:20px; border:1px solid #86efac; background:#f0fdf4; border-radius:20px; padding:18px 20px; }
+      .banner b { display:block; font-size:17px; color:#166534; margin-bottom:6px; }
+      .banner p { margin:0; color:#166534; font-size:17px; line-height:1.6; }
+      .grid { display:grid; grid-template-columns: 1fr 1fr; gap:18px; margin-top:22px; }
+      .panel { border:1px solid #dadde4; border-radius:20px; padding:22px; background:#fff; }
+      .panel h3 { margin:0 0 12px; font-size:17px; }
+      .rowline { display:flex; justify-content:space-between; gap:16px; padding:12px 0; border-top:1px solid #edf0f4; font-size:17px; }
+      .rowline:first-of-type { border-top:0; padding-top:0; }
+      .label { font-weight:800; }
+      .note { color:#6b7280; line-height:1.7; font-size:17px; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <a class="back" href="./index.html">← 返回 prototype 清單</a>
+
+      <section class="summary">
+        <div class="summary-line">
+          <span class="label">物件摘要</span>
+          <span class="name">四維路</span>
+          <span class="addr">新竹市北區四維路130號4樓之3</span>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="head">
+          <div>
+            <h2 style="margin:0 0 8px;font-size:17px;">欄位審核</h2>
+            <div style="color:#6b7280;font-size:17px;">匯出前先看哪些資料會進 PDF，哪些仍是參考版內容。</div>
+          </div>
+          <div class="badge">正式資料已帶入</div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab">欄位初審</div>
+          <div class="tab">補件與現場</div>
+          <div class="tab">正式資料匯入</div>
+          <div class="tab">物件資料總覽</div>
+          <div class="tab active">PDF 檢查</div>
+        </div>
+
+        <div class="banner">
+          <b>目前為正式版 PDF</b>
+          <p>正式地政資料已寫入案件；PDF 會優先使用正式資料，再補上免費前查與補件資料。</p>
+        </div>
+
+        <div class="grid">
+          <div class="panel">
+            <h3>將進入 PDF 的正式資料</h3>
+            <div class="rowline"><div class="label">建物權利範圍</div><div>全部 1/1</div></div>
+            <div class="rowline"><div class="label">登記日期</div><div>民國 102 年 04 月 21 日</div></div>
+            <div class="rowline"><div class="label">建築完成日期</div><div>民國 083 年 10 月 18 日</div></div>
+          </div>
+          <div class="panel">
+            <h3>將進入 PDF 的參考資料</h3>
+            <div class="rowline"><div class="label">附近成交行情</div><div>3 筆</div></div>
+            <div class="rowline"><div class="label">公告土地現值 / 地價</div><div>41,400 / 7,700</div></div>
+            <div class="rowline"><div class="label">外觀照片</div><div>已上傳 2 張</div></div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:18px;">
+          <h3>輸出前提醒</h3>
+          <div class="note">
+            如果某些欄位仍只有免費前查資料，PDF 需要明確標示為參考資料，不可誤導為正式謄本內容。
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+  </html>

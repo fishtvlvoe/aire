@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>正式資料匯入 - Workbench Prototype</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #fff;
+        --line: #d9dde5;
+        --text: #17191e;
+        --muted: #6b7280;
+        --soft: #f5fbf8;
+        --badge: #fff6df;
+        --badge-text: #b86902;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+        font-size: 17px;
+      }
+      .shell { max-width: 1600px; margin: 0 auto; }
+      .back {
+        color: var(--muted);
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 12px;
+        font-size: 17px;
+      }
+      .summary,
+      .workspace {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+      }
+      .summary { padding: 18px 20px; }
+      .summary-title {
+        margin: 0 0 10px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      table { width: 100%; border-collapse: collapse; }
+      .summary-table {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .summary-table th,
+      .summary-table td {
+        border-right: 1px solid var(--line);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+      .summary-table th:last-child,
+      .summary-table td:last-child { border-right: 0; }
+      .summary-table thead th {
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .summary-table tbody td {
+        background: var(--soft);
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+      }
+      .name,
+      .metric {
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .address {
+        color: #4b5563;
+        line-height: 1.5;
+        font-size: 12px;
+      }
+      .badge-cell {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: var(--badge);
+        color: var(--badge-text);
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .workspace {
+        margin-top: 18px;
+        padding: 24px;
+      }
+      .workspace-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+      }
+      .workspace-title {
+        margin: 0 0 8px;
+        font-size: 17px;
+        font-weight: 900;
+      }
+      .workspace-sub {
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.6;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: #fff6df;
+        color: #b86902;
+        padding: 8px 12px;
+        font-size: 17px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+      .tab {
+        border: 2px solid #1f2937;
+        border-radius: 16px;
+        padding: 12px 16px;
+        font-size: 17px;
+        font-weight: 900;
+        background: #fff;
+      }
+      .tab.active {
+        background: #16181d;
+        color: #fff;
+      }
+      .hero {
+        margin-top: 18px;
+        border: 1px solid #f2d28a;
+        background: #fff8e8;
+        border-radius: 16px;
+        padding: 20px;
+      }
+      .hero h2 {
+        margin: 0 0 8px;
+        font-size: 17px;
+      }
+      .hero p {
+        margin: 0;
+        color: #5b616d;
+        line-height: 1.7;
+        font-size: 17px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px;
+      }
+      .panel h3 {
+        margin: 0 0 8px;
+        font-size: 17px;
+      }
+      ul {
+        margin: 0;
+        padding-left: 22px;
+        color: #525866;
+        line-height: 1.8;
+        font-size: 17px;
+      }
+      .fee-row {
+        margin-top: 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .fee-row th,
+      .fee-row td {
+        padding: 12px 14px;
+        border-right: 1px solid var(--line);
+      }
+      .fee-row th:last-child,
+      .fee-row td:last-child { border-right: 0; }
+      .fee-row th {
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 17px;
+        font-weight: 700;
+        text-align: left;
+      }
+      .fee-row td {
+        background: #fff;
+        font-size: 17px;
+        font-weight: 800;
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .btn {
+        border-radius: 16px;
+        padding: 10px 14px;
+        font-size: 17px;
+        font-weight: 900;
+      }
+      .btn.ghost {
+        border: 2px solid #2b2d31;
+        background: #fff;
+      }
+      .btn.primary {
+        border: 2px solid #1d1b19;
+        background: #1d1b19;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <a class="back" href="./index.html">← 返回 prototype 清單</a>
+
+      <section class="summary">
+        <div class="summary-title">物件摘要</div>
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>名稱</th>
+              <th>地址</th>
+              <th>地政組成</th>
+              <th>已帶入</th>
+              <th>待補件</th>
+              <th>待確認</th>
+              <th>資料狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="name">四維路</div></td>
+              <td><div class="address">新竹市北區四維路130號4樓之3</div></td>
+              <td><div class="metric">土地 2 筆｜建物 1 筆</div></td>
+              <td><div class="metric">2 件</div></td>
+              <td><div class="metric">3 件</div></td>
+              <td><div class="metric">12 欄</div></td>
+              <td><span class="badge-cell">參考版資料｜本次費用 0 元</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="workspace">
+        <div class="workspace-head">
+          <div>
+            <h2 class="workspace-title">欄位審核</h2>
+            <div class="workspace-sub">正式資料匯入前，先把查詢內容、取得資料與費用講清楚；摘要區維持同一套表格格式。</div>
+          </div>
+          <div class="status-chip">12 欄待確認</div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab">欄位初審</div>
+          <div class="tab">補件與現場</div>
+          <div class="tab active">正式資料匯入</div>
+          <div class="tab">物件資料總覽</div>
+          <div class="tab">PDF 檢查</div>
+        </div>
+
+        <div class="hero">
+          <h2>正式查詢會取得正式地政資料，並依查詢項目計費</h2>
+          <p>免費前查已經能做地址比對與附近行情判讀；只有要把正式地政資料寫進案件與正式版 PDF，才需要付費正式查詢。</p>
+
+          <div class="grid">
+            <div class="panel">
+              <h3>本次將查詢</h3>
+              <ul>
+                <li>建物謄本</li>
+                <li>建物所有權資料</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>你將取得</h3>
+              <ul>
+                <li>建號、用途、面積、樓層、建築完成日期</li>
+                <li>所有權人、權利範圍、登記日期</li>
+                <li>正式資料會寫入案件，供正式版 PDF 使用</li>
+              </ul>
+            </div>
+          </div>
+
+          <table class="fee-row">
+            <thead>
+              <tr>
+                <th>查詢項目</th>
+                <th>預估費用</th>
+                <th>免費前查是否收費</th>
+                <th>正式資料用途</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>2 項</td>
+                <td>NT$20</td>
+                <td>否</td>
+                <td>案件正式資料與正式版 PDF</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="actions">
+            <button class="btn ghost">查看費用明細</button>
+            <button class="btn primary">開始正式查詢</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

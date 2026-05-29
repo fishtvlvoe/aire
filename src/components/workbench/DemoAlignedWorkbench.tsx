@@ -317,22 +317,17 @@ function findFormalImportTarget(
   candidates: CandidateParcelOption[],
 ): CandidateParcelOption | null {
   const manualConfirmedTarget = buildManualConfirmedCandidate(caseDraft);
-  const buildingKey = caseDraft.building_lot_no?.trim();
-  const landKey = caseDraft.land_lot_no?.trim();
+  const registry = isRegistryProvenancePayload(caseDraft.land_registry_data)
+    ? caseDraft.land_registry_data
+    : null;
+  const confirmedParcelIds = registry?.confirmed_parcel_ids ?? {};
   const explicitTarget = candidates.find((candidate) =>
     candidate.confirmation_state === "confirmed" ||
-    candidate.normalized_parcel_id === buildingKey ||
-    candidate.normalized_parcel_id === landKey ||
-    candidate.parcel_number === buildingKey ||
-    candidate.parcel_number === landKey,
+    confirmedParcelIds[candidate.parcel_type] === candidate.candidate_id,
   );
   if (explicitTarget) return explicitTarget;
   if (manualConfirmedTarget) return manualConfirmedTarget;
-
-  const usableCandidates = candidates.filter(
-    (candidate) => candidate.query_status === "candidate_data_available",
-  );
-  return usableCandidates.length === 1 ? usableCandidates[0] : null;
+  return null;
 }
 
 function buildManualConfirmedCandidate(caseDraft: CaseRow): CandidateParcelOption | null {
@@ -509,13 +504,6 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       : "本次只取得免費候選或物件基本資料；尚未產生正式地政謄本費用。";
   const importedCount = fields.filter((field) => ["地政已帶入", "候選資料"].includes(field.statusLabel)).length;
   const supplementCount = actionableRegistryFields.length;
-  const pendingCount = fields.filter((field) =>
-    ["待匯入", "待確認", "待資料"].some((status) => field.statusLabel.includes(status)),
-  ).length;
-  const needsConfirmText = [
-    candidateOptions.length > 0 ? "物件候選" : "",
-    caseDraft.owner_name?.trim() ? "" : "屋主姓名",
-  ].filter(Boolean).join("、") || "待補欄位";
   const activeTabIndex = WORKBENCH_TABS.findIndex((tab) => tab.id === activeTab);
   const nextTab = WORKBENCH_TABS[activeTabIndex + 1];
   const registrySnapshot = {
@@ -590,7 +578,21 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const pdfPendingRows = pdfReviewRows.filter((row) =>
     ["待補", "需人工", "待", "查詢未成功"].some((status) => row.status.includes(status)),
   );
-  const useFullWidthReviewSurface = activeTab === "formal-import" || activeTab === "summary" || activeTab === "pdf";
+  const caseDisplayName = caseDraft.case_name ?? "宜蘭五結農舍";
+  const isCoreWorkbenchTab =
+    activeTab === "fields" || activeTab === "supplements" || activeTab === "formal-import";
+  const summaryStatusText = `${lookupCost > 0 ? "正式版資料" : "參考版資料"}｜本次費用 ${
+    lookupCost > 0 ? `NT$${lookupCost.toLocaleString("zh-TW")}` : `${lookupCost.toLocaleString("zh-TW")} 元`
+  }`;
+  const summaryRows = [
+    { label: "名稱", value: caseDisplayName },
+    { label: "地址", value: caseDraft.address },
+    { label: "地政組成", value: `土地 ${classification.landCount} 筆｜建物 ${classification.buildingCount} 筆` },
+    { label: "已帶入", value: `${importedCount} 件` },
+    { label: "待補件", value: `${supplementCount} 件` },
+    { label: "待確認", value: `${pdfPendingRows.length} 欄` },
+    { label: "資料狀態", value: summaryStatusText },
+  ];
 
   useEffect(() => {
     setCaseDraft(caseData);
@@ -796,78 +798,80 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     >
       <header className="flex flex-col gap-3 border-b pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-normal">物件審核</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-[17px] font-semibold tracking-normal">物件審核</h1>
+          <p className="mt-1 text-[17px] text-muted-foreground">
             案號 {caseDraft.case_no ?? "未編號"} · {classification.displayType} · 基本方案 ·
             地政查詢費由客戶的地政帳號負擔
           </p>
         </div>
       </header>
 
-      <div
-        className={`grid gap-5 ${useFullWidthReviewSurface ? "workbench-full-width" : "xl:grid-cols-[360px_minmax(0,1fr)]"}`}
-        data-testid="workbench-layout"
-      >
-        <aside
+      <div className="space-y-5" data-testid="workbench-layout">
+        <section
           aria-label="物件摘要"
           className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
           role="region"
         >
-          <div className="mb-4">
-            <h2 className="text-base font-semibold">物件摘要</h2>
-            <p className="text-sm text-muted-foreground">地政帶入與待手填項目</p>
-          </div>
-
-          <article className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4">
-            <strong className="block">{caseDraft.case_name ?? "宜蘭五結農舍"}</strong>
-            <span className="mt-1 block text-sm text-muted-foreground">
-              {caseDraft.address}
-            </span>
-            <dl className="mt-3 grid gap-2 text-sm">
-              <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-md bg-white/80 px-3 py-2">
-                <dt className="text-muted-foreground">地政</dt>
-                <dd className="text-right font-medium leading-snug">
-                  <span className="block">土地 {classification.landCount} 筆</span>
-                  <span className="block">建物 {classification.buildingCount} 筆</span>
-                </dd>
+          {isCoreWorkbenchTab ? (
+            <>
+              <h2 className="mb-3 text-[12px] font-semibold">物件摘要</h2>
+              <div className="overflow-hidden rounded-lg border">
+                <div className="hidden bg-slate-50 text-[12px] font-medium text-muted-foreground lg:grid lg:grid-cols-[120px_minmax(320px,2fr)_170px_110px_110px_110px_240px]">
+                  {summaryRows.map((item) => (
+                    <div key={`head-${item.label}`} className="border-r px-3 py-2 last:border-r-0">
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden bg-emerald-50/60 text-[12px] font-semibold lg:grid lg:grid-cols-[120px_minmax(320px,2fr)_170px_110px_110px_110px_240px]">
+                  {summaryRows.map((item) => (
+                    <div key={`row-${item.label}`} className="border-r px-3 py-3 last:border-r-0">
+                      {item.label === "資料狀態" ? (
+                        <span className="inline-flex rounded-full bg-amber-50 px-2 py-1 text-[12px] font-semibold text-amber-700">
+                          {item.value}
+                        </span>
+                      ) : (
+                        item.value
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="grid gap-px bg-slate-200 lg:hidden">
+                  {summaryRows.map((item) => (
+                    <div key={`stack-${item.label}`} className="grid gap-1 bg-emerald-50/60 px-3 py-2 text-[12px]">
+                      <span className="font-medium text-muted-foreground">{item.label}</span>
+                      {item.label === "資料狀態" ? (
+                        <span className="inline-flex w-fit rounded-full bg-amber-50 px-2 py-1 text-[12px] font-semibold text-amber-700">
+                          {item.value}
+                        </span>
+                      ) : (
+                        <span className="font-semibold">{item.value}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-md bg-white/80 px-3 py-2">
-                <dt className="text-muted-foreground">需確認</dt>
-                <dd className="text-right font-medium leading-snug">{needsConfirmText}</dd>
-              </div>
-            </dl>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-md bg-white p-2">
-                <span className="block text-muted-foreground">已帶入</span>
-                <strong>{importedCount} 件</strong>
-              </div>
-              <div className="rounded-md bg-white p-2">
-                <span className="block text-muted-foreground">需補件</span>
-                <strong>{supplementCount} 件</strong>
-              </div>
-              <div className="rounded-md bg-white p-2">
-                <span className="block text-muted-foreground">待補資料</span>
-                <strong>{pendingCount} 件</strong>
-              </div>
-              <div className="rounded-md bg-white p-2">
-                <span className="block text-muted-foreground">本次費用</span>
-                <strong>{lookupCost.toLocaleString("zh-TW")} 元</strong>
-              </div>
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[17px]">
+              <span className="font-semibold">物件摘要</span>
+              <span className="font-semibold">{caseDisplayName}</span>
+              <span className="text-muted-foreground">{caseDraft.address}</span>
             </div>
-          </article>
-        </aside>
+          )}
+        </section>
 
         <section
           aria-label="欄位審核"
-          className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+          className="rounded-lg border border-slate-200 bg-white p-4 text-[17px] shadow-sm"
           role="region"
         >
           <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
             <div>
-              <h2 className="text-base font-semibold">欄位審核</h2>
-              <p className="text-sm text-muted-foreground">確認資料是否已帶入，缺資料就加入補件</p>
+              <h2 className="text-[17px] font-semibold">欄位審核</h2>
+              <p className="text-[17px] text-muted-foreground">確認資料是否已帶入，缺資料就加入補件</p>
             </div>
-            <span className="w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+            <span className="w-fit rounded-full bg-amber-50 px-3 py-1 text-[17px] font-medium text-amber-700">
               {pdfPendingRows.length} 欄待確認
             </span>
           </div>
@@ -877,7 +881,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               <button
                 key={tab.id}
                 aria-selected={activeTab === tab.id}
-                className={`rounded-md px-3 py-2 text-sm ${activeTab === tab.id ? "bg-slate-950 text-white" : "border"}`}
+                className={`rounded-md px-3 py-2 text-[17px] ${activeTab === tab.id ? "bg-slate-950 text-white" : "border"}`}
                 onClick={() => setActiveTab(tab.id)}
                 role="tab"
                 type="button"
@@ -892,12 +896,12 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4" aria-label="本次調閱費用">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold">本次調閱費用：{lookupCost.toLocaleString("zh-TW")} 元</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <h3 className="text-[17px] font-semibold">本次調閱費用：{lookupCost.toLocaleString("zh-TW")} 元</h3>
+                    <p className="mt-1 text-[17px] text-muted-foreground">
                       {lookupCostNote}
                     </p>
                   </div>
-                  <button className="w-fit rounded-md border bg-white px-3 py-2 text-sm" type="button" onClick={() => setActiveTab("summary")}>
+                  <button className="w-fit rounded-md border bg-white px-3 py-2 text-[17px]" type="button" onClick={() => setActiveTab("summary")}>
                     查看物件資料總覽
                   </button>
                 </div>
@@ -907,11 +911,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 {fields.map((field) => (
                   <article
                     key={field.fieldName}
-                    className="grid border-b text-sm last:border-b-0 lg:grid-cols-[minmax(170px,1fr)_minmax(260px,1.35fr)_120px_76px]"
+                    className="grid border-b text-[17px] last:border-b-0 lg:grid-cols-[minmax(170px,1fr)_minmax(260px,1.35fr)_120px_76px]"
                   >
                     <div className="p-4">
                       <strong>{field.fieldName}</strong>
-                      <span className="mt-1 block text-sm text-muted-foreground">{field.helper}</span>
+                      <span className="mt-1 block text-[17px] text-muted-foreground">{field.helper}</span>
                     </div>
                     <div className="border-t p-4 lg:border-l lg:border-t-0">
                       {editingField === field.fieldName ? (
@@ -932,13 +936,13 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       <span className="mt-1 block text-muted-foreground">{field.serviceName}</span>
                     </div>
                     <div className="flex items-start border-t p-4 lg:items-center lg:justify-center lg:border-l lg:border-t-0">
-                      <span className="w-fit whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                      <span className="w-fit whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-[17px] font-medium">
                         {field.statusLabel}
                       </span>
                     </div>
                     <div className="flex items-start border-t p-4 lg:items-center lg:justify-center lg:border-l lg:border-t-0">
                       <button
-                        className="w-fit rounded-md border px-3 py-2 text-sm"
+                        className="w-fit rounded-md border px-3 py-2 text-[17px]"
                         type="button"
                         onClick={() => {
                           if (editingField === field.fieldName) {
@@ -964,34 +968,30 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
           {activeTab === "formal-import" ? (
             <section className="mt-4 rounded-lg border p-4" aria-label="正式資料匯入">
               <div>
-                <h3 className="text-sm font-semibold">正式資料匯入</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h3 className="text-[17px] font-semibold">正式資料匯入</h3>
+                <p className="mt-1 text-[17px] text-muted-foreground">
                   確認本案物件後才匯入正式資料；匯入完成會列出取得欄位、費用與會同步到的 PDF 區塊。
                 </p>
               </div>
               {candidateOptions.length > 0 ? (
                 <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50/40 p-3" aria-label="候選土地建物清單" role="region">
                   <div>
-                    <h4 className="text-sm font-semibold">物件候選確認</h4>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <h4 className="text-[17px] font-semibold">物件候選確認</h4>
+                    <p className="mt-1 text-[17px] text-muted-foreground">
                       確認是本案物件後，才會進入正式資料匯入；不確認就不產生費用。
                     </p>
                   </div>
                   <div className="mt-3 overflow-hidden rounded-md border bg-white">
                     {candidateOptions.map((candidate) => {
-                      const isSingleUsableCandidate =
-                        candidateOptions.length === 1 && candidate.query_status === "candidate_data_available";
-                      const canImportFormal =
-                        formalImportTarget?.candidate_id === candidate.candidate_id ||
-                        (isSingleUsableCandidate && formalImportTarget?.normalized_parcel_id === candidate.normalized_parcel_id);
+                      const canImportFormal = formalImportTarget?.candidate_id === candidate.candidate_id;
                       return (
                         <article
                           key={candidate.candidate_id}
-                          className="grid gap-3 border-b p-3 text-sm last:border-b-0 lg:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.6fr)_140px_minmax(220px,0.8fr)]"
+                          className="grid gap-3 border-b p-3 text-[17px] last:border-b-0 lg:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.6fr)_140px_minmax(220px,0.8fr)]"
                         >
                           <div>
                             <strong className="block">{candidate.normalized_parcel_id}</strong>
-                            <span className="mt-1 block text-xs text-muted-foreground">
+                            <span className="mt-1 block text-[17px] text-muted-foreground">
                               {candidate.parcel_type === "building" ? "建物候選" : "土地候選"} · {candidateStatusLabel(candidate.query_status)}
                             </span>
                           </div>
@@ -999,7 +999,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                             {candidateSummaryText(candidate) || "待候選資料查詢"}
                           </div>
                           <div>
-                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[17px] font-medium">
                               {candidateStatusLabel(candidate.query_status)}
                             </span>
                           </div>
@@ -1021,14 +1021,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                             ) : (
                               <>
                                 <button
-                                  className="rounded-md border bg-white px-3 py-2 text-sm"
+                                  className="rounded-md border bg-white px-3 py-2 text-[17px]"
                                   type="button"
                                   onClick={() => updateCandidateSelection(candidate, "selected")}
                                 >
                                   暫用 {candidate.normalized_parcel_id}
                                 </button>
                                 <button
-                                  className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white"
+                                  className="rounded-md bg-slate-950 px-3 py-2 text-[17px] text-white"
                                   type="button"
                                   onClick={() => updateCandidateSelection(candidate, "confirmed")}
                                 >
@@ -1043,7 +1043,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   </div>
                 </section>
               ) : (
-                <div className="mt-4 rounded-md bg-slate-50 p-3 text-sm text-muted-foreground">
+                <div className="mt-4 rounded-md bg-slate-50 p-3 text-[17px] text-muted-foreground">
                   尚未確認物件，請先回到欄位初審或補件流程確認地段、地號與建號。
                 </div>
               )}
@@ -1054,13 +1054,13 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
             <section className="mt-4 rounded-lg border p-4" aria-label="欄位資料來源">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <h3 className="text-sm font-semibold">物件資料來源</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <h3 className="text-[17px] font-semibold">物件資料來源</h3>
+                  <p className="mt-1 text-[17px] text-muted-foreground">
                     核對目前已帶入的值；缺資料再進補件或正式資料匯入。
                   </p>
                 </div>
               </div>
-              <table className="mt-3 w-full min-w-[760px] table-fixed overflow-hidden rounded-md border text-sm">
+              <table className="mt-3 w-full min-w-[760px] table-fixed overflow-hidden rounded-md border text-[17px]">
                 <colgroup>
                   <col className="w-[40%]" />
                   <col className="w-[40%]" />
@@ -1081,7 +1081,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       </th>
                       <td className="px-3 py-3">
                         <span className="block text-foreground">{field.value}</span>
-                        <span className="mt-1 block text-xs text-muted-foreground">{field.serviceName}</span>
+                        <span className="mt-1 block text-[17px] text-muted-foreground">{field.serviceName}</span>
                       </td>
                       <td className="px-3 py-3 text-right font-medium">{field.statusLabel}</td>
                     </tr>
@@ -1092,26 +1092,22 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               {candidateOptions.length > 0 ? (
                 <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50/40 p-3" aria-label="候選土地建物清單" role="region">
                   <div>
-                    <h4 className="text-sm font-semibold">物件候選確認</h4>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <h4 className="text-[17px] font-semibold">物件候選確認</h4>
+                    <p className="mt-1 text-[17px] text-muted-foreground">
                       確認是本案物件後，才會進入正式資料匯入；不確認就不產生費用。
                     </p>
                   </div>
                   <div className="mt-3 overflow-hidden rounded-md border bg-white">
                     {candidateOptions.map((candidate) => {
-                      const isSingleUsableCandidate =
-                        candidateOptions.length === 1 && candidate.query_status === "candidate_data_available";
-                      const canImportFormal =
-                        formalImportTarget?.candidate_id === candidate.candidate_id ||
-                        (isSingleUsableCandidate && formalImportTarget?.normalized_parcel_id === candidate.normalized_parcel_id);
+                      const canImportFormal = formalImportTarget?.candidate_id === candidate.candidate_id;
                       return (
                       <article
                         key={candidate.candidate_id}
-                        className="grid gap-3 border-b p-3 text-sm last:border-b-0 lg:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.6fr)_140px_minmax(190px,0.8fr)]"
+                        className="grid gap-3 border-b p-3 text-[17px] last:border-b-0 lg:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.6fr)_140px_minmax(190px,0.8fr)]"
                       >
                         <div>
                           <strong className="block">{candidate.normalized_parcel_id}</strong>
-                          <span className="mt-1 block text-xs text-muted-foreground">
+                          <span className="mt-1 block text-[17px] text-muted-foreground">
                             {candidate.parcel_type === "building" ? "建物候選" : "土地候選"} · {candidateStatusLabel(candidate.query_status)}
                           </span>
                         </div>
@@ -1119,7 +1115,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                           {candidateSummaryText(candidate) || "待候選資料查詢"}
                         </div>
                         <div>
-                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">
+                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[17px] font-medium">
                             {candidateStatusLabel(candidate.query_status)}
                           </span>
                         </div>
@@ -1141,14 +1137,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                           ) : (
                             <>
                               <button
-                                className="rounded-md border bg-white px-3 py-2 text-sm"
+                                className="rounded-md border bg-white px-3 py-2 text-[17px]"
                                 type="button"
                                 onClick={() => updateCandidateSelection(candidate, "selected")}
                               >
                                 暫用 {candidate.normalized_parcel_id}
                               </button>
                               <button
-                                className="rounded-md bg-slate-950 px-3 py-2 text-sm text-white"
+                                className="rounded-md bg-slate-950 px-3 py-2 text-[17px] text-white"
                                 type="button"
                                 onClick={() => updateCandidateSelection(candidate, "confirmed")}
                               >
@@ -1169,13 +1165,13 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 onToggle={(event) => setShowRegistryManagementDetails(event.currentTarget.open)}
               >
                 <summary
-                  className="cursor-pointer text-sm font-medium"
+                  className="cursor-pointer text-[17px] font-medium"
                   onClick={() => setShowRegistryManagementDetails(true)}
                 >
                   管理明細
                 </summary>
                 {showRegistryManagementDetails ? (
-                  <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-white p-3 text-xs">
+                  <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-white p-3 text-[17px]">
                     {registryJson}
                   </pre>
                 ) : null}
@@ -1185,8 +1181,8 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
 
           {activeTab === "supplements" ? (
             <section className="mt-4 rounded-lg border p-4" aria-label="補件與現場確認">
-              <h3 className="text-sm font-semibold">補件與現場確認</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h3 className="text-[17px] font-semibold">補件與現場確認</h3>
+              <p className="mt-1 text-[17px] text-muted-foreground">
                 客戶來電、現場看屋或 LINE 傳照片時，都在這裡直接填寫與上傳；答不出來的項目再留在補件清單。
               </p>
               {actionableRegistryFields.length > 0 ? (
@@ -1203,12 +1199,12 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         className="grid gap-3 border-b p-3 last:border-b-0 md:grid-cols-[150px_minmax(0,1fr)_150px_140px]"
                       >
                         <div>
-                          <strong className="block text-sm">{field.fieldName}</strong>
-                          <span className="mt-1 block text-xs text-muted-foreground">
+                          <strong className="block text-[17px]">{field.fieldName}</strong>
+                          <span className="mt-1 block text-[17px] text-muted-foreground">
                             {field.statusLabel}
                           </span>
                         </div>
-                        <label className="text-sm">
+                        <label className="text-[17px]">
                           <span className="font-medium">{field.fieldName}補件值</span>
                           {SUPPLEMENT_VALUE_OPTIONS[field.fieldName] ? (
                             <select
@@ -1239,12 +1235,12 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                             />
                           )}
                           {draft.value.trim() ? (
-                            <span className="mt-2 block text-xs font-medium text-emerald-700">
+                            <span className="mt-2 block text-[17px] font-medium text-emerald-700">
                               已補：{draft.value}
                             </span>
                           ) : null}
                         </label>
-                        <label className="text-sm">
+                        <label className="text-[17px]">
                           <span className="font-medium">來源</span>
                           <select
                             aria-label={`${field.fieldName}補件來源`}
@@ -1261,7 +1257,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                             <option>重新查詢</option>
                           </select>
                         </label>
-                        <label className="text-sm">
+                        <label className="text-[17px]">
                           <span className="font-medium">狀態</span>
                           <select
                             aria-label={`${field.fieldName}補件狀態`}
@@ -1287,10 +1283,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 {FIELD_VISIT_QUESTIONS.map((item) => (
                   <article key={item.topic} className="grid gap-3 border-b p-3 last:border-b-0 md:grid-cols-[150px_minmax(0,1fr)_180px]">
                     <div>
-                      <strong className="block text-sm">{item.topic}</strong>
-                      <span className="mt-1 block text-xs text-muted-foreground">{item.source}</span>
+                      <strong className="block text-[17px]">{item.topic}</strong>
+                      <span className="mt-1 block text-[17px] text-muted-foreground">{item.source}</span>
                     </div>
-                    <label className="text-sm">
+                    <label className="text-[17px]">
                       <span className="font-medium">{item.question}</span>
                       <select
                         aria-label={`${item.topic}回答`}
@@ -1303,7 +1299,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         ))}
                       </select>
                     </label>
-                    <label className="text-sm">
+                    <label className="text-[17px]">
                       <span className="font-medium">狀態</span>
                       <select
                         aria-label={`${item.topic}狀態`}
@@ -1322,7 +1318,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {ASSET_UPLOAD_SLOTS.map((slot) => (
-                  <label key={slot} className="rounded-md border p-3 text-sm transition hover:border-slate-400 hover:bg-slate-50">
+                  <label key={slot} className="rounded-md border p-3 text-[17px] transition hover:border-slate-400 hover:bg-slate-50">
                     <span className="block font-medium">{slot}上傳</span>
                     <input
                       className="sr-only"
@@ -1352,10 +1348,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                         }
                       }}
                     />
-                    <span className="mt-4 inline-flex min-h-10 items-center rounded-md border bg-slate-950 px-4 py-2 text-sm font-medium text-white">
+                    <span className="mt-4 inline-flex min-h-10 items-center rounded-md border bg-slate-950 px-4 py-2 text-[17px] font-medium text-white">
                       檔案
                     </span>
-                    <span className="mt-2 block rounded-md bg-slate-100 px-2 py-1 text-xs text-muted-foreground">
+                    <span className="mt-2 block rounded-md bg-slate-100 px-2 py-1 text-[17px] text-muted-foreground">
                       {assetUploads[slot] ? `已選擇：${assetUploads[slot]}` : "尚未上傳"}
                     </span>
                   </label>
@@ -1363,7 +1359,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 <button
-                  className="rounded-md border px-3 py-2 text-sm"
+                  className="rounded-md border px-3 py-2 text-[17px]"
                   type="button"
                   onClick={() => {
                     setSupplementAdded(true);
@@ -1373,22 +1369,22 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   加入補件清單
                 </button>
               </div>
-              {supplementAdded ? <p className="mt-3 text-sm font-medium text-emerald-700">已加入補件清單</p> : null}
+              {supplementAdded ? <p className="mt-3 text-[17px] font-medium text-emerald-700">已加入補件清單</p> : null}
             </section>
           ) : null}
 
           {activeTab === "pdf" ? (
             <section className="mt-4 rounded-lg border p-4" aria-label="PDF 檢查內容">
-              <h3 className="text-sm font-semibold">PDF 檢查</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h3 className="text-[17px] font-semibold">PDF 檢查</h3>
+              <p className="mt-1 text-[17px] text-muted-foreground">
                 預覽前先核對文字內容、正式資料、補件與圖資是否已補齊；缺漏欄位會列出原因。
               </p>
-              <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+              <div className="mt-3 grid gap-2 text-[17px] md:grid-cols-2">
                 <div className="rounded-md bg-slate-50 p-3">待確認欄位：{pdfPendingRows.length} 欄</div>
                 <div className="rounded-md bg-slate-50 p-3">已上傳圖資：{uploadedAssetCount} 項</div>
               </div>
               <div className="mt-4 overflow-x-auto rounded-lg border" aria-label="PDF 文字預覽清單">
-                <div className="grid min-w-[860px] gap-2 bg-slate-50 p-3 text-xs font-medium text-muted-foreground md:grid-cols-[170px_minmax(320px,1fr)_180px_180px]">
+                <div className="grid min-w-[860px] gap-2 bg-slate-50 p-3 text-[17px] font-medium text-muted-foreground md:grid-cols-[170px_minmax(320px,1fr)_180px_180px]">
                   <span>欄位</span>
                   <span>將寫入 PDF 的內容</span>
                   <span>來源</span>
@@ -1397,7 +1393,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 {pdfReviewRows.map((row) => (
                   <article
                     key={`${row.label}-${row.source}`}
-                    className="grid min-w-[860px] gap-2 border-t p-3 text-sm md:grid-cols-[170px_minmax(320px,1fr)_180px_180px]"
+                    className="grid min-w-[860px] gap-2 border-t p-3 text-[17px] md:grid-cols-[170px_minmax(320px,1fr)_180px_180px]"
                   >
                     <strong>{row.label}</strong>
                     <span>{row.value || "待補"}</span>
@@ -1405,7 +1401,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                     <span>
                       <span className="block font-medium">{row.status}</span>
                       {row.reason ? (
-                        <span className="block text-xs text-muted-foreground">{row.reason}</span>
+                        <span className="block text-[17px] text-muted-foreground">{row.reason}</span>
                       ) : null}
                     </span>
                   </article>
@@ -1417,14 +1413,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
           <footer className="mt-5 flex justify-end border-t pt-4">
             {nextTab ? (
               <button
-                className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white"
+                className="rounded-md bg-slate-950 px-4 py-2 text-[17px] text-white"
                 type="button"
                 onClick={() => setActiveTab(nextTab.id)}
               >
                 下一步：{nextTab.label}
               </button>
             ) : (
-              <Link className="rounded-md bg-slate-950 px-4 py-2 text-sm text-white" href={casePreviewHref(caseDraft.id)}>
+              <Link className="rounded-md bg-slate-950 px-4 py-2 text-[17px] text-white" href={casePreviewHref(caseDraft.id)}>
                 完成並預覽 PDF
               </Link>
             )}

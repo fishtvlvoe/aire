@@ -58,16 +58,17 @@ describe("DemoAlignedWorkbench", () => {
   it("renders the two-column case/chapter and field review workbench", () => {
     render(<DemoAlignedWorkbench caseData={caseRow} />);
 
+    const summaryRegion = screen.getByRole("region", { name: "物件摘要" });
     expect(screen.getByRole("heading", { name: "物件審核" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "物件摘要" })).toBeInTheDocument();
+    expect(summaryRegion).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "欄位審核" })).toBeInTheDocument();
-    expect(screen.getByText("地政")).toBeInTheDocument();
-    expect(screen.getByText("土地 2 筆")).toBeInTheDocument();
-    expect(screen.getByText("建物 1 筆")).toBeInTheDocument();
-    expect(screen.getByText("0 件")).toBeInTheDocument();
-    expect(screen.getByText("6 件")).toBeInTheDocument();
-    expect(screen.getByText("2 件")).toBeInTheDocument();
-    expect(screen.getAllByText("0 元").length).toBeGreaterThan(0);
+    expect(within(summaryRegion).getAllByText("名稱").length).toBeGreaterThan(0);
+    expect(within(summaryRegion).getAllByText("地政組成").length).toBeGreaterThan(0);
+    expect(within(summaryRegion).getAllByText("土地 2 筆｜建物 1 筆").length).toBeGreaterThan(0);
+    expect(within(summaryRegion).getAllByText("已帶入").length).toBeGreaterThan(0);
+    expect(within(summaryRegion).getAllByText("待補件").length).toBeGreaterThan(0);
+    expect(within(summaryRegion).getAllByText("待確認").length).toBeGreaterThan(0);
+    expect(screen.getByText(/本次調閱費用：0 元/)).toBeInTheDocument();
     expect(screen.queryByText("27 元")).not.toBeInTheDocument();
     expect(screen.getByLabelText("欄位審核表")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "重新查詢" })).not.toBeInTheDocument();
@@ -92,6 +93,17 @@ describe("DemoAlignedWorkbench", () => {
       "物件資料總覽",
       "PDF 檢查",
     ]);
+  });
+
+  it("uses the compact single-line summary on non-core workbench tabs", () => {
+    render(<DemoAlignedWorkbench caseData={caseRow} initialTab="summary" />);
+
+    const summaryRegion = screen.getByRole("region", { name: "物件摘要" });
+    expect(within(summaryRegion).getByText("物件摘要")).toBeInTheDocument();
+    expect(within(summaryRegion).getByText("宜蘭五結農舍")).toBeInTheDocument();
+    expect(within(summaryRegion).getByText("宜蘭縣五結鄉協和村親河路二段 1 號")).toBeInTheDocument();
+    expect(within(summaryRegion).queryByText("地政組成")).not.toBeInTheDocument();
+    expect(within(summaryRegion).queryByText("資料狀態")).not.toBeInTheDocument();
   });
 
   it("uses customer-facing field labels and hides engineering codes", () => {
@@ -473,12 +485,13 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(sourceRegion).getByText("待正式所有權資料後再比對")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "正式資料匯入" }));
     const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
-    expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
+    expect(within(importRegion).getByRole("button", { name: "暫用 DK-9125-00084000" })).toBeInTheDocument();
+    expect(within(importRegion).getByRole("button", { name: "確認 DK-9125-00084000" })).toBeInTheDocument();
     expect(sourceRegion.textContent).not.toContain("候選建號");
     expect(sourceRegion.textContent).not.toMatch(/R02|便民系統/);
   });
 
-  it("puts the paid formal import action inside a single usable candidate card", () => {
+  it("keeps the paid formal import action hidden until the candidate is explicitly confirmed", () => {
     const singleCandidateCase: CaseRow = {
       ...caseRow,
       land_registry_data: {
@@ -511,12 +524,51 @@ describe("DemoAlignedWorkbench", () => {
     render(<DemoAlignedWorkbench caseData={singleCandidateCase} initialTab="formal-import" />);
 
     const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
-    expect(screen.getByTestId("workbench-layout")).toHaveClass("workbench-full-width");
+    expect(within(importRegion).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
+    expect(within(importRegion).getByRole("button", { name: "暫用 DK-9125-00084000" })).toBeInTheDocument();
+    expect(within(importRegion).getByRole("button", { name: "確認 DK-9125-00084000" })).toBeInTheDocument();
+  });
+
+  it("shows the paid formal import action after the candidate is already confirmed", () => {
+    const confirmedCandidateCase: CaseRow = {
+      ...caseRow,
+      building_lot_no: "DK-9125-00084000",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-26T00:00:00.000Z",
+        totalCost: 0,
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "building:DK-9125-00084000",
+            parcel_type: "building",
+            section_code: "9125",
+            section_name: "東和段",
+            parcel_number: "00084000",
+            normalized_parcel_id: "DK-9125-00084000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            confirmation_state: "confirmed",
+            summary_fields: {
+              registeredAreaPing: 38.78,
+              legalUse: "住商用",
+            },
+            warnings: [],
+          },
+        ],
+        confirmed_parcel_ids: {
+          building: "building:DK-9125-00084000",
+        },
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={confirmedCandidateCase} initialTab="formal-import" />);
+
+    const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
     expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
-    expect(within(importRegion).queryByRole("button", { name: "確認" })).not.toBeInTheDocument();
-    expect(within(importRegion).queryByRole("button", { name: "取消" })).not.toBeInTheDocument();
-    expect(within(importRegion).queryByRole("button", { name: /暫用/ })).not.toBeInTheDocument();
-    expect(within(importRegion).queryByRole("button", { name: /確認 DK-9125-00084000/ })).not.toBeInTheDocument();
+    expect(within(importRegion).queryByRole("button", { name: "確認 DK-9125-00084000" })).not.toBeInTheDocument();
   });
 
   it("does not show mock Taipei formal registry data for a Hsinchu case", () => {
@@ -558,7 +610,6 @@ describe("DemoAlignedWorkbench", () => {
     render(<DemoAlignedWorkbench caseData={hsinchuCase} initialTab="pdf" />);
 
     const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
-    expect(screen.getByTestId("workbench-layout")).toHaveClass("workbench-full-width");
     expect(pdfRegion.textContent).not.toContain("台北市大安區和平東路");
     expect(pdfRegion.textContent).not.toContain("建號 778-2");
     expect(pdfRegion.textContent).not.toContain("北松字第012345號");

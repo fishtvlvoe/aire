@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>欄位初審 - Workbench Prototype</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #fff;
+        --line: #d9dde5;
+        --text: #17191e;
+        --muted: #6b7280;
+        --soft: #f5fbf8;
+        --badge: #fff6df;
+        --badge-text: #b86902;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+        font-size: 17px;
+      }
+      .shell { max-width: 1600px; margin: 0 auto; }
+      .back {
+        margin-bottom: 12px;
+        font-size: 17px;
+        color: var(--muted);
+        text-decoration: none;
+        display: inline-block;
+      }
+      .summary,
+      .workspace {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+      }
+      .summary { padding: 18px 20px; }
+      .summary-title {
+        margin: 0 0 10px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      table { width: 100%; border-collapse: collapse; }
+      .summary-table {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .summary-table th,
+      .summary-table td {
+        border-right: 1px solid var(--line);
+        padding: 10px 12px;
+        vertical-align: top;
+        text-align: left;
+      }
+      .summary-table th:last-child,
+      .summary-table td:last-child { border-right: 0; }
+      .summary-table thead th {
+        background: #f8fafc;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .summary-table tbody td {
+        background: var(--soft);
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+      }
+      .name,
+      .metric {
+        font-size: 12px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .address {
+        line-height: 1.5;
+        color: #4b5563;
+        font-size: 12px;
+      }
+      .badge-cell {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: var(--badge);
+        color: var(--badge-text);
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .workspace {
+        margin-top: 18px;
+        padding: 24px;
+      }
+      .workspace-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .workspace-title {
+        margin: 0 0 8px;
+        font-size: 17px;
+        font-weight: 900;
+      }
+      .workspace-sub {
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.6;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: #fff6df;
+        color: #b86902;
+        padding: 8px 12px;
+        font-size: 17px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+      }
+      .tab {
+        border: 2px solid #1f2937;
+        background: #fff;
+        border-radius: 16px;
+        padding: 12px 16px;
+        font-size: 17px;
+        font-weight: 900;
+      }
+      .tab.active {
+        background: #16181d;
+        color: #fff;
+      }
+      .notice {
+        margin-top: 18px;
+        border: 1px solid #f2d28a;
+        background: #fff8e8;
+        border-radius: 16px;
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .notice strong {
+        display: block;
+        font-size: 17px;
+        margin-bottom: 6px;
+      }
+      .notice p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.6;
+      }
+      .btn {
+        border: 2px solid #2b2d31;
+        background: #fff;
+        border-radius: 16px;
+        padding: 10px 14px;
+        font-size: 17px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .review-table {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .review-table td {
+        border-top: 1px solid var(--line);
+        border-right: 1px solid var(--line);
+        padding: 18px;
+        vertical-align: top;
+      }
+      .review-table tr:first-child td { border-top: 0; }
+      .review-table td:last-child { border-right: 0; }
+      .field-name {
+        font-size: 17px;
+        font-weight: 900;
+        margin-bottom: 8px;
+      }
+      .field-help,
+      .field-source {
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 17px;
+      }
+      .field-value {
+        font-size: 17px;
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 86px;
+        border-radius: 999px;
+        background: #eef2f7;
+        color: #667085;
+        padding: 8px 12px;
+        font-size: 17px;
+        font-weight: 800;
+      }
+      .actions { display: flex; justify-content: flex-end; }
+      .edit-btn {
+        border: 2px solid #2b2d31;
+        background: #fff;
+        border-radius: 16px;
+        padding: 10px 14px;
+        font-size: 17px;
+        font-weight: 900;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <a class="back" href="./index.html">← 返回 prototype 清單</a>
+
+      <section class="summary">
+        <div class="summary-title">物件摘要</div>
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>名稱</th>
+              <th>地址</th>
+              <th>地政組成</th>
+              <th>已帶入</th>
+              <th>待補件</th>
+              <th>待確認</th>
+              <th>資料狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="name">四維路</div></td>
+              <td><div class="address">新竹市北區四維路130號4樓之3</div></td>
+              <td><div class="metric">土地 2 筆｜建物 1 筆</div></td>
+              <td><div class="metric">2 件</div></td>
+              <td><div class="metric">3 件</div></td>
+              <td><div class="metric">12 欄</div></td>
+              <td><span class="badge-cell">參考版資料｜本次費用 0 元</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="workspace">
+        <div class="workspace-head">
+          <div>
+            <h2 class="workspace-title">欄位審核</h2>
+            <div class="workspace-sub">摘要列只保留總覽資訊，下面空間完整留給欄位審核、補件、正式查詢與 PDF。</div>
+          </div>
+          <div class="status-chip">12 欄待確認</div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active">欄位初審</div>
+          <div class="tab">補件與現場</div>
+          <div class="tab">正式資料匯入</div>
+          <div class="tab">物件資料總覽</div>
+          <div class="tab">PDF 檢查</div>
+        </div>
+
+        <div class="notice">
+          <div>
+            <strong>本次調閱費用：0 元</strong>
+            <p>目前只使用免費前查資料；地址候選與附近成交行情可先用於審核與補件。</p>
+          </div>
+          <button class="btn">查看物件資料總覽</button>
+        </div>
+
+        <table class="review-table">
+          <tr>
+            <td style="width:34%">
+              <div class="field-name">屋主姓名</div>
+              <div class="field-help">由屋主或正式文件提供</div>
+            </td>
+            <td style="width:46%">
+              <div class="field-value">王先生</div>
+              <div class="field-source">案件資料</div>
+            </td>
+            <td style="width:10%"><span class="pill">已提供</span></td>
+            <td style="width:10%" class="actions"><button class="edit-btn">修改</button></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="field-name">建物權利範圍</div>
+              <div class="field-help">正式謄本或建物所有權資料</div>
+            </td>
+            <td>
+              <div class="field-value">待地政謄本匯入</div>
+              <div class="field-source">正式查詢後帶入</div>
+            </td>
+            <td><span class="pill">待匯入</span></td>
+            <td class="actions"><button class="edit-btn">修改</button></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="field-name">登記日期</div>
+              <div class="field-help">公開物件資料或正式謄本</div>
+            </td>
+            <td>
+              <div class="field-value">待確認</div>
+              <div class="field-source">公開物件資料</div>
+            </td>
+            <td><span class="pill">待確認</span></td>
+            <td class="actions"><button class="edit-btn">修改</button></td>
+          </tr>
+        </table>
+      </section>
+    </div>
+  </body>
+</html>
