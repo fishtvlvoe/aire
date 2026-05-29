@@ -12,6 +12,7 @@ export interface ParcelInfo {
   building_number: string;
   section_name?: string;
   section_code?: string;
+  office_code?: string;
   land_office?: string;
   source?: "cop_moi" | "easymap_r02" | "easymap_z10web" | "nlsc_cad" | "dev_fixture" | "mock";
   trusted_for_pdf?: boolean;
@@ -191,9 +192,12 @@ interface LocalCaseWithRegistryData {
   id?: string;
   land_registry_data?: {
     confirmed_registry_match?: {
+      office_code?: string | null;
+      section_code?: string | null;
       section_name?: string | null;
       land_no?: string | null;
       building_no?: string | null;
+      registry_key?: string | null;
     } | null;
   } | null;
 }
@@ -224,12 +228,17 @@ async function fetchAddressDiscoveryFromLocalBackend(address: string): Promise<P
   });
 
   if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { message?: string; error?: string } | null;
     try {
-      await safeInvoke<ParcelInfo[]>("land_registry_address_lookup", { address });
-    } catch {
-      // no-op
+      return await safeInvoke<ParcelInfo[]>("land_registry_address_lookup", { address });
+    } catch (error) {
+      const message =
+        payload?.message ||
+        payload?.error ||
+        (error instanceof Error ? error.message : "") ||
+        `本機地址查詢失敗（HTTP ${response.status}）`;
+      throw new Error(message);
     }
-    return [];
   }
 
   const result = (await response.json()) as LocalAddressDiscoveryResponse;
@@ -409,9 +418,12 @@ export async function syncRegistryQueryRunToSaas(runId: string): Promise<Registr
 
 export async function confirmCaseRegistryMatch(input: {
   caseId: string;
+  officeCode?: string | null;
+  sectionCode?: string | null;
   sectionName: string;
   landNo: string;
   buildingNo?: string | null;
+  registryKey?: string | null;
 }): Promise<{ success: true }> {
   return invoke("confirm_case_registry_match", input);
 }

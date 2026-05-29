@@ -15,6 +15,8 @@ describe("registry-provenance", () => {
     const payload = createRegistryProvenancePayload({
       parcelId: "DC-1556-00700000",
       generatedAt: "2026-05-22T00:00:00.000Z",
+      isPaid: true,
+      pricingNote: "付費正式查詢",
       results: {
         land_registry: {
           success: true,
@@ -25,6 +27,8 @@ describe("registry-provenance", () => {
     });
 
     expect(isRegistryProvenancePayload(payload)).toBe(true);
+    expect(payload.isPaid).toBe(true);
+    expect(payload.pricingNote).toBe("付費正式查詢");
     expect(payload.entries.land_registry).toMatchObject({
       source: "moi_api",
       status: "success",
@@ -112,6 +116,8 @@ describe("registry-provenance", () => {
     const payload = createRegistryProvenancePayload({
       parcelId: "DC-1556-00700000",
       generatedAt: "2026-05-22T00:00:00.000Z",
+      isPaid: false,
+      pricingNote: "免費前查",
       results: {
         building_registry: {
           success: true,
@@ -134,6 +140,8 @@ describe("registry-provenance", () => {
       status: "candidate",
       trustedForPdf: false,
     });
+    expect(payload.isPaid).toBe(false);
+    expect(payload.pricingNote).toBe("免費前查");
     expect(payload.entries.raw_probe).toMatchObject({
       source: "raw_probe",
       status: "probe",

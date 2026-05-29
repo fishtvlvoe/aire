@@ -43,6 +43,7 @@ export interface CaseDossierData {
   ownerName: string;
   companyName: string;
   generatedAt: string;
+  dossierTier?: "reference" | "formal";
   logoBytes?: number[];
   logo?: string;
 
@@ -190,7 +191,9 @@ export interface CaseDossierData {
   locationMapImage?: Uint8Array | null;
   floorPlanPhoto?: Uint8Array | null;
   preSurvey?: {
+    isPaid?: boolean;
     lookupCost?: number;
+    pricingNote?: string;
     failureReasons: Array<{
       apiId: string;
       status: "failed" | "unauthorized";

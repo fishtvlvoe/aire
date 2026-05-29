@@ -48,8 +48,11 @@ export type CandidateConfirmationState = "unconfirmed" | "selected_candidate" | 
 export interface CandidateParcelOption {
   candidate_id: string;
   parcel_type: CandidateParcelType;
+  office_code?: string;
   section_code?: string;
   section_name?: string;
+  land_no?: string;
+  building_no?: string;
   parcel_number?: string;
   normalized_parcel_id: string;
   source?: string;
@@ -84,6 +87,8 @@ export interface RegistryProvenancePayload extends Record<string, unknown> {
   generatedAt: string;
   parcelId?: string;
   totalCost?: number;
+  isPaid?: boolean;
+  pricingNote?: string;
   entries: Record<string, RegistryProvenanceEntry>;
   candidate_options?: CandidateParcelOption[];
   selected_candidate_ids?: Partial<Record<CandidateParcelType, string>>;
@@ -194,6 +199,8 @@ function classifyRegistryFailure(error?: unknown): {
 export function createRegistryProvenancePayload(input: {
   parcelId?: string;
   totalCost?: number;
+  isPaid?: boolean;
+  pricingNote?: string;
   results?: Record<string, ApiLikeResult>;
   manualEntries?: Array<{ apiId: string; data: Record<string, unknown> | null }>;
   candidateOptions?: CandidateParcelOption[];
@@ -269,6 +276,8 @@ export function createRegistryProvenancePayload(input: {
     generatedAt: input.generatedAt ?? new Date().toISOString(),
     parcelId: input.parcelId,
     totalCost: input.totalCost,
+    isPaid: input.isPaid,
+    pricingNote: input.pricingNote,
     entries,
   };
   if (input.candidateOptions && input.candidateOptions.length > 0) {

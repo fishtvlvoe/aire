@@ -33,6 +33,9 @@ export type { AddressDiscoveryResult } from "@/lib/server/local-address-discover
 // GET /api/health
 // ──────────────────────────────────────────────────────────────────────────────
 
+/** 開發環境專用 token；production 必須由 launcher 注入隨機 AIRE_LOCAL_TOKEN。 */
+export const LOCAL_DEV_TOKEN = "aire-dev-local-token";
+
 /** launcher 用 polling 判斷 server 已就緒的健康檢查端點 */
 export interface HealthResponse {
   /** 固定為 'ok' */

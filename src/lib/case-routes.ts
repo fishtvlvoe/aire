@@ -1,19 +1,20 @@
 export function caseDetailHref(caseId: string, tab?: string | null): string {
-  const query = new URLSearchParams({ caseId });
+  const query = new URLSearchParams();
   if (tab) query.set("tab", tab);
-  return `/cases/_?${query.toString()}`;
+  const suffix = query.toString();
+  return suffix ? `/cases/${encodeURIComponent(caseId)}?${suffix}` : `/cases/${encodeURIComponent(caseId)}`;
 }
 
 export function casePreviewHref(caseId: string): string {
-  return `/cases/_/preview?caseId=${encodeURIComponent(caseId)}`;
+  return `/cases/${encodeURIComponent(caseId)}/preview`;
 }
 
 export function caseLegacyHref(caseId: string): string {
-  return `/cases/_/legacy?caseId=${encodeURIComponent(caseId)}`;
+  return `/cases/${encodeURIComponent(caseId)}/legacy`;
 }
 
 export function caseKeyinHref(caseId: string): string {
-  return `/cases/_/keyin?caseId=${encodeURIComponent(caseId)}`;
+  return `/cases/${encodeURIComponent(caseId)}/keyin`;
 }
 
 export function resolveRuntimeCaseId(

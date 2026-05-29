@@ -37,6 +37,21 @@ type RegistrySupplementDraftByField = Record<
   string,
   { value: string; source: string; status: string }
 >;
+type PdfReviewRow = {
+  label: string;
+  value: string;
+  source: string;
+  status: string;
+  reason: string;
+  target: string;
+};
+type PdfReviewOverrides = Record<string, {
+  value: string;
+  source: string;
+  status: string;
+  reason: string;
+  target: string;
+}>;
 
 interface WorkbenchSupplementDraft {
   caseId: string;
@@ -211,6 +226,43 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function readPdfReviewOverrides(data: CaseRow["land_registry_data"]): PdfReviewOverrides {
+  if (!isRecord(data)) return {};
+  const snapshot = data.dossier_editable_snapshot;
+  if (!isRecord(snapshot) || !Array.isArray(snapshot.rows)) return {};
+  return Object.fromEntries(
+    snapshot.rows
+      .filter(isRecord)
+      .map((row) => {
+        const label = typeof row.label === "string" ? row.label : "";
+        if (!label) return null;
+        return [
+          label,
+          {
+            value: typeof row.value === "string" ? row.value : "",
+            source: typeof row.source === "string" ? row.source : "PDF 前置審核",
+            status: typeof row.status === "string" ? row.status : "待確認",
+            reason: typeof row.reason === "string" ? row.reason : "",
+            target: typeof row.target === "string" ? row.target : "不動產說明書",
+          },
+        ] as const;
+      })
+      .filter((entry): entry is readonly [string, PdfReviewOverrides[string]] => Boolean(entry)),
+  );
+}
+
+function applyPdfReviewOverride(row: PdfReviewRow, override: PdfReviewOverrides[string] | undefined): PdfReviewRow {
+  if (!override) return row;
+  return {
+    ...row,
+    value: override.value,
+    source: override.source,
+    status: override.status,
+    reason: override.reason,
+    target: override.target,
+  };
+}
+
 function mergeManualSupplementIntoRegistryData(
   existing: CaseRow["land_registry_data"],
   fieldName: string,
@@ -333,6 +385,8 @@ function findFormalImportTarget(
 function buildManualConfirmedCandidate(caseDraft: CaseRow): CandidateParcelOption | null {
   const registry = isRecord(caseDraft.land_registry_data) ? caseDraft.land_registry_data : null;
   const match = isRecord(registry?.confirmed_registry_match) ? registry.confirmed_registry_match : null;
+  const officeCode = typeof match?.office_code === "string" ? match.office_code.trim() : "";
+  const sectionCode = typeof match?.section_code === "string" ? match.section_code.trim() : "";
   const sectionName = typeof match?.section_name === "string" ? match.section_name.trim() : "";
   const landNo = typeof match?.land_no === "string" ? match.land_no.trim() : caseDraft.land_lot_no?.trim() ?? "";
   const buildingNo =
@@ -348,7 +402,11 @@ function buildManualConfirmedCandidate(caseDraft: CaseRow): CandidateParcelOptio
   return {
     candidate_id: `${isBuilding ? "building" : "land"}:${normalizedParcelId}`,
     parcel_type: isBuilding ? "building" : "land",
+    office_code: officeCode || undefined,
+    section_code: sectionCode || undefined,
     section_name: sectionName,
+    land_no: landNo,
+    building_no: buildingNo || "",
     parcel_number: isBuilding ? buildingNo : landNo,
     normalized_parcel_id: normalizedParcelId,
     source: "manual_confirmed",
@@ -358,6 +416,41 @@ function buildManualConfirmedCandidate(caseDraft: CaseRow): CandidateParcelOptio
     confirmation_state: "confirmed",
     warnings: ["人工確認的地段、地號與建號，正式資料仍以匯入結果為準"],
   };
+}
+
+function buildConfirmedRegistryMatchFromCandidate(candidate: CandidateParcelOption) {
+  const officeCode =
+    candidate.office_code?.trim() ||
+    normalizedParcelIdPart(candidate.normalized_parcel_id, 0) ||
+    null;
+  const sectionCode =
+    candidate.section_code?.trim() ||
+    normalizedParcelIdPart(candidate.normalized_parcel_id, 1) ||
+    null;
+  const landNo =
+    candidate.land_no?.trim() ||
+    (candidate.parcel_type === "land" ? candidate.parcel_number?.trim() : null) ||
+    null;
+  const buildingNo =
+    candidate.building_no?.trim() ||
+    (candidate.parcel_type === "building" ? candidate.parcel_number?.trim() : null) ||
+    null;
+
+  return {
+    office_code: officeCode,
+    section_code: sectionCode,
+    section_name: candidate.section_name?.trim() || null,
+    land_no: landNo,
+    building_no: buildingNo,
+    registry_key: candidate.normalized_parcel_id || null,
+    status: "confirmed" as const,
+  };
+}
+
+function normalizedParcelIdPart(parcelId: string, index: number): string | null {
+  const parts = parcelId.split("-");
+  const value = parts[index];
+  return value?.trim() ? value.trim() : null;
 }
 
 function mergeCandidateSelection(
@@ -455,6 +548,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const [fieldCorrections, setFieldCorrections] = useState<Record<string, string>>({});
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
   const [showRegistryManagementDetails, setShowRegistryManagementDetails] = useState(false);
+  const [pdfReviewOverrides, setPdfReviewOverrides] = useState<PdfReviewOverrides>(() =>
+    readPdfReviewOverrides(caseData.land_registry_data),
+  );
+  const [pdfReviewSaved, setPdfReviewSaved] = useState(false);
   const classification = getAddressFirstClassification(caseDraft.address);
   const fields = getDemoFieldReviewRows(caseDraft).map((field) =>
     fieldCorrections[field.fieldName]
@@ -540,7 +637,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const registryJson = JSON.stringify(registrySnapshot, null, 2);
   const uploadedAssetCount = Object.values(assetUploads).filter(Boolean).length;
   const registryPreviewSections = buildRegistryPreviewSections(caseDraft.land_registry_data);
-  const importedPdfRows = registryPreviewSections.flatMap((section) =>
+  const importedPdfRows: PdfReviewRow[] = registryPreviewSections.flatMap((section) =>
     section.fields.map((field) => ({
       label: field.label,
       value: field.value,
@@ -550,7 +647,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       target: field.target,
     })),
   );
-  const sourcePdfRows = sourceFields.map((field) => ({
+  const sourcePdfRows: PdfReviewRow[] = sourceFields.map((field) => ({
     label: field.fieldName === "主要用途" ? "法定用途" : field.fieldName,
     value: field.value,
     source: field.serviceName,
@@ -560,7 +657,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       : "",
     target: "物件資料表",
   }));
-  const pdfFallbackRows = PDF_REQUIRED_FALLBACK_ROWS.map((row) => {
+  const pdfFallbackRows: PdfReviewRow[] = PDF_REQUIRED_FALLBACK_ROWS.map((row) => {
     if (row.label === "建物外觀" && assetUploads["建物外觀"]) {
       return {
         ...row,
@@ -568,13 +665,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
         source: "補件與現場",
         status: "已補件覆蓋",
         reason: "PDF 會優先使用此案件保存的現場外觀照片，不採用自動街景作為最終外觀圖。",
+        target: "圖資頁",
       };
     }
-    return row;
+    return { ...row, target: "不動產說明書" };
   });
-  const pdfReviewRows = [...importedPdfRows, ...sourcePdfRows, ...pdfFallbackRows].filter(
-    (row, index, rows) => rows.findIndex((item) => item.label === row.label) === index,
-  );
+  const pdfReviewRows = [...importedPdfRows, ...sourcePdfRows, ...pdfFallbackRows]
+    .filter((row, index, rows) => rows.findIndex((item) => item.label === row.label) === index)
+    .map((row) => applyPdfReviewOverride(row, pdfReviewOverrides[row.label]));
   const pdfPendingRows = pdfReviewRows.filter((row) =>
     ["待補", "需人工", "待", "查詢未成功"].some((status) => row.status.includes(status)),
   );
@@ -753,18 +851,29 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   }
 
   function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed" | "cleared") {
-    const nextLandRegistryData = mode === "cleared"
+    const nextLandRegistryDataBase = mode === "cleared"
       ? clearCandidateSelection(caseDraft.land_registry_data, candidate)
       : mergeCandidateSelection(caseDraft.land_registry_data, candidate, mode);
+    const nextLandRegistryData = mode === "confirmed"
+      ? {
+          ...nextLandRegistryDataBase,
+          confirmed_registry_match: buildConfirmedRegistryMatchFromCandidate(candidate),
+        }
+      : nextLandRegistryDataBase;
     const updateInput: UpdateCaseInput = {
       land_registry_data: nextLandRegistryData,
     };
     if (mode === "confirmed") {
+      const confirmedMatch = buildConfirmedRegistryMatchFromCandidate(candidate);
       if (candidate.parcel_type === "building") {
-        updateInput.building_lot_no = candidate.normalized_parcel_id;
+        updateInput.building_lot_no = confirmedMatch.building_no;
+        if (confirmedMatch.land_no) {
+          updateInput.land_lot_no = confirmedMatch.land_no;
+          updateInput.land_lots = [confirmedMatch.land_no];
+        }
       } else {
-        updateInput.land_lot_no = candidate.normalized_parcel_id;
-        updateInput.land_lots = [candidate.normalized_parcel_id];
+        updateInput.land_lot_no = confirmedMatch.land_no ?? "";
+        updateInput.land_lots = confirmedMatch.land_no ? [confirmedMatch.land_no] : [];
       }
     }
     setCaseDraft((current) => ({
@@ -773,6 +882,46 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       land_registry_data: nextLandRegistryData,
     }));
     void casesApi.update(caseDraft.id, updateInput);
+  }
+
+  function updatePdfReviewRow(row: PdfReviewRow, value: string) {
+    setPdfReviewSaved(false);
+    setPdfReviewOverrides((current) => ({
+      ...current,
+      [row.label]: {
+        value,
+        status: value.trim() ? "已人工確認" : "待補",
+        reason: value.trim() ? "" : row.reason || "此欄位尚未補齊，輸出 PDF 前請確認。",
+        source: value.trim() ? "PDF 前置審核" : row.source,
+        target: row.target,
+      },
+    }));
+  }
+
+  async function savePdfReviewSnapshot() {
+    const rows = pdfReviewRows.map((row) => ({
+      label: row.label,
+      value: row.value,
+      source: row.source,
+      status: row.status,
+      reason: row.reason,
+      target: row.target,
+    }));
+    const nextLandRegistryData = {
+      ...(caseDraft.land_registry_data ?? {}),
+      dossier_editable_snapshot: {
+        updated_at: new Date().toISOString(),
+        rows,
+      },
+    };
+    const updated = await casesApi.update(caseDraft.id, { land_registry_data: nextLandRegistryData });
+    setCaseDraft((current) => ({
+      ...current,
+      land_registry_data: updated.land_registry_data ?? nextLandRegistryData,
+      updated_at: updated.updated_at ?? current.updated_at,
+    }));
+    setPdfReviewOverrides(readPdfReviewOverrides(nextLandRegistryData));
+    setPdfReviewSaved(true);
   }
 
   async function finishFieldEdit(fieldName: string, currentValue: string) {
@@ -1089,77 +1238,6 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                 </tbody>
               </table>
 
-              {candidateOptions.length > 0 ? (
-                <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50/40 p-3" aria-label="候選土地建物清單" role="region">
-                  <div>
-                    <h4 className="text-[17px] font-semibold">物件候選確認</h4>
-                    <p className="mt-1 text-[17px] text-muted-foreground">
-                      確認是本案物件後，才會進入正式資料匯入；不確認就不產生費用。
-                    </p>
-                  </div>
-                  <div className="mt-3 overflow-hidden rounded-md border bg-white">
-                    {candidateOptions.map((candidate) => {
-                      const canImportFormal = formalImportTarget?.candidate_id === candidate.candidate_id;
-                      return (
-                      <article
-                        key={candidate.candidate_id}
-                        className="grid gap-3 border-b p-3 text-[17px] last:border-b-0 lg:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.6fr)_140px_minmax(190px,0.8fr)]"
-                      >
-                        <div>
-                          <strong className="block">{candidate.normalized_parcel_id}</strong>
-                          <span className="mt-1 block text-[17px] text-muted-foreground">
-                            {candidate.parcel_type === "building" ? "建物候選" : "土地候選"} · {candidateStatusLabel(candidate.query_status)}
-                          </span>
-                        </div>
-                        <div className="text-muted-foreground">
-                          {candidateSummaryText(candidate) || "待候選資料查詢"}
-                        </div>
-                        <div>
-                          <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[17px] font-medium">
-                            {candidateStatusLabel(candidate.query_status)}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-2 md:justify-end">
-                          {canImportFormal ? (
-                            <PullParcelDataButton
-                              caseId={caseDraft.id}
-                              parcelId={candidate.normalized_parcel_id}
-                              apiIds={formalImportApiIds}
-                              label="正式資料匯入（付費）"
-                              preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
-                              onSaved={(data) => {
-                                setCaseDraft((current) => ({
-                                  ...current,
-                                  land_registry_data: data,
-                                }));
-                              }}
-                            />
-                          ) : (
-                            <>
-                              <button
-                                className="rounded-md border bg-white px-3 py-2 text-[17px]"
-                                type="button"
-                                onClick={() => updateCandidateSelection(candidate, "selected")}
-                              >
-                                暫用 {candidate.normalized_parcel_id}
-                              </button>
-                              <button
-                                className="rounded-md bg-slate-950 px-3 py-2 text-[17px] text-white"
-                                type="button"
-                                onClick={() => updateCandidateSelection(candidate, "confirmed")}
-                              >
-                                確認 {candidate.normalized_parcel_id}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              ) : null}
-
               <details
                 className="mt-4 rounded-lg border bg-slate-50 p-3"
                 onToggle={(event) => setShowRegistryManagementDetails(event.currentTarget.open)}
@@ -1396,7 +1474,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                     className="grid min-w-[860px] gap-2 border-t p-3 text-[17px] md:grid-cols-[170px_minmax(320px,1fr)_180px_180px]"
                   >
                     <strong>{row.label}</strong>
-                    <span>{row.value || "待補"}</span>
+                    <label className="sr-only" htmlFor={`pdf-review-${row.label}`}>{row.label}</label>
+                    <input
+                      id={`pdf-review-${row.label}`}
+                      className="min-h-10 rounded-md border px-3 py-2 text-[17px]"
+                      value={row.value}
+                      onChange={(event) => updatePdfReviewRow(row, event.target.value)}
+                      placeholder="待補"
+                    />
                     <span className="text-muted-foreground">{row.source}</span>
                     <span>
                       <span className="block font-medium">{row.status}</span>
@@ -1406,6 +1491,18 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                     </span>
                   </article>
                 ))}
+              </div>
+              <div className="mt-4 flex items-center justify-end gap-3">
+                {pdfReviewSaved ? (
+                  <span className="text-[17px] font-medium text-emerald-700">已保存 PDF 前置審核內容</span>
+                ) : null}
+                <button
+                  className="rounded-md bg-slate-950 px-4 py-2 text-[17px] text-white"
+                  type="button"
+                  onClick={() => void savePdfReviewSnapshot()}
+                >
+                  儲存 PDF 審核內容
+                </button>
               </div>
             </section>
           ) : null}

@@ -229,6 +229,23 @@ export default function CasePreviewPage() {
         <p style={{ color: "#666", fontSize: 13, marginTop: 8 }}>
           主題：{themeId} ・ Logo：{logoUrl ? "已載入" : "未設定"}
         </p>
+        {caseDossierData ? (
+          <div
+            style={{
+              marginTop: 12,
+              padding: "10px 12px",
+              borderRadius: 8,
+              border: `1px solid ${caseDossierData.dossierTier === "formal" ? "#86efac" : "#fcd34d"}`,
+              background: caseDossierData.dossierTier === "formal" ? "#f0fdf4" : "#fffbeb",
+              color: caseDossierData.dossierTier === "formal" ? "#166534" : "#92400e",
+              fontSize: 13,
+            }}
+          >
+            {caseDossierData.dossierTier === "formal"
+              ? "目前為正式版 PDF，已帶入正式地政資料。"
+              : "目前為參考版 PDF，內容以免費前查與補件資料組成；若需正式地政資料，可之後再進行付費查詢。"}
+          </div>
+        ) : null}
         {logoUrl ? (
           <img
             src={logoUrl}

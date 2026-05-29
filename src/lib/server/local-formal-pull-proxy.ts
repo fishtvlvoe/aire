@@ -3,9 +3,12 @@ import type { ApiResult } from "@/lib/land-registry-api";
 const COP_API_BASE_URL = "https://copapi.moi.gov.tw/cp/api";
 
 export interface LocalFormalPullTarget {
+  office_code?: string | null;
+  section_code?: string | null;
   section_name?: string | null;
   land_no?: string | null;
   building_no?: string | null;
+  registry_key?: string | null;
 }
 
 export interface LocalFormalPullInput {
@@ -35,10 +38,11 @@ const API_ENDPOINTS: Record<string, string> = {
 const BUILDING_APIS = new Set(["building_registry", "building_ownership", "building_other_rights"]);
 
 export async function pullFormalRegistryLocally(input: LocalFormalPullInput): Promise<LocalFormalPullResult> {
-  const sectionName = String(input.target.section_name ?? "").trim();
+  const officeCode = String(input.target.office_code ?? parseRegistryKeyPart(input.target.registry_key, 0) ?? "").trim();
+  const sectionCode = String(input.target.section_code ?? parseRegistryKeyPart(input.target.registry_key, 1) ?? "").trim();
   const landNo = String(input.target.land_no ?? "").trim();
   const buildingNo = String(input.target.building_no ?? "").trim();
-  if (!sectionName || !landNo) {
+  if (!officeCode || !sectionCode || !landNo) {
     throw new Error("registry_match_required");
   }
   if (!input.clientId.trim() || !input.secret.trim()) {
@@ -68,8 +72,8 @@ export async function pullFormalRegistryLocally(input: LocalFormalPullInput): Pr
     try {
       const raw = await postCop(endpoint, input.clientId, input.secret, [
         {
-          unit: sectionName,
-          sec: landNo,
+          unit: officeCode,
+          sec: sectionCode,
           no: BUILDING_APIS.has(apiId) ? buildingNo : landNo,
           ...(apiId === "building_ownership" || apiId === "building_other_rights"
             ? { offset: 1, limit: 100 }
@@ -98,6 +102,11 @@ export async function pullFormalRegistryLocally(input: LocalFormalPullInput): Pr
     cache_hit: false,
     source_run_id: null,
   };
+}
+
+function parseRegistryKeyPart(registryKey: string | null | undefined, index: number): string | null {
+  const parts = String(registryKey ?? "").split("-").map((part) => part.trim());
+  return parts[index] || null;
 }
 
 async function postCop(

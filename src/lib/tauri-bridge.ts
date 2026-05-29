@@ -166,6 +166,31 @@ async function invokeLocalCopCredential<T>(cmd: string, args?: Record<string, un
   }
 }
 
+async function invokeLocalRealPrice<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const { localApiFetch } = await import("./local-api/client");
+
+  if (cmd !== "query_real_price") {
+    throw new LocalApiNotWiredError(cmd);
+  }
+
+  const res = await localApiFetch("/api/local/real-price", {
+    method: "POST",
+    body: JSON.stringify({
+      district: args?.district ?? "",
+      keyword: args?.keyword ?? "",
+      limit: args?.limit ?? 20,
+    }),
+  });
+
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null) as { message?: string } | null;
+    throw new Error(payload?.message || `query_real_price 失敗：HTTP ${res.status}`);
+  }
+
+  const payload = await res.json() as { records?: T };
+  return payload.records as T;
+}
+
 /** MVP command → 路由器：判斷 command 屬於哪個 domain 並分派 */
 async function invokeLocalApi<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   // cases domain
@@ -181,6 +206,9 @@ async function invokeLocalApi<T>(cmd: string, args?: Record<string, unknown>): P
     ].includes(cmd)
   ) {
     return invokeLocalCopCredential<T>(cmd, args);
+  }
+  if (cmd === "query_real_price") {
+    return invokeLocalRealPrice<T>(cmd, args);
   }
   // 非 MVP command → 明確拋錯，不靜默
   throw new LocalApiNotWiredError(cmd);
@@ -202,6 +230,9 @@ export async function safeInvoke<T>(
 
   // 路由 2：dev 環境 → mock-backend（此分支不動）
   if (process.env.NODE_ENV === "development") {
+    if (cmd === "query_real_price") {
+      return invokeLocalRealPrice<T>(cmd, args);
+    }
     const { mockInvoke } = await import("./mock-backend");
     return mockInvoke<T>(cmd, args);
   }

@@ -258,8 +258,11 @@ describe("DemoAlignedWorkbench", () => {
           {
             candidate_id: "land:DC-1556-00700000",
             parcel_type: "land",
+            office_code: "DC",
             section_code: "1556",
             section_name: "富強段",
+            land_no: "00700000",
+            building_no: "",
             parcel_number: "00700000",
             normalized_parcel_id: "DC-1556-00700000",
             source: "public_reference",
@@ -272,8 +275,11 @@ describe("DemoAlignedWorkbench", () => {
           {
             candidate_id: "building:DC-1556-00165000",
             parcel_type: "building",
+            office_code: "DC",
             section_code: "1556",
             section_name: "富強段",
+            land_no: "00700000",
+            building_no: "00165000",
             parcel_number: "00165000",
             normalized_parcel_id: "DC-1556-00165000",
             source: "public_reference",
@@ -292,8 +298,11 @@ describe("DemoAlignedWorkbench", () => {
           {
             candidate_id: "building:DC-1556-00167000",
             parcel_type: "building",
+            office_code: "DC",
             section_code: "1556",
             section_name: "富強段",
+            land_no: "00700000",
+            building_no: "00167000",
             parcel_number: "00167000",
             normalized_parcel_id: "DC-1556-00167000",
             source: "public_reference",
@@ -308,8 +317,11 @@ describe("DemoAlignedWorkbench", () => {
           {
             candidate_id: "building:DC-1556-00230000",
             parcel_type: "building",
+            office_code: "DC",
             section_code: "1556",
             section_name: "富強段",
+            land_no: "00700000",
+            building_no: "00230000",
             parcel_number: "00230000",
             normalized_parcel_id: "DC-1556-00230000",
             source: "public_reference",
@@ -329,9 +341,9 @@ describe("DemoAlignedWorkbench", () => {
       ...input,
     }));
 
-    render(<DemoAlignedWorkbench caseData={candidateCase} initialTab="summary" />);
+    render(<DemoAlignedWorkbench caseData={candidateCase} initialTab="formal-import" />);
 
-    const sourceRegion = screen.getByRole("region", { name: "欄位資料來源" });
+    const sourceRegion = screen.getByRole("region", { name: "正式資料匯入" });
     expect(within(sourceRegion).getByRole("region", { name: "候選土地建物清單" })).toBeInTheDocument();
     expect(within(sourceRegion).getByText("DC-1556-00700000")).toBeInTheDocument();
     expect(within(sourceRegion).getByText("DC-1556-00165000")).toBeInTheDocument();
@@ -348,9 +360,17 @@ describe("DemoAlignedWorkbench", () => {
       expect(mockUpdateCase).toHaveBeenCalledWith(
         candidateCase.id,
         expect.objectContaining({
-          land_lot_no: "DC-1556-00700000",
-          land_lots: ["DC-1556-00700000"],
+          land_lot_no: "00700000",
+          land_lots: ["00700000"],
           land_registry_data: expect.objectContaining({
+            confirmed_registry_match: expect.objectContaining({
+              office_code: "DC",
+              section_code: "1556",
+              section_name: "富強段",
+              land_no: "00700000",
+              building_no: null,
+              registry_key: "DC-1556-00700000",
+            }),
             confirmed_parcel_ids: expect.objectContaining({
               land: "land:DC-1556-00700000",
             }),
@@ -378,8 +398,16 @@ describe("DemoAlignedWorkbench", () => {
       expect(mockUpdateCase).toHaveBeenCalledWith(
         candidateCase.id,
         expect.objectContaining({
-          building_lot_no: "DC-1556-00165000",
+          building_lot_no: "00165000",
           land_registry_data: expect.objectContaining({
+            confirmed_registry_match: expect.objectContaining({
+              office_code: "DC",
+              section_code: "1556",
+              section_name: "富強段",
+              land_no: "00700000",
+              building_no: "00165000",
+              registry_key: "DC-1556-00165000",
+            }),
             confirmed_parcel_ids: expect.objectContaining({
               building: "building:DC-1556-00165000",
             }),
@@ -401,6 +429,7 @@ describe("DemoAlignedWorkbench", () => {
     expect(screen.getByRole("tab", { name: "物件資料總覽" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("region", { name: "欄位資料來源" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "補件與現場確認" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "候選土地建物清單" })).not.toBeInTheDocument();
   });
 
   it("supports SOP next-step navigation and inline field correction", () => {
@@ -650,23 +679,59 @@ describe("DemoAlignedWorkbench", () => {
 
     const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
     const previewList = within(pdfRegion).getByLabelText("PDF 文字預覽清單");
-    expect(within(previewList).getByText("登記坪數")).toBeInTheDocument();
-    expect(within(previewList).getByText("128.2")).toBeInTheDocument();
-    expect(within(previewList).getByText("主建坪數")).toBeInTheDocument();
-    expect(within(previewList).getByText("91.4")).toBeInTheDocument();
-    expect(within(previewList).getByText("附屬建物")).toBeInTheDocument();
-    expect(within(previewList).getByText("公共設施")).toBeInTheDocument();
-    expect(within(previewList).getByText("車位坪數")).toBeInTheDocument();
-    expect(within(previewList).getByText("法定用途")).toBeInTheDocument();
-    expect(within(previewList).getByText("住商用")).toBeInTheDocument();
-    expect(within(previewList).getByText("Logo")).toBeInTheDocument();
-    expect(within(previewList).getByText("未設定品牌 Logo")).toBeInTheDocument();
-    expect(within(previewList).getByText("生活機能")).toBeInTheDocument();
-    expect(within(previewList).getByText("實價登錄行情")).toBeInTheDocument();
-    expect(within(previewList).getByText("土地增值稅估算")).toBeInTheDocument();
+    expect(within(previewList).getAllByText("登記坪數").length).toBeGreaterThan(0);
+    expect(within(previewList).getByDisplayValue("128.2")).toBeInTheDocument();
+    expect(within(previewList).getAllByText("主建坪數").length).toBeGreaterThan(0);
+    expect(within(previewList).getByDisplayValue("91.4")).toBeInTheDocument();
+    expect(within(previewList).getAllByText("附屬建物").length).toBeGreaterThan(0);
+    expect(within(previewList).getAllByText("公共設施").length).toBeGreaterThan(0);
+    expect(within(previewList).getAllByText("車位坪數").length).toBeGreaterThan(0);
+    expect(within(previewList).getAllByText("法定用途").length).toBeGreaterThan(0);
+    expect(within(previewList).getByDisplayValue("住商用")).toBeInTheDocument();
+    expect(within(previewList).getAllByText("Logo").length).toBeGreaterThan(0);
+    expect(within(previewList).getByDisplayValue("未設定品牌 Logo")).toBeInTheDocument();
+    expect(within(previewList).getAllByText("生活機能").length).toBeGreaterThan(0);
+    expect(within(previewList).getAllByText("實價登錄行情").length).toBeGreaterThan(0);
+    expect(within(previewList).getAllByText("土地增值稅估算").length).toBeGreaterThan(0);
     expect(within(previewList).getByText(/缺公告現值、前次移轉現值、成交價或持分/)).toBeInTheDocument();
-    expect(within(previewList).getByText("建物外觀")).toBeInTheDocument();
+    expect(within(previewList).getAllByText("建物外觀").length).toBeGreaterThan(0);
     expect(within(previewList).getAllByText(/現場外觀照片/).length).toBeGreaterThan(0);
+  });
+
+  it("lets users edit and save the PDF review snapshot before preview export", async () => {
+    mockUpdateCase.mockImplementation(async (_id, input) => ({
+      ...caseRow,
+      ...input,
+    }));
+
+    render(<DemoAlignedWorkbench caseData={caseRow} initialTab="pdf" />);
+
+    const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
+    fireEvent.change(within(pdfRegion).getByLabelText("屋主姓名"), {
+      target: { value: "王先生" },
+    });
+    fireEvent.click(within(pdfRegion).getByRole("button", { name: "儲存 PDF 審核內容" }));
+
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(
+        caseRow.id,
+        expect.objectContaining({
+          land_registry_data: expect.objectContaining({
+            dossier_editable_snapshot: expect.objectContaining({
+              rows: expect.arrayContaining([
+                expect.objectContaining({
+                  label: "屋主姓名",
+                  value: "王先生",
+                  source: "PDF 前置審核",
+                  status: "已人工確認",
+                }),
+              ]),
+            }),
+          }),
+        }),
+      );
+    });
+    expect(within(pdfRegion).getByText("已保存 PDF 前置審核內容")).toBeInTheDocument();
   });
 
   it("keeps candidate metadata and coordinates when supplement fields are saved", async () => {
@@ -790,7 +855,7 @@ describe("DemoAlignedWorkbench", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "PDF 檢查" }));
     const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
-    expect(within(pdfRegion).getByText("已上傳：front-door.png")).toBeInTheDocument();
+    expect(within(pdfRegion).getByDisplayValue("已上傳：front-door.png")).toBeInTheDocument();
     expect(within(pdfRegion).getByText("已補件覆蓋")).toBeInTheDocument();
     expect(within(pdfRegion).getByText(/優先使用此案件保存的現場外觀照片/)).toBeInTheDocument();
   });

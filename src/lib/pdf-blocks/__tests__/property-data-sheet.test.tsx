@@ -25,13 +25,16 @@ describe("PropertyDataSheetPage", () => {
     const data: CaseDossierData = {
       caseNo: "AIRE-YUNONG",
       address: "台南市東區裕農路288巷17號8樓之1",
+      dossierTier: "reference",
       propertyType: "building",
       landLotNo: "裕農段候選地號",
       ownerName: "",
       companyName: "",
       generatedAt: "2026/05/23",
       preSurvey: {
+        isPaid: false,
         lookupCost: 0,
+        pricingNote: "免費前查：地址候選、附近實價登錄與參考欄位，不產生成本",
         failureReasons: [
           {
             apiId: "building_ownership",
@@ -45,6 +48,10 @@ describe("PropertyDataSheetPage", () => {
     const text = collectText(PropertyDataSheetPage({ propertyType: "building", data }));
 
     expect(text).toContain("物調表資料狀態");
+    expect(text).toContain("資料版本");
+    expect(text).toContain("參考版（免費前查／補件資料）");
+    expect(text).toContain("查詢性質");
+    expect(text).toContain("免費前查：地址候選、附近實價登錄與參考欄位，不產生成本");
     expect(text).toContain("本次地政費用");
     expect(text).toContain("0 元");
     expect(text).toContain("查詢未成功");
@@ -55,6 +62,7 @@ describe("PropertyDataSheetPage", () => {
     const data: CaseDossierData = {
       caseNo: "AIRE-YUNONG",
       address: "台南市東區裕農路288巷17號8樓之1",
+      dossierTier: "reference",
       propertyType: "building",
       landLotNo: "裕農段候選地號",
       ownerName: "余啟彰",
@@ -121,7 +129,9 @@ describe("PropertyDataSheetPage", () => {
         mainBuildingArea: "推測資料，非登記資料",
       },
       preSurvey: {
+        isPaid: false,
         lookupCost: 0,
+        pricingNote: "免費前查：地址候選、附近實價登錄與參考欄位，不產生成本",
         failureReasons: [],
         candidateDisclaimer: "地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
         candidateOptions: [

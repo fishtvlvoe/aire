@@ -7,15 +7,25 @@ import {
 import type { CaseRow } from "@/lib/cases-api";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock tauri-bridge safeInvoke
+// Mock tauri-bridge safeInvoke and real-price helper
 // ─────────────────────────────────────────────────────────────────────────────
 
 vi.mock("@/lib/tauri-bridge", () => ({
   safeInvoke: vi.fn(),
 }));
 
+vi.mock("@/lib/real-price-query", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/real-price-query")>("@/lib/real-price-query");
+  return {
+    ...actual,
+    queryRealPrice: vi.fn(),
+  };
+});
+
 import { safeInvoke } from "@/lib/tauri-bridge";
+import { queryRealPrice } from "@/lib/real-price-query";
 const mockInvoke = vi.mocked(safeInvoke);
+const mockQueryRealPrice = vi.mocked(queryRealPrice);
 
 function ensureLocalStorage(): Storage {
   if (window.localStorage) return window.localStorage;
@@ -114,6 +124,8 @@ function savedRegistryPayloadFromPullResult(
     schema: "aire.registry-provenance.v1",
     generatedAt: "2026-05-25T00:00:00.000Z",
     totalCost: pullResult.total_cost,
+    isPaid: true,
+    pricingNote: "付費正式查詢：已於執行前確認費用與授權，結果可作為正式地政資料來源",
     entries: Object.fromEntries(
       Object.entries(results).map(([apiId, value]) => [
         apiId,
@@ -135,11 +147,11 @@ const mockLegalClauses = [
 ];
 
 const mockRealPriceRecords = [
-  { unit_price: 100000 },
-  { unit_price: 120000 },
-  { unit_price: 110000 },
-  { unit_price: 130000 },
-  { unit_price: 90000 },
+  { address: "新北市板橋區文化路一段188號", unit_price: 100000 },
+  { address: "新北市板橋區文化路一段190號", unit_price: 120000 },
+  { address: "新北市板橋區文化路一段192號", unit_price: 110000 },
+  { address: "新北市板橋區文化路一段196號", unit_price: 130000 },
+  { address: "新北市板橋區文化路一段198號", unit_price: 90000 },
 ];
 
 const mockRealPriceRecordsWithDate = [
@@ -156,6 +168,8 @@ function trustedRegistryPayload(entries: Record<string, Record<string, unknown>>
   return {
     schema: "aire.registry-provenance.v1",
     generatedAt: "2026-05-22T00:00:00.000Z",
+    isPaid: true,
+    pricingNote: "付費正式查詢：已於執行前確認費用與授權，結果可作為正式地政資料來源",
     entries: Object.fromEntries(
       Object.entries(entries).map(([apiId, data]) => [
         apiId,
@@ -176,6 +190,8 @@ function candidateRegistryPayload() {
     schema: "aire.registry-provenance.v1" as const,
     generatedAt: "2026-05-23T00:00:00.000Z",
     totalCost: 0,
+    isPaid: false,
+    pricingNote: "免費前查：地址候選、附近實價登錄與參考欄位，不產生成本",
     entries: {
       address_lookup: {
         apiId: "address_lookup",
@@ -267,6 +283,7 @@ function candidateRegistryPayload() {
 beforeEach(() => {
   vi.clearAllMocks();
   ensureLocalStorage().removeItem("aire-mock-store");
+  mockQueryRealPrice.mockResolvedValue([]);
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => {
@@ -334,9 +351,9 @@ describe("assembleDossierData — 土地版成功路徑", () => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
-      if (cmd === "query_real_price") return mockRealPriceRecords;
       throw new Error(`Unexpected invoke: ${cmd}`);
     });
+    mockQueryRealPrice.mockResolvedValue(mockRealPriceRecords);
 
     const result = await assembleDossierData({
       ...landCaseRow,
@@ -358,6 +375,12 @@ describe("assembleDossierData — 土地版成功路徑", () => {
     expect(result.legalClauses).toHaveLength(2);
     expect(result.recentSalePricePerSqm).toBe(110000);
     expect(result.recentSaleCount).toBe(5);
+    expect(result.dossierTier).toBe("formal");
+    expect(result.preSurvey).toMatchObject({
+      isPaid: true,
+      lookupCost: 4,
+      pricingNote: "付費正式查詢：已於執行前確認費用與授權，結果可作為正式地政資料來源",
+    });
   });
 
   it("實價登錄 date 欄位會帶入 PDF 成交日期，不顯示空白", async () => {
@@ -365,9 +388,9 @@ describe("assembleDossierData — 土地版成功路徑", () => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
-      if (cmd === "query_real_price") return mockRealPriceRecordsWithDate;
       throw new Error(`Unexpected invoke: ${cmd}`);
     });
+    mockQueryRealPrice.mockResolvedValue(mockRealPriceRecordsWithDate);
 
     const result = await assembleDossierData({
       ...landCaseRow,
@@ -385,26 +408,24 @@ describe("assembleDossierData — 土地版成功路徑", () => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return [];
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
-      if (cmd === "query_real_price") {
-        return [
-          {
-            address: "台南市永康區勝利街58巷6號",
-            area: 30.2,
-            total_price: 11800000,
-            unit_price: 390728,
-            date: "2024-02-18",
-          },
-          {
-            address: "台北市大安區和平東路一段88號",
-            area: 36.2,
-            total_price: 42800000,
-            unit_price: 1182320,
-            date: "2025-10-12",
-          },
-        ];
-      }
       return {};
     });
+    mockQueryRealPrice.mockResolvedValue([
+      {
+        address: "台南市永康區勝利街58巷6號",
+        area: 30.2,
+        total_price: 11800000,
+        unit_price: 390728,
+        date: "2024-02-18",
+      },
+      {
+        address: "台北市大安區和平東路一段88號",
+        area: 36.2,
+        total_price: 42800000,
+        unit_price: 1182320,
+        date: "2025-10-12",
+      },
+    ]);
 
     const result = await assembleDossierData({
       ...landCaseRow,
@@ -444,7 +465,6 @@ describe("assembleDossierData — 土地版成功路徑", () => {
         throw new Error("get_legal_clause should not be called when list cache is available");
       }
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
-      if (cmd === "query_real_price") return [];
       return {};
     });
 
@@ -468,19 +488,17 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
       if (cmd === "get_brand_text_settings") return {};
       if (cmd === "get_legal_clause") return [];
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
-      if (cmd === "query_real_price") {
-        return [
-          {
-            address: "台南市東區東和路45號",
-            area: 31.2,
-            total_price: 10000000,
-            unit_price: 320513,
-            date: "2025-12",
-          },
-        ];
-      }
       return {};
     });
+    mockQueryRealPrice.mockResolvedValue([
+      {
+        address: "台南市東區東和路45號",
+        area: 31.2,
+        total_price: 10000000,
+        unit_price: 320513,
+        date: "2025-12",
+      },
+    ]);
 
     const result = await assembleDossierData({
       ...buildingCaseRow,
@@ -997,6 +1015,12 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.preSurvey?.candidateDisclaimer).toBe(
       "地政資料，最終以正式謄本為主；本說明書不代表完整資訊。",
     );
+    expect(result.dossierTier).toBe("reference");
+    expect(result.preSurvey).toMatchObject({
+      isPaid: false,
+      lookupCost: 0,
+      pricingNote: "免費前查：地址候選、附近實價登錄與參考欄位，不產生成本",
+    });
     expect(result.preSurvey?.candidateOptions?.map((candidate) => candidate.normalized_parcel_id)).toEqual([
       "DC-1556-00700000",
       "DC-1556-00165000",
@@ -1038,6 +1062,9 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.propertySheet?.floor).toBe("8樓之1");
     expect(result.propertySheet?.buildingAge).toBeTruthy();
     expect(result.preSurvey?.lookupCost).toBe(0);
+    expect(result.dossierTier).toBe("reference");
+    expect(result.preSurvey?.isPaid).toBe(false);
+    expect(result.preSurvey?.pricingNote).toBe("免費前查：地址候選、附近實價登錄與參考欄位，不產生成本");
     expect(result.propertySheetSources).toMatchObject({
       registeredArea: "候選資料，待屋主/權狀確認",
       legalUse: "候選資料，待屋主/權狀確認",
@@ -1380,7 +1407,7 @@ describe("assembleDossierData — invoke 失敗時降級", () => {
     expect(result!.zoningType).toBeUndefined();
     expect(result!.legalClauses).toEqual([]);
     expect(result!.recentSalePricePerSqm).toBeUndefined();
-    expect(result!.recentSaleCount).toBeUndefined();
+    expect(result!.recentSaleCount).toBe(0);
   });
 
   it("(c) 空 query_real_price 結果 → recentSalePricePerSqm undefined，recentSaleCount 0", async () => {
@@ -1388,9 +1415,9 @@ describe("assembleDossierData — invoke 失敗時降級", () => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
-      if (cmd === "query_real_price") return [];
       throw new Error(`Unexpected: ${cmd}`);
     });
+    mockQueryRealPrice.mockResolvedValue([]);
 
     const result = await assembleDossierData({
       ...landCaseRow,

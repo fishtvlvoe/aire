@@ -228,9 +228,12 @@ interface RegistryQueryRun {
 
 interface ConfirmedRegistryMatch {
   case_id: string;
+  office_code: string | null;
+  section_code: string | null;
   section_name: string;
   land_no: string;
   building_no: string | null;
+  registry_key: string | null;
   confirmed_at: string;
 }
 
@@ -2211,9 +2214,12 @@ export class MockStore {
           formal_registry_run_id: run.id,
           formal_registry_json: formalResults,
           confirmed_registry_match: {
+            office_code: confirmed.office_code,
+            section_code: confirmed.section_code,
             section_name: confirmed.section_name,
             land_no: confirmed.land_no,
             building_no: confirmed.building_no,
+            registry_key: confirmed.registry_key,
             status: "confirmed",
           },
         },
@@ -2566,15 +2572,21 @@ export class MockStore {
   private confirmCaseRegistryMatch(args?: CommandArgs): { success: true; match: ConfirmedRegistryMatch } {
     const payload = toRecord(args);
     const caseId = pickString(payload, ["caseId", "case_id"]);
+    const officeCode = pickString(payload, ["officeCode", "office_code"]);
+    const sectionCode = pickString(payload, ["sectionCode", "section_code"]);
     const sectionName = pickString(payload, ["sectionName", "section_name"]);
     const landNo = pickString(payload, ["landNo", "land_no"]);
     const buildingNo = pickString(payload, ["buildingNo", "building_no"]);
+    const registryKey = pickString(payload, ["registryKey", "registry_key"]);
     if (!caseId || !sectionName || !landNo) throw new Error("registry_match_required");
     const match: ConfirmedRegistryMatch = {
       case_id: caseId,
+      office_code: officeCode,
+      section_code: sectionCode,
       section_name: sectionName,
       land_no: landNo,
       building_no: buildingNo,
+      registry_key: registryKey,
       confirmed_at: new Date().toISOString(),
     };
     this.registryMatchByCase.set(caseId, match);
@@ -2585,9 +2597,12 @@ export class MockStore {
         land_registry_data: {
           ...(existing.land_registry_data ?? {}),
           confirmed_registry_match: {
+            office_code: officeCode,
+            section_code: sectionCode,
             section_name: sectionName,
             land_no: landNo,
             building_no: buildingNo ?? null,
+            registry_key: registryKey,
             status: "confirmed",
           },
         },

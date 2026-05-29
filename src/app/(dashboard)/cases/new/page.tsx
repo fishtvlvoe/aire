@@ -27,8 +27,10 @@ import {
   type ParcelInfo,
   type RegistryQueryRun,
 } from "@/lib/land-registry-api";
+import { safeInvoke } from "@/lib/safe-invoke";
 import { createRegistryProvenancePayload } from "@/lib/registry-provenance";
 import { caseDetailHref } from "@/lib/case-routes";
+import { extractRealPriceDistrict, extractRealPriceKeyword, queryRealPrice, type RealPriceRecord } from "@/lib/real-price-query";
 
 const schema = z.object({
   property_type: z.string()
@@ -44,9 +46,15 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 type RegistryMatchDraft = {
+  officeCode: string;
+  sectionCode: string;
   sectionName: string;
   landNo: string;
   buildingNo: string;
+  registryKey: string;
+  landAreaSqm: string;
+  announcedLandCurrentValue: string;
+  announcedLandValue: string;
 };
 
 type DuplicateCaseWarning = Pick<CaseRow, "id" | "case_no" | "case_name" | "address">;
@@ -75,16 +83,36 @@ export default function NewCasePage() {
   const [registryFieldsTouched, setRegistryFieldsTouched] = useState(false);
   const [paidResolverRunning, setPaidResolverRunning] = useState(false);
   const [paidResolverError, setPaidResolverError] = useState<string | null>(null);
+  const [realPriceRecords, setRealPriceRecords] = useState<RealPriceRecord[]>([]);
+  const [realPriceLoading, setRealPriceLoading] = useState(false);
+  const [realPriceQueried, setRealPriceQueried] = useState(false);
+  const [realPriceError, setRealPriceError] = useState<string | null>(null);
   const [registryMatch, setRegistryMatch] = useState<RegistryMatchDraft>({
+    officeCode: "",
+    sectionCode: "",
     sectionName: "",
     landNo: "",
     buildingNo: "",
+    registryKey: "",
+    landAreaSqm: "",
+    announcedLandCurrentValue: "",
+    announcedLandValue: "",
   });
   const [loading, setLoading] = useState(false);
 
   function update<K extends keyof FormValues>(k: K, v: FormValues[K]) {
     setValues((s) => ({ ...s, [k]: v }));
     setErrors((e) => ({ ...e, [k]: undefined }));
+  }
+
+  function updateRegistryMatch(patch: Partial<RegistryMatchDraft>) {
+    setRegistryMatch((prev) => {
+      const next = { ...prev, ...patch };
+      return {
+        ...next,
+        registryKey: buildRegistryKey(next.officeCode, next.sectionCode, next.buildingNo || next.landNo),
+      };
+    });
   }
 
   async function detectRegistry(): Promise<AddressFirstClassification | null> {
@@ -96,7 +124,15 @@ export default function NewCasePage() {
     setSelectedCandidateId(null);
     setRegistryFieldsTouched(false);
     setPaidResolverError(null);
+    setRealPriceRecords([]);
+    setRealPriceError(null);
+    setRealPriceQueried(false);
+    setRealPriceLoading(false);
     try {
+      const address = values.address.trim();
+      if (address) {
+        void loadRealPriceRecords(address);
+      }
       const existingParcels = values.address.trim() ? await loadExistingAddressParcels(values.address) : [];
       const parcels = existingParcels.length > 0 ? existingParcels : values.address.trim() ? await addressLookup(values.address) : [];
       const usedExisting = existingParcels.length > 0;
@@ -117,7 +153,7 @@ export default function NewCasePage() {
         if (primaryLot) setLandLots([primaryLot]);
       }
       const nextRegistryMatch = needsCandidateSelection
-        ? { sectionName: "", landNo: "", buildingNo: "" }
+        ? emptyRegistryMatch()
         : buildRegistryMatchDraft(trustedParcels);
       setRegistryMatch(nextRegistryMatch);
       setDuplicateCase(await findDuplicateCaseByRegistryMatch(nextRegistryMatch));
@@ -131,7 +167,7 @@ export default function NewCasePage() {
           ? `請使用 AIRE 桌面版完成資料補齊，或先人工填寫地段、地號、建號。${error.message ? `（${error.message}）` : ""}`
           : "請使用 AIRE 桌面版完成資料補齊，或先人工填寫地段、地號、建號。",
       );
-      setRegistryMatch({ sectionName: "", landNo: "", buildingNo: "" });
+      setRegistryMatch(emptyRegistryMatch());
       setDuplicateCase(null);
       setSelectedCandidateId(null);
       setRegistryFieldsTouched(false);
@@ -208,9 +244,15 @@ export default function NewCasePage() {
               }
             : {
                 confirmed_registry_match: {
+                  office_code: registryMatch.officeCode || null,
+                  section_code: registryMatch.sectionCode || null,
                   section_name: registryMatch.sectionName || null,
                   land_no: registryMatch.landNo || null,
                   building_no: registryMatch.buildingNo || null,
+                  registry_key: registryMatch.registryKey || null,
+                  land_area_sqm: registryMatch.landAreaSqm || null,
+                  announced_land_current_value: registryMatch.announcedLandCurrentValue || null,
+                  announced_land_value: registryMatch.announcedLandValue || null,
                   status: "confirmed",
                 },
               }),
@@ -219,9 +261,12 @@ export default function NewCasePage() {
       if (!createAsRegistryPending) {
         await confirmCaseRegistryMatch({
           caseId: created.id,
+          officeCode: registryMatch.officeCode || null,
+          sectionCode: registryMatch.sectionCode || null,
           sectionName: registryMatch.sectionName,
           landNo: registryMatch.landNo,
           buildingNo: registryMatch.buildingNo || null,
+          registryKey: registryMatch.registryKey || null,
         });
       }
       router.push(caseDetailHref(created.id));
@@ -262,7 +307,7 @@ export default function NewCasePage() {
       });
       setSelectedCandidateId(null);
       setRegistryFieldsTouched(false);
-      setRegistryMatch({ sectionName: "", landNo: "", buildingNo: "" });
+      setRegistryMatch(emptyRegistryMatch());
       setUsedExistingRegistryData(false);
     } catch (error) {
       setPaidResolverError(error instanceof Error ? error.message : String(error));
@@ -271,11 +316,31 @@ export default function NewCasePage() {
     }
   }
 
+  async function loadRealPriceRecords(address: string) {
+    setRealPriceLoading(true);
+    setRealPriceQueried(true);
+    setRealPriceError(null);
+    setRealPriceRecords([]);
+    try {
+      const district = extractDistrictForRealPrice(address);
+      if (!district) {
+        setRealPriceRecords([]);
+        return;
+      }
+      const records = await queryRealPrice(district, extractRealPriceKeyword(address, district), 20, address);
+      setRealPriceRecords(Array.isArray(records) ? records.slice(0, 20) : []);
+    } catch {
+      setRealPriceError("目前無法取得成交行情");
+    } finally {
+      setRealPriceLoading(false);
+    }
+  }
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-8">
       <h1 className="mb-2 text-2xl font-semibold tracking-normal">新增案件</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        先輸入地址讓系統補齊土地、建物與說明書章節；只有查不到才人工選。
+        先用免費前查補齊地址候選、附近實價登錄與參考欄位；只有需要正式地政資料時才進入付費查詢。
       </p>
       <form className="space-y-5 rounded-lg border bg-white p-5 shadow-sm" onSubmit={handleSubmit}>
         <section>
@@ -296,7 +361,11 @@ export default function NewCasePage() {
                 setSelectedCandidateId(null);
                 setRegistryFieldsTouched(false);
                 setSubmitError(null);
-                setRegistryMatch({ sectionName: "", landNo: "", buildingNo: "" });
+                setRealPriceRecords([]);
+                setRealPriceError(null);
+                setRealPriceQueried(false);
+                setRealPriceLoading(false);
+                setRegistryMatch(emptyRegistryMatch());
               }}
               className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
               placeholder="例：宜蘭縣五結鄉協和村親河路二段 1 號"
@@ -330,13 +399,95 @@ export default function NewCasePage() {
               </div>
             </dl>
             <p className="mt-3 text-sm text-muted-foreground">{classification.note}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              目前這一段屬於免費前查，不會進行付費正式查詢，也不會產生成本。
+            </p>
+          </section>
+        ) : null}
+
+        {classification && detectedParcels.length > 0 ? (
+          <section className="rounded-lg border p-4" aria-label="候選資料清單">
+            <strong className="block">候選資料清單</strong>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[720px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b bg-slate-50 text-left">
+                    <th className="px-3 py-2 font-medium">地址</th>
+                    <th className="px-3 py-2 font-medium">地段</th>
+                    <th className="px-3 py-2 font-medium">地號</th>
+                    <th className="px-3 py-2 font-medium">建號</th>
+                    <th className="px-3 py-2 text-right font-medium">土地面積</th>
+                    <th className="px-3 py-2 text-right font-medium">公告現值</th>
+                    <th className="px-3 py-2 text-right font-medium">公告地價</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detectedParcels.map((parcel) => (
+                    <tr key={getCandidateId(parcel)} className="border-b last:border-0">
+                      <td className="px-3 py-2">{parcel.address || values.address}</td>
+                      <td className="px-3 py-2">{parcel.section_name || "待確認"}</td>
+                      <td className="px-3 py-2 font-mono text-xs">{parcel.lot_number || "待確認"}</td>
+                      <td className="px-3 py-2 font-mono text-xs">{parcel.building_number || "無"}</td>
+                      <td className="px-3 py-2 text-right">{formatOptionalNumber(parcel.land_area_sqm)}</td>
+                      <td className="px-3 py-2 text-right">{formatOptionalNumber(parcel.announced_land_current_value)}</td>
+                      <td className="px-3 py-2 text-right">{formatOptionalNumber(parcel.announced_land_value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        {classification ? (
+          <section className="rounded-lg border p-4" aria-label="實價登錄成交行情">
+            <strong className="block">實價登錄成交行情</strong>
+            <p className="mt-1 text-sm text-muted-foreground">
+              這裡顯示的是免費附近行情，供前期比對與說明書參考，不會產生成本。
+            </p>
+            {realPriceLoading ? (
+              <p className="mt-2 text-sm text-muted-foreground">查詢中...</p>
+            ) : realPriceError ? (
+              <p className="mt-2 text-sm text-destructive">查詢失敗：{realPriceError}</p>
+            ) : realPriceQueried && realPriceRecords.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">查無符合條件的成交資料</p>
+            ) : realPriceRecords.length > 0 ? (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[680px] border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b bg-slate-50 text-left">
+                      <th className="px-3 py-2 font-medium">地址</th>
+                      <th className="px-3 py-2 font-medium">類型</th>
+                      <th className="px-3 py-2 text-right font-medium">坪數</th>
+                      <th className="px-3 py-2 text-right font-medium">總價</th>
+                      <th className="px-3 py-2 text-right font-medium">單價</th>
+                      <th className="px-3 py-2 text-center font-medium">交易日期</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {realPriceRecords.map((record, index) => (
+                      <tr key={`${record.address}-${index}`} className="border-b last:border-0">
+                        <td className="px-3 py-2">{record.address || "地址未提供"}</td>
+                        <td className="px-3 py-2">{record.type || "未分類"}</td>
+                        <td className="px-3 py-2 text-right">{formatOptionalNumber(record.area)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrencyWan(record.total_price)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrencyWan(record.unit_price)}</td>
+                        <td className="px-3 py-2 text-center">{record.transaction_date || record.date || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">輸入地址後會自動查詢附近成交行情。</p>
+            )}
           </section>
         ) : null}
 
         {classification && isCandidateSelectionRequired(detectedParcels, classification) ? (
           <section className="rounded-lg border border-amber-300 bg-amber-50 p-4">
             <strong className="block text-amber-950">候選物件資料</strong>
-            <p className="mt-1 text-sm text-amber-900">請先選定一筆候選，才可進入正式查詢。</p>
+            <p className="mt-1 text-sm text-amber-900">請先選定一筆候選；你可以先建立案件，之後再決定是否進入付費正式查詢。</p>
             <div role="radiogroup" aria-label="候選物件資料" className="mt-3 space-y-2">
               {detectedParcels.map((parcel) => {
                 const candidateId = getCandidateId(parcel);
@@ -403,9 +554,9 @@ export default function NewCasePage() {
         ) : null}
 
         {classification ? (
-          <section className="rounded-lg border p-4">
-            <strong className="block">物件資料補齊</strong>
-            <p className="mt-1 text-sm text-muted-foreground">請確認地段、地號、建號後再進入正式查詢。</p>
+        <section className="rounded-lg border p-4">
+          <strong className="block">物件資料補齊</strong>
+          <p className="mt-1 text-sm text-muted-foreground">請確認地段、地號、建號。未付費正式查詢前，仍可先保存案件與產出參考版 PDF。</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <label className="text-sm">
                 <span className="mb-1 block">地段</span>
@@ -415,7 +566,7 @@ export default function NewCasePage() {
                   onChange={(event) => {
                     setRegistryFieldsTouched(true);
                     setSelectedCandidateId(null);
-                    setRegistryMatch((prev) => ({ ...prev, sectionName: event.target.value }));
+                    updateRegistryMatch({ sectionName: event.target.value });
                   }}
                 />
               </label>
@@ -427,7 +578,7 @@ export default function NewCasePage() {
                   onChange={(event) => {
                     setRegistryFieldsTouched(true);
                     setSelectedCandidateId(null);
-                    setRegistryMatch((prev) => ({ ...prev, landNo: event.target.value }));
+                    updateRegistryMatch({ landNo: event.target.value });
                   }}
                 />
               </label>
@@ -439,9 +590,47 @@ export default function NewCasePage() {
                   onChange={(event) => {
                     setRegistryFieldsTouched(true);
                     setSelectedCandidateId(null);
-                    setRegistryMatch((prev) => ({ ...prev, buildingNo: event.target.value }));
+                    updateRegistryMatch({ buildingNo: event.target.value });
                   }}
                   placeholder="無建號可留空"
+                />
+              </label>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <label className="text-sm">
+                <span className="mb-1 block">土地面積（平方公尺）</span>
+                <input
+                  className="min-h-10 w-full rounded-md border px-3 py-2"
+                  value={registryMatch.landAreaSqm}
+                  onChange={(event) => {
+                    setRegistryFieldsTouched(true);
+                    setSelectedCandidateId(null);
+                    updateRegistryMatch({ landAreaSqm: event.target.value });
+                  }}
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block">公告土地現值（元/平方公尺）</span>
+                <input
+                  className="min-h-10 w-full rounded-md border px-3 py-2"
+                  value={registryMatch.announcedLandCurrentValue}
+                  onChange={(event) => {
+                    setRegistryFieldsTouched(true);
+                    setSelectedCandidateId(null);
+                    updateRegistryMatch({ announcedLandCurrentValue: event.target.value });
+                  }}
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block">公告地價（元/平方公尺）</span>
+                <input
+                  className="min-h-10 w-full rounded-md border px-3 py-2"
+                  value={registryMatch.announcedLandValue}
+                  onChange={(event) => {
+                    setRegistryFieldsTouched(true);
+                    setSelectedCandidateId(null);
+                    updateRegistryMatch({ announcedLandValue: event.target.value });
+                  }}
                 />
               </label>
             </div>
@@ -577,6 +766,9 @@ function buildAddressLookupProvenance(
           : null;
     const buildingSummary = hasBuilding
       ? {
+          landAreaSqm: toNumber(parcel.land_area_sqm),
+          announcedLandCurrentValue: toNumber(parcel.announced_land_current_value),
+          announcedLandValue: toNumber(parcel.announced_land_value),
           registeredAreaPing: m2ToPingNumber(parcel.building_area_sqm),
           legalUse: parcel.main_use,
           constructionDate: parcel.completion_date_roc,
@@ -635,6 +827,9 @@ function buildAddressLookupProvenance(
         lot_number: primaryParcel.lot_number,
         parcel_id: primaryParcel.parcel_id,
         area: toNumber(primaryParcel.land_area_sqm),
+        land_area_sqm: toNumber(primaryParcel.land_area_sqm),
+        announced_land_current_value: toNumber(primaryParcel.announced_land_current_value),
+        announced_land_value: toNumber(primaryParcel.announced_land_value),
       },
     };
 
@@ -671,6 +866,8 @@ function buildAddressLookupProvenance(
   return createRegistryProvenancePayload({
     parcelId: primaryParcel?.parcel_id,
     totalCost: 0,
+    isPaid: false,
+    pricingNote: "免費前查：地址候選、附近實價登錄與參考欄位，不產生成本",
     results,
     candidateOptions,
     coordinateSource,
@@ -719,6 +916,15 @@ function candidateFromRegistryJson(candidate: unknown, address: string): ParcelI
     building_number: buildingNo,
     source: "cop_moi",
     trusted_for_pdf: true,
+    land_area_sqm: pickString(candidate, "land_area_sqm") ?? pickString(candidate, "landAreaSqm") ?? undefined,
+    announced_land_current_value:
+      pickString(candidate, "announced_land_current_value") ??
+      pickString(candidate, "announcedLandCurrentValue") ??
+      undefined,
+    announced_land_value:
+      pickString(candidate, "announced_land_value") ??
+      pickString(candidate, "announcedLandValue") ??
+      undefined,
     lat: pickNumber(candidate, "lat"),
     lng: pickNumber(candidate, "lng"),
   };
@@ -756,7 +962,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isTrustedAddressLookupParcel(parcel: ParcelInfo): boolean {
   if (parcel.source === "mock" || parcel.source === "dev_fixture") return false;
-  if (parcel.source === "easymap_r02") return true;
+  if (parcel.source === "easymap_r02" || parcel.source === "easymap_z10web") return true;
   return parcel.trusted_for_pdf === true;
 }
 
@@ -803,18 +1009,42 @@ function getCandidateOptionLabel(parcel: ParcelInfo): string {
   return buildingNo ? `建號 ${buildingNo} / 地號 ${landNo}` : `土地地號 ${landNo}`;
 }
 
+function emptyRegistryMatch(): RegistryMatchDraft {
+  return {
+    officeCode: "",
+    sectionCode: "",
+    sectionName: "",
+    landNo: "",
+    buildingNo: "",
+    registryKey: "",
+    landAreaSqm: "",
+    announcedLandCurrentValue: "",
+    announcedLandValue: "",
+  };
+}
+
 function buildRegistryMatchDraft(parcels: ParcelInfo[]): RegistryMatchDraft {
   const primaryParcel = parcels[0];
   if (!primaryParcel) {
-    return { sectionName: "", landNo: "", buildingNo: "" };
+    return emptyRegistryMatch();
   }
   const firstBuilding = parcels.find((parcel) => parcel.building_number?.trim());
   const explicitSectionName = primaryParcel.section_name?.trim();
+  const officeCode = primaryParcel.office_code?.trim() || getOfficeCodeFromParcelId(primaryParcel.parcel_id);
   const sectionCode = getSectionCodeFromParcelId(primaryParcel.parcel_id);
+  const landNo = primaryParcel.lot_number?.trim() ?? "";
+  const buildingNo = primaryParcel.building_number?.trim() || firstBuilding?.building_number?.trim() || "";
+  const registryKey = buildRegistryKey(officeCode, sectionCode, buildingNo || landNo);
   return {
+    officeCode,
+    sectionCode,
     sectionName: explicitSectionName || (sectionCode === "1556" ? "富強段" : sectionCode),
-    landNo: primaryParcel.lot_number?.trim() ?? "",
-    buildingNo: primaryParcel.building_number?.trim() || firstBuilding?.building_number?.trim() || "",
+    landNo,
+    buildingNo,
+    registryKey,
+    landAreaSqm: primaryParcel.land_area_sqm?.trim() ?? "",
+    announcedLandCurrentValue: primaryParcel.announced_land_current_value?.trim() ?? "",
+    announcedLandValue: primaryParcel.announced_land_value?.trim() ?? "",
   };
 }
 
@@ -833,9 +1063,15 @@ function extractCaseRegistryMatch(row: CaseRow): RegistryMatchDraft {
     ? row.land_registry_data.confirmed_registry_match
     : null;
   return {
+    officeCode: pickString(rawMatch, "office_code") ?? "",
+    sectionCode: pickString(rawMatch, "section_code") ?? "",
     sectionName: pickString(rawMatch, "section_name") ?? "",
     landNo: pickString(rawMatch, "land_no") ?? row.land_lot_no ?? "",
     buildingNo: pickString(rawMatch, "building_no") ?? row.building_lot_no ?? "",
+    registryKey: pickString(rawMatch, "registry_key") ?? "",
+    landAreaSqm: pickString(rawMatch, "land_area_sqm") ?? "",
+    announcedLandCurrentValue: pickString(rawMatch, "announced_land_current_value") ?? "",
+    announcedLandValue: pickString(rawMatch, "announced_land_value") ?? "",
   };
 }
 
@@ -859,6 +1095,16 @@ function normalizeRegistryField(value: string | null | undefined): string {
 function getSectionCodeFromParcelId(parcelId: string): string {
   if (parcelId.startsWith("r02:")) return parcelId.split(":")[1] ?? "";
   return parcelId.split("-")[1] ?? "";
+}
+
+function getOfficeCodeFromParcelId(parcelId: string): string {
+  if (parcelId.startsWith("r02:")) return "";
+  return parcelId.split("-")[0] ?? "";
+}
+
+function buildRegistryKey(officeCode: string, sectionCode: string, objectNo: string): string {
+  if (!officeCode || !sectionCode || !objectNo) return "";
+  return `${officeCode}-${sectionCode}-${objectNo}`;
 }
 
 function getRegistryStatusMessage(
@@ -891,6 +1137,22 @@ function toNumber(value: string | number | null | undefined): number | undefined
   if (typeof value !== "string") return undefined;
   const parsed = Number.parseFloat(value.replace(/[^\d.]/g, ""));
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function formatOptionalNumber(value: string | number | null | undefined): string {
+  const numberValue = toNumber(value);
+  if (numberValue === undefined) return "—";
+  return numberValue.toLocaleString("zh-TW", { maximumFractionDigits: 2 });
+}
+
+function formatCurrencyWan(value: string | number | null | undefined): string {
+  const numberValue = toNumber(value);
+  if (numberValue === undefined) return "—";
+  return `NT$${Math.round(numberValue).toLocaleString("zh-TW")}`;
+}
+
+function extractDistrictForRealPrice(address: string): string {
+  return extractRealPriceDistrict(address);
 }
 
 function m2ToPingNumber(value: string | number | null | undefined): number | undefined {

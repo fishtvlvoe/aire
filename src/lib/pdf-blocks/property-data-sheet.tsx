@@ -85,6 +85,19 @@ export function PropertyDataSheetPage({
             物調表資料狀態
           </Text>
           <Row
+            label="資料版本"
+            value={data.dossierTier === "formal" ? "正式版（已帶正式地政資料）" : "參考版（免費前查／補件資料）"}
+          />
+          <Row
+            label="查詢性質"
+            value={
+              data.preSurvey.pricingNote ??
+              (data.preSurvey.isPaid
+                ? "付費正式查詢"
+                : "免費前查")
+            }
+          />
+          <Row
             label="本次地政費用"
             value={data.preSurvey.lookupCost === undefined ? "待確認" : `${data.preSurvey.lookupCost.toLocaleString("zh-TW")} 元`}
           />

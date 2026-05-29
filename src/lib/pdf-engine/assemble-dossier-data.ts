@@ -13,6 +13,7 @@ import {
   type CandidateParcelOption,
   type CandidateSummaryFields,
 } from "@/lib/registry-provenance";
+import { extractRealPriceDistrict, extractRealPriceKeyword, queryRealPrice } from "@/lib/real-price-query";
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
@@ -160,10 +161,7 @@ export function computeRecentSaleStats(records: unknown[]): {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function extractDistrict(address: string): string {
-  // 台灣地址格式：縣市 + 鄉鎮市區，取前 6 字（含縣市+區）
-  const match = address.match(/^(.{2,3}[縣市])(.{2,3}[鄉鎮市區])/);
-  if (match) return `${match[1]}${match[2]}`;
-  return address.slice(0, 6);
+  return extractRealPriceDistrict(address);
 }
 
 function normalizeTaiwanAddress(value: string): string {
@@ -219,6 +217,82 @@ function firstNumber(obj: unknown, keys: string[]): number | undefined {
     }
   }
   return undefined;
+}
+
+function readDossierEditableValues(persisted: unknown): Map<string, string> {
+  if (!isPlainRecord(persisted)) return new Map();
+  const snapshot = persisted.dossier_editable_snapshot;
+  if (!isPlainRecord(snapshot) || !Array.isArray(snapshot.rows)) return new Map();
+  const rows = snapshot.rows.filter(isPlainRecord);
+  return new Map(
+    rows
+      .map((row) => {
+        const label = typeof row.label === "string" ? row.label : "";
+        const value = typeof row.value === "string" ? row.value.trim() : "";
+        return label ? [label, value] as const : null;
+      })
+      .filter((entry): entry is readonly [string, string] => Boolean(entry)),
+  );
+}
+
+function numberFromEditable(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number.parseFloat(value.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function applyDossierEditableSnapshot(data: CaseDossierData, persisted: unknown): CaseDossierData {
+  const values = readDossierEditableValues(persisted);
+  if (values.size === 0) return data;
+
+  const propertySheet: NonNullable<CaseDossierData["propertySheet"]> = {
+    landSection: "",
+    landNumber: "",
+    zoning: "",
+    ownershipRatio: "",
+    buildingCoverage: "",
+    floorAreaRatio: "",
+    owner: "",
+    acquisitionDate: "",
+    ...(data.propertySheet ?? {}),
+  };
+  const owner = values.get("屋主姓名");
+  if (owner) {
+    data.ownerName = owner;
+    propertySheet.owner = owner;
+  }
+  const legalUse = values.get("法定用途");
+  if (legalUse) {
+    data.buildingPurpose = legalUse;
+    propertySheet.legalUse = legalUse;
+  }
+  const buildingAge = values.get("屋齡");
+  if (buildingAge) propertySheet.buildingAge = buildingAge;
+  const registeredArea = numberFromEditable(values.get("登記坪數"));
+  if (registeredArea !== undefined) {
+    propertySheet.registeredArea = registeredArea;
+    data.buildingArea = pingToSquareMeters(registeredArea);
+  }
+  const buildingArea = numberFromEditable(values.get("建築面積") ?? values.get("建物面積"));
+  if (buildingArea !== undefined) data.buildingArea = buildingArea;
+  const landArea = numberFromEditable(values.get("土地面積") ?? values.get("土地面積（平方公尺）"));
+  if (landArea !== undefined) {
+    data.landArea = landArea;
+    propertySheet.landArea = landArea;
+  }
+  const realPrice = values.get("實價登錄行情");
+  if (realPrice) data.surroundingTransactionPrice = realPrice;
+  const propertySheetSources = { ...(data.propertySheetSources ?? {}) };
+  if (owner) propertySheetSources.owner = "PDF 前置審核";
+  if (legalUse) propertySheetSources.legalUse = "PDF 前置審核";
+  if (buildingAge) propertySheetSources.buildingAge = "PDF 前置審核";
+  if (registeredArea !== undefined) propertySheetSources.registeredArea = "PDF 前置審核";
+  if (landArea !== undefined) propertySheetSources.landArea = "PDF 前置審核";
+  return {
+    ...data,
+    propertySheet,
+    propertySheetSources,
+  };
 }
 
 function firstText(obj: unknown, keys: string[]): string | undefined {
@@ -566,6 +640,14 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     isRegistryProvenancePayload(persisted) && typeof persisted.totalCost === "number"
       ? persisted.totalCost
       : undefined;
+  const isPaidLookup =
+    isRegistryProvenancePayload(persisted) && typeof persisted.isPaid === "boolean"
+      ? persisted.isPaid
+      : undefined;
+  const pricingNote =
+    isRegistryProvenancePayload(persisted) && typeof persisted.pricingNote === "string"
+      ? persisted.pricingNote
+      : undefined;
 
   let brandText: Record<string, string> = {};
   try {
@@ -604,7 +686,9 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     preSurvey:
       lookupCost !== undefined || registryFailureReasons.length > 0 || hasCandidatePreSurveyData
         ? {
+            isPaid: isPaidLookup,
             lookupCost,
+            pricingNote,
             failureReasons: registryFailureReasons,
             candidateDisclaimer: hasCandidatePreSurveyData ? PRE_SURVEY_DISCLAIMER : undefined,
             candidateOptions: candidateOptions.length > 0 ? candidateOptions : undefined,
@@ -622,6 +706,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       : {};
   const trustedOfficialPersisted = extractTrustedOfficialRegistryData(persisted);
   const hasTrustedPersisted = Object.keys(trustedOfficialPersisted).length > 0;
+  base.dossierTier = hasTrustedPersisted ? "formal" : "reference";
   if (hasTrustedPersisted) {
     apiData = Object.fromEntries(
       Object.entries(trustedPersisted).map(([apiId, value]) => {
@@ -689,14 +774,11 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   let recentSalePricePerSqm: number | undefined;
   let recentSaleCount: number | undefined;
   try {
-    const keyword = isLand ? caseRow.land_lot_no : (caseRow.address ?? "");
-    const records = await safeInvoke<unknown[]>("query_real_price", {
-      district: extractDistrict(caseRow.address ?? ""),
-      keyword,
-      limit: 5,
-    });
+    const district = extractDistrict(caseRow.address ?? "");
+    const keyword = extractRealPriceKeyword(caseRow.address ?? "", district) || (isLand ? caseRow.land_lot_no : caseRow.address ?? "");
+    const records = await queryRealPrice(district, keyword, 5, caseRow.address ?? "");
     const comparableRecords = Array.isArray(records)
-      ? filterComparableRealPriceRecords(records, extractDistrict(caseRow.address ?? ""))
+      ? filterComparableRealPriceRecords(records, district)
       : [];
     const stats = computeRecentSaleStats(comparableRecords);
     transactionHistory = comparableRecords.map((r) => {
@@ -894,7 +976,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       propertyType: "land",
     });
 
-    return {
+    return applyDossierEditableSnapshot({
       ...base,
       landArea: safeGet(landReg, "area", isNumber),
       landPurpose: safeGet(landReg, "purpose", isString),
@@ -963,7 +1045,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         "surrounding_transaction_price",
         isString,
       ),
-    };
+    }, persisted);
   } else {
     const buildingReg = apiData["building_registry"]?.data;
     const buildingOwnership = apiData["building_ownership"]?.data;
@@ -1207,7 +1289,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       setSourceIfValue(propertySheetSources, "shareArea", resolvedOwnershipRatioNumber, INFERRED_SOURCE_LABEL);
     }
 
-    return {
+    return applyDossierEditableSnapshot({
       ...base,
       buildingArea:
         firstNumber(buildingReg, ["area", "building_area", "AREA"]) ??
@@ -1289,6 +1371,6 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         common: resolvedCommonArea ?? 0,
         parking: resolvedParkingArea ?? 0,
       },
-    };
+    }, persisted);
   }
 }

@@ -13,10 +13,23 @@ import { LOCAL_TOKEN_HEADER } from "./contract";
  * launcher 啟動時由 root layout 注入 window.__AIRE_LOCAL_TOKEN__。
  * 讀不到（如 SSR 或 token 尚未注入）回傳空字串。
  */
-function getLocalToken(): string {
+async function getLocalToken(): Promise<string> {
   if (typeof window !== "undefined") {
     const token = (window as unknown as Record<string, unknown>).__AIRE_LOCAL_TOKEN__;
-    if (typeof token === "string") return token;
+    if (typeof token === "string" && token) return token;
+
+    try {
+      const response = await fetch("/api/config");
+      if (response.ok) {
+        const config = (await response.json()) as { token?: unknown };
+        if (typeof config.token === "string" && config.token) {
+          (window as unknown as Record<string, unknown>).__AIRE_LOCAL_TOKEN__ = config.token;
+          return config.token;
+        }
+      }
+    } catch {
+      // 呼叫端會收到 401 或網路錯誤；這裡只負責盡力補 token。
+    }
   }
   return "";
 }
@@ -36,7 +49,7 @@ export async function localApiFetch(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const token = getLocalToken();
+  const token = await getLocalToken();
 
   const headers = new Headers(init.headers);
   headers.set(LOCAL_TOKEN_HEADER, token);

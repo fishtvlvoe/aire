@@ -12,8 +12,7 @@ import { GET } from "../route";
 
 describe("GET /api/health（Wave 1 紅燈 1.1）", () => {
   it("應回 200 且 body 包含 status:'ok' 與 version 字串（現為 stub 回 501 → 紅燈）", async () => {
-    const req = new Request("http://localhost:3000/api/health");
-    const res = GET(req as never);
+    const res = GET();
 
     // ★ 紅燈斷言：現況 stub 回 501，Wave 2 task 2.2 實作後改回 200。
     expect(res.status, "health route 回 501 Not Implemented——Wave 2 task 2.2 待實作").toBe(200);

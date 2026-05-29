@@ -3,14 +3,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom/vitest";
 
-vi.mock("@/lib/safe-invoke", () => ({
-  safeInvoke: vi.fn(),
+vi.mock("@/lib/real-price-query", () => ({
+  queryRealPrice: vi.fn(),
 }));
 
-import { safeInvoke } from "@/lib/safe-invoke";
+import { queryRealPrice } from "@/lib/real-price-query";
 import { RealPricePanel } from "../RealPricePanel";
 
-const mockSafeInvoke = vi.mocked(safeInvoke);
+const mockQueryRealPrice = vi.mocked(queryRealPrice);
 
 const defaultProps = {
   district: "東區",
@@ -29,8 +29,8 @@ describe("RealPricePanel", () => {
 
   it("點擊按鈕後顯示 loading spinner", async () => {
     const user = userEvent.setup();
-    mockSafeInvoke.mockImplementation(
-      () => new Promise(() => undefined) as unknown as ReturnType<typeof safeInvoke>,
+    mockQueryRealPrice.mockImplementation(
+      () => new Promise(() => undefined) as unknown as ReturnType<typeof queryRealPrice>,
     );
 
     render(<RealPricePanel {...defaultProps} />);
@@ -42,7 +42,7 @@ describe("RealPricePanel", () => {
 
   it("成功後顯示 3 筆 mock 記錄", async () => {
     const user = userEvent.setup();
-    mockSafeInvoke.mockResolvedValue([
+    mockQueryRealPrice.mockResolvedValue([
       {
         address: "台南市東區裕農路123號",
         total_price: 12800000,
@@ -79,16 +79,12 @@ describe("RealPricePanel", () => {
       expect(screen.getByText("台南市東區裕農路789號3樓之2")).toBeInTheDocument();
     });
 
-    expect(mockSafeInvoke).toHaveBeenCalledWith("query_real_price", {
-      district: defaultProps.district,
-      keyword: defaultProps.keyword,
-      limit: 20,
-    });
+    expect(mockQueryRealPrice).toHaveBeenCalledWith(defaultProps.district, defaultProps.keyword, 20);
   });
 
   it("empty 狀態顯示『查無符合條件的實價登錄資料』", async () => {
     const user = userEvent.setup();
-    mockSafeInvoke.mockResolvedValue([]);
+    mockQueryRealPrice.mockResolvedValue([]);
 
     render(<RealPricePanel {...defaultProps} />);
 
@@ -101,7 +97,7 @@ describe("RealPricePanel", () => {
 
   it("error 狀態顯示『查詢失敗：{message}』", async () => {
     const user = userEvent.setup();
-    mockSafeInvoke.mockRejectedValue(new Error("boom"));
+    mockQueryRealPrice.mockRejectedValue(new Error("boom"));
 
     render(<RealPricePanel {...defaultProps} />);
 
@@ -109,6 +105,30 @@ describe("RealPricePanel", () => {
 
     await waitFor(() => {
       expect(screen.getByText("查詢失敗：boom")).toBeInTheDocument();
+    });
+  });
+
+  it("缺少價格欄位時仍可渲染 fallback 文案", async () => {
+    const user = userEvent.setup();
+    mockQueryRealPrice.mockResolvedValue([
+      {
+        address: "台南市東區東和路47號3樓",
+        area: 32.5,
+        unit_price: undefined,
+        total_price: undefined,
+        date: "2024-01-15",
+        type: "大樓",
+      },
+    ]);
+
+    render(<RealPricePanel {...defaultProps} />);
+
+    await user.click(screen.getByRole("button", { name: "查實價登錄" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("台南市東區東和路47號3樓")).toBeInTheDocument();
+      expect(screen.getByText("成交總價：未提供")).toBeInTheDocument();
+      expect(screen.getByText("單價：未提供")).toBeInTheDocument();
     });
   });
 });

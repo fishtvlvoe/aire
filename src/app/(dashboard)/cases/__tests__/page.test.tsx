@@ -140,10 +140,10 @@ describe("Cases page fallback", () => {
     expect(screen.queryByRole("button", { name: "開啟工作台" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "預覽 PDF" }));
-    expect(mockPush).toHaveBeenCalledWith("/cases/_/preview?caseId=case-1");
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1/preview");
 
     fireEvent.click(screen.getByRole("button", { name: "補件" }));
-    expect(mockPush).toHaveBeenCalledWith("/cases/_?caseId=case-1&tab=supplements");
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1?tab=supplements");
 
     fireEvent.click(screen.getByRole("button", { name: "匯出 PDF" }));
     await waitFor(() => {
@@ -151,7 +151,7 @@ describe("Cases page fallback", () => {
     });
 
     fireEvent.click(screen.getByText("和平東路案"));
-    expect(mockPush).toHaveBeenCalledWith("/cases/_?caseId=case-1");
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1");
   });
 
   it("opens supplement list rows in the supplement workbench tab", async () => {
@@ -177,7 +177,7 @@ describe("Cases page fallback", () => {
 
     expect(await screen.findByRole("heading", { name: "補件清單" })).toBeInTheDocument();
     fireEvent.click(screen.getByText("和平東路案"));
-    expect(mockPush).toHaveBeenCalledWith("/cases/_?caseId=case-1&tab=supplements");
+    expect(mockPush).toHaveBeenCalledWith("/cases/case-1?tab=supplements");
   });
 
   it("does not expose case-scoped or implementation labels on the cases page", async () => {

@@ -8,33 +8,35 @@
 - [x] 1.4 [P] 補紅燈測試：免費前查（地址候選、實價登錄、免費欄位補齊）不得觸發付費 API；只有使用者確認後的正式查詢才可進入付費流程。驗證：`src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx`、`src/components/__tests__/PullParcelDataButton.test.tsx` 已覆蓋免費前查與付費正式查分流。
 - [x] 1.5 [P] 補紅燈測試：付費正式查前必須顯示費用 / 計費說明 / 是否可能失敗仍計費。驗證：`src/components/__tests__/PullParcelDataButton.test.tsx` 已驗證預估費用與扣款確認。
 - [x] 1.5A [P] 對應 Requirement `Nationwide free pre-survey SHALL remain available before any paid formal query`：補紅燈測試覆蓋全台免費前查先於任何付費正式查詢，且未確認付費前不得產生成本。
-- [ ] 1.6 [P] 對應 Requirement `Confirmed registry fields SHALL persist into formal COP workflow`：補紅燈測試覆蓋 confirmed 欄位保存與後續 formal COP key 使用。
+- [x] 1.6 [P] 對應 Requirement `Confirmed registry fields SHALL persist into formal COP workflow`：補紅燈測試覆蓋 confirmed 欄位保存與後續 formal COP key 使用。驗證：`src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx`、`src/lib/server/__tests__/local-formal-pull-proxy.test.ts`、`src/components/__tests__/DemoAlignedWorkbench.test.tsx` 通過。
 - [x] 1.7 [P] 對應 Requirement `Free pre-survey SHALL remain usable when the user skips formal COP`：補紅燈測試覆蓋未打 COP 仍可保存案件與預覽 reference PDF。
 
 ## 2. 案件保存與 provenance 轉綠
 
 - [ ] 2.0 對應決策 2：COP 是讀取來源，系統寫入的是本機 trusted data 與 provenance。驗證：案件保存 shape 與 provenance 欄位不把外部 COP 當可回寫目標。
 
-- [ ] 2.1 在 `src/app/(dashboard)/cases/new/page.tsx` 與 `src/lib/land-registry-api.ts` 對齊案件保存 shape，保證 7 個欄位進入 `land_registry_data.confirmed_registry_match` 與 query provenance。驗證：Task 1.1 轉綠。
+- [x] 2.1 在 `src/app/(dashboard)/cases/new/page.tsx` 與 `src/lib/land-registry-api.ts` 對齊案件保存 shape，保證 7 個欄位進入 `land_registry_data.confirmed_registry_match` 與 query provenance。驗證：Task 1.6 focused tests 轉綠，並補 `office_code / section_code / registry_key` 供 formal COP payload 使用。
 - [x] 2.2 在 `src/lib/registry-provenance.ts` 擴充 reference / trusted provenance，記錄公告現值、公告地價、土地面積、sourceRunId、cost、cache hit、isPaid、pricingNote 與 real-price source。驗證：`src/lib/__tests__/registry-provenance.test.ts` 通過；`isPaid` / `pricingNote` 已落地，sourceRunId / cache hit 仍由 formal flow 續補 audit。
-- [ ] 2.3 對應 Requirement `Extended address-discovery fields SHALL carry provenance before PDF use`：確認土地面積、公告現值、公告地價、實價登錄摘要在保存前已有 provenance。
+- [x] 2.3 對應 Requirement `Extended address-discovery fields SHALL carry provenance before PDF use`：確認土地面積、公告現值、公告地價、實價登錄摘要在保存前已有 provenance。驗證：`src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts` 與 workbench PDF snapshot 測試通過。
 
 ## 3. Formal COP 與 trusted data 轉綠
 
-- [ ] 3.0 對應決策 3：PDF 組裝優先序採 trusted COP > manual confirmed > candidate/reference。驗證：formal 成功後 trusted 資料不被候選覆蓋。
+- [x] 3.0 對應決策 3：PDF 組裝優先序採 trusted COP > manual confirmed > candidate/reference。驗證：formal 成功後 trusted 資料不被候選覆蓋，`src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts` 通過。
 
 - [x] 3.1 在 `src/components/PullParcelDataButton.tsx` 與相關 formal pull 流程中，強制使用 confirmed registry key 作為正式查詢輸入，並在送出前顯示費用 / 風險說明。驗證：`src/lib/__tests__/land-registry-api.test.ts`、`src/components/__tests__/DemoAlignedWorkbench.test.tsx`、`src/components/__tests__/PullParcelDataButton.test.tsx` 通過。
-- [ ] 3.2 formal COP 成功後，將 trusted data 與 confirmed/reference data 正確分層保存，禁止未 trusted 的候選覆蓋正式資料。驗證：focused vitest 通過。
+- [x] 3.2 formal COP 成功後，將 trusted data 與 confirmed/reference data 正確分層保存，禁止未 trusted 的候選覆蓋正式資料。驗證：focused vitest 通過。
 - [x] 3.3 對應 Requirement `Formal registry pull SHALL use the confirmed registry key from address-first flow`：正式查詢與客戶 PDF 僅使用 confirmed key 進入 trusted 流程。
 
 ## 4. Dossier / PDF 組裝轉綠
 
-- [ ] 4.0 對應決策 4：實價登錄同時是 UI 資料與 dossier input。驗證：同一批 recent sale records 同時進 UI 與 dossier。
+- [x] 4.0 對應決策 4：實價登錄同時是 UI 資料與 dossier input。驗證：同一批 recent sale records 同時進 UI 與 dossier，`src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts` 通過。
 
 - [x] 4.1 在 `src/lib/pdf-engine/assemble-dossier-data.ts` 將 `land_area_sqm`、`announced_land_current_value`、`announced_land_value`、recent sale records 或摘要帶入 dossier snapshot。驗證：`src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts` 通過。
 - [x] 4.2 在 `src/lib/pdf-engine/document.tsx` 與必要的 PDF blocks 中確認這些欄位有對應讀取點；沒有時補齊最小可用輸出。驗證：`src/lib/pdf-blocks/__tests__/property-data-sheet.test.tsx`、`src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts` 通過。
 - [x] 4.3 在 `src/app/(dashboard)/cases/[id]/preview/page.tsx` 與 `src/lib/export-pdf.ts` 驗證正式 preview / export 使用的是保存後 snapshot，而不是即時候選。驗證：`e2e/local-web-registry-pending-billing.spec.ts` 的正式匯入後預覽流程通過，preview 以案件保存資料進入 `/cases/:id/preview`。
-- [ ] 4.4 對應 Requirement `Dossier assembly SHALL include confirmed address-first land values and real price`：確認 confirmed land values 與實價登錄摘要可進 PDF 快照。
+- [x] 4.4 對應 Requirement `Dossier assembly SHALL include confirmed address-first land values and real price`：確認 confirmed land values 與實價登錄摘要可進 PDF 快照。驗證：`src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts` 通過。
+- [ ] 4.5 說明書完整性回歸：免費前查已可取得的土地面積（坪數）、建築面積、建築物屋齡、附近實價登錄，以及位置圖 / Logo / 空拍圖 / 建築物外觀必須出現在 dossier / PDF；正式地政產權與所有權欄位則在 API 成功時覆蓋，失敗時需明確標註來源與缺漏原因。驗證：以 `001-說明書.pdf` 現況缺漏為回歸基準，focused vitest + 實際 PDF smoke 通過。
+- [x] 4.6 PDF 前置審核頁：正式 COP 或免費前查完成後，先在工作台提供可編輯、可保存的 PDF 內容表格；保存後 `assembleDossierData` 讀取 `dossier_editable_snapshot`，避免只在最終 PDF 才看到缺漏。驗證：`src/components/__tests__/DemoAlignedWorkbench.test.tsx`、`src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts` 通過。
 
 ## 4A. 實價登錄 source parity 與最新資料修補
 
@@ -62,4 +64,4 @@
 - [x] 5.2 跑 `spectra analyze desktop-local-address-to-cop-e2e --json` 與 `spectra validate desktop-local-address-to-cop-e2e`，確認 proposal / design / specs / tasks 全通過。驗證：CLI exit code 0。
 - [x] 5.3 對應 Requirement `Mac-first address-to-COP-to-PDF flow SHALL be accepted before Windows work resumes`：完成 Mac smoke 後才能把 Windows 工作往前推。
 - [x] 5.3 更新 `openspec/SR-ACTIVE-INDEX.md` 的下一步描述，註記此主線以 Mac first 驗收為當前完成定義，Windows 維持次順位。驗證：index 內容與本 change 一致。
-- [x] 5.4 工作台 UI 收斂：`DemoAlignedWorkbench` 與 `docs/workbench-redesign-prototype/` 的核心三頁改用 `12px` 摘要表，`物件資料總覽 / PDF 檢查` 改用 `17px` 精簡單行摘要；主工作區字級統一為 `17px`，移除左側大摘要卡。驗證：`pnpm exec vitest run src/components/__tests__/DemoAlignedWorkbench.test.tsx` 通過。
+- [x] 5.4 決策 6a：工作台摘要與字級分成核心三頁模式與非核心頁模式。`DemoAlignedWorkbench` 與 `docs/workbench-redesign-prototype/` 的核心三頁改用 `12px` 摘要表，`物件資料總覽 / PDF 檢查` 改用 `17px` 精簡單行摘要；主工作區字級統一為 `17px`，移除左側大摘要卡。驗證：`pnpm exec vitest run src/components/__tests__/DemoAlignedWorkbench.test.tsx` 通過。

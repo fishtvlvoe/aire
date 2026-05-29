@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { safeInvoke } from "@/lib/safe-invoke";
+import { queryRealPrice, type RealPriceRecord } from "@/lib/real-price-query";
 
 interface RealPricePanelProps {
   district: string;
@@ -11,15 +11,6 @@ interface RealPricePanelProps {
 }
 
 type PanelState = "idle" | "loading" | "success" | "error";
-
-type RealPriceRecord = {
-  address: string;
-  total_price: number;
-  area: number;
-  unit_price: number;
-  date: string;
-  type: string;
-};
 
 export function RealPricePanel({ district, keyword }: RealPricePanelProps) {
   const [state, setState] = React.useState<PanelState>("idle");
@@ -31,11 +22,7 @@ export function RealPricePanel({ district, keyword }: RealPricePanelProps) {
     setErrorMessage("");
 
     try {
-      const result = await safeInvoke<RealPriceRecord[]>("query_real_price", {
-        district,
-        keyword,
-        limit: 20,
-      });
+      const result = await queryRealPrice(district, keyword, 20);
       setRecords(result.slice(0, 20));
       setState("success");
     } catch (err) {
@@ -79,13 +66,13 @@ export function RealPricePanel({ district, keyword }: RealPricePanelProps) {
               >
                 <div className="font-medium">{record.address}</div>
                 <div className="text-sm text-muted-foreground">
-                  成交總價：NT${record.total_price.toLocaleString()}
+                  成交總價：{typeof record.total_price === "number" ? `NT$${record.total_price.toLocaleString()}` : "未提供"}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  坪數：{record.area.toFixed(1)} 坪
+                  坪數：{typeof record.area === "number" ? `${record.area.toFixed(1)} 坪` : "未提供"}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  單價：NT${record.unit_price.toLocaleString()}/坪
+                  單價：{typeof record.unit_price === "number" ? `NT$${record.unit_price.toLocaleString()}/坪` : "未提供"}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   交易日期：{record.date}

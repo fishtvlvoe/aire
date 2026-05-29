@@ -689,7 +689,7 @@ impl EasyMapR02Client {
             )
             .await;
         let Ok(payload) = payload else {
-            tracing::error!("[resolve_town_code] getTownList failed for cityCode={}", city_code);
+            log::error!("[resolve_town_code] getTownList failed for cityCode={}", city_code);
             return fallback.ok_or_else(|| r02_failure(address, "easymap_town_not_found", "查無行政區"));
         };
         let towns = parse_easy_map_town_list_payload(&payload);

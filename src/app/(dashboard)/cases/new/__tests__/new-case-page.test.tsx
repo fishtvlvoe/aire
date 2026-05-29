@@ -59,14 +59,38 @@ vi.mock("@/lib/land-registry-api", () => ({
   paidAddressResolver: vi.fn(),
 }));
 
+vi.mock("@/lib/safe-invoke", () => ({
+  safeInvoke: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/lib/real-price-query", () => ({
+  extractRealPriceDistrict: vi.fn((address: string) => {
+    if (address.includes("永康區")) return "永康區";
+    if (address.includes("東區")) return "東區";
+    if (address.includes("萬華區")) return "萬華區";
+    return "";
+  }),
+  extractRealPriceKeyword: vi.fn((address: string) => {
+    if (address.includes("勝利街")) return "勝利街";
+    if (address.includes("東和路")) return "東和路";
+    if (address.includes("漢中街")) return "漢中街";
+    return "";
+  }),
+  queryRealPrice: vi.fn().mockResolvedValue([]),
+}));
+
 import NewCasePage from "../page";
 import { casesApi } from "@/lib/cases-api";
 import { addressLookup, confirmCaseRegistryMatch, listRegistryQueryRuns, paidAddressResolver } from "@/lib/land-registry-api";
+import { safeInvoke } from "@/lib/safe-invoke";
+import { queryRealPrice } from "@/lib/real-price-query";
 
 const mockAddressLookup = vi.mocked(addressLookup);
 const mockConfirmCaseRegistryMatch = vi.mocked(confirmCaseRegistryMatch);
 const mockListRegistryQueryRuns = vi.mocked(listRegistryQueryRuns);
 const mockPaidAddressResolver = vi.mocked(paidAddressResolver);
+const mockSafeInvoke = vi.mocked(safeInvoke);
+const mockQueryRealPrice = vi.mocked(queryRealPrice);
 const mockListCases = vi.mocked(casesApi.list);
 const mockCreateCase = vi.mocked(casesApi.create);
 const forbiddenCustomerTerms = /\b(R02|COP|API|Helper|adapter|parser|payload|JSON|sourceRunId)\b|便民系統/;
@@ -79,6 +103,8 @@ describe("NewCasePage address-first flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockListCases.mockResolvedValue([]);
+    mockSafeInvoke.mockResolvedValue([]);
+    mockQueryRealPrice.mockResolvedValue([]);
     mockListRegistryQueryRuns.mockResolvedValue([]);
     mockPaidAddressResolver.mockResolvedValue({
       run_id: "resolver-run-001",
@@ -129,6 +155,7 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByRole("heading", { name: "新增案件" })).toBeInTheDocument();
     expect(screen.getByLabelText("地址 *")).toBeInTheDocument();
     expect(screen.queryByText("物件類型")).not.toBeInTheDocument();
+    expect(screen.getByText("先用免費前查補齊地址候選、附近實價登錄與參考欄位；只有需要正式地政資料時才進入付費查詢。")).toBeInTheDocument();
   });
 
   it("classifies address through registry lookup and keeps property type editable", async () => {
@@ -182,6 +209,8 @@ describe("NewCasePage address-first flow", () => {
           property_type: "residential",
           land_registry_data: expect.objectContaining({
             customer_property_type: "storefront",
+            isPaid: false,
+            pricingNote: "免費前查：地址候選、附近實價登錄與參考欄位，不產生成本",
           }),
         }),
       );
@@ -274,6 +303,72 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByLabelText("地號")).toHaveValue("04140000");
     expect(screen.getByLabelText("建號")).toHaveValue("00084000");
     expect(screen.getByLabelText("物件類型")).toHaveValue("residential");
+  });
+
+  it("auto-fills EasyMap Z10Web candidates instead of treating them as lookup failures", async () => {
+    mockQueryRealPrice.mockResolvedValueOnce([
+      {
+        address: "台南市永康區勝利街58巷6號",
+        type: "住宅大樓",
+        area: 32.4,
+        total_price: 11800000,
+        unit_price: 364198,
+        date: "2024-02-18",
+      },
+    ]);
+    mockAddressLookup.mockResolvedValue([
+      {
+        parcel_id: "DK-9125-00296000",
+        address: "台南市永康區勝利街58巷4號",
+        section_name: "兵南段",
+        section_code: "9125",
+        land_office: "DK",
+        lot_number: "04080000",
+        building_number: "00296000",
+        source: "easymap_z10web",
+        trusted_for_pdf: false,
+        land_area_sqm: "66.29",
+        announced_land_current_value: "41400",
+        announced_land_value: "7700",
+      },
+    ]);
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("地段")).toHaveValue("兵南段");
+    });
+    expect(screen.getByLabelText("地號")).toHaveValue("04080000");
+    expect(screen.getByLabelText("建號")).toHaveValue("00296000");
+    expect(screen.getByLabelText("土地面積（平方公尺）")).toHaveValue("66.29");
+    expect(screen.getByLabelText("公告土地現值（元/平方公尺）")).toHaveValue("41400");
+    expect(screen.getByLabelText("公告地價（元/平方公尺）")).toHaveValue("7700");
+    await waitFor(() => {
+      expect(screen.getByText("台南市永康區勝利街58巷6號")).toBeInTheDocument();
+    });
+    expect(screen.getByText("住宅大樓")).toBeInTheDocument();
+    expect(screen.getByText("NT$11,800,000")).toBeInTheDocument();
+    expect(mockQueryRealPrice).toHaveBeenCalledWith("永康區", "勝利街", 20, "台南市永康區勝利街58巷4號");
+    expect(screen.queryByRole("button", { name: "我同意付費查詢建號" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
+    await waitFor(() => {
+      expect(mockCreateCase).toHaveBeenCalledWith(
+        expect.objectContaining({
+          land_registry_data: expect.objectContaining({
+            confirmed_registry_match: expect.objectContaining({
+              land_area_sqm: "66.29",
+              announced_land_current_value: "41400",
+              announced_land_value: "7700",
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   it("loads existing normalized-address candidates before running discovery", async () => {
@@ -379,7 +474,7 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByText("仍可建立新案件")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "開啟既有案件" }));
-    expect(navigationMocks.push).toHaveBeenCalledWith("/cases/_?caseId=case-existing");
+    expect(navigationMocks.push).toHaveBeenCalledWith("/cases/case-existing");
 
     fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
     await waitFor(() => {
@@ -496,6 +591,14 @@ describe("NewCasePage address-first flow", () => {
           schema: "aire.registry-provenance.v1",
           parcelId: "DC-1556-00700000",
           totalCost: 0,
+          confirmed_registry_match: expect.objectContaining({
+            office_code: "DC",
+            section_code: "1556",
+            section_name: "富強段",
+            land_no: "00700000",
+            building_no: "00165000",
+            registry_key: "DC-1556-00165000",
+          }),
           candidate_options: expect.arrayContaining([
             expect.objectContaining({ normalized_parcel_id: "DC-1556-00700000" }),
             expect.objectContaining({ normalized_parcel_id: "DC-1556-00165000" }),
@@ -526,12 +629,15 @@ describe("NewCasePage address-first flow", () => {
         }),
       }),
     );
-    expect(mockConfirmCaseRegistryMatch).toHaveBeenCalledWith({
+    expect(mockConfirmCaseRegistryMatch).toHaveBeenCalledWith(expect.objectContaining({
       caseId: "case-1",
+      officeCode: "DC",
+      sectionCode: "1556",
       sectionName: "富強段",
       landNo: "00700000",
       buildingNo: "00165000",
-    });
+      registryKey: "DC-1556-00165000",
+    }));
     const createdPayload = mockCreateCase.mock.calls[0]?.[0];
     const entries = createdPayload?.land_registry_data?.entries;
     expect(entries).not.toHaveProperty("building_ownership");
@@ -574,7 +680,7 @@ describe("NewCasePage address-first flow", () => {
     await waitFor(() => {
       expect(screen.getByRole("radiogroup", { name: "候選物件資料" })).toBeInTheDocument();
     });
-    expect(screen.getByText("請先選定一筆候選，才可進入正式查詢。")).toBeInTheDocument();
+    expect(screen.getByText("請先選定一筆候選；你可以先建立案件，之後再決定是否進入付費正式查詢。")).toBeInTheDocument();
     expect(screen.getByLabelText("地段")).toHaveValue("");
     expect(screen.getByLabelText("地號")).toHaveValue("");
     expect(screen.getByLabelText("建號")).toHaveValue("");
@@ -640,12 +746,15 @@ describe("NewCasePage address-first flow", () => {
           land_lot_no: "00700000",
           building_lot_no: "00167000",
           land_registry_data: expect.objectContaining({
-            confirmed_registry_match: {
+            confirmed_registry_match: expect.objectContaining({
+              office_code: "DC",
+              section_code: "1556",
               section_name: "富強段",
               land_no: "00700000",
               building_no: "00167000",
+              registry_key: "DC-1556-00167000",
               status: "confirmed",
-            },
+            }),
             candidate_options: expect.arrayContaining([
               expect.objectContaining({ normalized_parcel_id: "DC-1556-00165000" }),
               expect.objectContaining({ normalized_parcel_id: "DC-1556-00167000" }),
@@ -654,12 +763,15 @@ describe("NewCasePage address-first flow", () => {
         }),
       );
     });
-    expect(mockConfirmCaseRegistryMatch).toHaveBeenCalledWith({
+    expect(mockConfirmCaseRegistryMatch).toHaveBeenCalledWith(expect.objectContaining({
       caseId: "case-1",
+      officeCode: "DC",
+      sectionCode: "1556",
       sectionName: "富強段",
       landNo: "00700000",
       buildingNo: "00167000",
-    });
+      registryKey: "DC-1556-00167000",
+    }));
   });
 
   it("shows manual fallback when registry returns multiple candidates", async () => {
@@ -752,22 +864,25 @@ describe("NewCasePage address-first flow", () => {
           land_lot_no: "1043-0002",
           building_lot_no: "00000000",
           land_registry_data: expect.objectContaining({
-            confirmed_registry_match: {
+            confirmed_registry_match: expect.objectContaining({
               section_name: "勝利段",
               land_no: "1043-0002",
               building_no: "00000000",
               status: "confirmed",
-            },
+            }),
           }),
         }),
       );
     });
-    expect(mockConfirmCaseRegistryMatch).toHaveBeenCalledWith({
+    expect(mockConfirmCaseRegistryMatch).toHaveBeenCalledWith(expect.objectContaining({
       caseId: "case-1",
+      officeCode: null,
+      sectionCode: null,
       sectionName: "勝利段",
       landNo: "1043-0002",
       buildingNo: "00000000",
-    });
+      registryKey: null,
+    }));
   });
 
   it("does not treat mock placeholder parcels as confirmed address completion", async () => {
