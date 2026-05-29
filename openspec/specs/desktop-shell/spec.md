@@ -8,22 +8,378 @@ TBD - created by archiving change 'aire-desktop-phase1'. Update Purpose after ar
 
 ### Requirement: Tauri shell with Next.js frontend
 
-The system SHALL package a Tauri 2.x application that loads a Next.js 16 static export as its frontend, with frontendDist pointing to the exported `out/` directory.
+The system SHALL package a Tauri 2.x application that loads a Next.js 16 static export as its frontend, with frontendDist pointing to the exported out/ directory. Windows installer release candidates SHALL include release trust metadata and SHALL NOT be marked customer-release-ready unless the Windows installer trust gate passes.
 
 #### Scenario: Build produces installer for Windows
 
-- **WHEN** the developer runs `pnpm tauri build` on a Windows x64 host
-- **THEN** an `.msi` installer is produced under `src-tauri/target/release/bundle/msi/`
+- **WHEN** the developer runs pnpm tauri build on a Windows x64 host
+- **THEN** an MSI or EXE installer is produced under src-tauri/target/release/bundle/
+- **AND** release trust metadata is generated before the installer is promoted as a release candidate
 
-#### Scenario: Build produces installer for macOS
+#### Scenario: Customer release is blocked until installer trust passes
 
-- **WHEN** the developer runs `pnpm tauri build` on a macOS arm64 host
-- **THEN** a `.dmg` installer is produced under `src-tauri/target/release/bundle/dmg/`
+- **WHEN** the Windows installer can be installed and launched but lacks trusted code signing verification
+- **THEN** the desktop-shell release status remains internal-only
+- **AND** customer release remains blocked by the windows-installer-trust gate
 
-#### Scenario: Linux is not a target
+##### Example: launch evidence without signing
 
-- **WHEN** the developer attempts `pnpm tauri build --target linux`
-- **THEN** the build configuration MUST omit Linux targets and emit an explicit message that Linux is unsupported
+- **GIVEN** Windows launch evidence `artifacts/smoke/windows/aire-windows-installed-launch-login-20260527.png`
+- **AND** signing verification result `unsigned`
+- **WHEN** the release report is generated
+- **THEN** desktop-shell Windows status is `internal-only`
+
+
+<!-- @trace
+source: desktop-windows-installer-trust-signing
+updated: 2026-05-29
+code:
+  - artifacts/smoke/windows/guest-aire-probe.ps1
+  - .opencode/commands/spectra-ask.md
+  - installer/README.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.pdf
+  - artifacts/smoke/windows/aire-installed-search-20260527.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-post-confirm-20260527.png
+  - src/components/PullParcelDataButton.tsx
+  - artifacts/smoke/local-web-formal-proxy-debug-20260528.png
+  - src/middleware.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-resume-front-20260527.png
+  - cloudflare-worker/tsconfig.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-import-result-reactivated-20260527.png
+  - src/app/api/local/address-discovery/route.ts
+  - src/app/api/init/route.ts
+  - src/lib/server/local-formal-pull-proxy.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query3-20260527.png
+  - src/lib/product-ui-demo-alignment.ts
+  - src/lib/registry-discovery-contract.ts
+  - .opencode/skills/spectra-commit/SKILL.md
+  - artifacts/smoke/logo-upload-smoke-20260526.svg
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-disappear-activate-20260527.png
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src/lib/formal-cop-api-set.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - artifacts/smoke/local-web-donghe-address-lookup-20260528.png
+  - docs/address-land-discovery-decision-flow.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-manual-building-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-confirm-monitor-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-active-after-rebuild-20260527.png
+  - artifacts/smoke/windows/aire-windows-installed-launch-login-20260527.json
+  - src/app/api/config/route.ts
+  - src/app/api/health/route.ts
+  - artifacts/smoke/donghe-smoke-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-rebuild-20260527.png
+  - docs/gov-site-analysis/11-nlsc-s09-soa.md
+  - src/lib/export-pdf.ts
+  - artifacts/smoke/windows/github-runtime-smoke-26513341136/aire-windows-runtime-smoke.png
+  - .opencode/skills/spectra-debug/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-front-20260527.png
+  - artifacts/smoke/windows/github-runtime-smoke-26513341136/report.json
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - src/components/RealPricePanel.tsx
+  - src/components/SettingsTabs.tsx
+  - src/lib/land-registry-api.ts
+  - e2e/results/playwright-report/trace/assets/urlMatch-BYQrIQwR.js
+  - e2e/results/playwright-report/trace/uiMode.C2Efnu2P.js
+  - artifacts/smoke/local-web-multiple-candidate-selection-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-created-20260527.png
+  - artifacts/smoke/local-web-pdf-preview-r02-fields-20260526.png
+  - docs/workbench-redesign-prototype/05-pdf-check.html
+  - e2e/results/playwright-report/trace/playwright-logo.svg
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-signed-launch-20260527.png
+  - artifacts/smoke/windows/utm-windows11-arm64-desktop-20260527.json
+  - src/lib/mock-backend.ts
+  - e2e/results/playwright-report/trace/codeMirrorModule.DYBRYzYX.css
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query4-20260527.png
+  - src/lib/product-navigation-ia.ts
+  - tsconfig.json
+  - src/app/api/local/real-price/route.ts
+  - artifacts/smoke/windows/utm-prerequisites-20260527.json
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - e2e/results/results.json
+  - artifacts/smoke/local-web-yunong-formal-import-case-20260526.json
+  - artifacts/smoke/local-web-easymap-r02-autofill-20260526.png
+  - installer/aire-installer.nsi
+  - src/lib/server/local-address-discovery-proxy.ts
+  - next.config.ts
+  - .opencode/commands/spectra-ingest.md
+  - artifacts/smoke/windows/utm-windows11-arm64-desktop-20260527.png
+  - e2e/results/playwright-report/trace/uiMode.Btcz36p_.css
+  - .opencode/commands/spectra-apply.md
+  - artifacts/smoke/windows/aire-utmctl-probe-20260527.json
+  - .spectra.yaml
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled-20260527.png
+  - docs/workbench-redesign-prototype/04-summary.html
+  - .aire-session-token
+  - .opencode/commands/spectra-discuss.md
+  - installer/launch-aire-win.vbs
+  - artifacts/smoke/local-web-yunong-supplement-selects-20260526.png
+  - src/components/disclosure-form-residential.tsx
+  - artifacts/smoke/macos/aire-trace-20260527.log
+  - e2e/results/playwright-report/trace/snapshot.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-modal-20260527.png
+  - artifacts/smoke/local-web-logo-upload-persisted-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm2s-20260527.png
+  - artifacts/smoke/windows-runtime-blocker-20260527.json
+  - src/lib/pdf-engine/document.tsx
+  - artifacts/smoke/local-web-donghe-formal-button-images-20260526.pdf
+  - e2e/results/playwright-report/trace/snapshot.v8KI4P3m.js
+  - src/lib/registry-provenance.ts
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - artifacts/smoke/windows/github-runtime-smoke-26511089066/aire-windows-runtime-smoke.png
+  - .opencode/skills/spectra-apply/SKILL.md
+  - src/app/\(dashboard\)/layout.tsx
+  - artifacts/smoke/windows/utmctl-aire-probe.ps1
+  - scripts/smoke-pdf-imported-fields.mjs
+  - src/lib/page-contracts/house-field-survey.ts
+  - src/lib/case-routes.ts
+  - src/lib/local-api/client.ts
+  - src/lib/local-api/pdf-write-service.ts
+  - e2e/results/playwright-report/trace/defaultSettingsView.BDKsFU3c.css
+  - .opencode/commands/spectra-propose.md
+  - src-tauri/src/land_registry/mod.rs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-kill-reopen-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.txt
+  - src/components/PreChargeConfirmDialog.tsx
+  - e2e/results/playwright-report/trace/index.BCnMPevh.js
+  - artifacts/smoke/local-web-yunong-formal-import-source-after-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge2-20260527.png
+  - docs/gov-site-analysis/05-nlsc-t09-mobile.md
+  - src-tauri/src/db/registry_query_runs.rs
+  - .opencode/skills/spectra-audit/SKILL.md
+  - src/lib/auth.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun-20260527.png
+  - src/app/api/local/formal-pull-data/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-focused-20260527.png
+  - artifacts/smoke/windows/installer-provenance-20260527.json
+  - src/lib/init-config.ts
+  - src/lib/tauri-bridge.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm6s-20260527.png
+  - artifacts/smoke/windows/windows11-arm64-iso-20260527.json
+  - docs/workbench-redesign-prototype/02-supplements.html
+  - GEMINI.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-launch-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.json
+  - .opencode/skills/spectra-ask/SKILL.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-single-instance-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-reload-20260527.png
+  - e2e/results/playwright-report/trace/xtermModule.DYP7pi_n.css
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-restart-front-20260527.png
+  - src/lib/server/twinkle-real-price.ts
+  - .github/workflows/release.yml
+  - .opencode/commands/spectra-drift.md
+  - AGENTS.md
+  - e2e/results/playwright-report/trace/index.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result-20260527.png
+  - installer/PROVENANCE.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.txt
+  - docs/workbench-redesign-prototype/06-pricing-modal.html
+  - e2e/results/playwright-report/trace/manifest.webmanifest
+  - src/app/(dashboard)/layout.tsx
+  - docs/debug-easymap-getdoorlist.md
+  - docs/workbench-redesign-prototype/01-field-review.html
+  - artifacts/smoke/local-web-new-case-object-query-copy-20260526.png
+  - src/app/api/local/cop-credential/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-formal-click-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase3-20260527.png
+  - artifacts/smoke/windows/github-runtime-smoke-26511089066/report.json
+  - artifacts/smoke/local-web-logo-upload-regression-20260526.mjs
+  - .opencode/skills/spectra-archive/SKILL.md
+  - e2e/results/playwright-report/trace/uiMode.html
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-20260527.png
+  - artifacts/smoke/local-web-yunong-formal-import-source-before-20260526.png
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - src/lib/registry-preview.ts
+  - artifacts/smoke/macos/aire-app-run-20260527.log
+  - src-tauri/src/lib.rs
+  - .opencode/commands/spectra-audit.md
+  - src/app/(dashboard)/cases/new/page.tsx
+  - e2e/results/playwright-report/trace/assets/codeMirrorModule-Ds_H_9Yq.js
+  - artifacts/smoke/macos/aire-binary-run-20260527.log
+  - e2e/results/playwright-report/trace/index.CzXZzn5A.css
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-formal-click-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-case-20260527.png
+  - e2e/results/playwright-report/trace/assets/defaultSettingsView-D31xz8zv.js
+  - src/lib/local-api/cases-store.ts
+  - vitest.config.ts
+  - src-tauri/PARKED.md
+  - src-tauri/src/land_registry/discovery_contract.rs
+  - src/lib/pdf-blocks/property-data-sheet.tsx
+  - src/components/settings/LandApiSection.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-formal-tab-20260527.png
+  - src-tauri/src/land_registry/pull.rs
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.pdf
+  - e2e/results/playwright-report/trace/codicon.DCmgc-ay.ttf
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-binaryrun-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-source-roc-check-20260527.png
+  - src/components/LogoUploader.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-6s-20260527.png
+  - scripts/launch-aire.mjs
+  - docs/gov-site-analysis/04-easymap-r02.md
+  - .github/workflows/ci.yml
+  - artifacts/smoke/logo-debug-after-upload-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-pid-front-20260527.png
+  - src-tauri/src/secrets.rs
+  - src/components/disclosure-form-land.tsx
+  - src/lib/local-api/session-token.ts
+  - docs/desktop-r02-cop-flow-map.html
+  - src-tauri/src/commands/cases.rs
+  - artifacts/smoke/local-web-donghe-formal-button-source-20260526.png
+  - e2e/results/playwright-report/index.html
+  - artifacts/smoke/windows/aire-windows-installed-launch-login-20260527.png
+  - docs/gov-site-analysis/README.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-open-case-20260527.png
+  - docs/gov-site-analysis/02-luz-landuse.md
+  - docs/gov-site-analysis/09-plvr-opendata.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-launch-20260527.png
+  - docs/gov-site-analysis/10-r01-opendata.md
+  - cloudflare-worker/src/types.ts
+  - artifacts/smoke/local-web-hsinchu-formal-import-blocked-20260528.png
+  - docs/gov-site-analysis/01-plvr-main.md
+  - docs/workbench-redesign-prototype/index.html
+  - .opencode/commands/spectra-debug.md
+  - artifacts/smoke/local-web-yunong-formal-import-regression-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase2-20260527.png
+  - docs/gov-site-analysis/03-nsp-ngis.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-reopen-after-import-20260527.png
+  - src/lib/local-api/cop-credential-store.ts
+  - docs/workbench-redesign-prototype/03-formal-import.html
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.pdf
+  - src/hooks/useIpcErrorToast.ts
+  - docs/gov-site-analysis/07-easymap-w10.md
+  - artifacts/smoke/local-web-yunong-pdf-preview-after-formal-20260526.png
+  - docs/sr-archive/absorbed-2026-05-26.tar.gz
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-review-20260527.png
+  - src/app/(dashboard)/settings/page.tsx
+  - artifacts/smoke/local-web-workbench-r02-source-smoke-20260526.png
+  - src/lib/cases-api.ts
+  - .opencode/skills/spectra-drift/SKILL.md
+  - .opencode/commands/spectra-archive.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-20260526.mjs
+  - src/lib/disclosure-schema-land.ts
+  - artifacts/smoke/local-web-workbench-source-values-clean-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch-20260527.png
+  - src/lib/tax-calculator.ts
+  - artifacts/smoke/local-web-donghe-address-lookup-debug-20260528.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.json
+  - docs/gov-site-analysis/06-easymap-z10.md
+  - src/lib/local-api/data-dir.ts
+  - docs/release/windows-installer-trust.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch2-20260527.png
+  - package.json
+  - e2e/results/playwright-report/trace/sw.bundle.js
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-2s-20260527.png
+  - src/app/api/local/pdf/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-macos-memory-keyring-parity-20260527.png
+  - .github/workflows/windows-runtime-smoke.yml
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.pdf
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query2-20260527.png
+  - scripts/verify-windows-installer-trust.mjs
+  - .opencode/commands/spectra-commit.md
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - src/lib/local-api/contract.ts
+  - src/app/layout.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled2-20260527.png
+  - artifacts/smoke/macos/aire-0.1.3-local-launch-20260525-211448.png
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.pdf
+  - artifacts/smoke/macos/aire-tauri-dev-launch-20260528.png
+  - src/app/api/local/cases/route.ts
+  - src/lib/real-price-query.ts
+  - playwright.config.ts
+  - artifacts/smoke/logo-debug-page-20260526.png
+  - docs/gov-site-analysis/12-cop-platform-api.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-billing-modal-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-app-front-20260527.png
+  - scripts/launch-aire.cmd
+  - .npmrc
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.txt
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-before-auth-20260527.png
+  - artifacts/smoke/local-registry-auth-debug-20260525.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.json
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - scripts/build-local-runtime.mjs
+  - artifacts/smoke/windows/installer/AIRE_0.1.3_x64-setup.exe
+  - docs/release/desktop-fullflow-acceptance-report.md
+  - src/app/api/local/cases/[id]/route.ts
+  - docs/gov-site-analysis/08-easymap-index.md
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-imported-fields.pdf
+  - src/app/login/page.tsx
+  - artifacts/smoke/windows/trust/unsigned-baseline-20260527.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge-20260527.png
+  - .cursorrules
+  - installer/node-runtime/.gitkeep
+  - artifacts/smoke/local-web-new-case-object-query-after-lookup-20260526.png
+  - docs/release/desktop-fullflow-acceptance-checklist.md
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+tests:
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/lib/__tests__/registry-discovery-contract.test.ts
+  - e2e/desktop-auth-credential-fulfillment-smoke.spec.ts
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - src/lib/local-api/__tests__/pdf-two-phase.test.ts
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/lib/__tests__/tauri-bridge.test.ts
+  - src/components/__tests__/KeyinSplitPage.survey-fields.test.tsx
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - e2e/local-web-registry-pending-billing.spec.ts
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/components/__tests__/RealPricePanel.test.tsx
+  - src/lib/server/__tests__/twinkle-real-price.test.ts
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - src/app/(dashboard)/settings/__tests__/settings-page.test.tsx
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+  - src-tauri/tests/donghe_discovery_live.rs
+  - src/lib/local-api/__tests__/session-token-middleware.test.ts
+  - e2e/complete-presurvey-property-sheet-flow.spec.ts
+  - src/app/api/health/__tests__/route.test.ts
+  - src/lib/__tests__/auth.test.ts
+  - src/lib/local-api/__tests__/data-dir.test.ts
+  - src/app/(dashboard)/settings/branding/__tests__/page.test.tsx
+  - src/components/__tests__/PreChargeConfirmDialog.test.tsx
+  - e2e/full-product-flow-ia-ux-acceptance.spec.ts
+  - e2e/candidate-parcel-options-presurvey.spec.ts
+  - src/lib/__tests__/product-ui-demo-alignment.test.ts
+  - src/lib/__tests__/registry-provenance.test.ts
+  - src/lib/server/__tests__/local-formal-pull-proxy.test.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - e2e/product-ui-demo-alignment.spec.ts
+  - src/lib/__tests__/formal-cop-api-set.test.ts
+  - src/lib/__tests__/real-price-query.test.ts
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src-tauri/tests/donghe_moi_api_015_live.rs
+  - src/app/login/__tests__/page.test.tsx
+  - src/components/__tests__/AppSidebar.test.tsx
+  - scripts/__tests__/verify-windows-installer-trust.test.mjs
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/lib/pdf-blocks/__tests__/property-data-sheet.test.tsx
+  - src/lib/local-api/__tests__/cases-persistence.test.ts
+  - src/lib/local-api/__tests__/middleware-integration.test.ts
+  - src/app/api/local/cop-credential/test/route.ts
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/app/api/local/real-price/__tests__/route.test.ts
+  - e2e/product-auth-functional-flow.spec.ts
+  - src/lib/local-api/__tests__/cop-credential.test.ts
+  - src/app/(dashboard)/cases/[id]/__tests__/page.test.tsx
+-->
 
 ---
 ### Requirement: First-run window state
@@ -66,3 +422,375 @@ The system SHALL store all persistent data (SQLite DB, logs, generated PDFs not 
 
 - **WHEN** the user launches the application for the first time
 - **THEN** the OS-standard data directory exists and contains an empty `aire.db` plus a `logs/` subdirectory
+
+---
+### Requirement: Windows runtime acceptance must be distinct from packaging
+
+The Desktop Shell release process SHALL distinguish Windows packaging success from Windows runtime acceptance. A successful Windows installer build SHALL NOT be used as proof that the installed Windows Desktop App launches or completes the customer-facing smoke.
+
+#### Scenario: GitHub Actions build succeeds
+
+- **WHEN** the Windows installer workflow succeeds on GitHub Actions
+- **THEN** the release evidence SHALL record packaging success only and SHALL keep Windows runtime acceptance incomplete until the installed app runs in Windows
+
+##### Example: Packaging only
+
+- **GIVEN** GitHub Actions run `26398171467` produces a Windows installer
+- **WHEN** no Windows VM launch evidence exists
+- **THEN** release evidence marks packaging complete and Windows runtime acceptance incomplete
+
+#### Scenario: Installed Windows app launches
+
+- **WHEN** the Windows installer is installed and launched inside UTM, Parallels, Windows 365, Dev Box, or a physical Windows device
+- **THEN** the release evidence SHALL record Windows runtime acceptance for the verified runtime and artifact
+
+<!-- @trace
+source: desktop-windows-utm-runtime-acceptance
+updated: 2026-05-29
+code:
+  - GEMINI.md
+  - package.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-before-auth-20260527.png
+  - e2e/results/playwright-report/trace/codeMirrorModule.DYBRYzYX.css
+  - e2e/results/playwright-report/trace/index.BCnMPevh.js
+  - src/app/api/config/route.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.json
+  - artifacts/smoke/logo-upload-smoke-20260526.svg
+  - docs/release/desktop-fullflow-acceptance-report.md
+  - scripts/verify-windows-installer-trust.mjs
+  - src-tauri/src/lib.rs
+  - src/hooks/useIpcErrorToast.ts
+  - e2e/results/playwright-report/trace/uiMode.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-formal-click-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-20260527.png
+  - .github/workflows/windows-runtime-smoke.yml
+  - src/lib/pdf-engine/assemble-dossier-data.ts
+  - artifacts/smoke/local-web-formal-proxy-debug-20260528.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-front-20260527.png
+  - src/app/\(dashboard\)/layout.tsx
+  - .opencode/skills/spectra-drift/SKILL.md
+  - artifacts/smoke/windows/trust/unsigned-baseline-20260527.json
+  - docs/gov-site-analysis/08-easymap-index.md
+  - e2e/results/playwright-report/trace/xtermModule.DYP7pi_n.css
+  - docs/gov-site-analysis/04-easymap-r02.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-formal-tab-20260527.png
+  - artifacts/smoke/logo-debug-page-20260526.png
+  - .opencode/skills/spectra-audit/SKILL.md
+  - docs/gov-site-analysis/05-nlsc-t09-mobile.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-restart-front-20260527.png
+  - artifacts/smoke/local-web-logo-upload-persisted-20260526.png
+  - e2e/results/playwright-report/trace/index.html
+  - src-tauri/src/db/registry_query_runs.rs
+  - e2e/results/playwright-report/index.html
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-launch-20260527.png
+  - src-tauri/src/secrets.rs
+  - docs/workbench-redesign-prototype/03-formal-import.html
+  - src/app/(dashboard)/layout.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-6s-20260527.png
+  - .opencode/commands/spectra-ask.md
+  - artifacts/smoke/windows/aire-utmctl-probe-20260527.json
+  - AGENTS.md
+  - src/components/disclosure-form-residential.tsx
+  - installer/aire-installer.nsi
+  - src/components/disclosure-form-land.tsx
+  - src/lib/product-navigation-ia.ts
+  - src/lib/registry-preview.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-billing-modal-20260527.png
+  - artifacts/smoke/windows/utm-windows11-arm64-desktop-20260527.png
+  - src/lib/local-api/client.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase-rebuild-20260527.png
+  - docs/workbench-redesign-prototype/index.html
+  - e2e/results/playwright-report/trace/uiMode.C2Efnu2P.js
+  - artifacts/smoke/local-web-multiple-candidate-selection-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-single-instance-20260527.png
+  - src/app/api/local/cases/route.ts
+  - .opencode/skills/spectra-ask/SKILL.md
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-live-discovery-matrix.json
+  - .spectra.yaml
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.txt
+  - src/components/case-wizard/CaseWizardStep2.tsx
+  - src/lib/mock-backend.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-filled-20260527.png
+  - artifacts/smoke/windows/aire-installed-search-20260527.json
+  - installer/launch-aire-win.vbs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-focused-20260527.png
+  - src/lib/local-api/contract.ts
+  - src/lib/auth.ts
+  - vitest.config.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query4-20260527.png
+  - artifacts/smoke/macos/aire-0.1.3-local-launch-20260525-211448.png
+  - src/lib/real-price-query.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.pdf
+  - src/app/(dashboard)/cases/[id]/preview/page.tsx
+  - src/lib/disclosure-schema-land.ts
+  - src-tauri/src/land_registry/pull.rs
+  - docs/gov-site-analysis/README.md
+  - src-tauri/src/land_registry/mod.rs
+  - docs/gov-site-analysis/11-nlsc-s09-soa.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.txt
+  - src/app/api/local/cop-credential/route.ts
+  - .opencode/commands/spectra-propose.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query2-20260527.png
+  - src/components/LogoUploader.tsx
+  - src/components/workbench/DemoAlignedWorkbench.tsx
+  - artifacts/smoke/local-web-workbench-source-values-clean-20260526.png
+  - artifacts/smoke/local-web-yunong-formal-import-case-20260526.json
+  - .opencode/commands/spectra-archive.md
+  - artifacts/smoke/local-web-donghe-clean-source-20260526.pdf
+  - e2e/results/playwright-report/trace/assets/codeMirrorModule-Ds_H_9Yq.js
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-launch-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-pid-front-20260527.png
+  - src/app/api/local/cases/[id]/route.ts
+  - tsconfig.json
+  - artifacts/smoke/local-web-yunong-formal-import-source-before-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-confirm-monitor-20260527.png
+  - src/lib/pdf-blocks/property-data-sheet.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun2-20260527.png
+  - docs/workbench-redesign-prototype/06-pricing-modal.html
+  - src/lib/tauri-bridge.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-manual-building-20260527.png
+  - artifacts/smoke/windows-runtime-blocker-20260527.json
+  - artifacts/smoke/local-registry-auth-debug-20260525.png
+  - src/lib/registry-discovery-contract.ts
+  - installer/node-runtime/.gitkeep
+  - src/app/(dashboard)/cases/[id]/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-review-20260527.png
+  - artifacts/smoke/macos/aire-binary-run-20260527.log
+  - artifacts/smoke/windows/aire-windows-installed-launch-login-20260527.png
+  - src/app/api/local/formal-pull-data/route.ts
+  - artifacts/smoke/local-web-yunong-pdf-preview-after-formal-20260526.png
+  - src/lib/product-ui-demo-alignment.ts
+  - src/lib/local-api/session-token.ts
+  - artifacts/smoke/local-web-donghe-formal-button-source-20260526.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-20260526.mjs
+  - scripts/launch-aire.mjs
+  - e2e/results/playwright-report/trace/assets/defaultSettingsView-D31xz8zv.js
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-macos-memory-keyring-parity-20260527.png
+  - .opencode/commands/spectra-apply.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-memory-keyring-app-front-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-disappear-activate-20260527.png
+  - docs/workbench-redesign-prototype/01-field-review.html
+  - e2e/results/playwright-report/trace/codicon.DCmgc-ay.ttf
+  - src/components/SettingsTabs.tsx
+  - docs/gov-site-analysis/07-easymap-w10.md
+  - src/app/(dashboard)/cases/[id]/keyin/page.tsx
+  - src/app/api/local/address-discovery/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-created-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.json
+  - scripts/build-local-runtime.mjs
+  - src-tauri/src/land_registry/easymap_r02.rs
+  - docs/workbench-redesign-prototype/02-supplements.html
+  - .cursorrules
+  - artifacts/smoke/windows/installer-provenance-20260527.json
+  - src/lib/pdf-engine/document.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.json
+  - artifacts/smoke/logo-debug-after-upload-20260526.png
+  - cloudflare-worker/tsconfig.json
+  - e2e/results/playwright-report/trace/snapshot.html
+  - docs/gov-site-analysis/09-plvr-opendata.md
+  - .opencode/skills/spectra-ingest/SKILL.md
+  - src/lib/local-api/cases-store.ts
+  - artifacts/smoke/local-web-logo-upload-regression-20260526.mjs
+  - src/components/PreChargeConfirmDialog.tsx
+  - src/app/api/local/pdf/route.ts
+  - .opencode/commands/spectra-discuss.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-post-confirm-20260527.png
+  - .opencode/commands/spectra-audit.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-front-20260527.png
+  - src/lib/server/local-formal-pull-proxy.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.txt
+  - src/app/api/init/route.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-fix-2s-20260527.png
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.txt
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.txt
+  - src/app/login/page.tsx
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-import-result-reactivated-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-reopen-after-import-20260527.png
+  - e2e/results/playwright-report/trace/snapshot.v8KI4P3m.js
+  - src-tauri/PARKED.md
+  - src/lib/local-api/cop-credential-store.ts
+  - artifacts/smoke/local-web-easymap-r02-autofill-20260526.png
+  - .opencode/commands/spectra-ingest.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810407653.pdf
+  - artifacts/smoke/windows/aire-windows-installed-launch-login-20260527.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-open-case-20260527.png
+  - docs/gov-site-analysis/03-nsp-ngis.md
+  - artifacts/smoke/macos/aire-trace-20260527.log
+  - artifacts/smoke/macos/aire-app-run-20260527.log
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge2-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-resume-front-20260527.png
+  - src/lib/registry-provenance.ts
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779809808933.pdf
+  - src/components/PullParcelDataButton.tsx
+  - src/lib/export-pdf.ts
+  - e2e/results/playwright-report/trace/sw.bundle.js
+  - docs/workbench-redesign-prototype/05-pdf-check.html
+  - src/lib/server/twinkle-real-price.ts
+  - docs/sr-archive/absorbed-2026-05-26.tar.gz
+  - scripts/launch-aire.cmd
+  - artifacts/smoke/local-web-yunong-formal-import-source-after-20260526.png
+  - next.config.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm6s-20260527.png
+  - artifacts/smoke/windows/installer/AIRE_0.1.3_x64-setup.exe
+  - docs/desktop-r02-cop-flow-map.html
+  - artifacts/smoke/local-web-hsinchu-formal-import-blocked-20260528.png
+  - docs/release/desktop-fullflow-acceptance-checklist.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-kill-reopen-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-signed-launch-20260527.png
+  - src/lib/local-api/pdf-write-service.ts
+  - artifacts/smoke/windows/windows11-arm64-iso-20260527.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query-20260527.png
+  - src/app/(dashboard)/cases/new/page.tsx
+  - artifacts/smoke/desktop-local-address-to-cop-e2e-imported-fields.pdf
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-binaryrun-20260527.png
+  - .opencode/commands/spectra-debug.md
+  - docs/gov-site-analysis/06-easymap-z10.md
+  - src/lib/cases-api.ts
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-front-20260527.png
+  - .aire-session-token
+  - src/lib/page-contracts/house-field-survey.ts
+  - artifacts/smoke/windows/github-runtime-smoke-26513341136/report.json
+  - playwright.config.ts
+  - artifacts/smoke/local-web-donghe-address-lookup-20260528.png
+  - cloudflare-worker/src/types.ts
+  - artifacts/smoke/windows/github-runtime-smoke-26511089066/report.json
+  - artifacts/smoke/local-web-yunong-formal-import-regression-20260526.mjs
+  - artifacts/smoke/local-web-donghe-formal-button-images-20260526.pdf
+  - installer/PROVENANCE.md
+  - docs/address-land-discovery-decision-flow.html
+  - docs/debug-easymap-getdoorlist.md
+  - docs/workbench-redesign-prototype/04-summary.html
+  - .opencode/commands/spectra-commit.md
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810363434.pdf
+  - src/app/layout.tsx
+  - e2e/results/playwright-report/trace/uiMode.Btcz36p_.css
+  - artifacts/smoke/windows/github-runtime-smoke-26513341136/aire-windows-runtime-smoke.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-tauri-dev-launch-20260527.png
+  - docs/gov-site-analysis/01-plvr-main.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-query3-20260527.png
+  - src/lib/land-registry-api.ts
+  - docs/gov-site-analysis/02-luz-landuse.md
+  - src/lib/local-api/data-dir.ts
+  - .opencode/skills/spectra-commit/SKILL.md
+  - artifacts/smoke/macos/aire-tauri-dev-launch-20260528.png
+  - artifacts/smoke/local-web-pdf-preview-r02-fields-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result2-20260527.png
+  - src-tauri/src/land_registry/discovery_contract.rs
+  - src/components/settings/LandApiSection.tsx
+  - artifacts/smoke/windows/guest-aire-probe.ps1
+  - artifacts/smoke/local-web-new-case-object-query-copy-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-tauri-dev-formal-click-20260527.png
+  - .opencode/skills/spectra-archive/SKILL.md
+  - src/lib/tax-calculator.ts
+  - .opencode/commands/spectra-drift.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-directrun-20260527.png
+  - e2e/results/playwright-report/trace/index.CzXZzn5A.css
+  - src/components/RealPricePanel.tsx
+  - docs/gov-site-analysis/12-cop-platform-api.md
+  - e2e/results/playwright-report/trace/manifest.webmanifest
+  - e2e/results/results.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-open-case-20260527.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-precharge-20260527.png
+  - .opencode/skills/spectra-propose/SKILL.md
+  - src-tauri/src/land_registry/apis/address_to_parcel.rs
+  - artifacts/smoke/local-web-yunong-pdf-export-regression-1779810199037.json
+  - src/app/(dashboard)/settings/page.tsx
+  - src-tauri/src/commands/cases.rs
+  - artifacts/smoke/local-web-new-case-object-query-after-lookup-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-result-20260527.png
+  - src/lib/server/local-address-discovery-proxy.ts
+  - src/app/api/local/real-price/route.ts
+  - src/app/api/health/route.ts
+  - installer/README.md
+  - artifacts/smoke/windows/utmctl-aire-probe.ps1
+  - .opencode/skills/spectra-apply/SKILL.md
+  - .opencode/skills/spectra-debug/SKILL.md
+  - src/lib/case-routes.ts
+  - .opencode/skills/spectra-discuss/SKILL.md
+  - artifacts/smoke/local-web-donghe-address-lookup-debug-20260528.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-newcase3-20260527.png
+  - src/lib/formal-cop-api-set.ts
+  - src/lib/init-config.ts
+  - e2e/results/playwright-report/trace/defaultSettingsView.BDKsFU3c.css
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-relaunch2-20260527.png
+  - docs/gov-site-analysis/10-r01-opendata.md
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-source-roc-check-20260527.png
+  - src/middleware.ts
+  - e2e/results/playwright-report/trace/playwright-logo.svg
+  - artifacts/smoke/windows/utm-prerequisites-20260527.json
+  - scripts/smoke-pdf-imported-fields.mjs
+  - .npmrc
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-postfix-import-modal-20260527.png
+  - .github/workflows/ci.yml
+  - docs/release/windows-installer-trust.md
+  - artifacts/smoke/windows/github-runtime-smoke-26511089066/aire-windows-runtime-smoke.png
+  - e2e/results/playwright-report/trace/assets/urlMatch-BYQrIQwR.js
+  - .github/workflows/release.yml
+  - artifacts/smoke/local-web-workbench-r02-source-smoke-20260526.png
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-after-reload-20260527.png
+  - artifacts/smoke/windows/utm-windows11-arm64-desktop-20260527.json
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-app-active-after-rebuild-20260527.png
+  - artifacts/smoke/local-web-yunong-supplement-selects-20260526.png
+  - artifacts/smoke/donghe-smoke-20260526.mjs
+  - artifacts/smoke/macos/desktop-local-address-to-cop-e2e-dev-after-confirm2s-20260527.png
+tests:
+  - src-tauri/tests/donghe_discovery_live.rs
+  - src-tauri/tests/donghe_moi_api_015_live.rs
+  - src/app/api/local/cop-credential/test/route.ts
+  - src/lib/__tests__/mock-backend.test.ts
+  - src/components/__tests__/CaseWizardStep2.test.tsx
+  - src/lib/__tests__/product-navigation-ia.test.ts
+  - src/lib/__tests__/tauri-bridge.test.ts
+  - src/components/__tests__/KeyinSplitPage.survey-fields.test.tsx
+  - scripts/__tests__/verify-windows-installer-trust.test.mjs
+  - src/lib/local-api/__tests__/data-dir.test.ts
+  - src/components/__tests__/AppSidebar.test.tsx
+  - src/lib/__tests__/product-ui-demo-alignment.test.ts
+  - src/app/(dashboard)/cases/new/__tests__/new-case-page.test.tsx
+  - src/components/__tests__/SettingsTabs.test.tsx
+  - e2e/local-web-registry-pending-billing.spec.ts
+  - src/lib/__tests__/land-registry-api.test.ts
+  - src/lib/server/__tests__/twinkle-real-price.test.ts
+  - src/app/(dashboard)/cases/[id]/__tests__/page.test.tsx
+  - src/lib/server/__tests__/local-formal-pull-proxy.test.ts
+  - src/app/api/local/address-discovery/__tests__/route.test.ts
+  - e2e/complete-presurvey-property-sheet-flow.spec.ts
+  - src/lib/local-api/__tests__/middleware-integration.test.ts
+  - src/app/api/health/__tests__/route.test.ts
+  - src/components/__tests__/PullParcelDataButton.test.tsx
+  - e2e/candidate-parcel-options-presurvey.spec.ts
+  - src/lib/local-api/__tests__/cop-credential.test.ts
+  - src/components/__tests__/RealPricePanel.test.tsx
+  - src/app/(dashboard)/settings/branding/__tests__/page.test.tsx
+  - src/app/(dashboard)/cases/__tests__/page.test.tsx
+  - src/lib/__tests__/formal-cop-api-set.test.ts
+  - src/lib/server/__tests__/local-address-discovery-proxy.test.ts
+  - src/app/(dashboard)/settings/__tests__/page.test.tsx
+  - src/lib/__tests__/real-price-query.test.ts
+  - e2e/product-ui-demo-alignment.spec.ts
+  - src/app/api/local/real-price/__tests__/route.test.ts
+  - src/lib/__tests__/registry-provenance.test.ts
+  - src/lib/local-api/__tests__/session-token-middleware.test.ts
+  - src/lib/local-api/__tests__/cases-persistence.test.ts
+  - e2e/full-product-flow-ia-ux-acceptance.spec.ts
+  - src/components/__tests__/DemoAlignedWorkbench.test.tsx
+  - src/lib/__tests__/registry-discovery-contract.test.ts
+  - src/lib/local-api/__tests__/pdf-two-phase.test.ts
+  - e2e/product-auth-functional-flow.spec.ts
+  - e2e/desktop-auth-credential-fulfillment-smoke.spec.ts
+  - src/components/settings/__tests__/LandApiSection.test.tsx
+  - src/lib/__tests__/tax-calculator.test.ts
+  - src/app/(dashboard)/settings/__tests__/settings-page.test.tsx
+  - src/lib/__tests__/auth.test.ts
+  - src/lib/pdf-blocks/__tests__/property-data-sheet.test.tsx
+  - src/app/(dashboard)/__tests__/layout.test.tsx
+  - src/app/login/__tests__/page.test.tsx
+  - src/components/__tests__/PreChargeConfirmDialog.test.tsx
+  - src/components/__tests__/LogoUploader.test.tsx
+  - src/components/settings/__tests__/LandApiSection-toast.test.tsx
+  - src/lib/pdf-engine/__tests__/assemble-dossier-data.test.ts
+  - e2e/desktop-local-address-to-cop-e2e.spec.ts
+-->
