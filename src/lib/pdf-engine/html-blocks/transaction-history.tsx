@@ -14,7 +14,7 @@ interface HtmlTransactionHistoryProps {
   tokens: HtmlThemeTokens;
 }
 
-const ROWS_PER_PAGE = 15;
+const PRINT_ROW_LIMIT = 10;
 
 const COL_WIDTHS = {
   address: "35%",
@@ -50,6 +50,7 @@ function TableHeader({ tokens }: { tokens: HtmlThemeTokens }) {
 }
 
 export function HtmlTransactionHistory({ data, tokens }: HtmlTransactionHistoryProps): React.ReactElement {
+  const rows = (data ?? []).slice(0, PRINT_ROW_LIMIT);
   const pageWrapperStyle: CSSProperties = {
     paddingTop: "36px",
     paddingBottom: "48px",
@@ -69,7 +70,7 @@ export function HtmlTransactionHistory({ data, tokens }: HtmlTransactionHistoryP
     fontWeight: "bold",
   };
 
-  if (!data || data.length === 0) {
+  if (rows.length === 0) {
     return (
       <div style={pageWrapperStyle}>
         <p style={titleStyle}>附近地段實價登錄成交行情</p>
@@ -78,12 +79,6 @@ export function HtmlTransactionHistory({ data, tokens }: HtmlTransactionHistoryP
         </span>
       </div>
     );
-  }
-
-  // 分頁切割
-  const pages: TransactionRecord[][] = [];
-  for (let i = 0; i < data.length; i += ROWS_PER_PAGE) {
-    pages.push(data.slice(i, i + ROWS_PER_PAGE));
   }
 
   const tableStyle: CSSProperties = {
@@ -100,45 +95,41 @@ export function HtmlTransactionHistory({ data, tokens }: HtmlTransactionHistoryP
   };
 
   return (
-    <>
-      {pages.map((pageRows, pageIndex) => (
-        <div key={pageIndex} style={pageWrapperStyle}>
-          <p style={titleStyle}>附近地段實價登錄成交行情</p>
-          <table style={tableStyle}>
-            <TableHeader tokens={tokens} />
-            <tbody>
-              {pageRows.map((row, rowIndex) => {
-                const isLast = rowIndex === pageRows.length - 1;
-                const rowBg = rowIndex % 2 === 0 ? tokens.bg : tokens.bgAlt;
+    <div style={pageWrapperStyle}>
+      <p style={titleStyle}>附近地段實價登錄成交行情</p>
+      <table style={tableStyle}>
+        <TableHeader tokens={tokens} />
+        <tbody>
+          {rows.map((row, rowIndex) => {
+            const isLast = rowIndex === rows.length - 1;
+            const rowBg = rowIndex % 2 === 0 ? tokens.bg : tokens.bgAlt;
 
-                const tdStyle: CSSProperties = {
-                  ...tdBaseStyle,
-                  borderBottom: isLast ? "none" : `1px solid ${tokens.border}`,
-                  backgroundColor: rowBg,
-                };
+            const tdStyle: CSSProperties = {
+              ...tdBaseStyle,
+              borderBottom: isLast ? "none" : `1px solid ${tokens.border}`,
+              backgroundColor: rowBg,
+            };
 
-                return (
-                  <tr key={rowIndex}>
-                    <td style={{ ...tdStyle, width: COL_WIDTHS.address }}>{row.address}</td>
-                    <td style={{ ...tdStyle, width: COL_WIDTHS.areaPing, textAlign: "right" }}>
-                      {Number(row.areaPing) > 0 ? Number(row.areaPing).toFixed(2) : "—"}
-                    </td>
-                    <td style={{ ...tdStyle, width: COL_WIDTHS.totalPrice, textAlign: "right" }}>
-                      {row.totalPrice ? String(row.totalPrice) : "—"}
-                    </td>
-                    <td style={{ ...tdStyle, width: COL_WIDTHS.unitPrice, textAlign: "right" }}>
-                      {row.unitPrice ? String(row.unitPrice) : "—"}
-                    </td>
-                    <td style={{ ...tdStyle, width: COL_WIDTHS.transactionDate, textAlign: "center" }}>
-                      {row.transactionDate || "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ))}
-    </>
+            return (
+              <tr key={rowIndex}>
+                <td style={{ ...tdStyle, width: COL_WIDTHS.address }}>{row.address}</td>
+                <td style={{ ...tdStyle, width: COL_WIDTHS.areaPing, textAlign: "right" }}>
+                  {Number(row.areaPing) > 0 ? Number(row.areaPing).toFixed(2) : "—"}
+                </td>
+                <td style={{ ...tdStyle, width: COL_WIDTHS.totalPrice, textAlign: "right" }}>
+                  {row.totalPrice ? String(row.totalPrice) : "—"}
+                </td>
+                <td style={{ ...tdStyle, width: COL_WIDTHS.unitPrice, textAlign: "right" }}>
+                  {row.unitPrice ? String(row.unitPrice) : "—"}
+                </td>
+                <td style={{ ...tdStyle, width: COL_WIDTHS.transactionDate, textAlign: "center" }}>
+                  {row.transactionDate || "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

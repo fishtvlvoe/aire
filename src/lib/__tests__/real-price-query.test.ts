@@ -53,6 +53,7 @@ describe("real-price-query", () => {
     ]);
     expect(mocks.localApiFetch).toHaveBeenCalledWith("/api/local/real-price", expect.objectContaining({
       method: "POST",
+      signal: expect.any(AbortSignal),
       body: JSON.stringify({
         district: "萬華區",
         keyword: "漢中街",

@@ -13,7 +13,7 @@ import {
   type CandidateParcelOption,
   type CandidateSummaryFields,
 } from "@/lib/registry-provenance";
-import { extractRealPriceDistrict, extractRealPriceKeyword, queryRealPrice } from "@/lib/real-price-query";
+import { extractRealPriceDistrict } from "@/lib/real-price-query";
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
@@ -127,6 +127,11 @@ function getZoningRestrictions(zoningType?: string) {
 function pingToSquareMeters(value?: number): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
   return Math.round(value * PING_TO_SQUARE_METER * 100) / 100;
+}
+
+function squareMetersToPing(value?: number): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  return Math.round(value * 0.3025 * 100) / 100;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -261,20 +266,33 @@ function applyDossierEditableSnapshot(data: CaseDossierData, persisted: unknown)
     data.ownerName = owner;
     propertySheet.owner = owner;
   }
-  const legalUse = values.get("法定用途");
+  const legalUse = formatRegistryCodeValue(values.get("法定用途"));
   if (legalUse) {
     data.buildingPurpose = legalUse;
     propertySheet.legalUse = legalUse;
   }
   const buildingAge = values.get("屋齡");
   if (buildingAge) propertySheet.buildingAge = buildingAge;
-  const registeredArea = numberFromEditable(values.get("登記坪數"));
-  if (registeredArea !== undefined) {
-    propertySheet.registeredArea = registeredArea;
-    data.buildingArea = pingToSquareMeters(registeredArea);
-  }
   const buildingArea = numberFromEditable(values.get("建築面積") ?? values.get("建物面積"));
-  if (buildingArea !== undefined) data.buildingArea = buildingArea;
+  const registeredArea = numberFromEditable(values.get("登記坪數"));
+  if (buildingArea !== undefined) {
+    data.buildingArea = buildingArea;
+  }
+  if (registeredArea !== undefined) {
+    if (registeredArea > 80) {
+      propertySheet.registeredArea = squareMetersToPing(registeredArea);
+      data.buildingArea = registeredArea;
+    } else {
+      propertySheet.registeredArea = registeredArea;
+      if (buildingArea === undefined) data.buildingArea = pingToSquareMeters(registeredArea);
+    }
+  } else if (buildingArea !== undefined) {
+    propertySheet.registeredArea = squareMetersToPing(buildingArea);
+  }
+  const floor = resolveBuildingFloor(values.get("樓層"), data.address);
+  if (floor) propertySheet.floor = floor;
+  const managementFee = numberFromEditable(values.get("管理費（元/月）") ?? values.get("管理費"));
+  if (managementFee !== undefined) propertySheet.managementFee = managementFee;
   const landArea = numberFromEditable(values.get("土地面積") ?? values.get("土地面積（平方公尺）"));
   if (landArea !== undefined) {
     data.landArea = landArea;
@@ -291,6 +309,8 @@ function applyDossierEditableSnapshot(data: CaseDossierData, persisted: unknown)
   if (legalUse) propertySheetSources.legalUse = "PDF 前置審核";
   if (buildingAge) propertySheetSources.buildingAge = "PDF 前置審核";
   if (registeredArea !== undefined) propertySheetSources.registeredArea = "PDF 前置審核";
+  if (floor) propertySheetSources.floor = "PDF 前置審核";
+  if (managementFee !== undefined) propertySheetSources.managementFee = "PDF 前置審核";
   if (landArea !== undefined) propertySheetSources.landArea = "PDF 前置審核";
   if (announcedLandValue !== undefined) propertySheetSources.announcedLandValue = "PDF 前置審核";
   if (assessedLandValue !== undefined) propertySheetSources.assessedLandValue = "PDF 前置審核";
@@ -381,11 +401,25 @@ function extractFloorFromAddress(address?: string): string | undefined {
 
 function resolveBuildingFloor(registryFloor?: string, address?: string): string | undefined {
   const floor = registryFloor?.trim();
-  if (!floor) return extractFloorFromAddress(address);
+  const addressFloor = extractFloorFromAddress(address);
+  if (!floor) return addressFloor;
+  if (floor.includes("樓")) return floor;
   if (KNOWN_PLACEHOLDER_BUILDING_FLOORS.has(floor)) {
-    return extractFloorFromAddress(address) ?? floor;
+    return addressFloor;
+  }
+  if (addressFloor && (/^\d{1,3}$/.test(floor) || floor.includes("層"))) return addressFloor;
+  const totalFloor = Number.parseInt(floor.replace(/\D/g, ""), 10);
+  if (Number.isFinite(totalFloor) && (/^\d{1,3}$/.test(floor) || floor.includes("層"))) {
+    return `本戶樓層待確認 / 總樓層 ${totalFloor}`;
   }
   return floor;
+}
+
+function formatRegistryCodeValue(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (/^[0-9A-Z]{1,4}$/i.test(trimmed)) return `代碼 ${trimmed}（待代碼表轉換）`;
+  return trimmed;
 }
 
 function parseSupplementNumber(value?: string): number | undefined {
@@ -477,6 +511,18 @@ function textFromSummary(fields: CandidateSummaryFields | undefined, key: string
   if (typeof value === "string" && value.trim()) return value;
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
   return undefined;
+}
+
+function parseLandDescriptor(input?: string | null): { section?: string; landNumber?: string } {
+  const raw = input?.trim();
+  if (!raw) return {};
+  const match = raw.match(/([\u4e00-\u9fa5A-Za-z0-9]+段)\s*(\d+(?:-\d+)?)\s*地號/);
+  if (!match) return {};
+  const section = match[1].replace(/^.*[縣市區鄉鎮里]/, "");
+  return {
+    section,
+    landNumber: match[2],
+  };
 }
 
 function setSourceIfValue(
@@ -796,31 +842,27 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   try {
     const district = extractDistrict(caseRow.address ?? "");
     const persistedRealPriceRecords = readPersistedRealPriceRecords(persisted);
-    const keyword = extractRealPriceKeyword(caseRow.address ?? "", district) || (isLand ? caseRow.land_lot_no : caseRow.address ?? "");
-    const records = persistedRealPriceRecords.length > 0
-      ? persistedRealPriceRecords
-      : await queryRealPrice(district, keyword, 5, caseRow.address ?? "");
-    const comparableRecords = Array.isArray(records)
-      ? filterComparableRealPriceRecords(records, district)
-      : [];
-    const stats = computeRecentSaleStats(comparableRecords);
-    transactionHistory = comparableRecords.map((r) => {
-      const rec = r as Record<string, unknown>;
-      return {
-        address: typeof rec.address === "string" ? rec.address : "",
-        areaPing: typeof rec.area === "number" ? rec.area : 0,
-        totalPrice: typeof rec.total_price === "number" ? rec.total_price : 0,
-        unitPrice: typeof rec.unit_price === "number" ? rec.unit_price : 0,
-        transactionDate:
-          typeof rec.transaction_date === "string"
-            ? rec.transaction_date
-            : typeof rec.date === "string"
-              ? rec.date
-              : "",
-      };
-    });
-    recentSalePricePerSqm = stats.avg;
-    recentSaleCount = stats.count;
+    if (persistedRealPriceRecords.length > 0) {
+      const comparableRecords = filterComparableRealPriceRecords(persistedRealPriceRecords, district);
+      const stats = computeRecentSaleStats(comparableRecords);
+      transactionHistory = comparableRecords.map((r) => {
+        const rec = r as Record<string, unknown>;
+        return {
+          address: typeof rec.address === "string" ? rec.address : "",
+          areaPing: typeof rec.area === "number" ? rec.area : 0,
+          totalPrice: typeof rec.total_price === "number" ? rec.total_price : 0,
+          unitPrice: typeof rec.unit_price === "number" ? rec.unit_price : 0,
+          transactionDate:
+            typeof rec.transaction_date === "string"
+              ? rec.transaction_date
+              : typeof rec.date === "string"
+                ? rec.date
+                : "",
+        };
+      });
+      recentSalePricePerSqm = stats.avg;
+      recentSaleCount = stats.count;
+    }
   } catch {
     // 失敗時欄位為 undefined
   }
@@ -839,6 +881,22 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       });
       if (!resp.ok) return null;
       return new Uint8Array(await resp.arrayBuffer());
+    } catch {
+      return null;
+    }
+  }
+
+  async function fetchWebJson<T>(path: string, body: Record<string, unknown>): Promise<T | null> {
+    try {
+      const base = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      const resp = await fetch(`${base}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!resp.ok) return null;
+      return await resp.json() as T;
     } catch {
       return null;
     }
@@ -885,8 +943,10 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   // 若 API 資料無座標，嘗試用地址 geocode（Nominatim，免費）
   if ((!geoLat || !geoLng) && caseRow.address) {
     try {
-      const { geocodeAddress } = await import("@/lib/map-api");
-      const coords = await geocodeAddress(caseRow.address);
+      const coords = typeof window !== "undefined"
+        ? await fetchWebJson<{ lat: number; lng: number }>("/api/geocode", { address: caseRow.address })
+        : await import("@/lib/map-api").then((mod) => mod.geocodeAddress(caseRow.address ?? ""));
+      if (!coords) throw new Error("geocoding returned empty result");
       geoLat = coords.lat;
       geoLng = coords.lng;
     } catch {
@@ -895,14 +955,23 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   }
 
   let locationMapImage: Uint8Array | null = await readCaseAssetImage(caseRow.id, "location_map");
-  if (!locationMapImage && geoLat && geoLng) {
+  if (geoLat && geoLng) {
     try {
-      nearbyAmenities = summarizeNearbyAmenities(
-        await queryNearbyAmenities({ lat: geoLat, lng: geoLng, radiusM: 1000 }),
-      );
+      const webAmenities = typeof window !== "undefined"
+        ? await fetchWebJson<NonNullable<CaseDossierData["nearbyAmenities"]>>("/api/nearby-amenities", {
+          lat: geoLat,
+          lng: geoLng,
+          radiusM: 5000,
+        })
+        : null;
+      nearbyAmenities = Array.isArray(webAmenities)
+        ? webAmenities
+        : summarizeNearbyAmenities(await queryNearbyAmenities({ lat: geoLat, lng: geoLng, radiusM: 5000 }));
     } catch {
       // 失敗維持空陣列
     }
+  }
+  if (!locationMapImage && geoLat && geoLng) {
     try {
       const pngBytes = await safeInvoke<number[]>("fetch_location_map", {
         lat: geoLat,
@@ -922,7 +991,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
   }
 
   let aerialPhoto: Uint8Array | null = await readCaseAssetImage(caseRow.id, "surrounding_map");
-  let exteriorPhoto: Uint8Array | null = await readCaseAssetImage(caseRow.id, "exterior_photo");
+  const exteriorPhoto: Uint8Array | null = await readCaseAssetImage(caseRow.id, "exterior_photo");
   if (geoLat && geoLng) {
     if (!aerialPhoto) {
       try {
@@ -940,22 +1009,6 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         aerialPhoto = await fetchWebImage("/api/aerial-photo", { lat: geoLat, lng: geoLng });
       }
     }
-    if (!exteriorPhoto) {
-      try {
-        const streetBytes = await safeInvoke<number[]>("fetch_street_view", {
-          lat: geoLat,
-          lng: geoLng,
-        });
-        if (Array.isArray(streetBytes) && streetBytes.length > 0) {
-          exteriorPhoto = new Uint8Array(streetBytes);
-        } else {
-          exteriorPhoto = await fetchWebImage("/api/street-view", { lat: geoLat, lng: geoLng });
-        }
-      } catch {
-        // Tauri IPC 失敗 → web fallback（Mapillary via Next.js API route）
-        exteriorPhoto = await fetchWebImage("/api/street-view", { lat: geoLat, lng: geoLng });
-      }
-    }
   }
 
   // ── 映射 ──────────────────────────────────────────────────────────────────
@@ -967,8 +1020,23 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const landValue = apiData["land_value"]?.data;
     const mortgagesRaw = apiData["mortgages"]?.data;
     const dossierPreview = apiData["dossier_preview"]?.data;
+    const landCandidates = isRegistryProvenancePayload(persisted)
+      ? extractCandidateOptions(persisted).filter((candidate) => candidate.parcel_type === "land")
+      : [];
+    const selectedLandCandidate = findSelectedCandidate(persisted, "land") ?? (
+      landCandidates.length === 1 ? landCandidates[0] : undefined
+    );
+    const landCandidateFields = selectedLandCandidate?.summary_fields;
+    const parsedLandDescriptor = parseLandDescriptor(caseRow.address ?? caseRow.land_lot_no ?? "");
 
-    const zoningType = safeGet(zoning, "zoning_type", isString);
+    const resolvedZoning =
+      safeGet(zoning, "zoning_type", isString) ??
+      safeGet(landReg, "zoning", isString) ??
+      safeGet(landReg, "ZONING", isString) ??
+      safeGet(landReg, "purpose", isString) ??
+      safeGet(landReg, "land_purpose", isString) ??
+      textFromSummary(landCandidateFields, "zoning");
+    const zoningType = resolvedZoning;
     const restrictions = getZoningRestrictions(zoningType);
 
     const mortgages = Array.isArray(mortgagesRaw)
@@ -987,7 +1055,10 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     // ── 稅費試算（土地）──────────────────────────────────────────────────────
     const landAskingPrice = 0; // 使用者尚未輸入時預設 0
     const landAnnouncedValue = safeGet(landValue, "announced_value", isNumber) ?? 0;
-    const landAreaVal = safeGet(landReg, "area", isNumber) ?? 0;
+    const resolvedLandArea =
+      safeGet(landReg, "area", isNumber) ??
+      numberFromSummary(landCandidateFields, "landAreaSqm");
+    const landAreaVal = resolvedLandArea ?? 0;
     base.taxCalculation = estimateLandValueIncrementTax({
       totalPrice: landAskingPrice,
       announcedLandValue: landAnnouncedValue,
@@ -1001,7 +1072,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     return applyDossierEditableSnapshot({
       ...base,
-      landArea: safeGet(landReg, "area", isNumber),
+      landArea: resolvedLandArea,
       landPurpose: safeGet(landReg, "purpose", isString),
       zoningType,
       usageCategory: safeGet(zoning, "usage_category", isString),
@@ -1029,10 +1100,14 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       },
       propertySheet: {
         askingPrice: 0,
-        landSection: safeGet(landReg, "section", isString) ?? "",
+        landSection:
+          safeGet(landReg, "section", isString) ??
+          selectedLandCandidate?.section_name ??
+          parsedLandDescriptor.section ??
+          "",
         landNumber: caseRow.land_lot_no ?? "",
-        zoning: safeGet(zoning, "zoning_type", isString) ?? "",
-        landArea: safeGet(landReg, "area", isNumber),
+        zoning: resolvedZoning ?? "",
+        landArea: resolvedLandArea,
         ownershipRatio: "",
         shareArea: undefined,
         buildingCoverage: safeGet(dossierPreview, "building_coverage_ratio", isString) ?? "",
@@ -1179,14 +1254,16 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     const resolvedAuxiliaryArea = trustedAuxiliaryArea ?? candidateAuxiliaryArea ?? inferredAuxiliaryArea;
     const resolvedCommonArea = trustedCommonArea ?? candidateCommonArea ?? inferredCommonArea;
     const resolvedParkingArea = trustedParkingArea ?? candidateParkingArea ?? inferredParkingArea;
-    const resolvedLegalUse =
-      firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"]) ??
-      textFromSummary(buildingCandidateFields, "legalUse") ??
-      textFromSummary(inferredFields, "legalUse");
-    const resolvedMaterial =
+    const resolvedLegalUse = formatRegistryCodeValue(
+      firstString(buildingReg, ["purpose", "building_purpose", "main_use", "PURPOSE"]) ??
+        textFromSummary(buildingCandidateFields, "legalUse") ??
+        textFromSummary(inferredFields, "legalUse"),
+    );
+    const resolvedMaterial = formatRegistryCodeValue(
       firstString(buildingReg, ["material", "MATERIAL"]) ??
-      textFromSummary(buildingCandidateFields, "material") ??
-      textFromSummary(inferredFields, "material");
+        textFromSummary(buildingCandidateFields, "material") ??
+        textFromSummary(inferredFields, "material"),
+    );
     const resolvedConstructionDateRaw =
       firstString(buildingReg, ["construction_date", "COMPLETEDATE"]) ??
       textFromSummary(buildingCandidateFields, "constructionDate") ??
@@ -1280,7 +1357,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         setSourceIfValue(propertySheetSources, "parkingArea", inferredParkingArea, INFERRED_SOURCE_LABEL);
       }
     }
-    if (!firstString(buildingReg, ["purpose", "building_purpose", "PURPOSE"])) {
+    if (!firstString(buildingReg, ["purpose", "building_purpose", "main_use", "PURPOSE"])) {
       setSourceIfValue(propertySheetSources, "legalUse", textFromSummary(buildingCandidateFields, "legalUse"), CANDIDATE_SOURCE_LABEL);
       if (!textFromSummary(buildingCandidateFields, "legalUse")) {
         setSourceIfValue(propertySheetSources, "legalUse", textFromSummary(inferredFields, "legalUse"), INFERRED_SOURCE_LABEL);

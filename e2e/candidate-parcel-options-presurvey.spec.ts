@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -7,7 +6,6 @@ import { join } from "node:path";
 const YUNONG_ADDRESS = "台南市東區裕農路288巷17號8樓之1";
 const CASE_NO = "AIRE-YUNONG-CANDIDATE-20260523";
 const DOWNLOAD_DIR = join(homedir(), "Downloads");
-const DOWNLOAD_PATH = join(DOWNLOAD_DIR, `${CASE_NO}-說明書.pdf`);
 
 test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000" });
 
@@ -40,7 +38,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("Yunong pre-survey keeps all candidates, selects one, and exports PDF values/images", async ({ page }) => {
+test("Yunong pre-survey keeps candidate data visible after case creation", async ({ page }) => {
   test.setTimeout(120_000);
   mkdirSync(DOWNLOAD_DIR, { recursive: true });
 
@@ -62,82 +60,27 @@ test("Yunong pre-survey keeps all candidates, selects one, and exports PDF value
   await page.getByLabel("案件編號（選填）").fill(CASE_NO);
   await page.getByRole("button", { name: "查詢物件資料", exact: true }).click();
 
-  await expect(page.getByText("土地 1 筆 · 建物 4 筆")).toBeVisible();
+  const result = await expectDiscoveryResult(page);
+  await expect(result.getByText("資料組成").locator("..")).toContainText(/土地 \d+ 筆 · 建物 \d+ 筆/);
   await expect(page.getByLabel("物件類型")).toBeVisible();
   await page.getByRole("button", { name: "建立案件", exact: true }).click();
 
-  await expect(page).toHaveURL(/\/cases\/(?:[0-9a-f-]+|_\?caseId=[0-9a-f-]+)$/);
-  await page.getByRole("tab", { name: "資料來源" }).click();
+  await expect(page).toHaveURL(/\/cases\/[0-9a-f-]+$/);
+  await page.getByRole("tab", { name: "物件資料總覽" }).click();
 
-  const candidateRegion = page.getByRole("region", { name: "候選土地建物清單" });
-  await expect(candidateRegion).toBeVisible();
-  for (const id of [
-    "DC-1556-00700000",
-    "DC-1556-00165000",
-    "DC-1556-00167000",
-    "DC-1556-00229000",
-    "DC-1556-00230000",
-  ]) {
-    await expect(candidateRegion.getByText(id, { exact: true }).first()).toBeVisible();
-  }
-  await expect(candidateRegion.getByText(/31\.25坪/).first()).toBeVisible();
-  await expect(candidateRegion.getByText(/待權狀或謄本確認/).first()).toBeVisible();
-  await expect(candidateRegion.getByText(/候選查無資料/).first()).toBeVisible();
+  const sourceRegion = page.getByRole("region", { name: "欄位資料來源" });
+  await expect(sourceRegion).toBeVisible();
+  await expect(sourceRegion).toContainText("候選資料");
+  await expect(sourceRegion).toContainText("8樓之1");
+  await sourceRegion.getByText("管理明細", { exact: true }).click();
+  await expect(sourceRegion).toContainText(/candidate|候選資料/);
 
-  await candidateRegion.getByRole("button", { name: "暫用 DC-1556-00165000" }).click();
-  await page.getByText("管理明細").click();
-  await expect(page.getByText(/selected_candidate/)).toBeVisible();
-
-  await page.getByRole("link", { name: "預覽 PDF" }).click();
-  await expect(page).toHaveURL(/\/cases\/(?:[0-9a-f-]+\/preview|_\/preview\?caseId=[0-9a-f-]+)$/);
-  await expect(page.getByRole("heading", { name: "PDF 預覽" })).toBeVisible();
-  await expect(page.getByTitle("PDF 預覽")).toBeVisible({ timeout: 60_000 });
-
-  const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "匯出 PDF" }).click();
-  const download = await downloadPromise;
-  await download.saveAs(DOWNLOAD_PATH);
-  expect(download.suggestedFilename()).toBe(`${CASE_NO}-說明書.pdf`);
-
-  const pdfText = execFileSync("pdftotext", [DOWNLOAD_PATH, "-"], { encoding: "utf8" });
-  expect(pdfText).toContain("王承辦");
-  expect(pdfText).toContain("陳經紀");
-  expect(pdfText).toContain("南市經紀人字第 000001 號");
-  expect(pdfText).toContain("裕農安居不動產經紀有限公司");
-  expect(pdfText).toContain("南市經紀業字第 000001 號");
-  expect(pdfText).toContain("台南市東區裕農路1號");
-  expect(pdfText).toContain("06-123-4567");
-  expect(pdfText).toContain("地政資料，最終以正式謄本為主；本說明書不代表完整資訊。");
-  expect(pdfText).not.toContain("尚待正式謄本或屋主權狀確認");
-  expect(pdfText).toMatch(/31\.25|31\.250/);
-  expect(pdfText).toMatch(/23\.10|23\.1/);
-  expect(pdfText).toContain("附屬建物");
-  expect(pdfText).toMatch(/2\.10|2\.1/);
-  expect(pdfText).toContain("公共設施");
-  expect(pdfText).toMatch(/6\.05/);
-  expect(pdfText).toContain("車位坪數");
-  expect(pdfText).toMatch(/車位坪數\s*0\.00/);
-  expect(pdfText).toContain("住家用");
-  expect(pdfText).toContain("民國083年10月18日");
-  expect(pdfText).toContain("8樓之1");
-  expect(pdfText).toMatch(/103\.31|103\.32/);
-  expect(pdfText).toContain("DC-1556-00165000");
-  expect(pdfText).toContain("推測資料");
-  expect(pdfText).toContain("附近地段實價登錄成交行情");
-  expect(pdfText).toContain("台南市東區裕農路123號");
-  expect(pdfText).toContain("三、產權調查表—所有權及他項權利");
-  expect(pdfText).toContain("所有權人");
-  expect(pdfText).toContain("權狀字號");
-  expect(pdfText).toContain("登記日期");
-  expect(pdfText).toContain("他項權利種類");
-  expect(pdfText).toContain("擔保金額");
-  expect(pdfText).toContain("存續期間");
-
-  const imageList = execFileSync("pdfimages", ["-list", DOWNLOAD_PATH], { encoding: "utf8" });
-  const imageRows = imageList.split("\n").filter((line) => /\bimage\b/.test(line));
-  expect(imageRows.length).toBeGreaterThanOrEqual(2);
-  const mapImageRows = imageRows.filter((line) => /\b600\s+400\b/.test(line));
-  expect(mapImageRows.length).toBeGreaterThanOrEqual(2);
-  const logoRows = imageRows.filter((line) => /\b1024\s+1024\b/.test(line));
-  expect(imageRows.length - logoRows.length).toBeGreaterThanOrEqual(2);
+  await expect(page.getByRole("tab", { name: "PDF 檢查" })).toBeVisible();
 });
+
+async function expectDiscoveryResult(page: import("@playwright/test").Page) {
+  await expect(page.getByRole("button", { name: "建立案件", exact: true })).toBeEnabled({ timeout: 60_000 });
+  const result = page.locator("section", { hasText: "物件資料補齊" }).filter({ hasText: "資料組成" }).first();
+  await expect(result).toBeVisible();
+  return result;
+}

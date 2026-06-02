@@ -37,6 +37,16 @@ function unwrapApiData(payload: RegistryRecord, apiId: string): RegistryRecord {
   return record;
 }
 
+function hasApiData(payload: RegistryRecord, apiId: string): boolean {
+  const raw = payload[apiId];
+  if (Array.isArray(raw)) return raw.length > 0;
+  if (!isRecord(raw)) return false;
+  const data = raw.data;
+  if (Array.isArray(data)) return data.length > 0;
+  if (isRecord(data)) return Object.keys(data).length > 0;
+  return Object.keys(raw).length > 0;
+}
+
 function firstValue(record: RegistryRecord, keys: string[]): unknown {
   for (const key of keys) {
     const value = key.includes(".")
@@ -64,6 +74,17 @@ function formatValue(value: unknown): string {
   }
   if (isRecord(value)) return Object.values(value).filter(Boolean).join(" / ");
   return String(value);
+}
+
+function squareMetersToPing(value: unknown): string {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseFloat(value.replace(/,/g, ""))
+        : NaN;
+  if (!Number.isFinite(numeric)) return "";
+  return (Math.round(numeric * 0.3025 * 100) / 100).toFixed(2);
 }
 
 function formatRocDate(value: unknown): string {
@@ -149,8 +170,10 @@ export function buildRegistryPreviewSections(
     firstValue(building, ["COMPLETEDATE", "construction_date", "completion_date"]),
   );
 
-  return [
-    makeSection(
+  const sections: RegistryPreviewSection[] = [];
+
+  if (hasApiData(normalizedPayload, "land_registry")) {
+    sections.push(makeSection(
       "land_registry",
       "土地標示部",
       "土地標示資料",
@@ -167,8 +190,11 @@ export function buildRegistryPreviewSections(
         field(land, "地上建物建號數量", ["BUILDINGCOUNT", "building_count"], "土地標示/地上建物"),
       ],
       "MOI_API_001 地籍土地標示部",
-    ),
-    makeSection(
+    ));
+  }
+
+  if (hasApiData(normalizedPayload, "land_ownership") || hasApiData(normalizedPayload, "co_owners")) {
+    sections.push(makeSection(
       "land_ownership",
       "土地所有權部",
       "土地所有權資料",
@@ -197,8 +223,11 @@ export function buildRegistryPreviewSections(
         ),
       ],
       "MOI_API_002 地籍土地所有權部",
-    ),
-    makeSection(
+    ));
+  }
+
+  if (hasApiData(normalizedPayload, "building_registry")) {
+    sections.push(makeSection(
       "building_registry",
       "建物標示部",
       "建物標示資料",
@@ -214,7 +243,13 @@ export function buildRegistryPreviewSections(
           ["BUILDINGFLOOR", "building_floor", "total_floors"],
           "建物標示/總樓層",
         ),
-        field(building, "登記坪數", ["AREA", "area", "building_area"], "建物標示/登記坪數"),
+        field(
+          building,
+          "登記坪數",
+          ["AREA", "area", "building_area"],
+          "建物標示/登記坪數",
+          squareMetersToPing,
+        ),
         {
           label: "建築完成日",
           value: completion,
@@ -225,15 +260,18 @@ export function buildRegistryPreviewSections(
           value: completion ? calculateBuildingAge(completion, now) : "",
           target: "物件資料表/屋齡",
         },
-        field(building, "主建坪數", ["MAINAREA", "main_building_area"], "建物標示/主建坪數"),
-        field(building, "附屬建物", ["ATTAREA", "auxiliary_area"], "建物標示/附屬建物"),
-        field(building, "公共設施", ["SHAREAREA", "common_area"], "建物標示/公共設施"),
-        field(building, "車位坪數", ["PARKAREA", "parking_area"], "建物標示/車位坪數"),
+        field(building, "主建坪數", ["MAINAREA", "main_building_area"], "建物標示/主建坪數", squareMetersToPing),
+        field(building, "附屬建物", ["ATTAREA", "auxiliary_area"], "建物標示/附屬建物", squareMetersToPing),
+        field(building, "公共設施", ["SHAREAREA", "common_area"], "建物標示/公共設施", squareMetersToPing),
+        field(building, "車位坪數", ["PARKAREA", "parking_area"], "建物標示/車位坪數", squareMetersToPing),
         field(building, "建設公司", ["CONBUILDNAME", "construction_company"], "基本資料/建設公司"),
       ],
       "MOI_API_004 地籍建物標示部",
-    ),
-    makeSection(
+    ));
+  }
+
+  if (hasApiData(normalizedPayload, "building_ownership")) {
+    sections.push(makeSection(
       "building_ownership",
       "建物所有權部",
       "建物所有權資料",
@@ -259,8 +297,15 @@ export function buildRegistryPreviewSections(
         field(buildingOwnership, "權狀字號", ["CERTIFICATENO", "certificate_no"], "建物標示/權狀字號"),
       ],
       "MOI_API_005 地籍建物所有權部",
-    ),
-    makeSection(
+    ));
+  }
+
+  if (
+    hasApiData(normalizedPayload, "land_other_rights") ||
+    hasApiData(normalizedPayload, "mortgages") ||
+    hasApiData(normalizedPayload, "building_other_rights")
+  ) {
+    sections.push(makeSection(
       "rights",
       "他項權利/抵押",
       "他項權利與抵押資料",
@@ -297,8 +342,10 @@ export function buildRegistryPreviewSections(
         ),
       ],
       "MOI_API_003 土地他項權利 / MOI_API_006 建物他項權利",
-    ),
-  ];
+    ));
+  }
+
+  return sections;
 }
 
 export function summarizeRegistryPreview(sections: RegistryPreviewSection[]) {

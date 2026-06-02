@@ -3,9 +3,16 @@
 import * as React from "react";
 import { Loader2, FileSearch, CheckCircle, AlertTriangle, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { OwnerAuthorizationDialog } from "@/components/OwnerAuthorizationDialog";
 import { PreChargeConfirmDialog } from "@/components/PreChargeConfirmDialog";
-import { ManualFallbackInput } from "@/components/ManualFallbackInput";
 import { formalPullData, mapErrorToMessage, type ApiResult } from "@/lib/land-registry-api";
 import { casesApi } from "@/lib/cases-api";
 import {
@@ -22,13 +29,14 @@ import { estimateFormalCopCost } from "@/lib/formal-cop-api-set";
  *   1. OwnerAuthorizationDialog（所有權人授權）
  *   2. PreChargeConfirmDialog（扣款確認）
  *   3. 呼叫 formalPullData → 顯示結果
- *   4. 失敗的 API 項目 → 顯示 ManualFallbackInput
+ *   4. 失敗的 API 項目 → 彈窗顯示 API 項目與失敗原因
  */
 interface PullParcelDataButtonProps {
   caseId: string;
   parcelId: string;
   apiIds: string[];
   label?: string;
+  expectedAddress?: string;
   beforePull?: () => Promise<void>;
   preparePayload?: (data: Record<string, unknown>) => Record<string, unknown>;
   onPreview?: (data: Record<string, unknown> | null) => void;
@@ -47,6 +55,7 @@ export function PullParcelDataButton({
   parcelId,
   apiIds,
   label = "正式查詢",
+  expectedAddress,
   beforePull,
   preparePayload,
   onPreview,
@@ -62,6 +71,8 @@ export function PullParcelDataButton({
   const [manualEntries, setManualEntries] = React.useState<ManualEntry[]>([]);
   const [savingResult, setSavingResult] = React.useState(false);
   const [saveMessage, setSaveMessage] = React.useState<string | null>(null);
+  const [failureDialogOpen, setFailureDialogOpen] = React.useState(false);
+  const [importDetailDialogOpen, setImportDetailDialogOpen] = React.useState(false);
 
   const estimatedCost = estimateFormalCopCost(apiIds);
 
@@ -75,6 +86,8 @@ export function PullParcelDataButton({
     setSaveMessage(null);
     setCacheHit(false);
     setSourceRunId(null);
+    setFailureDialogOpen(false);
+    setImportDetailDialogOpen(false);
   }
 
   // 步驟 2：授權確認後 → 打開扣款確認 Dialog
@@ -104,8 +117,18 @@ export function PullParcelDataButton({
         .filter(([, r]) => !r.success)
         .map(([apiId]) => ({ apiId, data: null }));
       setManualEntries(failed);
+      setFailureDialogOpen(failed.length > 0);
       const preview = buildPreviewData(normalizedResults, failed, result.total_cost);
+      const mismatchError = validateFormalPreviewAddress(preview, expectedAddress);
+      if (mismatchError) {
+        setPullError(mismatchError);
+        setFailureDialogOpen(true);
+        onPreview?.(null);
+        setStep("done");
+        return;
+      }
       onPreview?.(preview);
+      setImportDetailDialogOpen(Boolean(preview));
 
       if (preview) {
         await persistPreviewData(preview);
@@ -114,21 +137,9 @@ export function PullParcelDataButton({
       setStep("done");
     } catch (err) {
       setPullError(mapErrorToMessage(err));
+      setFailureDialogOpen(true);
       setStep("done");
     }
-  }
-
-  // 手動填入完成
-  function handleManualSubmit(apiId: string, data: Record<string, string>) {
-    setManualEntries((prev) => {
-      const next = prev.map((e) => (e.apiId === apiId ? { ...e, data } : e));
-      const preview = buildPreviewData(results, next, totalCost);
-      onPreview?.(preview);
-      if (preview) {
-        void persistPreviewData(preview);
-      }
-      return next;
-    });
   }
 
   // 成功項目數
@@ -138,13 +149,10 @@ export function PullParcelDataButton({
   const failedCount = results
     ? Object.values(results).filter((r) => !r.success).length
     : 0;
+  const hasFailure = Boolean(pullError) || failedCount > 0;
 
   // 按鈕在查詢中或已完成時都 disabled，防止重複觸發扣款
   const buttonDisabled = step === "pulling" || step === "done" || apiIds.length === 0;
-
-  function failedItemLabel(index: number): string {
-    return `補填項目 ${index + 1}`;
-  }
 
   function buildPreviewData(
     sourceResults: Record<string, ApiResult> | null,
@@ -190,6 +198,10 @@ export function PullParcelDataButton({
       reason: "上游未回或需補正式資料",
     })),
   );
+  const failureDetails = React.useMemo(
+    () => buildFailureDetails(results, pullError),
+    [results, pullError],
+  );
 
   async function persistPreviewData(data: Record<string, unknown>) {
     setSavingResult(true);
@@ -218,6 +230,8 @@ export function PullParcelDataButton({
       >
         {step === "pulling" ? (
           <Loader2 className="h-4 w-4 animate-spin" />
+        ) : step === "done" && hasFailure ? (
+          <AlertTriangle className="h-4 w-4" />
         ) : step === "done" ? (
           <CheckCircle className="h-4 w-4" />
         ) : (
@@ -225,8 +239,10 @@ export function PullParcelDataButton({
         )}
         {step === "pulling"
           ? "查詢中…"
-          : step === "done"
-            ? "已完成"
+          : step === "done" && hasFailure
+            ? "查詢失敗"
+            : step === "done"
+              ? "已完成"
             : label}
         {step !== "pulling" && step !== "done" && (
           <ChevronRight className="h-4 w-4 ml-auto opacity-60" />
@@ -236,7 +252,7 @@ export function PullParcelDataButton({
       {/* 查詢結果摘要 */}
       {step === "done" && !pullError && results && (
         <div className="rounded-md border border-border p-4 space-y-2">
-          <p className="text-sm font-medium">查詢完成</p>
+          <p className="text-sm font-medium">{failedCount > 0 ? "查詢失敗" : "查詢完成"}</p>
           <div className="flex gap-4 text-sm">
             {successCount > 0 && (
               <span className="text-green-700">
@@ -258,38 +274,34 @@ export function PullParcelDataButton({
             {cacheHit && sourceRunId ? `（來源紀錄 ${sourceRunId.slice(0, 8)}）` : ""}
           </p>
           {previewSections.length > 0 ? (
-            <div className="rounded-md border bg-muted/20 p-3 text-sm space-y-3">
-              <p className="font-medium">已寫入案件資料預覽</p>
+            <div className="rounded-md border bg-muted/20 p-3 text-sm space-y-2">
+              <p className="font-medium">已寫入案件資料</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {previewSummary.statusText}。完整欄位會同步到資料來源、補件判斷與 PDF。
+                {previewSummary.statusText}。完整欄位已同步到資料來源、補件判斷與 PDF。
               </p>
-              <div className="rounded-md border bg-white p-3" aria-label="正式資料匯入明細">
-                <p className="font-medium">正式資料匯入明細</p>
-                <div className="mt-2 overflow-hidden rounded-md border">
-                  {acquiredPreviewFields.map((field) => (
-                    <div
-                      key={`${field.sectionTitle}-${field.label}-${field.value}`}
-                      className="grid gap-2 border-b p-2 text-xs last:border-b-0 md:grid-cols-[140px_minmax(0,1fr)_160px]"
-                    >
-                      <span className="font-medium">{field.label}</span>
-                      <span>{field.value}</span>
-                      <span className="text-muted-foreground">{field.pdfTarget}</span>
-                    </div>
-                  ))}
-                </div>
-                {missingPreviewFields.length > 0 ? (
-                  <div className="mt-3 rounded-md bg-amber-50 p-2 text-xs text-amber-800">
-                    <p className="font-medium">未取得欄位</p>
-                    <p className="mt-1">
-                      {missingPreviewFields.map((field) => `${field.sectionTitle}／${field.label}：${field.reason}`).join("；")}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImportDetailDialogOpen(true)}
+              >
+                查看匯入明細
+              </Button>
             </div>
           ) : null}
           {saveMessage ? (
             <p className="text-xs text-muted-foreground">{saveMessage}</p>
+          ) : null}
+          {failureDetails.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-amber-300 text-amber-800 hover:bg-amber-50"
+              onClick={() => setFailureDialogOpen(true)}
+            >
+              查看失敗原因
+            </Button>
           ) : null}
         </div>
       )}
@@ -302,29 +314,97 @@ export function PullParcelDataButton({
         </div>
       )}
 
-      {/* 手動填入表單（失敗的 API） */}
-      {manualEntries.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            以下項目查詢失敗，請手動填入資料：
-          </p>
-          {manualEntries.map((entry, index) => (
-            <div key={entry.apiId}>
-              {entry.data ? (
-                <div className="flex items-center gap-2 text-xs text-green-700 px-3 py-2 rounded-md bg-green-50 border border-green-200">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>{failedItemLabel(index)} — 已儲存手動資料</span>
-                </div>
-              ) : (
-                <ManualFallbackInput
-                  apiId={entry.apiId}
-                  onSubmit={(data) => handleManualSubmit(entry.apiId, data)}
-                />
-              )}
+      <Dialog open={failureDialogOpen && failureDetails.length > 0} onOpenChange={setFailureDialogOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>地政查詢失敗</DialogTitle>
+            <DialogDescription>
+              {pullError
+                ? "正式查詢沒有送出成功，請依下方原因處理後重試。"
+                : `本次地政 API 有 ${failureDetails.length} 項沒有成功，資料不會標記為正式謄本。`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <p>實際扣款：NT${totalCost.toLocaleString()}</p>
+              <p>
+                {pullError
+                  ? "本次未建立成功查詢紀錄。"
+                  : cacheHit
+                    ? "使用既有查詢紀錄，未重複計費。"
+                    : "本次已建立查詢紀錄。"}
+                {sourceRunId ? ` 來源紀錄：${sourceRunId}` : ""}
+              </p>
             </div>
-          ))}
-        </div>
-      )}
+            {failureDetails.map((item) => (
+              <div key={item.apiId} className="rounded-md border border-amber-200 bg-amber-50/60 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium text-amber-950">{item.label}</p>
+                  <code className="rounded bg-white px-2 py-1 text-xs text-amber-900">{item.apiId}</code>
+                </div>
+                <p className="mt-2 text-sm text-amber-900">{item.reason}</p>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => setFailureDialogOpen(false)}>
+              知道了
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={importDetailDialogOpen && previewSections.length > 0}
+        onOpenChange={setImportDetailDialogOpen}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>地政資料匯入明細</DialogTitle>
+            <DialogDescription>
+              {previewSummary.statusText}。這些欄位已寫入案件，供補件判斷、預覽與 PDF 使用。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-white p-3" aria-label="正式資料匯入明細">
+              <p className="font-medium">正式資料匯入明細</p>
+              <div className="mt-2 overflow-hidden rounded-md border">
+                {acquiredPreviewFields.map((field) => (
+                  <div
+                    key={`${field.sectionTitle}-${field.label}-${field.value}`}
+                    className="grid gap-2 border-b p-2 text-xs last:border-b-0 md:grid-cols-[140px_minmax(0,1fr)_160px]"
+                  >
+                    <span className="font-medium">{field.label}</span>
+                    <span>{field.value}</span>
+                    <span className="text-muted-foreground">{field.pdfTarget}</span>
+                  </div>
+                ))}
+              </div>
+              {missingPreviewFields.length > 0 ? (
+                <details className="mt-3 rounded-md bg-amber-50 p-2 text-xs text-amber-800">
+                  <summary className="cursor-pointer font-medium">
+                    未取得欄位（{missingPreviewFields.length}）
+                  </summary>
+                  <div className="mt-2 max-h-40 overflow-y-auto">
+                    <ul className="space-y-1">
+                      {missingPreviewFields.map((field) => (
+                        <li key={`${field.sectionTitle}-${field.label}`}>
+                          {field.sectionTitle}／{field.label}：{field.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </details>
+              ) : null}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => setImportDetailDialogOpen(false)}>
+              關閉明細
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialogs */}
       <OwnerAuthorizationDialog
@@ -353,4 +433,83 @@ function readablePdfTarget(target: string): string {
   if (target.startsWith("稅費/") || target.startsWith("增值稅/")) return "費用與土地增值稅估算";
   if (target.startsWith("物件資料表/")) return "物件資料表";
   return target;
+}
+
+function buildFailureDetails(results: Record<string, ApiResult> | null, pullError: string | null) {
+  if (pullError) {
+    return [{ apiId: "formal_pull", label: "正式查詢", reason: pullError }];
+  }
+  if (!results) return [];
+  return Object.entries(results)
+    .filter(([, result]) => !result.success)
+    .map(([apiId, result]) => ({
+      apiId,
+      label: readableApiLabel(apiId),
+      reason: result.error?.trim() || "地政 API 未回傳成功原因",
+    }));
+}
+
+function validateFormalPreviewAddress(
+  preview: Record<string, unknown> | null,
+  expectedAddress: string | undefined,
+): string | null {
+  const expectedKey = extractDoorplateKey(expectedAddress);
+  if (!preview || !expectedKey) return null;
+  const actualAddress = readBuildingAddressFromPreview(preview);
+  const actualKey = extractDoorplateKey(actualAddress);
+  if (!actualKey || expectedKey === actualKey) return null;
+  return `正式資料門牌與案件地址不一致：案件是 ${expectedAddress}，地政回傳是 ${actualAddress}。本次資料已擋下，請重新確認地段、地號、建號後再匯入。`;
+}
+
+function readBuildingAddressFromPreview(preview: Record<string, unknown>): string {
+  const entries = isRecord(preview.entries) ? preview.entries : null;
+  const buildingEntry = isRecord(entries?.building_registry) ? entries.building_registry : null;
+  const data = isRecord(buildingEntry?.data) ? buildingEntry.data : null;
+  const nested = isRecord(data?.data) ? data.data : data;
+  const value = firstString(nested, ["BNUMBER", "building_address", "address"]);
+  return value ?? "";
+}
+
+function extractDoorplateKey(address: string | undefined): string | null {
+  const normalized = normalizeAddressText(address);
+  if (!normalized) return null;
+  const laneMatch = normalized.match(/(\d+)巷(?:(\d+)弄)?(\d+)號/);
+  if (laneMatch) return `${laneMatch[1]}巷${laneMatch[2] ? `${laneMatch[2]}弄` : ""}${laneMatch[3]}號`;
+  const numberMatch = normalized.match(/(?:路|街|大道|段)(\d+)號/);
+  if (numberMatch) return `${numberMatch[1]}號`;
+  return null;
+}
+
+function normalizeAddressText(value: string | undefined): string {
+  const fullWidthDigits = "０１２３４５６７８９";
+  return String(value ?? "")
+    .replace(/[０-９]/g, (char) => String(fullWidthDigits.indexOf(char)))
+    .replace(/[之\-－]\d+樓.*$/, "")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function firstString(record: unknown, keys: string[]): string | null {
+  if (!isRecord(record)) return null;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readableApiLabel(apiId: string): string {
+  const labels: Record<string, string> = {
+    land_registry: "土地標示資料",
+    land_ownership: "土地所有權資料",
+    land_other_rights: "土地他項權利",
+    building_registry: "建物標示資料",
+    building_ownership: "建物所有權資料",
+    building_other_rights: "建物他項權利",
+  };
+  return labels[apiId] ?? "地政 API 項目";
 }

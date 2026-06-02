@@ -1,10 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import { fireEvent } from "@testing-library/dom";
 import { render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUpdateCase = vi.hoisted(() => vi.fn());
 const mockImportCaseAsset = vi.hoisted(() => vi.fn());
+const mockSafeInvoke = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/cases-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/cases-api")>();
@@ -24,6 +25,10 @@ vi.mock("@/lib/floor-plan-assets", async (importOriginal) => {
     importCaseAsset: mockImportCaseAsset,
   };
 });
+
+vi.mock("@/lib/safe-invoke", () => ({
+  safeInvoke: mockSafeInvoke,
+}));
 
 import { DemoAlignedWorkbench } from "../workbench/DemoAlignedWorkbench";
 import type { CaseRow } from "@/lib/cases-api";
@@ -53,6 +58,12 @@ describe("DemoAlignedWorkbench", () => {
     mockUpdateCase.mockResolvedValue({ ...caseRow, owner_name: "蔡國卿" });
     mockImportCaseAsset.mockReset();
     mockImportCaseAsset.mockResolvedValue({ id: "asset-1" });
+    mockSafeInvoke.mockReset();
+    mockSafeInvoke.mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("renders the two-column case/chapter and field review workbench", () => {
@@ -657,6 +668,8 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(manualRow as HTMLElement).getByText("前次確認缺正式查詢代碼，請確認下方完整候選後再匯入。")).toBeInTheDocument();
     expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
     expect(within(importRegion).queryByRole("button", { name: "確認 DK-9125-00296000" })).not.toBeInTheDocument();
+    expect(within(importRegion).getByText("正式查詢目標：DK-9125-00296000")).toBeInTheDocument();
+    expect(within(importRegion).queryByText("正式查詢目標：manual-兵南段-00296000")).not.toBeInTheDocument();
   });
 
   it("does not show mock Taipei formal registry data for a Hsinchu case", () => {
@@ -739,9 +752,9 @@ describe("DemoAlignedWorkbench", () => {
     const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
     const previewList = within(pdfRegion).getByLabelText("PDF 文字預覽清單");
     expect(within(previewList).getAllByText("登記坪數").length).toBeGreaterThan(0);
-    expect(within(previewList).getByDisplayValue("128.2")).toBeInTheDocument();
+    expect(within(previewList).getByDisplayValue("38.78")).toBeInTheDocument();
     expect(within(previewList).getAllByText("主建坪數").length).toBeGreaterThan(0);
-    expect(within(previewList).getByDisplayValue("91.4")).toBeInTheDocument();
+    expect(within(previewList).getByDisplayValue("27.65")).toBeInTheDocument();
     expect(within(previewList).getAllByText("附屬建物").length).toBeGreaterThan(0);
     expect(within(previewList).getAllByText("公共設施").length).toBeGreaterThan(0);
     expect(within(previewList).getAllByText("車位坪數").length).toBeGreaterThan(0);
@@ -755,6 +768,50 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(previewList).getByText(/缺公告現值、前次移轉現值、成交價或持分/)).toBeInTheDocument();
     expect(within(previewList).getAllByText("建物外觀").length).toBeGreaterThan(0);
     expect(within(previewList).getAllByText(/現場外觀照片/).length).toBeGreaterThan(0);
+  });
+
+  it("uses saved brand logo and address-backed map data in the PDF checklist", async () => {
+    mockSafeInvoke.mockImplementation(async (command: string) => {
+      if (command === "load_logo") {
+        return {
+          bytes: [137, 80, 78, 71],
+          mime: "image/png",
+          filename: "ai-logo.png",
+        };
+      }
+      return null;
+    });
+
+    render(
+      <DemoAlignedWorkbench
+        caseData={{
+          ...caseRow,
+          address: "台南市東區裕農路288巷17號8樓之1",
+          land_registry_data: {
+            schema: "aire.registry-provenance.v1",
+            generatedAt: "2026-05-30T00:00:00.000Z",
+            entries: {},
+            coordinate_source: {
+              lat: 22.986217,
+              lng: 120.228962,
+              source: "candidate_reference",
+            },
+          },
+        }}
+        initialTab="pdf"
+      />,
+    );
+
+    const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
+    const previewList = within(pdfRegion).getByLabelText("PDF 文字預覽清單");
+
+    await waitFor(() => {
+      expect(within(previewList).getByDisplayValue("已設定品牌 Logo：ai-logo.png")).toBeInTheDocument();
+    });
+    expect(within(previewList).queryByDisplayValue("未設定品牌 Logo")).not.toBeInTheDocument();
+    expect(within(previewList).getByDisplayValue("將依案件地址產生位置圖與周邊設施")).toBeInTheDocument();
+    expect(within(previewList).queryByDisplayValue("尚未查詢周邊設施")).not.toBeInTheDocument();
+    expect(within(previewList).getByText("可產生")).toBeInTheDocument();
   });
 
   it("lets users edit and save the PDF review snapshot before preview export", async () => {
@@ -854,6 +911,45 @@ describe("DemoAlignedWorkbench", () => {
     });
   });
 
+  it("persists field-review manual edits into the case registry supplement", async () => {
+    mockUpdateCase.mockImplementation(async (_id, input) => ({
+      ...caseRow,
+      ...input,
+    }));
+
+    render(<DemoAlignedWorkbench caseData={caseRow} />);
+
+    const fieldRow = screen.getByText("門牌查詢建號").closest("article");
+    expect(fieldRow).not.toBeNull();
+
+    fireEvent.click(within(fieldRow as HTMLElement).getByRole("button", { name: "修改" }));
+    fireEvent.change(screen.getByLabelText("門牌查詢建號修改值"), {
+      target: { value: "DK-9125-00296000" },
+    });
+    fireEvent.click(within(fieldRow as HTMLElement).getByRole("button", { name: "完成" }));
+
+    await waitFor(() => {
+      expect(mockUpdateCase).toHaveBeenCalledWith(
+        caseRow.id,
+        expect.objectContaining({
+          land_registry_data: expect.objectContaining({
+            entries: expect.objectContaining({
+              manual_registry_supplement: expect.objectContaining({
+                trustedForPdf: true,
+                data: expect.objectContaining({
+                  buildingNumberCandidate: "DK-9125-00296000",
+                  updatedFields: expect.objectContaining({
+                    門牌查詢建號: "DK-9125-00296000",
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+  });
+
   it("persists supplement answers, statuses, upload names, and PDF upload count across remounts", async () => {
     const { unmount } = render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
 
@@ -900,6 +996,12 @@ describe("DemoAlignedWorkbench", () => {
       target: { files: [file] },
     });
 
+    expect(mockImportCaseAsset).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(within(supplementRegion).getByText("待確認：front-door.png")).toBeInTheDocument();
+    });
+    fireEvent.click(within(supplementRegion).getByRole("button", { name: "確認使用 front-door.png" }));
+
     await waitFor(() => {
       expect(mockImportCaseAsset).toHaveBeenCalledWith({
         caseId: caseRow.id,
@@ -908,7 +1010,7 @@ describe("DemoAlignedWorkbench", () => {
         mimeType: "image/png",
         fileBytes: expect.any(Uint8Array),
         source: "manual_upload",
-        metadata: { slot: "建物外觀" },
+        metadata: { slot: "建物外觀", confirmed: true },
       });
     });
 
@@ -917,5 +1019,95 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(pdfRegion).getByDisplayValue("已上傳：front-door.png")).toBeInTheDocument();
     expect(within(pdfRegion).getByText("已補件覆蓋")).toBeInTheDocument();
     expect(within(pdfRegion).getByText(/優先使用此案件保存的現場外觀照片/)).toBeInTheDocument();
+  });
+
+  it("keeps every uploaded image pending until the user confirms it", async () => {
+    render(<DemoAlignedWorkbench caseData={caseRow} initialTab="supplements" />);
+
+    const supplementRegion = await screen.findByRole("region", { name: "補件與現場確認" });
+    const file = new File(["mock-map"], "location-map.png", { type: "image/png" });
+    fireEvent.change(within(supplementRegion).getByLabelText("地標圖上傳"), {
+      target: { files: [file] },
+    });
+
+    expect(mockImportCaseAsset).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(within(supplementRegion).getByText("待確認：location-map.png")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("tab", { name: "PDF 檢查" }));
+    expect(screen.queryByDisplayValue("已上傳位置圖：location-map.png")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "補件與現場" }));
+    const restoredSupplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
+    fireEvent.click(within(restoredSupplementRegion).getByRole("button", { name: "確認使用 location-map.png" }));
+
+    await waitFor(() => {
+      expect(mockImportCaseAsset).toHaveBeenCalledWith({
+        caseId: caseRow.id,
+        kind: "location_map",
+        fileName: "location-map.png",
+        mimeType: "image/png",
+        fileBytes: expect.any(Uint8Array),
+        source: "manual_upload",
+        metadata: { slot: "地標圖", confirmed: true },
+      });
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "PDF 檢查" }));
+    expect(screen.getByDisplayValue("已上傳位置圖：location-map.png")).toBeInTheDocument();
+  });
+
+  it("requires confirming a Google street-view candidate before using it as the exterior photo", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/street-view")) {
+        return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]).buffer, {
+          status: 200,
+          headers: { "Content-Type": "image/jpeg" },
+        });
+      }
+      return Response.json({ lat: 22.986, lng: 120.229 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <DemoAlignedWorkbench
+        caseData={{
+          ...caseRow,
+          land_registry_data: {
+            coordinate_source: { lat: 22.986, lng: 120.229 },
+          },
+        }}
+        initialTab="supplements"
+      />,
+    );
+
+    const supplementRegion = await screen.findByRole("region", { name: "補件與現場確認" });
+    fireEvent.click(within(supplementRegion).getByRole("button", { name: "產生街景候選" }));
+
+    await waitFor(() => {
+      expect(within(supplementRegion).getAllByRole("img", { name: /街景候選/ })).toHaveLength(4);
+    });
+    expect(mockImportCaseAsset).not.toHaveBeenCalled();
+
+    fireEvent.click(within(supplementRegion).getAllByRole("button", { name: "使用這張" })[0]);
+
+    await waitFor(() => {
+      expect(mockImportCaseAsset).toHaveBeenCalledWith({
+        caseId: caseRow.id,
+        kind: "exterior_photo",
+        fileName: "google-street-view-0.jpg",
+        mimeType: "image/jpeg",
+        fileBytes: expect.any(Uint8Array),
+        source: "api_generated",
+        metadata: {
+          slot: "建物外觀",
+          confirmed: true,
+          provider: "google_street_view",
+          heading: 0,
+        },
+      });
+    });
+    expect(within(supplementRegion).getByText("已選擇：google-street-view-0.jpg")).toBeInTheDocument();
   });
 });

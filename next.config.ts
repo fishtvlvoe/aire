@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
   trailingSlash: false,
+  // Playwright local-web E2E runs on 127.0.0.1; allow dev assets to load from this origin.
+  allowedDevOrigins: ["127.0.0.1"],
 };
 
 export default nextConfig;

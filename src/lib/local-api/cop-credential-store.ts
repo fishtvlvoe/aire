@@ -60,6 +60,17 @@ interface EncryptedBlob {
 
 let _cache: StoredCredential | null | undefined = undefined; // undefined = 尚未讀過
 
+function readEnvCredential(): StoredCredential | null {
+  const clientId = process.env.LAND_REGISTRY_CLIENT_ID?.trim();
+  const secret = process.env.LAND_REGISTRY_CLIENT_SECRET?.trim();
+  if (!clientId || !secret) return null;
+  return {
+    clientId,
+    secret,
+    savedAt: "env",
+  };
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // 遮罩工具（對齊 Rust mask_keep_last4 邏輯）
 // ──────────────────────────────────────────────────────────────────────────────
@@ -181,6 +192,15 @@ export async function saveCopCredential(clientId: string, secret: string): Promi
  * 回傳 null 表示尚未設定帳密。
  */
 export async function readCopCredential(): Promise<ReadCopCredentialResponse | null> {
+  const envCredential = readEnvCredential();
+  if (envCredential) {
+    return {
+      clientIdMasked: maskKeepLast4(envCredential.clientId),
+      hasSecret: Boolean(envCredential.secret),
+      savedAt: envCredential.savedAt,
+    };
+  }
+
   // 記憶體快取未初始化時，從磁碟讀取
   if (_cache === undefined) {
     _cache = loadFromDisk();
@@ -192,6 +212,26 @@ export async function readCopCredential(): Promise<ReadCopCredentialResponse | n
     clientIdMasked: maskKeepLast4(_cache.clientId),
     hasSecret: Boolean(_cache.secret),
     savedAt: _cache.savedAt,
+  };
+}
+
+export async function readRawCopCredential(): Promise<{ clientId: string; secret: string } | null> {
+  const envCredential = readEnvCredential();
+  if (envCredential) {
+    return {
+      clientId: envCredential.clientId,
+      secret: envCredential.secret,
+    };
+  }
+
+  if (_cache === undefined) {
+    _cache = loadFromDisk();
+  }
+
+  if (_cache === null) return null;
+  return {
+    clientId: _cache.clientId,
+    secret: _cache.secret,
   };
 }
 

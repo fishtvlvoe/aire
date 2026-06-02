@@ -1,5 +1,5 @@
 // 土地版現況調查表 PDF 頁面元件
-// 對應「肆、不動產現況說明書（土地）」35 題
+// 對應「肆、不動產現況說明書（土地）」34 題
 
 import React from "react";
 import { Page, View, Text, StyleSheet } from "@react-pdf/renderer";
@@ -13,17 +13,17 @@ import {
 
 const styles = StyleSheet.create({
   page: {
-    paddingVertical: 28,
-    paddingHorizontal: 32,
+    paddingVertical: 18,
+    paddingHorizontal: 22,
     fontFamily: "NotoSansTC",
-    fontSize: 9,
+    fontSize: 10,
     color: "#111827",
   },
   pageTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 14,
+    marginBottom: 8,
     color: "#1F2937",
   },
   sectionTitle: {
@@ -38,37 +38,36 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     borderBottomWidth: 0.5,
     borderBottomColor: "#E5E7EB",
-    paddingVertical: 4,
+    paddingVertical: 2.7,
   },
   questionNo: {
     width: 22,
-    fontSize: 8.5,
+    fontSize: 9.5,
     color: "#6B7280",
-    paddingTop: 1,
   },
   questionLabel: {
     flex: 1,
-    fontSize: 8.5,
-    lineHeight: 1.4,
+    fontSize: 9.5,
+    lineHeight: 1.25,
     paddingRight: 8,
   },
   answerGroup: {
     flexDirection: "row",
-    width: 90,
+    width: 58,
     justifyContent: "flex-end",
-    gap: 6,
+    gap: 5,
   },
   answerItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 1,
   },
   checkbox: {
-    fontSize: 9,
+    fontSize: 9.5,
     lineHeight: 1,
   },
   answerLabel: {
-    fontSize: 8,
+    fontSize: 9,
     color: "#374151",
   },
   // 嫌惡設施多選 grid
@@ -77,22 +76,22 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     marginTop: 4,
     marginLeft: 22,
-    marginBottom: 4,
+    marginBottom: 2,
     borderWidth: 0.5,
     borderColor: "#E5E7EB",
-    padding: 4,
+    padding: 3,
     backgroundColor: "#F9FAFB",
   },
   nuisanceItem: {
     flexDirection: "row",
     alignItems: "center",
     width: "20%",
-    gap: 2,
-    paddingVertical: 1.5,
-    paddingHorizontal: 2,
+    gap: 1,
+    paddingVertical: 0.8,
+    paddingHorizontal: 1,
   },
   nuisanceLabel: {
-    fontSize: 7.5,
+    fontSize: 7.4,
     color: "#374151",
   },
   // 最後一題（確認聲明）特殊樣式
@@ -145,22 +144,18 @@ function QuestionRow({
           <Text style={styles.checkbox}>{getCheckbox(value, false)}</Text>
           <Text style={styles.answerLabel}>否</Text>
         </View>
-        <View style={styles.answerItem}>
-          <Text style={styles.checkbox}>{value === null ? "☑" : "☐"}</Text>
-          <Text style={styles.answerLabel}>未填</Text>
-        </View>
       </View>
     </View>
   );
 }
 
-/** 渲染題 14（嫌惡設施，含多選 grid） */
-function Question14Row({ value }: { value: boolean | null }) {
+/** 渲染嫌惡設施題（含多選 grid） */
+function NuisanceFacilitiesRow({ index, value }: { index: number; value: boolean | null }) {
   const q = LAND_SURVEY_QUESTIONS[13]; // index 13 = q14
   return (
     <View wrap={false}>
       <View style={styles.questionRow}>
-        <Text style={styles.questionNo}>14.</Text>
+        <Text style={styles.questionNo}>{index}.</Text>
         <Text style={styles.questionLabel}>{q.label}</Text>
         <View style={styles.answerGroup}>
           <View style={styles.answerItem}>
@@ -170,10 +165,6 @@ function Question14Row({ value }: { value: boolean | null }) {
           <View style={styles.answerItem}>
             <Text style={styles.checkbox}>{getCheckbox(value, false)}</Text>
             <Text style={styles.answerLabel}>否</Text>
-          </View>
-          <View style={styles.answerItem}>
-            <Text style={styles.checkbox}>{value === null ? "☑" : "☐"}</Text>
-            <Text style={styles.answerLabel}>未填</Text>
           </View>
         </View>
       </View>
@@ -189,32 +180,6 @@ function Question14Row({ value }: { value: boolean | null }) {
     </View>
   );
 }
-
-/** 渲染題 35（賣方確認聲明） */
-function Question35Declaration({ value }: { value: boolean | null }) {
-  const q = LAND_SURVEY_QUESTIONS[34]; // index 34 = q35
-  return (
-    <View style={styles.declarationRow} wrap={false}>
-      <Text style={styles.checkbox}>
-        {value === true ? "☑" : "☐"}
-      </Text>
-      <Text style={styles.declarationText}>{q.label}</Text>
-    </View>
-  );
-}
-
-// ─── 分頁配置 ────────────────────────────────────────────────────────────────
-// 頁 1：q1–q9（一般使用與法定限制）
-// 頁 2：q10–q14（保護區、嫌惡設施——q14 佔額外空間）
-// 頁 3：q15–q25（地上物、歷史事故、地質）
-// 頁 4：q26–q35（災害、地政、確認聲明）
-
-const PAGE_RANGES: Array<[number, number]> = [
-  [1, 9],
-  [10, 14],
-  [15, 25],
-  [26, 35],
-];
 
 // ─── 主元件 ──────────────────────────────────────────────────────────────────
 
@@ -233,51 +198,30 @@ export function LandConditionSurveyPages({
     if (val === false) return false;
     return null;
   }
+  const nuisanceQuestion = LAND_SURVEY_QUESTIONS[13];
+  const printQuestions = [
+    ...LAND_SURVEY_QUESTIONS.slice(0, 13),
+    ...LAND_SURVEY_QUESTIONS.slice(14, 34),
+  ];
 
   return (
-    <>
-      {PAGE_RANGES.map(([from, to], pageIndex) => {
-        const questionsOnPage = LAND_SURVEY_QUESTIONS.slice(from - 1, to);
+    <Page size="A4" style={styles.page}>
+      <Text style={styles.pageTitle}>肆、不動產現況說明書（土地）</Text>
+
+      {printQuestions.map((q, idx) => {
+        const qNo = idx + 1;
+        const value = getAnswer(q.id);
 
         return (
-          <Page
-            key={`land-survey-${pageIndex}`}
-            size="A4"
-            style={styles.page}
-          >
-            {/* 頁標題 */}
-            <Text style={styles.pageTitle}>
-              肆、不動產現況說明書（土地）
-            </Text>
-
-            {/* 題目清單 */}
-            {questionsOnPage.map((q, idx) => {
-              const qNo = from + idx;
-              const value = getAnswer(q.id);
-
-              // 題 35 — 確認聲明特殊渲染
-              if (qNo === 35) {
-                return <Question35Declaration key={q.id} value={value} />;
-              }
-
-              // 題 14 — 嫌惡設施含子項目 grid
-              if (qNo === 14) {
-                return <Question14Row key={q.id} value={value} />;
-              }
-
-              // 一般題
-              return (
-                <QuestionRow
-                  key={q.id}
-                  index={qNo}
-                  label={q.label}
-                  value={value}
-                />
-              );
-            })}
-          </Page>
+          <QuestionRow
+            key={q.id}
+            index={qNo}
+            label={q.label}
+            value={value}
+          />
         );
       })}
-    </>
+      <NuisanceFacilitiesRow index={34} value={getAnswer(nuisanceQuestion.id)} />
+    </Page>
   );
 }

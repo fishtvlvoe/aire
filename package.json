@@ -4,6 +4,9 @@
   "private": true,
   "description": "AIRE 不動產說明書桌面 App（Tauri + Next.js）",
   "scripts": {
+    "setup": "corepack pnpm install",
+    "one-click": "node scripts/one-click.mjs",
+    "windows:one-click": "node scripts/windows-one-click.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

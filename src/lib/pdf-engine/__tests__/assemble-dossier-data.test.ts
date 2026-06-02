@@ -164,6 +164,16 @@ const mockRealPriceRecordsWithDate = [
   },
 ];
 
+function candidateRealPriceEntry(records: unknown[]) {
+  return {
+    apiId: "real_price_query",
+    source: "public_candidate",
+    status: "candidate",
+    trustedForPdf: false,
+    data: records,
+  };
+}
+
 function trustedRegistryPayload(entries: Record<string, Record<string, unknown>>) {
   return {
     schema: "aire.registry-provenance.v1",
@@ -357,9 +367,16 @@ describe("assembleDossierData — 土地版成功路徑", () => {
     });
     mockQueryRealPrice.mockResolvedValue(mockRealPriceRecords);
 
+    const persisted = savedRegistryPayloadFromPullResult(mockPullResultLand);
     const result = await assembleDossierData({
       ...landCaseRow,
-      land_registry_data: savedRegistryPayloadFromPullResult(mockPullResultLand),
+      land_registry_data: {
+        ...persisted,
+        entries: {
+          ...persisted.entries,
+          real_price_query: candidateRealPriceEntry(mockRealPriceRecords),
+        },
+      },
     });
 
     expect(result.propertyType).toBe("land");
@@ -385,59 +402,92 @@ describe("assembleDossierData — 土地版成功路徑", () => {
     });
   });
 
-  it("實價登錄 date 欄位會帶入 PDF 成交日期，不顯示空白", async () => {
+  it("實價登錄 date 欄位會從保存的前查資料帶入 PDF，且不即時查 live provider", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       throw new Error(`Unexpected invoke: ${cmd}`);
     });
-    mockQueryRealPrice.mockResolvedValue(mockRealPriceRecordsWithDate);
 
     const result = await assembleDossierData({
       ...landCaseRow,
       address: "台南市永康區勝利街58巷4號1樓",
+      land_registry_data: {
+        ...savedRegistryPayloadFromPullResult(mockPullResultLand),
+        entries: {
+          real_price_query: candidateRealPriceEntry(mockRealPriceRecordsWithDate),
+        },
+      },
     });
 
     expect(result.transactionHistory?.[0]).toMatchObject({
       address: "台南市永康區勝利街58巷6號",
       transactionDate: "2024-02-18",
     });
+    expect(mockQueryRealPrice).not.toHaveBeenCalled();
   });
 
-  it("實價登錄只採用同行政區或無地址摘要資料，避免混入錯地址", async () => {
+  it("保存的實價登錄只採用同行政區或無地址摘要資料，避免混入錯地址", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return [];
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       return {};
     });
-    mockQueryRealPrice.mockResolvedValue([
-      {
-        address: "台南市永康區勝利街58巷6號",
-        area: 30.2,
-        total_price: 11800000,
-        unit_price: 390728,
-        date: "2024-02-18",
-      },
-      {
-        address: "台北市大安區和平東路一段88號",
-        area: 36.2,
-        total_price: 42800000,
-        unit_price: 1182320,
-        date: "2025-10-12",
-      },
-    ]);
 
     const result = await assembleDossierData({
       ...landCaseRow,
       address: "台南市永康區勝利街58巷4號1樓",
+      land_registry_data: {
+        ...savedRegistryPayloadFromPullResult(mockPullResultLand),
+        entries: {
+          real_price_query: candidateRealPriceEntry([
+            {
+              address: "台南市永康區勝利街58巷6號",
+              area: 30.2,
+              total_price: 11800000,
+              unit_price: 390728,
+              date: "2024-02-18",
+            },
+            {
+              address: "台北市大安區和平東路一段88號",
+              area: 36.2,
+              total_price: 42800000,
+              unit_price: 1182320,
+              date: "2025-10-12",
+            },
+          ]),
+        },
+      },
     });
 
     expect(result.recentSalePricePerSqm).toBe(390728);
     expect(result.recentSaleCount).toBe(1);
     expect(result.transactionHistory).toHaveLength(1);
     expect(result.transactionHistory?.[0].address).toBe("台南市永康區勝利街58巷6號");
+    expect(mockQueryRealPrice).not.toHaveBeenCalled();
+  });
+
+  it("沒有保存實價登錄時仍完成 dossier，且不在 PDF 階段查 live provider", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "land_registry_pull_data") return mockPullResultLand;
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      return {};
+    });
+    mockQueryRealPrice.mockRejectedValue(new Error("PDF must not call live real price provider"));
+
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      address: "台南市永康區勝利街58巷4號1樓",
+    });
+
+    expect(result.caseNo).toBe("AIRE-2026-LAND");
+    expect(result.transactionHistory).toEqual([]);
+    expect(result.recentSalePricePerSqm).toBeUndefined();
+    expect(result.recentSaleCount).toBeUndefined();
+    expect(mockQueryRealPrice).not.toHaveBeenCalled();
   });
 
   it("優先使用 list_legal_clauses 快取組成完整法規告知", async () => {
@@ -492,41 +542,63 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       return {};
     });
-    mockQueryRealPrice.mockResolvedValue([
-      {
-        address: "台南市東區東和路45號",
-        area: 31.2,
-        total_price: 10000000,
-        unit_price: 320513,
-        date: "2025-12",
-      },
-    ]);
-
     const result = await assembleDossierData({
       ...buildingCaseRow,
       case_name: "東和路47",
       case_no: "AIRE-DONGHE-ASSEMBLY",
       address: "台南市東區東和路47號3樓",
       owner_name: "蔡國卿",
-      land_registry_data: trustedRegistryPayload({
-        building_registry: {
-          building_number: "03045000",
-          area: 128.2,
-          main_building_area: 91.4,
-          auxiliary_area: 8.3,
-          common_area: 28.5,
-          parking_area: 0,
-          building_purpose: "住商用",
-          construction_date: "0710804",
-          building_floor: "三層",
-          material: "鋼筋混凝土造",
+      land_registry_data: {
+        ...trustedRegistryPayload({
+          building_registry: {
+            building_number: "03045000",
+            area: 128.2,
+            main_building_area: 91.4,
+            auxiliary_area: 8.3,
+            common_area: 28.5,
+            parking_area: 0,
+            building_purpose: "住商用",
+            construction_date: "0710804",
+            building_floor: "三層",
+            material: "鋼筋混凝土造",
+          },
+          building_ownership: {
+            owner_name: "蔡國卿",
+            numerator: 1,
+            denominator: 1,
+          },
+        }),
+        entries: {
+          ...trustedRegistryPayload({
+            building_registry: {
+              building_number: "03045000",
+              area: 128.2,
+              main_building_area: 91.4,
+              auxiliary_area: 8.3,
+              common_area: 28.5,
+              parking_area: 0,
+              building_purpose: "住商用",
+              construction_date: "0710804",
+              building_floor: "三層",
+              material: "鋼筋混凝土造",
+            },
+            building_ownership: {
+              owner_name: "蔡國卿",
+              numerator: 1,
+              denominator: 1,
+            },
+          }).entries,
+          real_price_query: candidateRealPriceEntry([
+            {
+              address: "台南市東區東和路45號",
+              area: 31.2,
+              total_price: 10000000,
+              unit_price: 320513,
+              date: "2025-12",
+            },
+          ]),
         },
-        building_ownership: {
-          owner_name: "蔡國卿",
-          numerator: 1,
-          denominator: 1,
-        },
-      }),
+      },
     });
 
     expect(result.cover?.propertyName).toBe("東和路47");
@@ -550,6 +622,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.nearbyAmenities).toEqual([]);
     expect(result.propertySheetSources?.registeredArea).toBeUndefined();
     expect(mockInvoke).not.toHaveBeenCalledWith("land_registry_pull_data", expect.anything());
+    expect(mockQueryRealPrice).not.toHaveBeenCalled();
   });
 
   it("真實地址 PDF 使用案件名稱，且不把 mock 權狀字號與樓層當成真實資料", async () => {
@@ -711,6 +784,45 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     });
   });
 
+  it("PDF 前置審核快照不會把平方公尺誤當坪數，並會回填樓層與管理費", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_workbench_supplement") return { registrySupplements: [], fieldVisitAnswers: [] };
+      if (cmd === "list_legal_clauses" || cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "list_case_assets") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      address: "台南市東區裕農路288巷17號8樓之1",
+      land_registry_data: {
+        ...trustedRegistryPayload({
+          building_registry: {
+            building_area: 102.77,
+            building_floor: "002",
+            building_purpose: "A",
+          },
+        }),
+        dossier_editable_snapshot: {
+          updated_at: "2026-05-30T09:00:00.000Z",
+          rows: [
+            { label: "登記坪數", value: "102.77", source: "PDF 前置審核", status: "已人工確認" },
+            { label: "建物面積", value: "102.77", source: "PDF 前置審核", status: "已人工確認" },
+            { label: "樓層", value: "8樓之1", source: "PDF 前置審核", status: "已人工確認" },
+            { label: "管理費（元/月）", value: "3,000", source: "PDF 前置審核", status: "已人工確認" },
+          ],
+        },
+      },
+    });
+
+    expect(result.buildingArea).toBe(102.77);
+    expect(result.propertySheet?.registeredArea).toBe(31.09);
+    expect(result.propertySheet?.floor).toBe("8樓之1");
+    expect(result.propertySheet?.managementFee).toBe(3000);
+  });
+
   it("讀取案件權威資料中的人工補件，不依賴單一瀏覽器補件 store", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};
@@ -868,7 +980,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.propertySheet?.material).toBe("鋼筋混凝土造");
     expect(result.propertySheet?.constructionDate).toBe("民國083年10月18日");
     expect(result.propertySheet?.buildingAge).toBeTruthy();
-    expect(result.propertySheet?.floor).toBe("013層");
+    expect(result.propertySheet?.floor).toBeUndefined();
     expect(result.propertySheet?.owner).toBe("陳小美");
     expect(result.propertySheet?.ownershipScope).toBe("1/1");
   });
@@ -895,6 +1007,29 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     });
 
     expect(result.propertySheet?.ownershipScope).toBe("1/1");
+  });
+
+  it("building_registry 只有 main_use 時仍會帶出法定用途", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: trustedRegistryPayload({
+        building_registry: {
+          area: 84.13,
+          main_use: "住家用",
+        },
+      }),
+    });
+
+    expect(result.propertySheet?.legalUse).toBe("住家用");
+    expect(result.propertySheetSources?.legalUse).toBeUndefined();
   });
 
   it("正式資料為民國壓縮日期時，仍會計算屋齡", async () => {
@@ -974,7 +1109,6 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
         expect(args).toMatchObject({ lat: 22.986314, lng: 120.22908 });
         return [0x89, 0x50, 0x4e, 0x47, 1];
       }
-      if (cmd === "fetch_street_view") return [];
       return {};
     });
 
@@ -1034,6 +1168,57 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.aerialPhoto?.length).toBeGreaterThan(0);
   });
 
+  it("land descriptor and candidate data fill land property sheet in reference PDF", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "land_registry_pull_data") {
+        throw new Error("reference land PDF must not run formal COP");
+      }
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      case_name: "南化段土地真實前查驗收",
+      address: "台南市南化區南化段850-1地號",
+      land_lot_no: "85010000",
+      land_lots: ["85010000"],
+      owner_name: "土地所有權人待確認",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-31T00:00:00.000Z",
+        totalCost: 0,
+        isPaid: false,
+        pricingNote: "免費前查：地址候選、附近實價登錄與參考欄位，不產生成本",
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "land:DG-0001-85010000",
+            parcel_type: "land",
+            section_name: "南化段",
+            parcel_number: "85010000",
+            normalized_parcel_id: "DG-0001-85010000",
+            query_status: "candidate_data_available",
+            confirmation_state: "selected_candidate",
+            summary_fields: { landAreaSqm: 1655.78, zoning: "山坡地保育區" },
+          },
+        ],
+        selected_candidate_ids: { land: "land:DG-0001-85010000" },
+      },
+    });
+
+    expect(result.propertyType).toBe("land");
+    expect(result.propertySheet?.landSection).toBe("南化段");
+    expect(result.propertySheet?.landNumber).toBe("85010000");
+    expect(result.propertySheet?.zoning).toBe("山坡地保育區");
+    expect(result.propertySheet?.landArea).toBe(1655.78);
+    expect(result.propertySheet?.owner).toBe("土地所有權人待確認");
+    expect(result.dossierTier).toBe("reference");
+    expect(result.preSurvey?.lookupCost).toBe(0);
+  });
+
   it("single R02 building candidate fills pre-survey PDF fields without formal COP cost", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};
@@ -1077,15 +1262,16 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     });
   });
 
-  it("uses web image routes when local Web has coordinates but desktop image commands return no bytes", async () => {
+  it("uses web map and aerial image routes but does not auto-fill building exterior from street view", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};
       if (cmd === "get_legal_clause") return [];
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       if (cmd === "query_real_price") return [];
-      if (cmd === "fetch_location_map" || cmd === "fetch_aerial_photo" || cmd === "fetch_street_view") {
+      if (cmd === "fetch_location_map" || cmd === "fetch_aerial_photo") {
         return [];
       }
+      if (cmd === "fetch_street_view") throw new Error("street view must not be used as final exterior photo");
       if (cmd === "land_registry_pull_data") {
         throw new Error("PDF assembly must not run formal COP for R02 candidate data");
       }
@@ -1102,9 +1288,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
       if (url.includes("/api/aerial-photo")) {
         return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1]).buffer, { status: 200 });
       }
-      if (url.includes("/api/street-view")) {
-        return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]).buffer, { status: 200 });
-      }
+      if (url.includes("/api/street-view")) throw new Error("street view route must not be used as final exterior photo");
       return new Response("not found", { status: 404 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1117,10 +1301,10 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
 
     expect(result.locationMapImage?.length).toBeGreaterThan(0);
     expect(result.aerialPhoto?.length).toBeGreaterThan(0);
-    expect(result.exteriorPhoto?.length).toBeGreaterThan(0);
+    expect(result.exteriorPhoto).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/location-map"), expect.any(Object));
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/aerial-photo"), expect.any(Object));
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/street-view"), expect.any(Object));
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/street-view"), expect.any(Object));
   });
 
   it("trusted registry data overrides selected candidate values", async () => {
@@ -1411,17 +1595,16 @@ describe("assembleDossierData — invoke 失敗時降級", () => {
     expect(result!.zoningType).toBeUndefined();
     expect(result!.legalClauses).toEqual([]);
     expect(result!.recentSalePricePerSqm).toBeUndefined();
-    expect(result!.recentSaleCount).toBe(0);
+    expect(result!.recentSaleCount).toBeUndefined();
   });
 
-  it("(c) 空 query_real_price 結果 → recentSalePricePerSqm undefined，recentSaleCount 0", async () => {
+  it("(c) 沒有保存 real_price_query → recentSalePricePerSqm undefined，recentSaleCount undefined", async () => {
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "land_registry_pull_data") return mockPullResultLand;
       if (cmd === "get_legal_clause") return mockLegalClauses;
       if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
       throw new Error(`Unexpected: ${cmd}`);
     });
-    mockQueryRealPrice.mockResolvedValue([]);
 
     const result = await assembleDossierData({
       ...landCaseRow,
@@ -1430,7 +1613,8 @@ describe("assembleDossierData — invoke 失敗時降級", () => {
       }),
     });
     expect(result.recentSalePricePerSqm).toBeUndefined();
-    expect(result.recentSaleCount).toBe(0);
+    expect(result.recentSaleCount).toBeUndefined();
+    expect(mockQueryRealPrice).not.toHaveBeenCalled();
   });
 });
 

@@ -1,15 +1,21 @@
 import { expect, test } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { mockFormalPullData } from "./formal-pull-fixture";
 
 test.use({ baseURL: process.env.E2E_BASE_URL ?? "http://localhost:1420" });
 
 const ARTIFACT_DIR = "artifacts/smoke";
 const MATRIX_PATH = join(ARTIFACT_DIR, "desktop-local-address-to-cop-e2e-live-discovery-matrix.json");
+const FORMAL_DOWNLOAD_PATH = join(ARTIFACT_DIR, "formal-import-e2e.pdf");
 const LOCAL_DEV_TOKEN = "aire-dev-local-token";
 
-function seedLocalStore() {
-  if (window.localStorage.getItem("aire-mock-store")) return;
+function seedLocalStore(seedKey: string) {
+  if (window.localStorage.getItem("__aire_e2e_seed_key") === seedKey) return;
+  window.localStorage.setItem(
+    "__aire_e2e_seed_key",
+    seedKey,
+  );
   window.localStorage.setItem(
     "aire-mock-store",
     JSON.stringify({
@@ -29,9 +35,52 @@ function seedLocalStore() {
   );
 }
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(seedLocalStore);
+test.beforeEach(async ({ page }, testInfo) => {
+  await page.addInitScript(seedLocalStore, testInfo.titlePath.join(" > "));
+  await page.route("**/api/local/real-price", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ records: [] }),
+    });
+  });
 });
+
+async function mockManualAddressDiscovery(page: import("@playwright/test").Page, address: string) {
+  await page.route("**/api/local/address-discovery", async (route) => {
+    const payload = route.request().postDataJSON() as { address?: string } | null;
+    if (payload?.address === address) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "manual_required",
+          source: "local_discovery",
+          normalizedAddress: address,
+          candidates: [],
+          errors: [
+            {
+              source: "easymap_r02",
+              code: "easymap_r02_unavailable",
+              message: "live discovery unavailable; manual registry completion required",
+            },
+          ],
+          trustedForPdf: false,
+          totalCostCents: 0,
+          total_cost_cents: 0,
+          cacheHit: false,
+          sourceRunId: null,
+          inputKind: "doorplate",
+          intendedObjectType: "building",
+          requiresCandidateSelection: false,
+          candidateSelection: { state: "not_required", selectedRegistryKey: null },
+        }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+}
 
 test("registry_pending case keeps sales flow moving and blocks paid formal data", async ({ page }) => {
   await page.goto("/cases/new");
@@ -66,6 +115,7 @@ test("registry_pending case keeps sales flow moving and blocks paid formal data"
 });
 
 test("paid resolver is opt-in, creates candidate evidence, and billing drilldown shows saved run", async ({ page }) => {
+  await mockManualAddressDiscovery(page, "高雄市苓雅區苓雅路二段18巷8弄2號");
   await page.goto("/cases/new");
   await page.getByLabel("地址 *").fill("高雄市苓雅區苓雅路二段18巷8弄2號");
   await page.getByRole("button", { name: "查詢物件資料" }).click();
@@ -103,40 +153,8 @@ test("paid resolver is opt-in, creates candidate evidence, and billing drilldown
 });
 
 test("Victory pending case can be manually completed, formally imported, cached, and previewed as PDF", async ({ page }) => {
-  await page.route("**/api/local/address-discovery", async (route) => {
-    const request = route.request();
-    const payload = request.postDataJSON() as { address?: string } | null;
-    if (payload?.address === "台南市永康區勝利街58巷4號") {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          status: "manual_required",
-          source: "local_discovery",
-          normalizedAddress: payload.address,
-          candidates: [],
-          errors: [
-            {
-              source: "easymap_r02",
-              code: "easymap_r02_unavailable",
-              message: "live discovery unavailable; manual registry completion required",
-            },
-          ],
-          trustedForPdf: false,
-          totalCostCents: 0,
-          total_cost_cents: 0,
-          cacheHit: false,
-          sourceRunId: null,
-          inputKind: "doorplate",
-          intendedObjectType: "building",
-          requiresCandidateSelection: false,
-          candidateSelection: { state: "not_required", selectedRegistryKey: null },
-        }),
-      });
-      return;
-    }
-    await route.continue();
-  });
+  test.setTimeout(60_000);
+  await mockManualAddressDiscovery(page, "台南市永康區勝利街58巷4號");
 
   await page.goto("/cases/new");
   await page.getByLabel("地址 *").fill("台南市永康區勝利街58巷4號");
@@ -157,6 +175,7 @@ test("Victory pending case can be manually completed, formally imported, cached,
     return stored.cases?.find((row: { case_no?: string }) => row.case_no === "VICTORY-E2E-001")?.id ?? null;
   });
   expect(caseId).toBeTruthy();
+  await mockFormalPullData(page);
   await page.evaluate((targetCaseId) => {
     const stored = JSON.parse(window.localStorage.getItem("aire-mock-store") || "{}");
     const created = stored.cases?.find((row: { id?: string }) => row.id === targetCaseId);
@@ -199,6 +218,7 @@ test("Victory pending case can be manually completed, formally imported, cached,
   await expect(page.getByText("查詢完成")).toBeVisible();
   await expect(page.getByText("已寫入案件，可用於預覽與 PDF")).toBeVisible();
   await expect(page.getByText(/實際扣款：NT\$/)).toBeVisible();
+  await page.getByRole("button", { name: "關閉明細" }).click();
 
   let stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem("aire-mock-store") || "{}"));
   let createdCase = stored.cases?.find((row: { id?: string }) => row.id === caseId);
@@ -211,6 +231,7 @@ test("Victory pending case can be manually completed, formally imported, cached,
   await page.getByRole("button", { name: "確認", exact: true }).click();
   await page.getByRole("button", { name: "確定，開始查詢" }).click();
   await expect(page.getByText("查詢完成")).toBeVisible();
+  await page.getByRole("button", { name: "關閉明細" }).click();
 
   stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem("aire-mock-store") || "{}"));
   createdCase = stored.cases?.find((row: { id?: string }) => row.id === caseId);
@@ -223,6 +244,11 @@ test("Victory pending case can be manually completed, formally imported, cached,
   await page.getByRole("link", { name: "完成並預覽 PDF" }).click();
   await expect(page).toHaveURL(/\/preview/);
   await expect(page.getByRole("heading", { name: "PDF 預覽" })).toBeVisible();
+  mkdirSync(ARTIFACT_DIR, { recursive: true });
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "匯出 PDF" }).click();
+  const download = await downloadPromise;
+  await download.saveAs(FORMAL_DOWNLOAD_PATH);
 
   stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem("aire-mock-store") || "{}"));
   const paidRunCountAfterPdf = (stored.registryQueryRuns ?? []).filter(

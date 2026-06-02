@@ -27,7 +27,7 @@ describe("formal COP API set selection", () => {
   });
 
   it("estimates cost before paid lookup from the selected API set", () => {
-    expect(estimateFormalCopCost(BUILDING_FORMAL_COP_API_SET)).toBe(20);
-    expect(estimateFormalCopCost(LAND_FORMAL_COP_API_SET)).toBe(10);
+    expect(estimateFormalCopCost(BUILDING_FORMAL_COP_API_SET)).toBe(2);
+    expect(estimateFormalCopCost(LAND_FORMAL_COP_API_SET)).toBe(1);
   });
 });

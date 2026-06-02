@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PullParcelDataButton } from "@/components/PullParcelDataButton";
 import { casesApi, type CaseRow, type UpdateCaseInput } from "@/lib/cases-api";
 import { mockInvoke } from "@/lib/mock-backend";
+import { safeInvoke } from "@/lib/safe-invoke";
 import { selectFormalCopApiSet } from "@/lib/formal-cop-api-set";
 import { buildRegistryPreviewSections } from "@/lib/registry-preview";
 import {
@@ -12,6 +13,10 @@ import {
   getDemoFieldReviewRows,
   getUsageLedgerRows,
 } from "@/lib/product-ui-demo-alignment";
+import {
+  addressLookup,
+  type ParcelInfo,
+} from "@/lib/land-registry-api";
 import {
   createRegistryProvenancePayload,
   extractCandidateOptions,
@@ -52,6 +57,26 @@ type PdfReviewOverrides = Record<string, {
   reason: string;
   target: string;
 }>;
+type LoadedLogo = {
+  bytes?: number[];
+  mime?: string;
+  filename?: string;
+};
+type CoordinateSource = { lat: number; lng: number };
+type StreetViewCandidate = {
+  id: string;
+  label: string;
+  heading: number;
+  bytes: Uint8Array;
+  dataUrl: string;
+};
+type PendingImageUpload = {
+  slot: string;
+  fileName: string;
+  mimeType: "image/png" | "image/jpeg" | "image/webp";
+  bytes: Uint8Array;
+  dataUrl: string;
+};
 
 interface WorkbenchSupplementDraft {
   caseId: string;
@@ -263,6 +288,141 @@ function applyPdfReviewOverride(row: PdfReviewRow, override: PdfReviewOverrides[
   };
 }
 
+function hasStoredLogo(logo: LoadedLogo | null): boolean {
+  return Boolean(logo?.bytes?.length || logo?.filename?.trim());
+}
+
+function hasCoordinateSource(data: CaseRow["land_registry_data"]): boolean {
+  return Boolean(getCoordinateSource(data));
+}
+
+function getCoordinateSource(data: CaseRow["land_registry_data"]): CoordinateSource | null {
+  if (!isRecord(data)) return null;
+  const coordinate = data.coordinate_source;
+  if (
+    isRecord(coordinate) &&
+    typeof coordinate.lat === "number" &&
+    Number.isFinite(coordinate.lat) &&
+    typeof coordinate.lng === "number" &&
+    Number.isFinite(coordinate.lng)
+  ) {
+    return { lat: coordinate.lat, lng: coordinate.lng };
+  }
+  const candidates = Array.isArray(data.candidate_options) ? data.candidate_options : [];
+  for (const candidate of candidates) {
+    if (!isRecord(candidate)) continue;
+    const summary = isRecord(candidate.summary_fields) ? candidate.summary_fields : {};
+    if (
+      typeof summary.lat === "number" &&
+      Number.isFinite(summary.lat) &&
+      typeof summary.lng === "number" &&
+      Number.isFinite(summary.lng)
+    ) {
+      return { lat: summary.lat, lng: summary.lng };
+    }
+  }
+  return null;
+}
+
+function bytesToDataUrl(bytes: Uint8Array, mimeType: string): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.slice(index, index + chunkSize));
+  }
+  return `data:${mimeType};base64,${btoa(binary)}`;
+}
+
+function countStoredAmenities(data: CaseRow["land_registry_data"]): number {
+  if (!isRecord(data)) return 0;
+  const directCandidates = [
+    data.nearbyAmenities,
+    data.nearby_amenities,
+    data.life_amenities,
+    data.amenities,
+    data.surrounding_amenities,
+  ];
+  const directCount = directCandidates.find((value) => Array.isArray(value) && value.length > 0);
+  if (Array.isArray(directCount)) return directCount.length;
+
+  if (!isRecord(data.entries)) return 0;
+  for (const entry of Object.values(data.entries)) {
+    if (!isRecord(entry)) continue;
+    const entryData = entry.data;
+    if (!isRecord(entryData)) continue;
+    for (const key of ["nearbyAmenities", "nearby_amenities", "life_amenities", "amenities", "surrounding_amenities"]) {
+      const value = entryData[key];
+      if (Array.isArray(value) && value.length > 0) return value.length;
+    }
+  }
+  return 0;
+}
+
+function resolvePdfFallbackRow(
+  row: (typeof PDF_REQUIRED_FALLBACK_ROWS)[number],
+  options: {
+    assetUploads: Record<string, string>;
+    caseDraft: CaseRow;
+    savedLogo: LoadedLogo | null;
+  },
+): PdfReviewRow {
+  if (row.label === "Logo" && hasStoredLogo(options.savedLogo)) {
+    const filename = options.savedLogo?.filename?.trim() || "已保存 Logo";
+    return {
+      ...row,
+      value: `已設定品牌 Logo：${filename}`,
+      source: "品牌設定",
+      status: "已設定",
+      reason: "",
+      target: "不動產說明書",
+    };
+  }
+  if (row.label === "生活機能") {
+    const amenityCount = countStoredAmenities(options.caseDraft.land_registry_data);
+    if (amenityCount > 0) {
+      return {
+        ...row,
+        value: `已取得 ${amenityCount} 筆周邊設施`,
+        source: "位置圖與生活機能",
+        status: "已取得",
+        reason: "",
+        target: "圖資頁",
+      };
+    }
+    if (options.assetUploads["地標圖"]) {
+      return {
+        ...row,
+        value: `已上傳位置圖：${options.assetUploads["地標圖"]}`,
+        source: "補件與現場",
+        status: "已補件覆蓋",
+        reason: "",
+        target: "圖資頁",
+      };
+    }
+    if (hasCoordinateSource(options.caseDraft.land_registry_data) || Boolean(options.caseDraft.address?.trim())) {
+      return {
+        ...row,
+        value: "將依案件地址產生位置圖與周邊設施",
+        source: "案件地址與圖資服務",
+        status: "可產生",
+        reason: "",
+        target: "圖資頁",
+      };
+    }
+  }
+  if (row.label === "建物外觀" && options.assetUploads["建物外觀"]) {
+    return {
+      ...row,
+      value: `已上傳：${options.assetUploads["建物外觀"]}`,
+      source: "補件與現場",
+      status: "已補件覆蓋",
+      reason: "PDF 會優先使用此案件保存的現場外觀照片，不採用自動街景作為最終外觀圖。",
+      target: "圖資頁",
+    };
+  }
+  return { ...row, target: "不動產說明書" };
+}
+
 function mergeManualSupplementIntoRegistryData(
   existing: CaseRow["land_registry_data"],
   fieldName: string,
@@ -364,6 +524,90 @@ function candidateStatusLabel(status: string | undefined): string {
   }
 }
 
+function numberFromText(value?: string): number | undefined {
+  if (!value?.trim()) return undefined;
+  const parsed = Number(value.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function squareMetersToPing(value?: string): number | undefined {
+  const parsed = numberFromText(value);
+  if (parsed === undefined) return undefined;
+  return Math.round((parsed / 3.305785) * 100) / 100;
+}
+
+function candidateOptionFromParcel(parcel: ParcelInfo): CandidateParcelOption {
+  const hasBuilding = Boolean(parcel.building_number?.trim());
+  const normalizedParcelId = parcel.parcel_id;
+  return {
+    candidate_id: `${hasBuilding ? "building" : "land"}:${normalizedParcelId}`,
+    parcel_type: hasBuilding ? "building" : "land",
+    office_code: parcel.office_code,
+    section_code: parcel.section_code ?? normalizedParcelId.split("-")[1],
+    section_name: parcel.section_name,
+    land_no: parcel.lot_number,
+    building_no: hasBuilding ? parcel.building_number : undefined,
+    parcel_number: hasBuilding ? parcel.building_number : parcel.lot_number,
+    normalized_parcel_id: normalizedParcelId,
+    source: parcel.source === "mock" ? "mock" : "public_reference",
+    confidence_label: "same_address_candidate",
+    official_status: "candidate_unconfirmed",
+    query_status: hasBuilding || parcel.lot_number ? "candidate_data_available" : "pending",
+    summary_fields: {
+      landAreaSqm: numberFromText(parcel.land_area_sqm),
+      zoning: parcel.zoning,
+      announcedLandCurrentValue: numberFromText(parcel.announced_land_current_value),
+      announcedLandValue: numberFromText(parcel.announced_land_value),
+      registeredAreaPing: squareMetersToPing(parcel.building_area_sqm),
+      legalUse: parcel.main_use,
+      constructionDate: parcel.completion_date_roc,
+      floor: parcel.floor_label?.includes("樓") ? parcel.floor_label : undefined,
+      age: parcel.age_years ? `${parcel.age_years}年` : undefined,
+      totalFloorCount: parcel.total_floor_count,
+      lat: parcel.lat,
+      lng: parcel.lng,
+    },
+    warnings: hasBuilding
+      ? ["待屋主或權狀確認是否為目標戶別"]
+      : ["待屋主或權狀確認"],
+  };
+}
+
+function buildCandidateRefreshPayload(address: string, parcels: ParcelInfo[]): RegistryProvenancePayload {
+  const candidateOptions = parcels.map(candidateOptionFromParcel);
+  const coordinateParcel = parcels.find((parcel) =>
+    typeof parcel.lat === "number" &&
+    Number.isFinite(parcel.lat) &&
+    typeof parcel.lng === "number" &&
+    Number.isFinite(parcel.lng),
+  );
+  return createRegistryProvenancePayload({
+    parcelId: parcels[0]?.parcel_id,
+    totalCost: 0,
+    isPaid: false,
+    pricingNote: "免費前查：重新查詢便民系統候選，不產生成本",
+    results: {
+      address_lookup: {
+        success: parcels.length > 0,
+        source: "public_candidate",
+        data: {
+          address,
+          candidate_count: candidateOptions.length,
+        },
+        error: parcels.length > 0 ? undefined : "便民系統查無候選資料",
+      },
+    },
+    candidateOptions,
+    coordinateSource: coordinateParcel
+      ? {
+          lat: coordinateParcel.lat as number,
+          lng: coordinateParcel.lng as number,
+          source: "candidate_reference",
+        }
+      : undefined,
+  });
+}
+
 function findFormalImportTarget(
   caseDraft: CaseRow,
   candidates: CandidateParcelOption[],
@@ -374,6 +618,7 @@ function findFormalImportTarget(
     : null;
   const confirmedParcelIds = registry?.confirmed_parcel_ids ?? {};
   const explicitTarget = candidates.find((candidate) =>
+    !isManualConfirmedCandidate(candidate) &&
     hasCompleteFormalRegistryKey(candidate) &&
       (
         candidate.confirmation_state === "confirmed" ||
@@ -381,15 +626,20 @@ function findFormalImportTarget(
       ),
   );
   if (explicitTarget) return explicitTarget;
-  if (manualConfirmedTarget && hasCompleteFormalRegistryKey(manualConfirmedTarget)) return manualConfirmedTarget;
   if (manualConfirmedTarget) {
     const matchingFormalCandidate = candidates.find((candidate) =>
+      !isManualConfirmedCandidate(candidate) &&
       hasCompleteFormalRegistryKey(candidate) &&
       candidateMatchesManualConfirmation(candidate, manualConfirmedTarget),
     );
     if (matchingFormalCandidate) return matchingFormalCandidate;
   }
+  if (manualConfirmedTarget && hasCompleteFormalRegistryKey(manualConfirmedTarget)) return manualConfirmedTarget;
   return null;
+}
+
+function isManualConfirmedCandidate(candidate: CandidateParcelOption): boolean {
+  return candidate.source === "manual_confirmed" || candidate.normalized_parcel_id.startsWith("manual-");
 }
 
 function buildManualConfirmedCandidate(caseDraft: CaseRow): CandidateParcelOption | null {
@@ -610,6 +860,8 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const [editingField, setEditingField] = useState<string | null>(null);
   const [caseDraft, setCaseDraft] = useState(caseData);
   const [savingCandidateId, setSavingCandidateId] = useState<string | null>(null);
+  const [refreshingCandidates, setRefreshingCandidates] = useState(false);
+  const [candidateRefreshMessage, setCandidateRefreshMessage] = useState<string | null>(null);
   const [fieldCorrections, setFieldCorrections] = useState<Record<string, string>>({});
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
   const [showRegistryManagementDetails, setShowRegistryManagementDetails] = useState(false);
@@ -617,6 +869,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     readPdfReviewOverrides(caseData.land_registry_data),
   );
   const [pdfReviewSaved, setPdfReviewSaved] = useState(false);
+  const [savedLogo, setSavedLogo] = useState<LoadedLogo | null>(null);
+  const [streetViewCandidates, setStreetViewCandidates] = useState<StreetViewCandidate[]>([]);
+  const [streetViewLoading, setStreetViewLoading] = useState(false);
+  const [streetViewMessage, setStreetViewMessage] = useState<string | null>(null);
+  const [pendingImageUploads, setPendingImageUploads] = useState<Record<string, PendingImageUpload>>({});
   const classification = getAddressFirstClassification(caseDraft.address);
   const fields = getDemoFieldReviewRows(caseDraft).map((field) =>
     fieldCorrections[field.fieldName]
@@ -722,19 +979,9 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       : "",
     target: "物件資料表",
   }));
-  const pdfFallbackRows: PdfReviewRow[] = PDF_REQUIRED_FALLBACK_ROWS.map((row) => {
-    if (row.label === "建物外觀" && assetUploads["建物外觀"]) {
-      return {
-        ...row,
-        value: `已上傳：${assetUploads["建物外觀"]}`,
-        source: "補件與現場",
-        status: "已補件覆蓋",
-        reason: "PDF 會優先使用此案件保存的現場外觀照片，不採用自動街景作為最終外觀圖。",
-        target: "圖資頁",
-      };
-    }
-    return { ...row, target: "不動產說明書" };
-  });
+  const pdfFallbackRows: PdfReviewRow[] = PDF_REQUIRED_FALLBACK_ROWS.map((row) =>
+    resolvePdfFallbackRow(row, { assetUploads, caseDraft, savedLogo }),
+  );
   const pdfReviewRows = [...importedPdfRows, ...sourcePdfRows, ...pdfFallbackRows]
     .filter((row, index, rows) => rows.findIndex((item) => item.label === row.label) === index)
     .map((row) => applyPdfReviewOverride(row, pdfReviewOverrides[row.label]));
@@ -763,6 +1010,20 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     setEditingValues({});
     setRegistrySupplementDrafts({});
   }, [caseData]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void safeInvoke<LoadedLogo | null>("load_logo")
+      .then((logo) => {
+        if (!cancelled) setSavedLogo(hasStoredLogo(logo) ? logo : null);
+      })
+      .catch(() => {
+        if (!cancelled) setSavedLogo(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -915,6 +1176,145 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     persistSupplementDraft({ registryDrafts: nextDrafts });
   }
 
+  async function generateStreetViewCandidates() {
+    setStreetViewLoading(true);
+    setStreetViewMessage(null);
+    try {
+      let coordinate = getCoordinateSource(caseDraft.land_registry_data);
+      if (!coordinate && caseDraft.address.trim()) {
+        const geocodeResp = await fetch("/api/geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: caseDraft.address }),
+        });
+        if (geocodeResp.ok) {
+          const geocode = await geocodeResp.json() as Partial<CoordinateSource>;
+          if (
+            typeof geocode.lat === "number" &&
+            Number.isFinite(geocode.lat) &&
+            typeof geocode.lng === "number" &&
+            Number.isFinite(geocode.lng)
+          ) {
+            coordinate = { lat: geocode.lat, lng: geocode.lng };
+          }
+        }
+      }
+      if (!coordinate) {
+        setStreetViewCandidates([]);
+        setStreetViewMessage("目前沒有可用座標，請先完成地址定位或上傳外觀照片。");
+        return;
+      }
+
+      const headings = [0, 90, 180, 270];
+      const candidates = (
+        await Promise.all(
+          headings.map(async (heading, index): Promise<StreetViewCandidate | null> => {
+            const resp = await fetch("/api/street-view", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lat: coordinate.lat,
+                lng: coordinate.lng,
+                heading,
+                pitch: 0,
+                fov: 80,
+              }),
+            });
+            if (!resp.ok) return null;
+            const bytes = new Uint8Array(await resp.arrayBuffer());
+            if (bytes.length === 0) return null;
+            return {
+              id: `street-view-${heading}`,
+              label: `候選 ${index + 1}`,
+              heading,
+              bytes,
+              dataUrl: bytesToDataUrl(bytes, "image/jpeg"),
+            };
+          }),
+        )
+      ).filter((item): item is StreetViewCandidate => Boolean(item));
+
+      setStreetViewCandidates(candidates);
+      setStreetViewMessage(
+        candidates.length > 0
+          ? "請選擇真正拍到門口的照片；未確認前不會寫入 PDF。"
+          : "Google 街景沒有可用候選，請改用現場照片上傳。",
+      );
+    } catch {
+      setStreetViewCandidates([]);
+      setStreetViewMessage("街景候選產生失敗，請改用現場照片上傳。");
+    } finally {
+      setStreetViewLoading(false);
+    }
+  }
+
+  async function confirmStreetViewCandidate(candidate: StreetViewCandidate) {
+    const fileName = `google-street-view-${candidate.heading}.jpg`;
+    await importCaseAsset({
+      caseId: caseDraft.id,
+      kind: "exterior_photo",
+      fileName,
+      mimeType: "image/jpeg",
+      fileBytes: candidate.bytes,
+      source: "api_generated",
+      metadata: {
+        slot: "建物外觀",
+        confirmed: true,
+        provider: "google_street_view",
+        heading: candidate.heading,
+      },
+    });
+    const nextUploads = { ...assetUploads, 建物外觀: fileName };
+    setAssetUploads(nextUploads);
+    persistSupplementDraft({ uploads: nextUploads });
+    setStreetViewMessage("已將確認的街景候選存成建物外觀，PDF 會使用這張照片。");
+  }
+
+  async function handleAssetFileSelection(slot: string, file: File) {
+    const kind = ASSET_UPLOAD_KIND_BY_SLOT[slot];
+    if (isAcceptedCaseAssetMime(file.type) && kind) {
+      const mimeType = file.type;
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      setPendingImageUploads((current) => ({
+        ...current,
+        [slot]: {
+          slot,
+          fileName: file.name,
+          mimeType,
+          bytes,
+          dataUrl: bytesToDataUrl(bytes, mimeType),
+        },
+      }));
+      return;
+    }
+
+    const nextUploads = { ...assetUploads, [slot]: file.name };
+    setAssetUploads(nextUploads);
+    persistSupplementDraft({ uploads: nextUploads });
+  }
+
+  async function confirmPendingImageUpload(upload: PendingImageUpload) {
+    const kind = ASSET_UPLOAD_KIND_BY_SLOT[upload.slot];
+    if (!kind) return;
+    await importCaseAsset({
+      caseId: caseDraft.id,
+      kind,
+      fileName: upload.fileName,
+      mimeType: upload.mimeType,
+      fileBytes: upload.bytes,
+      source: "manual_upload",
+      metadata: { slot: upload.slot, confirmed: true },
+    });
+    const nextUploads = { ...assetUploads, [upload.slot]: upload.fileName };
+    setAssetUploads(nextUploads);
+    setPendingImageUploads((current) => {
+      const next = { ...current };
+      delete next[upload.slot];
+      return next;
+    });
+    persistSupplementDraft({ uploads: nextUploads });
+  }
+
   function buildCandidateSelectionUpdate(
     candidate: CandidateParcelOption,
     mode: "selected" | "confirmed" | "cleared",
@@ -950,6 +1350,45 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   async function persistCandidateSelectionBeforePull(candidate: CandidateParcelOption) {
     const { input } = buildCandidateSelectionUpdate(candidate, "confirmed");
     await casesApi.update(caseDraft.id, input);
+  }
+
+  async function refreshAddressCandidates() {
+    const address = caseDraft.address.trim();
+    if (!address) {
+      setCandidateRefreshMessage("案件地址是空的，無法重新查詢便民系統候選。");
+      return;
+    }
+    setRefreshingCandidates(true);
+    setCandidateRefreshMessage(null);
+    try {
+      const parcels = await addressLookup(address);
+      const nextLandRegistryData = buildCandidateRefreshPayload(address, parcels);
+      const updateInput: UpdateCaseInput = {
+        land_registry_data: nextLandRegistryData,
+        building_lot_no: null,
+      };
+      const firstLandNo = parcels.find((parcel) => parcel.lot_number?.trim())?.lot_number?.trim();
+      if (firstLandNo) {
+        updateInput.land_lot_no = firstLandNo;
+        updateInput.land_lots = [firstLandNo];
+      }
+      const updated = await casesApi.update(caseDraft.id, updateInput);
+      setCaseDraft((current) => ({
+        ...current,
+        ...updateInput,
+        updated_at: updated.updated_at ?? current.updated_at,
+        land_registry_data: updated.land_registry_data ?? nextLandRegistryData,
+      }));
+      setCandidateRefreshMessage(
+        parcels.length > 0
+          ? `已重新查到 ${parcels.length} 筆候選，請在下方確認正確地號/建號後再付費匯入。`
+          : "便民系統沒有回傳候選，請改用地段、地號、建號人工補正。",
+      );
+    } catch (error) {
+      setCandidateRefreshMessage(error instanceof Error ? error.message : "便民系統重新查詢失敗。");
+    } finally {
+      setRefreshingCandidates(false);
+    }
   }
 
   async function updateCandidateSelection(candidate: CandidateParcelOption, mode: "selected" | "confirmed" | "cleared") {
@@ -1018,6 +1457,32 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       setCaseDraft((current) => ({
         ...current,
         owner_name: updated.owner_name ?? nextValue,
+        updated_at: updated.updated_at ?? current.updated_at,
+      }));
+      return;
+    }
+
+    if (MANUAL_SUPPLEMENT_FIELD_MAP[fieldName] && nextValue.trim()) {
+      const nextDrafts = {
+        ...registrySupplementDrafts,
+        [fieldName]: {
+          value: nextValue,
+          source: registrySupplementDrafts[fieldName]?.source ?? "人工輸入",
+          status: "已補",
+        },
+      };
+      const nextLandRegistryData = mergeManualSupplementIntoRegistryData(
+        caseDraft.land_registry_data,
+        fieldName,
+        nextValue,
+        nextDrafts[fieldName].source,
+      );
+      setRegistrySupplementDrafts(nextDrafts);
+      persistSupplementDraft({ registryDrafts: nextDrafts });
+      const updated = await casesApi.update(caseDraft.id, { land_registry_data: nextLandRegistryData });
+      setCaseDraft((current) => ({
+        ...current,
+        land_registry_data: updated.land_registry_data ?? nextLandRegistryData,
         updated_at: updated.updated_at ?? current.updated_at,
       }));
     }
@@ -1206,6 +1671,25 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   確認本案物件後才匯入正式資料；匯入完成會列出取得欄位、費用與會同步到的 PDF 區塊。
                 </p>
               </div>
+              <div className="mt-4 flex flex-col gap-2 rounded-md border bg-slate-50 p-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-[17px] font-semibold">便民系統候選</p>
+                  <p className="mt-1 text-[17px] text-muted-foreground">
+                    用案件地址重新查地籍候選；這一步不會扣款，確認正確候選後才會進入付費匯入。
+                  </p>
+                  {candidateRefreshMessage ? (
+                    <p className="mt-2 text-[17px] text-amber-700">{candidateRefreshMessage}</p>
+                  ) : null}
+                </div>
+                <button
+                  className="w-fit rounded-md border bg-white px-3 py-2 text-[17px] disabled:cursor-not-allowed disabled:opacity-60"
+                  type="button"
+                  disabled={refreshingCandidates}
+                  onClick={() => void refreshAddressCandidates()}
+                >
+                  {refreshingCandidates ? "查詢中..." : "重新查詢候選"}
+                </button>
+              </div>
               {candidateOptions.length > 0 ? (
                 <section className="mt-4 rounded-lg border border-amber-200 bg-amber-50/40 p-3" aria-label="候選土地建物清單" role="region">
                   <div>
@@ -1217,8 +1701,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                   <div className="mt-3 overflow-hidden rounded-md border bg-white">
                     {candidateOptions.map((candidate) => {
                       const hasFormalKey = hasCompleteFormalRegistryKey(candidate);
-                      const canImportFormal =
-                        !savingCandidateId &&
+                      const isFormalImportTarget =
                         hasFormalKey &&
                         formalImportTarget?.candidate_id === candidate.candidate_id;
                       const confirmedButIncomplete =
@@ -1227,7 +1710,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       return (
                         <article
                           key={candidate.candidate_id}
-                          className="grid gap-3 border-b p-3 text-[17px] last:border-b-0 lg:grid-cols-[minmax(190px,0.8fr)_minmax(360px,1.6fr)_140px_minmax(220px,0.8fr)]"
+                          className="grid gap-3 border-b p-3 text-[17px] last:border-b-0 lg:grid-cols-[minmax(190px,0.9fr)_minmax(320px,1.5fr)_130px_minmax(220px,0.9fr)] lg:items-center"
                         >
                           <div>
                             <strong className="block">{candidate.normalized_parcel_id}</strong>
@@ -1244,21 +1727,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-2 md:justify-end">
-                            {canImportFormal ? (
-                              <PullParcelDataButton
-                                caseId={caseDraft.id}
-                                parcelId={candidate.normalized_parcel_id}
-                                apiIds={formalImportApiIds}
-                                label="正式資料匯入（付費）"
-                                beforePull={() => persistCandidateSelectionBeforePull(candidate)}
-                                preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
-                                onSaved={(data) => {
-                                  setCaseDraft((current) => ({
-                                    ...current,
-                                    land_registry_data: data,
-                                  }));
-                                }}
-                              />
+                            {isFormalImportTarget ? (
+                              <span className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[17px] font-medium text-emerald-800">
+                                已確認，可在下方匯入
+                              </span>
                             ) : confirmedButIncomplete ? (
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[17px] text-amber-800">
                                 前次確認缺正式查詢代碼，請確認下方完整候選後再匯入。
@@ -1288,6 +1760,35 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                       );
                     })}
                   </div>
+                  {formalImportTarget && hasCompleteFormalRegistryKey(formalImportTarget) ? (
+                    <div className="mt-3 rounded-md border bg-white p-3">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <p className="text-[17px] font-semibold">正式查詢目標：{formalImportTarget.normalized_parcel_id}</p>
+                          <p className="mt-1 text-[17px] text-muted-foreground">
+                            系統會先比對地政回傳門牌與案件地址；不一致時會擋下，不寫入 PDF。
+                          </p>
+                        </div>
+                        <div className="lg:min-w-[260px]">
+                          <PullParcelDataButton
+                            caseId={caseDraft.id}
+                            parcelId={formalImportTarget.normalized_parcel_id}
+                            apiIds={formalImportApiIds}
+                            label="正式資料匯入（付費）"
+                            expectedAddress={caseDraft.address}
+                            beforePull={() => persistCandidateSelectionBeforePull(formalImportTarget)}
+                            preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
+                            onSaved={(data) => {
+                              setCaseDraft((current) => ({
+                                ...current,
+                                land_registry_data: data,
+                              }));
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </section>
               ) : (
                 <div className="mt-4 rounded-md bg-slate-50 p-3 text-[17px] text-muted-foreground">
@@ -1490,49 +1991,108 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                     </label>
                   </article>
                 ))}
-              </div>
+	              </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {ASSET_UPLOAD_SLOTS.map((slot) => (
-                  <label key={slot} className="rounded-md border p-3 text-[17px] transition hover:border-slate-400 hover:bg-slate-50">
-                    <span className="block font-medium">{slot}上傳</span>
-                    <input
-                      className="sr-only"
-                      type="file"
+	              <section className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4" aria-label="建物外觀候選">
+	                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+	                  <div>
+	                    <h3 className="text-[17px] font-semibold">建物外觀候選</h3>
+	                    <p className="mt-1 text-[17px] text-muted-foreground">
+	                      Google 街景只做候選圖，確認後才會寫入 PDF。
+	                    </p>
+	                  </div>
+	                  <button
+	                    className="w-fit rounded-md border bg-white px-3 py-2 text-[17px] disabled:cursor-not-allowed disabled:opacity-60"
+	                    disabled={streetViewLoading}
+	                    type="button"
+	                    onClick={generateStreetViewCandidates}
+	                  >
+	                    {streetViewLoading ? "產生中..." : "產生街景候選"}
+	                  </button>
+	                </div>
+	                {streetViewMessage ? (
+	                  <p className="mt-3 rounded-md bg-white px-3 py-2 text-[17px] text-muted-foreground">
+	                    {streetViewMessage}
+	                  </p>
+	                ) : null}
+	                {streetViewCandidates.length > 0 ? (
+	                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+	                    {streetViewCandidates.map((candidate, index) => (
+	                      <article key={candidate.id} className="rounded-md border bg-white p-3">
+	                        <img
+	                          alt={`街景候選 ${index + 1}`}
+	                          className="aspect-[3/2] w-full rounded-md border object-cover"
+	                          src={candidate.dataUrl}
+	                        />
+	                        <div className="mt-3 flex items-center justify-between gap-3">
+	                          <span className="text-[17px] text-muted-foreground">
+	                            {candidate.label}｜角度 {candidate.heading}°
+	                          </span>
+	                          <button
+	                            className="rounded-md bg-slate-950 px-3 py-2 text-[17px] font-medium text-white"
+	                            type="button"
+	                            onClick={() => void confirmStreetViewCandidate(candidate)}
+	                          >
+	                            使用這張
+	                          </button>
+	                        </div>
+	                      </article>
+	                    ))}
+	                  </div>
+	                ) : null}
+	              </section>
+
+	              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+	                {ASSET_UPLOAD_SLOTS.map((slot) => {
+	                  const pendingUpload = pendingImageUploads[slot];
+	                  return (
+	                  <label key={slot} className="rounded-md border p-3 text-[17px] transition hover:border-slate-400 hover:bg-slate-50">
+	                    <span className="block font-medium">{slot}上傳</span>
+	                    <input
+	                      className="sr-only"
+	                      type="file"
                       accept="image/*,.pdf"
                       aria-label={`${slot}上傳`}
-                      onChange={async (event) => {
-                        const file = event.currentTarget.files?.[0];
-                        if (file) {
-                          const nextUploads = { ...assetUploads, [slot]: file.name };
-                          setAssetUploads(nextUploads);
-                          persistSupplementDraft({ uploads: nextUploads });
-                          if (isAcceptedCaseAssetMime(file.type)) {
-                            const kind = ASSET_UPLOAD_KIND_BY_SLOT[slot];
-                            if (kind) {
-                              await importCaseAsset({
-                                caseId: caseDraft.id,
-                                kind,
-                                fileName: file.name,
-                                mimeType: file.type,
-                                fileBytes: new Uint8Array(await file.arrayBuffer()),
-                                source: "manual_upload",
-                                metadata: { slot },
-                              });
-                            }
-                          }
-                        }
-                      }}
-                    />
+	                      onChange={async (event) => {
+	                        const file = event.currentTarget.files?.[0];
+	                        if (file) {
+	                          await handleAssetFileSelection(slot, file);
+	                        }
+	                      }}
+	                    />
                     <span className="mt-4 inline-flex min-h-10 items-center rounded-md border bg-slate-950 px-4 py-2 text-[17px] font-medium text-white">
                       檔案
                     </span>
-                    <span className="mt-2 block rounded-md bg-slate-100 px-2 py-1 text-[17px] text-muted-foreground">
-                      {assetUploads[slot] ? `已選擇：${assetUploads[slot]}` : "尚未上傳"}
-                    </span>
-                  </label>
-                ))}
-              </div>
+	                    <span className="mt-2 block rounded-md bg-slate-100 px-2 py-1 text-[17px] text-muted-foreground">
+	                      {assetUploads[slot] ? `已選擇：${assetUploads[slot]}` : "尚未上傳"}
+	                    </span>
+	                    {pendingUpload ? (
+	                      <span className="mt-3 block rounded-md border border-amber-200 bg-amber-50 p-2">
+	                        <img
+	                          alt={`${slot}待確認預覽`}
+	                          className="mb-2 aspect-[3/2] w-full rounded-md border object-cover"
+	                          src={pendingUpload.dataUrl}
+	                        />
+	                        <span className="block text-[17px] font-medium text-amber-800">
+	                          待確認：{pendingUpload.fileName}
+	                        </span>
+	                        <button
+	                          className="mt-2 rounded-md bg-slate-950 px-3 py-2 text-[17px] font-medium text-white"
+	                          type="button"
+	                          onClick={(event) => {
+	                            event.preventDefault();
+	                            event.stopPropagation();
+	                            void confirmPendingImageUpload(pendingUpload);
+	                          }}
+	                        >
+	                          確認使用 {pendingUpload.fileName}
+	                        </button>
+	                      </span>
+	                    ) : null}
+	                  </label>
+	                  );
+	                })}
+	              </div>
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 <button
                   className="rounded-md border px-3 py-2 text-[17px]"

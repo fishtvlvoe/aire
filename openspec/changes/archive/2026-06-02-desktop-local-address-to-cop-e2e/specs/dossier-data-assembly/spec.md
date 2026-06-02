@@ -25,3 +25,11 @@
 - **WHEN** 系統組裝 dossier data
 - **THEN** dossier assembly SHALL 成功完成
 - **AND** PDF SHALL 顯示空結果語意，而非崩潰或誤植舊資料
+
+#### Scenario: Registry codes and total-floor values are not treated as user-facing facts
+
+- **GIVEN** formal COP building registry 回傳 `BUILDINGFLOOR=003`、`PURPOSE=A` 或 `MATERIAL=04` 這類代碼 / 總層數欄位
+- **WHEN** 系統組裝工作台欄位與 PDF 資料
+- **THEN** 系統 SHALL NOT 把 `003` 當成本戶樓層
+- **AND** SHALL 將無法轉換的用途或建材代碼標示為待代碼表轉換
+- **AND** 建物面積 SHALL 同時清楚標示平方公尺與坪數，避免單位顛倒

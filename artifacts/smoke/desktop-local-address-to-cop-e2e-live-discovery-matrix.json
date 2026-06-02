@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-29T11:26:38.960Z",
+  "generatedAt": "2026-06-02T13:35:15.925Z",
   "matrix": [
     {
       "id": "tainan-doorplate",
@@ -13,19 +13,27 @@
       "totalCostCents": 0,
       "firstCandidate": {
         "address": "台南市東區東和路47號3樓",
-        "lot_number": "00022132",
+        "lot_number": "02210032",
         "section_name": "東光段",
         "section_code": "1514",
         "land_office": "DC",
         "source": "easymap_z10web",
         "trusted_for_pdf": false,
-        "parcel_id": "DC-1514-00022132",
+        "lat": 22.998544,
+        "lng": 120.229449,
+        "parcel_id": "DC-1514-02210032",
         "building_number": "",
         "discovery_confidence": "high",
         "object_type": "land",
         "confirmation_state": "unconfirmed"
       },
-      "errors": []
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_http_500",
+          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
     },
     {
       "id": "kaohsiung-correct-doorplate",
@@ -45,16 +53,21 @@
         "land_office": "EB",
         "source": "easymap_z10web",
         "trusted_for_pdf": false,
-        "land_area_sqm": "417.0",
-        "announced_land_current_value": "68000",
-        "announced_land_value": "22000",
-        "parcel_id": "EB-0903-04247000",
-        "building_number": "04247000",
+        "lat": 22.615985,
+        "lng": 120.296294,
+        "parcel_id": "EB-0903-04900000",
+        "building_number": "",
         "discovery_confidence": "high",
-        "object_type": "building",
+        "object_type": "land",
         "confirmation_state": "unconfirmed"
       },
-      "errors": []
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_http_500",
+          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
     },
     {
       "id": "kaohsiung-typo-doorplate",
@@ -70,8 +83,8 @@
       "errors": [
         {
           "source": "easymap_r02",
-          "code": "easymap_r02_unavailable",
-          "message": "EasyMap Z10Web /HouseholdDoorPlate_json_detail returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+          "code": "easymap_r02_no_candidate",
+          "message": "查不到可直接補齊的地址候選，請人工確認地段、地號、建號"
         }
       ]
     },
@@ -91,18 +104,21 @@
         "section_name": "富強段",
         "section_code": "1556",
         "land_office": "DC",
-        "source": "easymap_r02",
+        "source": "easymap_z10web",
         "trusted_for_pdf": false,
-        "land_area_sqm": "1655.78",
-        "announced_land_current_value": "45500",
-        "announced_land_value": "9100",
         "parcel_id": "DC-1556-00700000",
         "building_number": "",
         "discovery_confidence": "high",
         "object_type": "land",
         "confirmation_state": "unconfirmed"
       },
-      "errors": []
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_http_500",
+          "message": "EasyMap R02 /LandDesc_ajax_detail returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
     },
     {
       "id": "not-found",
@@ -135,19 +151,27 @@
       "totalCostCents": 0,
       "firstCandidate": {
         "address": "台南市東區東和路47號",
-        "lot_number": "00022132",
+        "lot_number": "02210032",
         "section_name": "東光段",
         "section_code": "1514",
         "land_office": "DC",
         "source": "easymap_z10web",
         "trusted_for_pdf": false,
-        "parcel_id": "DC-1514-00022132",
+        "lat": 22.998544,
+        "lng": 120.229449,
+        "parcel_id": "DC-1514-02210032",
         "building_number": "",
         "discovery_confidence": "high",
         "object_type": "land",
         "confirmation_state": "unconfirmed"
       },
-      "errors": []
+      "errors": [
+        {
+          "source": "easymap_r02",
+          "code": "easymap_http_500",
+          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+        }
+      ]
     }
   ]
 }

@@ -251,6 +251,13 @@ function formatOptionalAmount(value: number | undefined): string {
   return String(value);
 }
 
+function resolveLogoDataUrl(data: CaseDossierData): string | undefined {
+  if (data.logo) return data.logo;
+  return data.logoBytes?.length
+    ? `data:image/png;base64,${Buffer.from(data.logoBytes).toString("base64")}`
+    : undefined;
+}
+
 function hasAnyKeyword(value: string | undefined, keywords: string[]): boolean {
   if (!value) return false;
   return keywords.some((keyword) => value.includes(keyword));
@@ -341,6 +348,7 @@ function LandPages({
   tokens: ReturnType<typeof getThemePdfTokens>;
 }) {
   const totalPages = 10;
+  const logoDataUrl = resolveLogoDataUrl(data);
   const header = (pageNum: number) => (
     <PdfPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pageNum} totalPages={totalPages} />
   );
@@ -551,13 +559,14 @@ function LandPages({
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
       {/* 位置圖與生活機能 */}
       <LifeAmenitiesPage
+        logo={logoDataUrl}
         nearbyAmenities={data.nearbyAmenities}
         locationMapImage={data.locationMapImage ?? null}
       />
       {/* 航拍位置圖 */}
-      <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
+      <AerialPhotoPage logo={logoDataUrl} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}
-      <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
+      <ExteriorPhotoPage logo={logoDataUrl} exteriorPhoto={data.exteriorPhoto ?? null} />
       {/* 土地規劃圖 */}
       <FloorPlanPhotoPage photo={data.floorPlanPhoto ?? null} title="土地規劃圖" />
       {/* 簽章欄（只出現一次，在最後） */}
@@ -578,6 +587,7 @@ function BuildingPages({
   tokens: ReturnType<typeof getThemePdfTokens>;
 }) {
   const totalPages = 7;
+  const logoDataUrl = resolveLogoDataUrl(data);
   const header = (pageNum: number) => (
     <PdfPageHeader tokens={tokens} caseNo={data.caseNo} pageNum={pageNum} totalPages={totalPages} />
   );
@@ -710,13 +720,14 @@ function BuildingPages({
       <TransactionHistoryPage data={data.transactionHistory ?? []} />
       {/* 位置圖與生活機能 */}
       <LifeAmenitiesPage
+        logo={logoDataUrl}
         nearbyAmenities={data.nearbyAmenities}
         locationMapImage={data.locationMapImage ?? null}
       />
       {/* 航拍位置圖 */}
-      <AerialPhotoPage logo={data.logo} aerialPhoto={data.aerialPhoto ?? null} />
+      <AerialPhotoPage logo={logoDataUrl} aerialPhoto={data.aerialPhoto ?? null} />
       {/* 建物外觀 */}
-      <ExteriorPhotoPage logo={data.logo} exteriorPhoto={data.exteriorPhoto ?? null} />
+      <ExteriorPhotoPage logo={logoDataUrl} exteriorPhoto={data.exteriorPhoto ?? null} />
       {/* 格局圖 */}
       <FloorPlanPhotoPage photo={data.floorPlanPhoto ?? null} title="格局圖" />
       {data.fieldSketchFloorPlan && (

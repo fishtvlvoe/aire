@@ -210,8 +210,58 @@ AIRE/
 ### 安裝依賴
 
 ```bash
-pnpm install
+npm run setup
 ```
+
+`npm run setup` 會自動透過 Corepack 使用專案指定的 `pnpm@10.33.0` 並安裝依賴。
+
+### Windows 一鍵安裝並啟動
+
+在 Windows 終端機（PowerShell / CMD）可直接執行：
+
+```bash
+npm run windows:one-click
+```
+
+這個命令會依序完成：安裝依賴、核准並重建 `better-sqlite3`、建立 `dist-local-runtime`、啟動 AIRE。
+
+若只想先確認會執行哪些步驟：
+
+```bash
+npm run windows:one-click -- --dry-run
+```
+
+### macOS / Windows 一鍵安裝並啟動
+
+若你要同一個跨平台命令（macOS 與 Windows 共用），可執行：
+
+```bash
+npm run one-click
+```
+
+僅預覽步驟不實際執行：
+
+```bash
+npm run one-click -- --dry-run
+```
+
+### 客戶版：直接從 GitHub Release 一鍵安裝
+
+不需要先 clone 專案，客戶可直接在終端機執行：
+
+macOS：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fishtvlvoe/aire/main/scripts/install-from-github-release.sh | bash
+```
+
+Windows（PowerShell）：
+
+```powershell
+irm https://raw.githubusercontent.com/fishtvlvoe/aire/main/scripts/install-from-github-release.ps1 | iex
+```
+
+這兩條命令會自動抓 GitHub 最新 release、下載對應安裝檔、安裝並開啟 AIRE。
 
 ### 啟動開發伺服器
 

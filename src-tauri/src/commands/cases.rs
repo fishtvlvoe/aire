@@ -10,7 +10,9 @@ use std::path::Path;
 use tauri::State;
 
 use crate::db::{cases, oplog};
-use crate::db::registry_query_runs::{insert_registry_query_run, NewRegistryQueryRun};
+use crate::db::registry_query_runs::{
+    delete_registry_query_runs_by_case_id, insert_registry_query_run, NewRegistryQueryRun,
+};
 use crate::DbState;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -262,6 +264,8 @@ pub async fn update_case(
 #[tauri::command]
 pub async fn delete_case(id: String, db: State<'_, DbState>) -> Result<(), IpcError> {
     let conn = lock(&db)?;
+    delete_registry_query_runs_by_case_id(&conn, &id)
+        .map_err(|e| IpcError::new(&e.code, e.message))?;
     cases::delete_case(&conn, &id).map_err(|e| IpcError::new(&e.code, e.message))?;
     let payload = format!("{{\"case_id\":\"{}\"}}", id);
     let _ = oplog::insert_log(&conn, "case_delete", Some(&payload), "ok");
@@ -551,6 +555,29 @@ mod tests {
         assert_eq!(runs[0].case_id.as_deref(), Some(c.id.as_str()));
         assert_eq!(runs[0].confirmation_status, "confirmed");
         assert_eq!(runs[0].total_cost_cents, 0);
+    }
+
+    #[test]
+    fn deleting_case_also_clears_registry_runs() {
+        let conn = open_in_memory();
+        let c = sample("abababab-abab-4aba-8aba-abababababab");
+        cases::insert_case(&conn, &c).unwrap();
+        confirm_case_registry_match_core(
+            &conn,
+            &c.id,
+            "富強段",
+            "00700000",
+            Some("00165000"),
+            1_779_648_000,
+        )
+        .unwrap();
+        let before = crate::db::registry_query_runs::list_registry_query_run_rows(&conn, Some("富強段")).unwrap();
+        assert_eq!(before.len(), 1);
+
+        delete_registry_query_runs_by_case_id(&conn, &c.id).unwrap();
+        cases::delete_case(&conn, &c.id).unwrap();
+        let after = crate::db::registry_query_runs::list_registry_query_run_rows(&conn, Some("富強段")).unwrap();
+        assert!(after.is_empty());
     }
 
     // multi-lot TDD 紅燈測試（AC-1~AC-2，Task 1.1）

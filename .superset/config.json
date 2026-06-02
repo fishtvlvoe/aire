@@ -1,0 +1,7 @@
+{
+  "setup": [
+    "codex --dangerously-bypass-approvals-and-sandbox"
+  ],
+  "teardown": [],
+  "run": []
+}

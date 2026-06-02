@@ -159,7 +159,16 @@ async function invokeLocalCopCredential<T>(cmd: string, args?: Record<string, un
         method: "POST",
       });
       if (!res.ok) throw new Error(`land_registry_test_connection 失敗：HTTP ${res.status}`);
-      return res.json() as Promise<T>;
+      const payload = await res.json() as {
+        success: boolean;
+        message: string;
+        latencyMs?: number;
+        latency_ms?: number;
+      };
+      return {
+        ...payload,
+        latency_ms: payload.latency_ms ?? payload.latencyMs,
+      } as T;
     }
     default:
       throw new LocalApiNotWiredError(cmd);
@@ -230,6 +239,15 @@ export async function safeInvoke<T>(
 
   // 路由 2：dev 環境 → mock-backend（此分支不動）
   if (process.env.NODE_ENV === "development") {
+    if (
+      [
+        "land_registry_set_api_key",
+        "land_registry_get_api_key",
+        "land_registry_test_connection",
+      ].includes(cmd)
+    ) {
+      return invokeLocalCopCredential<T>(cmd, args);
+    }
     if (cmd === "query_real_price") {
       return invokeLocalRealPrice<T>(cmd, args);
     }

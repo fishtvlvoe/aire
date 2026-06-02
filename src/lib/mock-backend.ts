@@ -1457,6 +1457,31 @@ export class MockStore {
     }
 
     this.cases.delete(id);
+    this.drafts.delete(id);
+    this.workbenchSupplements.delete(id);
+    this.consentedCases.delete(id);
+    this.registryMatchByCase.delete(id);
+    this.floorPlanSketches = this.floorPlanSketches.filter((item) => item.case_id !== id);
+    this.floorPlanConversions = (this.floorPlanConversions as Array<Record<string, unknown>>).filter(
+      (item) => String(item.case_id ?? "") !== id,
+    );
+    const removedAssetIds = this.caseAssets
+      .filter((asset) => asset.case_id === id)
+      .map((asset) => asset.id);
+    this.caseAssets = this.caseAssets.filter((asset) => asset.case_id !== id);
+    removedAssetIds.forEach((assetId) => this.caseAssetBytes.delete(assetId));
+    const removedRunIds = new Set(
+      this.registryQueryRuns
+        .filter((run) => run.case_id === id)
+        .map((run) => run.id),
+    );
+    this.registryQueryRuns = this.registryQueryRuns.filter((run) => run.case_id !== id);
+    this.registryQueryCache.forEach((runId, key) => {
+      if (removedRunIds.has(runId)) {
+        this.registryQueryCache.delete(key);
+      }
+    });
+    this.persistState();
     this.addLog("刪除案件", `刪除案件：${id}`);
   }
 

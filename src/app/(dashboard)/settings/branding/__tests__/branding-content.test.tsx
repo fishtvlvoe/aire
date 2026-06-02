@@ -15,6 +15,7 @@ const mockIsTauriEnv = vi.mocked(isTauriEnv);
 describe("Branding content fallback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it("shows tauri-required message in browser env", async () => {

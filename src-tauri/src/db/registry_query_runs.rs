@@ -205,6 +205,16 @@ pub fn list_registry_query_run_rows(
     Ok(rows)
 }
 
+pub fn delete_registry_query_runs_by_case_id(conn: &Connection, case_id: &str) -> Result<usize, DbError> {
+    let deleted_calls = conn.execute(
+        "DELETE FROM registry_query_api_calls
+         WHERE run_id IN (SELECT id FROM registry_query_runs WHERE case_id = ?1)",
+        [case_id],
+    )?;
+    let deleted_runs = conn.execute("DELETE FROM registry_query_runs WHERE case_id = ?1", [case_id])?;
+    Ok(deleted_calls + deleted_runs)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegistryQueryApiCallIpc {
     pub id: String,
@@ -494,5 +504,72 @@ mod tests {
         assert_eq!(ipc.total_cost_cents, 0);
         assert_eq!(ipc.api_calls.len(), 0);
         assert!(ipc.created_at.starts_with("2026-"));
+    }
+
+    #[test]
+    fn delete_by_case_id_removes_runs_and_api_calls() {
+        let conn = open_in_memory();
+        insert_registry_query_run(
+            &conn,
+            &NewRegistryQueryRun {
+                id: "run-delete-001".to_string(),
+                case_id: Some("case-delete-001".to_string()),
+                registry_key: "r02:1556:00700000:00204000".to_string(),
+                input_kind: "address".to_string(),
+                input_address: Some("台南市東區裕農路288巷17號8樓之1".to_string()),
+                normalized_address: None,
+                office_code: None,
+                office_name: None,
+                section_code: Some("1556".to_string()),
+                section_name: Some("富強段".to_string()),
+                land_no: Some("00700000".to_string()),
+                building_no: Some("00204000".to_string()),
+                confirmation_status: "candidate_unconfirmed".to_string(),
+                status: "candidate_unconfirmed".to_string(),
+                cache_hit: false,
+                source_run_id: None,
+                total_cost_cents: 0,
+                r02_payload_json: None,
+                cop_payload_json: None,
+                generated_json: None,
+                error_summary_json: None,
+                created_at: 1_779_648_000,
+            },
+        )
+        .unwrap();
+        insert_registry_query_api_call(
+            &conn,
+            &NewRegistryQueryApiCall {
+                id: "call-delete-001".to_string(),
+                run_id: "run-delete-001".to_string(),
+                api_id: "R02".to_string(),
+                service_name: Some("easymap".to_string()),
+                method: "POST".to_string(),
+                endpoint: "/r02".to_string(),
+                http_status: Some(200),
+                cop_code: None,
+                cop_message: None,
+                transaction_id: None,
+                cost_cents: 0,
+                request_summary_json: None,
+                response_summary_json: None,
+                created_at: 1_779_648_001,
+            },
+        )
+        .unwrap();
+
+        let deleted = delete_registry_query_runs_by_case_id(&conn, "case-delete-001").unwrap();
+        assert!(deleted >= 2);
+
+        let remaining = list_registry_query_run_rows(&conn, Some("case-delete-001")).unwrap();
+        assert!(remaining.is_empty());
+        let call_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM registry_query_api_calls WHERE run_id = 'run-delete-001'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(call_count, 0);
     }
 }

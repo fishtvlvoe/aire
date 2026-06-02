@@ -11,6 +11,8 @@ export interface RealPriceRecord {
   type?: string;
 }
 
+const WEB_REAL_PRICE_TIMEOUT_MS = 12_000;
+
 export function extractRealPriceDistrict(address: string): string {
   const match = address.match(/^(?:.*?[縣市])?(.{1,4}[鄉鎮市區])/);
   return match?.[1]?.trim() ?? "";
@@ -47,6 +49,7 @@ export async function queryRealPrice(
 
   const response = await localApiFetch("/api/local/real-price", {
     method: "POST",
+    signal: AbortSignal.timeout(WEB_REAL_PRICE_TIMEOUT_MS),
     body: JSON.stringify({ district, keyword, limit, address }),
   });
 

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 pub const LAND_REGISTRY_API_KEY_NAME: &str = "aire-land-registry-api-key";
+const DEFAULT_LAND_REGISTRY_TOKEN_ENDPOINT: &str = "https://copapi.moi.gov.tw/cp/getToken";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 struct StoredApiKey {
@@ -90,7 +91,7 @@ impl<'a> ApiKeyStorage<'a> {
                     client_id: parsed.client_id,
                     client_secret: parsed.client_secret,
                     token_endpoint: std::env::var("LAND_REGISTRY_TOKEN_ENDPOINT")
-                        .unwrap_or_default(),
+                        .unwrap_or_else(|_| DEFAULT_LAND_REGISTRY_TOKEN_ENDPOINT.to_string()),
                 }))
             }
         }

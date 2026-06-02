@@ -190,12 +190,12 @@ export default function NewCasePage() {
       setErrors(fieldErrors);
       return;
     }
+    if (!classification) {
+      await detectRegistry();
+      return;
+    }
     setLoading(true);
     try {
-      if (!classification) {
-        await detectRegistry();
-        return;
-      }
       const detected = classification;
       const missingRegistryFields = getMissingRegistryFields(registryMatch, detected);
       const selectedCandidate = selectedCandidateId
@@ -371,9 +371,12 @@ export default function NewCasePage() {
                 setRegistryMatch(emptyRegistryMatch());
               }}
               className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
-              placeholder="例：宜蘭縣五結鄉協和村親河路二段 1 號"
+              placeholder="例：台南市東區中華東路三段24巷8號5樓"
             />
           </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            建議不要留空白或多餘符號；系統會自動判讀全形 / 半形、中文 / 阿拉伯數字。
+          </p>
           {errors.address ? (
             <span className="mt-1 block text-xs text-destructive">{errors.address}</span>
           ) : null}
@@ -771,6 +774,7 @@ function buildAddressLookupProvenance(
     const buildingSummary = hasBuilding
       ? {
           landAreaSqm: toNumber(parcel.land_area_sqm),
+          zoning: parcel.zoning,
           announcedLandCurrentValue: toNumber(parcel.announced_land_current_value),
           announcedLandValue: toNumber(parcel.announced_land_value),
           registeredAreaPing: m2ToPingNumber(parcel.building_area_sqm),
@@ -786,8 +790,11 @@ function buildAddressLookupProvenance(
     return {
       candidate_id: `${hasBuilding ? "building" : "land"}:${normalizedId}`,
       parcel_type: hasBuilding ? "building" as const : "land" as const,
+      office_code: parcel.office_code ?? parcel.land_office,
       section_code: normalizedId.split("-")[1],
       section_name: parcel.section_name,
+      land_no: parcel.lot_number,
+      building_no: hasBuilding ? parcel.building_number : undefined,
       parcel_number: hasBuilding ? parcel.building_number : parcel.lot_number,
       normalized_parcel_id: normalizedId,
       source: parcel.source === "mock" ? "mock" : "public_reference",
@@ -800,6 +807,7 @@ function buildAddressLookupProvenance(
         ? buildingSummary
         : {
             landAreaSqm: toNumber(parcel.land_area_sqm),
+            zoning: parcel.zoning,
             announcedLandCurrentValue: toNumber(parcel.announced_land_current_value),
             announcedLandValue: toNumber(parcel.announced_land_value),
           },
@@ -832,6 +840,7 @@ function buildAddressLookupProvenance(
         parcel_id: primaryParcel.parcel_id,
         area: toNumber(primaryParcel.land_area_sqm),
         land_area_sqm: toNumber(primaryParcel.land_area_sqm),
+        zoning: primaryParcel.zoning,
         announced_land_current_value: toNumber(primaryParcel.announced_land_current_value),
         announced_land_value: toNumber(primaryParcel.announced_land_value),
       },
@@ -917,6 +926,9 @@ function candidatesFromRegistryRun(run: RegistryQueryRun, address: string): Parc
 function candidateFromRegistryJson(candidate: unknown, address: string): ParcelInfo | null {
   if (!isRecord(candidate)) return null;
   const sectionCode = pickString(candidate, "section_code") ?? pickString(candidate, "sectionCode") ?? "unknown-section";
+  const sectionName = pickString(candidate, "section_name") ?? pickString(candidate, "sectionName") ?? undefined;
+  const officeCode = pickString(candidate, "office_code") ?? pickString(candidate, "officeCode") ?? undefined;
+  const landOffice = pickString(candidate, "land_office") ?? pickString(candidate, "landOffice") ?? undefined;
   const landNo = pickString(candidate, "land_no") ?? pickString(candidate, "landNo");
   const buildingNo = pickString(candidate, "building_no") ?? pickString(candidate, "buildingNo") ?? "";
   if (!landNo && !buildingNo) return null;
@@ -926,9 +938,37 @@ function candidateFromRegistryJson(candidate: unknown, address: string): ParcelI
     address,
     lot_number: landNo ?? "",
     building_number: buildingNo,
+    section_name: sectionName,
+    office_code: officeCode,
+    land_office: landOffice,
     source: "cop_moi",
     trusted_for_pdf: true,
+    building_area_sqm:
+      pickString(candidate, "building_area_sqm") ??
+      pickString(candidate, "buildingAreaSqm") ??
+      undefined,
+    total_floor_count:
+      pickString(candidate, "total_floor_count") ??
+      pickString(candidate, "totalFloorCount") ??
+      undefined,
+    floor_label:
+      pickString(candidate, "floor_label") ??
+      pickString(candidate, "floorLabel") ??
+      undefined,
+    completion_date_roc:
+      pickString(candidate, "completion_date_roc") ??
+      pickString(candidate, "completionDateRoc") ??
+      undefined,
+    age_years:
+      pickString(candidate, "age_years") ??
+      pickString(candidate, "ageYears") ??
+      undefined,
+    main_use:
+      pickString(candidate, "main_use") ??
+      pickString(candidate, "mainUse") ??
+      undefined,
     land_area_sqm: pickString(candidate, "land_area_sqm") ?? pickString(candidate, "landAreaSqm") ?? undefined,
+    zoning: pickString(candidate, "zoning") ?? undefined,
     announced_land_current_value:
       pickString(candidate, "announced_land_current_value") ??
       pickString(candidate, "announcedLandCurrentValue") ??
@@ -1040,12 +1080,11 @@ function buildRegistryMatchDraft(parcels: ParcelInfo[]): RegistryMatchDraft {
   if (!primaryParcel) {
     return emptyRegistryMatch();
   }
-  const firstBuilding = parcels.find((parcel) => parcel.building_number?.trim());
   const explicitSectionName = primaryParcel.section_name?.trim();
   const officeCode = primaryParcel.office_code?.trim() || getOfficeCodeFromParcelId(primaryParcel.parcel_id);
   const sectionCode = getSectionCodeFromParcelId(primaryParcel.parcel_id);
   const landNo = primaryParcel.lot_number?.trim() ?? "";
-  const buildingNo = primaryParcel.building_number?.trim() || firstBuilding?.building_number?.trim() || "";
+  const buildingNo = primaryParcel.building_number?.trim() || "";
   const registryKey = buildRegistryKey(officeCode, sectionCode, buildingNo || landNo);
   return {
     officeCode,

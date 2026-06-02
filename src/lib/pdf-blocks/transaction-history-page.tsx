@@ -1,7 +1,7 @@
 import React from "react";
 import { Page, View, Text } from "@react-pdf/renderer";
 
-interface TransactionRecord {
+export interface TransactionRecord {
   address: string;
   areaPing: number;
   totalPrice: number;
@@ -21,7 +21,7 @@ const PAGE_STYLE = {
   fontSize: 10,
 } as const;
 
-const ROWS_PER_PAGE = 15;
+const PRINT_ROW_LIMIT = 10;
 
 const COL_WIDTHS = {
   address: "35%",
@@ -43,8 +43,13 @@ function TableHeader() {
   );
 }
 
+export function compactTransactionHistoryRows(data: TransactionRecord[]): TransactionRecord[] {
+  return data.slice(0, PRINT_ROW_LIMIT);
+}
+
 export function TransactionHistoryPage({ data }: TransactionHistoryPageProps): React.ReactElement {
-  if (!data || data.length === 0) {
+  const rows = compactTransactionHistoryRows(data ?? []);
+  if (rows.length === 0) {
     return (
       <Page size="A4" style={PAGE_STYLE}>
         <Text style={{ fontSize: 14, marginBottom: 16 }}>附近地段實價登錄成交行情</Text>
@@ -53,47 +58,38 @@ export function TransactionHistoryPage({ data }: TransactionHistoryPageProps): R
     );
   }
 
-  const pages: TransactionRecord[][] = [];
-  for (let i = 0; i < data.length; i += ROWS_PER_PAGE) {
-    pages.push(data.slice(i, i + ROWS_PER_PAGE));
-  }
-
   return (
-    <>
-      {pages.map((pageRows, pageIndex) => (
-        <Page key={pageIndex} size="A4" style={PAGE_STYLE}>
-          <Text style={{ fontSize: 14, marginBottom: 12 }}>附近地段實價登錄成交行情</Text>
-          <View style={{ borderWidth: 1, borderColor: "#D1D5DB", borderStyle: "solid" }}>
-            <TableHeader />
-            {pageRows.map((row, rowIndex) => (
-              <View
-                key={rowIndex}
-                style={{
-                  flexDirection: "row",
-                  borderBottomWidth: rowIndex === pageRows.length - 1 ? 0 : 1,
-                  borderBottomColor: "#E5E7EB",
-                  borderBottomStyle: "solid",
-                  backgroundColor: rowIndex % 2 === 0 ? "#FFFFFF" : "#F9FAFB",
-                }}
-              >
-                <Text style={{ width: COL_WIDTHS.address, padding: 5, fontSize: 9 }}>{row.address}</Text>
-                <Text style={{ width: COL_WIDTHS.areaPing, padding: 5, fontSize: 9, textAlign: "right" }}>
-                  {row.areaPing > 0 ? row.areaPing.toFixed(2) : "—"}
-                </Text>
-                <Text style={{ width: COL_WIDTHS.totalPrice, padding: 5, fontSize: 9, textAlign: "right" }}>
-                  {row.totalPrice > 0 ? row.totalPrice.toLocaleString("zh-TW") : "—"}
-                </Text>
-                <Text style={{ width: COL_WIDTHS.unitPrice, padding: 5, fontSize: 9, textAlign: "right" }}>
-                  {row.unitPrice > 0 ? row.unitPrice.toLocaleString("zh-TW") : "—"}
-                </Text>
-                <Text style={{ width: COL_WIDTHS.transactionDate, padding: 5, fontSize: 9, textAlign: "center" }}>
-                  {row.transactionDate || "—"}
-                </Text>
-              </View>
-            ))}
+    <Page size="A4" style={PAGE_STYLE}>
+      <Text style={{ fontSize: 14, marginBottom: 12 }}>附近地段實價登錄成交行情</Text>
+      <View style={{ borderWidth: 1, borderColor: "#D1D5DB", borderStyle: "solid" }}>
+        <TableHeader />
+        {rows.map((row, rowIndex) => (
+          <View
+            key={rowIndex}
+            style={{
+              flexDirection: "row",
+              borderBottomWidth: rowIndex === rows.length - 1 ? 0 : 1,
+              borderBottomColor: "#E5E7EB",
+              borderBottomStyle: "solid",
+              backgroundColor: rowIndex % 2 === 0 ? "#FFFFFF" : "#F9FAFB",
+            }}
+          >
+            <Text style={{ width: COL_WIDTHS.address, padding: 5, fontSize: 9 }}>{row.address}</Text>
+            <Text style={{ width: COL_WIDTHS.areaPing, padding: 5, fontSize: 9, textAlign: "right" }}>
+              {row.areaPing > 0 ? row.areaPing.toFixed(2) : "—"}
+            </Text>
+            <Text style={{ width: COL_WIDTHS.totalPrice, padding: 5, fontSize: 9, textAlign: "right" }}>
+              {row.totalPrice > 0 ? row.totalPrice.toLocaleString("zh-TW") : "—"}
+            </Text>
+            <Text style={{ width: COL_WIDTHS.unitPrice, padding: 5, fontSize: 9, textAlign: "right" }}>
+              {row.unitPrice > 0 ? row.unitPrice.toLocaleString("zh-TW") : "—"}
+            </Text>
+            <Text style={{ width: COL_WIDTHS.transactionDate, padding: 5, fontSize: 9, textAlign: "center" }}>
+              {row.transactionDate || "—"}
+            </Text>
           </View>
-        </Page>
-      ))}
-    </>
+        ))}
+      </View>
+    </Page>
   );
 }

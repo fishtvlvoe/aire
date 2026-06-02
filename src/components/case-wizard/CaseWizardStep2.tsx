@@ -31,11 +31,29 @@ export function CaseWizardStep2({ caseData }: CaseWizardStep2Props) {
     return typeof value === "string" ? value : "";
   }
 
+  function readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
   async function handleSaved(data: Record<string, unknown>) {
     const payload =
       data.land_registry_data && typeof data.land_registry_data === "object"
         ? (data.land_registry_data as Record<string, unknown>)
         : data;
+    const existingPayload = readRecord(registryPayload ?? caseData.land_registry_data);
+    const mergedEntries = {
+      ...readRecord(existingPayload.entries),
+      ...readRecord(payload.entries),
+    };
+    const mergedPayload: Record<string, unknown> = {
+      ...existingPayload,
+      ...payload,
+    };
+    if (Object.keys(mergedEntries).length > 0) {
+      mergedPayload.entries = mergedEntries;
+    }
     const landRegistryEntry = payload.land_registry as Record<string, unknown> | undefined;
     const buildingRegistryEntry =
       payload.building_registry as Record<string, unknown> | undefined;
@@ -59,11 +77,11 @@ export function CaseWizardStep2({ caseData }: CaseWizardStep2Props) {
     );
     setLandLotNo(nextLand || landLotNo);
     setBuildingLotNo(nextBuilding || buildingLotNo);
-    setRegistryPayload(payload);
+    setRegistryPayload(mergedPayload);
     await casesApi.update(caseData.id, {
       land_lot_no: nextLand || landLotNo,
       building_lot_no: nextBuilding || buildingLotNo || null,
-      land_registry_data: payload,
+      land_registry_data: mergedPayload,
     });
   }
 

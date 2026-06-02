@@ -27,7 +27,6 @@ use std::sync::Arc;
 use tauri::State;
 
 const CHUNK_SIZE: usize = 25;
-const DEFAULT_UNIT_COST: i64 = 10;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ApiResult {
@@ -334,7 +333,7 @@ pub(crate) fn record_formal_pull_run(
                 } else {
                     None
                 },
-                cost_cents: if success { DEFAULT_UNIT_COST * 100 } else { 0 },
+                cost_cents: if success { formal_api_unit_cost(api_id) * 100 } else { 0 },
                 request_summary_json: Some(serde_json::json!({
                     "registry_key": target.registry_key,
                     "api_id": api_id,
@@ -658,7 +657,7 @@ pub async fn land_registry_pull_data_core(
 
             match call_result {
                 Ok(data) => {
-                    total_cost += DEFAULT_UNIT_COST;
+                    total_cost += formal_api_unit_cost(api_id);
                     results.insert(
                         api_id.to_string(),
                         ApiResult {
@@ -687,6 +686,18 @@ pub async fn land_registry_pull_data_core(
     PullResult {
         results,
         total_cost,
+    }
+}
+
+fn formal_api_unit_cost(api_id: &str) -> i64 {
+    match api_id {
+        "land_registry" | "MOI_API_001" => 1,
+        "land_value" | "MOI_API_014" => 0,
+        "building_registry" | "MOI_API_004" => 1,
+        "building_ownership" | "MOI_API_005" => 1,
+        "building_other_rights" | "MOI_API_006" => 1,
+        "address_to_building" | "MOI_API_036" => 0,
+        _ => 0,
     }
 }
 
@@ -747,9 +758,10 @@ pub async fn land_registry_pull_data(
         .get_raw_api_key()
         .map_err(to_ipc_error)?
         .ok_or_else(|| to_ipc_error(LandRegistryError::ApiKeyNotConfigured))?;
-    let key_provider = Arc::new(StaticApiKeyProvider::configured(
+    let key_provider = Arc::new(StaticApiKeyProvider::with_token_endpoint(
         credentials.client_id,
         credentials.client_secret,
+        credentials.token_endpoint,
     ));
 
     Ok(land_registry_pull_data_core(
@@ -868,9 +880,10 @@ pub async fn land_registry_formal_pull_data(
             return Err(err);
         }
     };
-    let key_provider = Arc::new(StaticApiKeyProvider::configured(
+    let key_provider = Arc::new(StaticApiKeyProvider::with_token_endpoint(
         credentials.client_id,
         credentials.client_secret,
+        credentials.token_endpoint,
     ));
 
     let parcel_id = match target.building_no.as_deref() {
@@ -1140,7 +1153,7 @@ mod tests {
                 source: "api".to_string(),
             },
         );
-        let pulled = PullResult { results, total_cost: 20 };
+        let pulled = PullResult { results, total_cost: 2 };
         let api_ids = vec!["building_registry".to_string(), "building_ownership".to_string()];
         let run_id = record_formal_pull_run(&conn, &target, &api_ids, &pulled, 1_779_648_001)
             .unwrap();
@@ -1149,7 +1162,7 @@ mod tests {
             .unwrap();
         assert_eq!(run.confirmation_status, "confirmed");
         assert_eq!(run.status, "formal_pulled");
-        assert_eq!(run.total_cost_cents, 2000);
+        assert_eq!(run.total_cost_cents, 200);
         assert!(run.cop_payload_json.unwrap().get("building_registry").is_some());
 
         let call_rows: i64 = conn
@@ -1167,7 +1180,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(total_call_cost, 2000);
+        assert_eq!(total_call_cost, 200);
 
         let updated = crate::db::cases::get_case(&conn, &case.id).unwrap();
         let registry_data = updated.land_registry_data.unwrap();
@@ -1228,7 +1241,7 @@ mod tests {
             &conn,
             &target,
             &api_ids,
-            &PullResult { results, total_cost: 20 },
+            &PullResult { results, total_cost: 2 },
             1_779_648_001,
         )
         .unwrap();
@@ -1459,7 +1472,7 @@ mod tests {
         .await;
 
         assert_eq!(result.results.len(), 3);
-        assert_eq!(result.total_cost, 30);
+        assert_eq!(result.total_cost, 2);
         assert!(result.results["building_registry"].success);
         assert!(result.results["land_registry"].success);
         assert!(result.results["co_owners"].success);

@@ -50,11 +50,8 @@ export function ExteriorPhotoPage({
           />
         ) : (
           <View style={{ alignItems: "center" }}>
-            <Text style={{ color: textColor, fontSize: 14, fontFamily: "NotoSansTC", marginBottom: 8 }}>
-              建物外觀
-            </Text>
-            <Text style={{ color: "#9CA3AF", fontSize: 10, fontFamily: "NotoSansTC" }}>
-              未取得街景或外觀照；請補現場照片，或設定 Google Maps API Key 後重新產生
+            <Text style={{ color: textColor, fontSize: 18, fontFamily: "NotoSansTC", marginBottom: 8 }}>
+              待補
             </Text>
           </View>
         )}

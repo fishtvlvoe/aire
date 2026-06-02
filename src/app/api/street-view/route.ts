@@ -1,10 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 interface StreetViewBody {
   lat?: number;
   lng?: number;
+  heading?: number;
+  pitch?: number;
+  fov?: number;
 }
 
 interface StreetViewMetadata {
@@ -20,6 +23,15 @@ export async function POST(request: NextRequest) {
   }
 
   const { lat, lng } = body;
+  const heading = typeof body.heading === "number" && Number.isFinite(body.heading)
+    ? ((body.heading % 360) + 360) % 360
+    : undefined;
+  const pitch = typeof body.pitch === "number" && Number.isFinite(body.pitch)
+    ? Math.max(-90, Math.min(90, body.pitch))
+    : 0;
+  const fov = typeof body.fov === "number" && Number.isFinite(body.fov)
+    ? Math.max(10, Math.min(120, body.fov))
+    : 80;
 
   if (
     lat === undefined || lng === undefined ||
@@ -61,6 +73,9 @@ export async function POST(request: NextRequest) {
     const imgUrl = new URL("https://maps.googleapis.com/maps/api/streetview");
     imgUrl.searchParams.set("size", "600x400");
     imgUrl.searchParams.set("location", location);
+    if (heading !== undefined) imgUrl.searchParams.set("heading", String(heading));
+    imgUrl.searchParams.set("pitch", String(pitch));
+    imgUrl.searchParams.set("fov", String(fov));
     imgUrl.searchParams.set("key", key);
 
     const imgResp = await fetch(imgUrl.toString(), {

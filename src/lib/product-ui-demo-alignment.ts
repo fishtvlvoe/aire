@@ -528,6 +528,43 @@ function normalizeTotalFloorCount(value: string | number | undefined): number | 
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function extractFloorFromAddress(address?: string | null): string | undefined {
+  const match = address?.match(/(\d+樓(?:之\d+)?)/);
+  return match?.[1];
+}
+
+function normalizeUnitFloor(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.includes("樓")) return trimmed;
+  return undefined;
+}
+
+function resolveDisplayFloor(input: {
+  address?: string | null;
+  registryFloor?: string;
+  candidateFloor?: string;
+  totalFloor?: string;
+}): string | undefined {
+  const addressFloor = extractFloorFromAddress(input.address);
+  const unitFloor = normalizeUnitFloor(input.registryFloor) ?? normalizeUnitFloor(input.candidateFloor) ?? addressFloor;
+  const totalFloor =
+    normalizeTotalFloorCount(input.totalFloor) ??
+    normalizeTotalFloorCount(input.registryFloor);
+  if (unitFloor) {
+    return [unitFloor, totalFloor ? `總樓層 ${totalFloor}` : ""].filter(Boolean).join(" / ");
+  }
+  if (totalFloor) return `本戶樓層待確認 / 總樓層 ${totalFloor}`;
+  return undefined;
+}
+
+function formatRegistryCodeValue(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (/^[0-9A-Z]{1,4}$/i.test(trimmed)) return `代碼 ${trimmed}（待代碼表轉換）`;
+  return trimmed;
+}
+
 function normalizePropertyTypeText(value: string | number | null | undefined): string {
   return String(value ?? "")
     .trim()
@@ -615,21 +652,25 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
     });
   }
 
+  const registeredAreaSqm = numberFromRecord(building, ["area", "building_area", "AREA"]);
   const registeredAreaPing =
     numberFromSummary(buildingCandidateFields, "registeredAreaPing") ??
-    m2ToPing(numberFromRecord(building, ["area", "building_area", "AREA"]));
-  if (registeredAreaPing !== undefined) {
+    m2ToPing(registeredAreaSqm);
+  if (registeredAreaPing !== undefined || registeredAreaSqm !== undefined) {
     appendOrUpdateFieldRow(rows, {
       fieldName: "建物面積",
       helper: "建物面積",
-      value: `${registeredAreaPing.toFixed(2)} 坪`,
+      value: registeredAreaSqm !== undefined && registeredAreaPing !== undefined
+        ? `${registeredAreaSqm.toFixed(2)} 平方公尺（${registeredAreaPing.toFixed(2)} 坪）`
+        : `${registeredAreaPing?.toFixed(2) ?? ""} 坪`,
       ...buildingStatus,
     });
   }
 
-  const legalUse =
+  const legalUse = formatRegistryCodeValue(
     textFromRecord(building, ["main_use", "purpose", "building_purpose", "PURPOSE"]) ??
-    textFromSummary(buildingCandidateFields, "legalUse");
+      textFromSummary(buildingCandidateFields, "legalUse"),
+  );
   if (legalUse) {
     appendOrUpdateFieldRow(rows, {
       fieldName: "主要用途",
@@ -686,17 +727,22 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
     });
   }
 
-  const floor =
-    textFromRecord(building, ["building_floor", "floor_label", "BUILDINGFLOOR"]) ??
-    textFromSummary(buildingCandidateFields, "floor");
+  const floor = textFromRecord(building, ["building_floor", "floor_label", "BUILDINGFLOOR"]);
+  const candidateFloor = textFromSummary(buildingCandidateFields, "floor");
   const totalFloor =
     textFromRecord(building, ["total_floor_count", "totalFloorCount", "TOTALFLOOR"]) ??
     textFromSummary(buildingCandidateFields, "totalFloorCount");
-  if (floor || totalFloor) {
+  const displayFloor = resolveDisplayFloor({
+    address: caseData?.address,
+    registryFloor: floor,
+    candidateFloor,
+    totalFloor,
+  });
+  if (displayFloor) {
     appendOrUpdateFieldRow(rows, {
       fieldName: "樓層",
       helper: "樓層",
-      value: [floor, totalFloor ? `總樓層 ${totalFloor}` : ""].filter(Boolean).join(" / "),
+      value: displayFloor,
       ...buildingStatus,
     });
   }

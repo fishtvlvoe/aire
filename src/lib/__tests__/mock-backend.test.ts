@@ -251,6 +251,33 @@ describe("MockStore", () => {
     expect(result.results.unknown_api.data).toEqual({ source_api: "unknown_api" });
   });
 
+  it("delete_case clears case-scoped local query traces", async () => {
+    const store = new MockStore() as unknown as {
+      invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
+      registryQueryRuns: Array<{ id: string; case_id: string | null }>;
+      registryQueryCache: Map<string, string>;
+      registryMatchByCase: Map<string, unknown>;
+    };
+    const created = await store.invoke<{ id: string }>("create_case", {
+      input: {
+        address: "台南市東區裕農路288巷17號8樓之1",
+        property_type: "residential",
+        land_lot_no: "00700000",
+      },
+    });
+    store.registryQueryRuns.unshift({
+      id: "run-case-delete-001",
+      case_id: created.id,
+    } as unknown as { id: string; case_id: string | null });
+    store.registryQueryCache.set("mock-cache-key", "run-case-delete-001");
+    store.registryMatchByCase.set(created.id, { case_id: created.id });
+
+    await expect(store.invoke<void>("delete_case", { id: created.id })).resolves.toBeUndefined();
+    expect(store.registryQueryRuns.some((run) => run.case_id === created.id)).toBe(false);
+    expect(store.registryQueryCache.get("mock-cache-key")).toBeUndefined();
+    expect(store.registryMatchByCase.has(created.id)).toBe(false);
+  });
+
   it("query_real_price returns 3 Tainan records with numeric unit_price", async () => {
     const records = await mockInvoke<
       Array<{

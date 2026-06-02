@@ -135,18 +135,16 @@ describe("land-registry-api addressLookup", () => {
   it("uses the local formal proxy in browser development instead of falling back to mock registry data", async () => {
     vi.stubEnv("NODE_ENV", "development");
     mocks.isTauriEnv.mockResolvedValue(false);
-    mocks.safeInvoke
-      .mockResolvedValueOnce({ clientId: "cid", secret: "sec" })
-      .mockResolvedValueOnce({
-        id: "case-hsinchu",
-        land_registry_data: {
-          confirmed_registry_match: {
-            section_name: "兵南段",
-            land_no: "04140000",
-            building_no: "00084000",
-          },
+    mocks.safeInvoke.mockResolvedValueOnce({
+      id: "case-hsinchu",
+      land_registry_data: {
+        confirmed_registry_match: {
+          section_name: "兵南段",
+          land_no: "04140000",
+          building_no: "00084000",
         },
-      });
+      },
+    });
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -173,7 +171,6 @@ describe("land-registry-api addressLookup", () => {
       },
     });
     expect(fetchSpy).toHaveBeenCalledWith("/api/local/formal-pull-data", expect.any(Object));
-    expect(mocks.safeInvoke).toHaveBeenCalledWith("get_land_api_settings");
     expect(mocks.safeInvoke).toHaveBeenCalledWith("get_case", { id: "case-hsinchu" });
     fetchSpy.mockRestore();
   });
@@ -181,12 +178,10 @@ describe("land-registry-api addressLookup", () => {
   it("rejects formal import when the case has no confirmed registry match", async () => {
     vi.stubEnv("NODE_ENV", "development");
     mocks.isTauriEnv.mockResolvedValue(false);
-    mocks.safeInvoke
-      .mockResolvedValueOnce({ clientId: "cid", secret: "sec" })
-      .mockResolvedValueOnce({
-        id: "case-no-match",
-        land_registry_data: {},
-      });
+    mocks.safeInvoke.mockResolvedValueOnce({
+      id: "case-no-match",
+      land_registry_data: {},
+    });
 
     await expect(formalPullData("case-no-match", ["building_registry"])).rejects.toThrow(
       "registry_match_required",

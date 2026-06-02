@@ -26,6 +26,7 @@ export interface ParcelInfo {
   age_years?: string;
   main_use?: string;
   land_area_sqm?: string;
+  zoning?: string;
   announced_land_current_value?: string;
   announced_land_value?: string;
   lat?: number;
@@ -190,6 +191,7 @@ interface LocalLandApiSettings {
 
 interface LocalCaseWithRegistryData {
   id?: string;
+  address?: string | null;
   land_registry_data?: {
     confirmed_registry_match?: {
       office_code?: string | null;
@@ -264,7 +266,6 @@ async function formalPullDataFromLocalBackend(caseId: string, apiIds: string[]) 
   if (typeof window === "undefined") {
     throw new NotInTauriError("請使用 AIRE 桌面版完成正式資料匯入");
   }
-  const settings = await readLocalLandApiSettings();
   const caseRow = await safeInvoke<LocalCaseWithRegistryData>("get_case", { id: caseId });
   const target = caseRow.land_registry_data?.confirmed_registry_match;
   if (!target) {
@@ -276,8 +277,7 @@ async function formalPullDataFromLocalBackend(caseId: string, apiIds: string[]) 
     body: JSON.stringify({
       caseId,
       apiIds,
-      clientId: settings.clientId ?? "",
-      secret: settings.secret ?? "",
+      address: caseRow.address,
       target,
     }),
     signal: AbortSignal.timeout(20000),
@@ -436,6 +436,11 @@ export function mapErrorToMessage(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
   if (msg.includes("registry_match_required")) return "請先確認地段、地號與建號後再查詢";
   if (msg.includes("cop_credential_required")) return "請先在設定頁完成地政查詢帳號設定";
+  if (msg.includes("cop_token_invalid_json")) {
+    return "地政帳號驗證失敗：COP token endpoint 沒有回 JSON，可能是帳密、權限或 COP 服務異常。請先到設定頁重新測試連線";
+  }
+  if (msg.includes("cop_token_http_")) return "地政帳號驗證失敗：COP token endpoint 回傳錯誤狀態，請確認帳密與服務權限";
+  if (msg.includes("cop_token_missing_access_token")) return "地政帳號驗證失敗：COP token 回應缺少 access_token";
   if (msg.includes("ApiKeyNotConfigured")) return "請先在設定頁設定地政查詢帳號";
   if (msg.includes("AuthenticationFailed")) return "地政查詢帳號驗證失敗，請確認設定";
   if (msg.includes("ConsentRequired")) return "請先取得所有權人授權同意";

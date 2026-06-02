@@ -141,6 +141,9 @@ vi.mock("@/lib/mock-backend", () => ({
 }));
 
 vi.mock("@/lib/land-registry-api", () => ({
+  getApiKey: vi.fn(async () => null),
+  setApiKey: vi.fn(async () => undefined),
+  testConnection: vi.fn(async () => ({ success: true, message: "連線成功", latency_ms: 12 })),
   getBalance: vi.fn(async () => ({ month_total_cost: 27, month_query_count: 2, low_balance_warning: false })),
   listBillingEntries: vi.fn(async () => mockBillingEntries),
   listRegistryQueryRuns: vi.fn(async () => mockRegistryRows),

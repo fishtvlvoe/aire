@@ -2,6 +2,7 @@ import type { RealPriceRecord } from "@/lib/real-price-query";
 
 const TWINKLE_ENDPOINT = "https://api.twinkleai.tw/mcp/";
 const SQM_TO_PING = 0.3025;
+const TWINKLE_QUERY_TIMEOUT_MS = 12_000;
 
 type TwinkleResponsePayload = {
   columns?: string[];
@@ -301,20 +302,16 @@ function mapTwinkleRows(payload: TwinkleResponsePayload, config: DatasetConfig):
     .sort((left, right) => String(right.transaction_date ?? right.date ?? "").localeCompare(String(left.transaction_date ?? left.date ?? "")));
 }
 
-export async function queryTwinkleRealPrice(
+async function queryTwinkleDataset(
+  config: DatasetConfig,
   district: string,
   keyword: string,
   limit: number,
-  address?: string,
+  apiKey: string,
 ): Promise<RealPriceRecord[]> {
-  const apiKey = process.env.TWINKLE_AI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error("TWINKLE_AI_API_KEY 未設定");
-  }
-  const config = resolveDatasetConfig(address);
-
   const response = await fetch(TWINKLE_ENDPOINT, {
     method: "POST",
+    signal: AbortSignal.timeout(TWINKLE_QUERY_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       Accept: "application/json, text/event-stream",
@@ -346,4 +343,48 @@ export async function queryTwinkleRealPrice(
   }
 
   return mapTwinkleRows(parsed, config);
+}
+
+function mergeRealPriceRecords(records: RealPriceRecord[], limit: number): RealPriceRecord[] {
+  const seen = new Set<string>();
+  return records
+    .sort((left, right) => String(right.transaction_date ?? right.date ?? "").localeCompare(String(left.transaction_date ?? left.date ?? "")))
+    .filter((record) => {
+      const key = [
+        record.address,
+        record.transaction_date ?? record.date ?? "",
+        record.total_price ?? "",
+        record.area ?? "",
+      ].join("|");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, limit);
+}
+
+export async function queryTwinkleRealPrice(
+  district: string,
+  keyword: string,
+  limit: number,
+  address?: string,
+): Promise<RealPriceRecord[]> {
+  const apiKey = process.env.TWINKLE_AI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("TWINKLE_AI_API_KEY 未設定");
+  }
+  const config = resolveDatasetConfig(address);
+  const primaryRecords = await queryTwinkleDataset(config, district, keyword, limit, apiKey);
+
+  if (config.sourceLabel !== "city-specific") {
+    return primaryRecords;
+  }
+
+  let nationalRecords: RealPriceRecord[] = [];
+  try {
+    nationalRecords = await queryTwinkleDataset(NATIONAL_DATASET_CONFIG, district, keyword, limit, apiKey);
+  } catch {
+    return primaryRecords;
+  }
+  return mergeRealPriceRecords([...primaryRecords, ...nationalRecords], limit);
 }

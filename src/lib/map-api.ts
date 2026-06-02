@@ -21,16 +21,62 @@ export interface Amenity {
 }
 
 export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number }> {
+  const trimmed = address.trim();
+  if (!trimmed) {
+    throw new MapGeocodingError("address is required");
+  }
+  let nominatimError: unknown;
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
-    const resp = await fetch(url, { headers: { "Accept-Language": "zh-TW" } });
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmed)}`;
+    const headers: Record<string, string> = { "Accept-Language": "zh-TW" };
+    if (typeof window === "undefined") {
+      headers["User-Agent"] = "AIRE local dossier generator";
+    }
+    const resp = await fetch(url, { headers });
     if (!resp.ok) throw new MapGeocodingError(`HTTP ${resp.status}`);
     const data = (await resp.json()) as Array<{ lat: string; lon: string }>;
     if (!data.length) throw new MapGeocodingError("geocoding returned empty results");
     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   } catch (err) {
-    if (err instanceof MapGeocodingError) throw err;
-    throw new MapGeocodingError(err instanceof Error ? err.message : "geocoding failed");
+    nominatimError = err;
+  }
+
+  const googleResult = await geocodeAddressWithGoogle(trimmed);
+  if (googleResult) return googleResult;
+
+  if (nominatimError instanceof MapGeocodingError) throw nominatimError;
+  throw new MapGeocodingError(nominatimError instanceof Error ? nominatimError.message : "geocoding failed");
+}
+
+async function geocodeAddressWithGoogle(address: string): Promise<{ lat: number; lng: number } | null> {
+  const key = typeof process !== "undefined" ? process.env.GOOGLE_MAPS_API_KEY : undefined;
+  if (!key) return null;
+
+  try {
+    const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+    url.searchParams.set("address", address);
+    url.searchParams.set("region", "tw");
+    url.searchParams.set("language", "zh-TW");
+    url.searchParams.set("key", key);
+    const resp = await fetch(url.toString(), { signal: AbortSignal.timeout(10000) });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as {
+      status?: string;
+      results?: Array<{ geometry?: { location?: { lat?: number; lng?: number } } }>;
+    };
+    if (data.status !== "OK") return null;
+    const location = data.results?.[0]?.geometry?.location;
+    if (
+      typeof location?.lat !== "number" ||
+      !Number.isFinite(location.lat) ||
+      typeof location.lng !== "number" ||
+      !Number.isFinite(location.lng)
+    ) {
+      return null;
+    }
+    return { lat: location.lat, lng: location.lng };
+  } catch {
+    return null;
   }
 }
 

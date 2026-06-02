@@ -72,6 +72,8 @@ describe("registry-preview", () => {
     expect(text).toContain("陳小美");
     expect(text).toContain("建物標示部");
     expect(text).toContain("住家用");
+    expect(text).toContain('"label":"登記坪數","value":"25.45"');
+    expect(text).not.toContain('"label":"登記坪數","value":"84.13"');
     expect(text).toContain("31 年");
     expect(text).toContain("抵押權");
     expect(text).toContain("台灣銀行");
@@ -112,5 +114,48 @@ describe("registry-preview", () => {
     expect(text).toContain("建號 778-2");
     expect(text).toContain("住家用");
     expect(text).not.toContain("不可顯示");
+  });
+
+  it("does not report sections that were not included in the formal query as missing", () => {
+    const sections = buildRegistryPreviewSections({
+      schema: "aire.registry-provenance.v1",
+      generatedAt: "2026-05-30T00:00:00.000Z",
+      entries: {
+        building_registry: {
+          apiId: "building_registry",
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data: {
+            data: {
+              building_address: "勝利里勝利街５８巷１６號",
+              area: 102.77,
+              construction_date: "0780705",
+            },
+          },
+        },
+        building_ownership: {
+          apiId: "building_ownership",
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data: {
+            data: {
+              numerator: 1,
+              denominator: 1,
+            },
+          },
+        },
+      },
+    });
+
+    expect(sections.map((section) => section.id)).toEqual([
+      "building_registry",
+      "building_ownership",
+    ]);
+    const text = JSON.stringify(sections);
+    expect(text).not.toContain("土地標示部");
+    expect(text).not.toContain("土地所有權部");
+    expect(text).not.toContain("他項權利/抵押");
   });
 });

@@ -19,9 +19,9 @@ export interface LifeAmenitiesPageProps {
 }
 
 const PRINT_AMENITY_LIMITS: Record<string, number> = {
-  學校: 1,
-  醫療: 1,
-  醫院: 1,
+  學校: 10,
+  醫療: 3,
+  醫院: 3,
   公園: 1,
   捷運: 1,
   市場: 2,
@@ -82,7 +82,7 @@ export function LifeAmenitiesPage({
   return (
     <Page size="A4" style={{ padding: 24, paddingTop: 120, fontFamily: "NotoSansTC" }}>
       <PdfHeaderWithLogo logoDataUrl={logo} />
-      <Text style={{ fontSize: 20, marginBottom: 12, color: headingColor, fontFamily: "NotoSansTC" }}>位置圖與生活機能</Text>
+      <Text style={{ fontSize: 18, marginBottom: 10, color: headingColor, fontFamily: "NotoSansTC" }}>位置圖與生活機能</Text>
       <MapBlock
         borderColor={borderColor}
         hasImage={Boolean(hasImage)}
@@ -90,8 +90,8 @@ export function LifeAmenitiesPage({
         textColor={textColor}
       />
       {Array.from(grouped.entries()).map(([category, items]) => (
-        <View key={category} style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 12, fontWeight: "bold", color: headingColor, marginBottom: 4, fontFamily: "NotoSansTC" }}>
+        <View key={category} style={{ marginBottom: 8 }}>
+          <Text style={{ fontSize: 11, fontWeight: "bold", color: headingColor, marginBottom: 3, fontFamily: "NotoSansTC" }}>
             {category}
           </Text>
           <View style={{ borderWidth: 1, borderStyle: "solid", borderColor, fontFamily: "NotoSansTC" }}>
@@ -105,11 +105,11 @@ export function LifeAmenitiesPage({
                   borderBottomColor: borderColor,
                 }}
               >
-                <Text style={{ flex: 2, padding: 6, color: textColor, fontSize: 9, fontFamily: "NotoSansTC" }}>{item.name}</Text>
-                <Text style={{ width: 60, padding: 6, color: textColor, fontSize: 9, textAlign: "right", fontFamily: "NotoSansTC" }}>
+                <Text style={{ flex: 2, padding: 4, color: textColor, fontSize: 8, fontFamily: "NotoSansTC" }}>{item.name}</Text>
+                <Text style={{ width: 58, padding: 4, color: textColor, fontSize: 8, textAlign: "right", fontFamily: "NotoSansTC" }}>
                   {Math.round(item.distanceM)} m
                 </Text>
-                <Text style={{ flex: 3, padding: 6, color: textColor, fontSize: 9, fontFamily: "NotoSansTC" }}>{item.address || "-"}</Text>
+                <Text style={{ flex: 3, padding: 4, color: textColor, fontSize: 8, fontFamily: "NotoSansTC" }}>{item.address || "-"}</Text>
               </View>
             ))}
           </View>
@@ -134,19 +134,19 @@ function MapBlock({
   return (
     <View
       style={{
-        height: 260,
+        height: 180,
         borderWidth: 1,
         borderStyle: "solid",
         borderColor,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#F9FAFB",
-        marginBottom: 14,
+        marginBottom: 10,
         fontFamily: "NotoSansTC",
       }}
     >
       {hasImage && image ? (
-        <Image style={{ width: "100%", height: 260, objectFit: "contain" }} src={uint8ToDataUrl(image)} />
+        <Image style={{ width: "100%", height: 180, objectFit: "contain" }} src={uint8ToDataUrl(image)} />
       ) : (
         <View style={{ alignItems: "center" }}>
           <Text style={{ color: textColor, fontSize: 12, fontFamily: "NotoSansTC", marginBottom: 6 }}>

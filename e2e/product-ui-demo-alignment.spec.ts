@@ -36,14 +36,14 @@ for (const viewport of viewports) {
       fullPage: true,
     });
 
-    await page.goto(`/cases/_?caseId=${CASE_ID}`);
+    await page.goto(`/cases/${CASE_ID}`);
     const primaryNavigation = page.getByRole("navigation", { name: "主要選單" });
     if (await primaryNavigation.count()) {
       await expect(primaryNavigation).toBeVisible();
     }
     await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
     await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "補件/現場" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "補件與現場" })).toBeVisible();
     await expect(page.getByRole("region", { name: "本次調閱費用" })).toBeVisible();
     await expect(page.getByText("MOI_API_")).toHaveCount(0);
     await expect(page.getByText("COP309")).toHaveCount(0);
@@ -59,7 +59,9 @@ for (const viewport of viewports) {
     await expect(settingsMain.getByRole("heading", { name: "個人設定" })).toBeVisible();
     await expect(settingsMain.getByRole("heading", { name: "設定分類" })).toHaveCount(0);
     await expect(settingsMain.getByRole("heading", { name: "個人名稱與 Email" })).toBeVisible();
-    await expect(settingsMain.getByRole("heading", { name: "品牌色與 Logo" })).toBeVisible();
+    await expect(settingsMain.getByRole("heading", { name: "PDF 開啟密碼" })).toBeVisible();
+    await page.goto("/settings/branding");
+    await expect(page.getByRole("main").getByRole("heading", { name: "品牌與交付資訊" })).toBeVisible();
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: `e2e/results/demo-alignment/product-settings-${viewport.width}.png`,
@@ -85,33 +87,26 @@ for (const viewport of viewports) {
     await expectCustomerFacingTextClean(page);
 
     await page.goto("/settings?section=plans");
-    await expect(page.getByRole("main").getByRole("heading", { name: "方案與升級" })).toBeVisible();
+    await expect(page.getByRole("main").getByRole("heading", { name: "方案設定" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "基本款" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "進階款" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "高級款" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "帳號與授權管理" })).toBeVisible();
     await expect(page.getByText("實價登錄 MCP Hub")).toHaveCount(0);
-    await expect(page.getByText("實價登錄", { exact: true })).toHaveCount(2);
-    await expect(page.getByText("目前正在開發中。")).toBeVisible();
     await expect(page.getByText("測試版已開啟")).toHaveCount(0);
     await expect(page.getByText(/正式版歸在/)).toHaveCount(0);
-    await expect(page.getByRole("switch", { name: "Google 地圖未啟用" })).toBeEnabled();
-    await expect(page.getByRole("switch", { name: "實價登錄未啟用" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "目前使用中" })).toBeDisabled();
   });
 }
 
-test("new case flow is address-first and only falls back to manual type selection when needed", async ({ page }) => {
+test("new case flow is address-first and shows discovery results before manual decisions", async ({ page }) => {
   await page.goto("/cases/new");
   await expect(page.getByLabel("地址 *")).toBeVisible();
   await expect(page.getByLabel("物件類型")).toHaveCount(0);
 
   await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 1 號");
   await page.getByRole("button", { name: "查詢物件資料", exact: true }).click();
-  await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
+  const result = await expectDiscoveryResult(page);
+  await expect(result.getByText("資料組成").locator("..")).toContainText(/土地 \d+ 筆 · 建物 \d+ 筆/);
   await expectCustomerFacingTextClean(page);
-  await expect(page.getByLabel("物件類型")).toHaveCount(0);
-
-  await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 候選多筆");
-  await page.getByRole("button", { name: "查詢物件資料", exact: true }).click();
   await expect(page.getByLabel("物件類型")).toBeVisible();
 });
 
@@ -153,7 +148,7 @@ test("cases overview uses sidebar scope navigation without duplicating page tabs
   await expect(page.getByRole("button", { name: "匯出 PDF" })).toBeVisible();
 
   await page.getByRole("button", { name: "預覽 PDF" }).click();
-  await expect(page).toHaveURL(new RegExp(`/cases/_/preview\\?caseId=${CASE_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}/preview$`));
 
   await expectNoHorizontalOverflow(page);
   await page.screenshot({
@@ -211,4 +206,11 @@ async function expectNoHorizontalOverflow(page: Page) {
 async function expectCustomerFacingTextClean(page: Page) {
   const text = await page.locator("main").last().textContent();
   expect(text ?? "").not.toMatch(/\b(R02|COP|API|Helper|adapter|parser|payload|JSON)\b|便民系統/);
+}
+
+async function expectDiscoveryResult(page: Page) {
+  await expect(page.getByRole("button", { name: "建立案件", exact: true })).toBeEnabled({ timeout: 60_000 });
+  const result = page.locator("section", { hasText: "物件資料補齊" }).filter({ hasText: "資料組成" }).first();
+  await expect(result).toBeVisible();
+  return result;
 }

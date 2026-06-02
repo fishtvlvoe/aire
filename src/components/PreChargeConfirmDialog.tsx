@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FORMAL_COP_UNIT_COST_TWD } from "@/lib/formal-cop-api-set";
+import { getFormalCopApiPrice } from "@/lib/formal-cop-api-set";
 
 /**
  * PreChargeConfirmDialog — 查詢扣款前二次確認 Dialog
@@ -34,34 +34,42 @@ type QueryDetail = {
   queryItem: string;
   resultItem: string;
   unitCost: number;
+  pricingEvidence: string;
+  pricingAvailable: boolean;
 };
 
-const API_COPY: Record<string, QueryDetail> = {
+const API_COPY: Record<string, Omit<QueryDetail, "unitCost" | "pricingEvidence" | "pricingAvailable">> = {
   land_registry: {
     queryItem: "土地標示資料",
     resultItem: "地段、地號、土地面積、使用分區、公告現值與公告地價",
-    unitCost: FORMAL_COP_UNIT_COST_TWD,
   },
   building_registry: {
     queryItem: "建物標示資料",
     resultItem: "建號、法定用途、面積、樓層、建築完成日期",
-    unitCost: FORMAL_COP_UNIT_COST_TWD,
   },
   building_ownership: {
     queryItem: "建物所有權資料",
     resultItem: "所有權人、權利範圍、登記日期與取得原因",
-    unitCost: FORMAL_COP_UNIT_COST_TWD,
   },
   building_other_rights: {
     queryItem: "建物他項權利資料",
     resultItem: "抵押、他項權利與限制設定狀態",
-    unitCost: FORMAL_COP_UNIT_COST_TWD,
   },
 };
 
 function buildDialogDetails(apiIds: string[]): QueryDetail[] {
   const rows = apiIds
-    .map((apiId) => API_COPY[apiId])
+    .map((apiId) => {
+      const copy = API_COPY[apiId];
+      if (!copy) return null;
+      const price = getFormalCopApiPrice(apiId);
+      return {
+        ...copy,
+        unitCost: price.unitPrice,
+        pricingEvidence: price.pricingEvidence,
+        pricingAvailable: price.pricingAvailable,
+      };
+    })
     .filter((item): item is QueryDetail => Boolean(item));
 
   if (rows.length > 0) return rows;
@@ -70,9 +78,15 @@ function buildDialogDetails(apiIds: string[]): QueryDetail[] {
     {
       queryItem: "正式地政資料",
       resultItem: "正式地政欄位會寫入案件，供正式版 PDF 使用",
-      unitCost: FORMAL_COP_UNIT_COST_TWD,
+      unitCost: estimatedFallbackCost(apiIds),
+      pricingEvidence: "服務目錄未對應，請先補齊計價設定",
+      pricingAvailable: false,
     },
   ];
+}
+
+function estimatedFallbackCost(apiIds: string[]): number {
+  return apiIds.length > 0 ? 0 : 0;
 }
 
 export function PreChargeConfirmDialog({
@@ -84,6 +98,7 @@ export function PreChargeConfirmDialog({
   onCancel,
 }: PreChargeConfirmDialogProps) {
   const details = buildDialogDetails(apiIds);
+  const hasPricingError = details.some((detail) => !detail.pricingAvailable);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
@@ -128,9 +143,17 @@ export function PreChargeConfirmDialog({
                   <span className="font-medium text-foreground">
                     NT${detail.unitCost.toLocaleString()}
                   </span>
+                  <span className="col-span-2 text-xs text-muted-foreground">
+                    {detail.pricingEvidence}
+                  </span>
                 </div>
               ))}
             </div>
+            {hasPricingError ? (
+              <p className="mt-2 text-sm text-destructive">
+                計價設定缺失：正式查詢前必須先補齊服務目錄單價，不能用固定金額代替。
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-md border px-4 py-3">
@@ -162,7 +185,7 @@ export function PreChargeConfirmDialog({
           <Button variant="outline" onClick={onCancel}>
             取消
           </Button>
-          <Button onClick={onConfirm}>
+          <Button onClick={onConfirm} disabled={hasPricingError}>
             確定，開始查詢
           </Button>
         </DialogFooter>

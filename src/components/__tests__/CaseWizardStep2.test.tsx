@@ -89,6 +89,52 @@ describe("CaseWizardStep2", () => {
     });
   });
 
+  it("merges formal import entries without dropping confirmed registry match", async () => {
+    render(
+      <CaseWizardStep2
+        caseData={{
+          ...baseCase,
+          land_registry_data: {
+            confirmed_registry_match: {
+              section_name: "兵南段",
+              land_no: "04140000",
+              building_no: "00084000",
+              status: "confirmed",
+            },
+            coordinate_source: {
+              lat: 23.001,
+              lng: 120.251,
+              source: "easymap_z10web",
+            },
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "mock-pull" }));
+
+    await waitFor(() => {
+      expect(mocks.updateCase).toHaveBeenCalledWith(
+        "case-002",
+        expect.objectContaining({
+          land_registry_data: expect.objectContaining({
+            confirmed_registry_match: expect.objectContaining({
+              section_name: "兵南段",
+              land_no: "04140000",
+              building_no: "00084000",
+            }),
+            coordinate_source: expect.objectContaining({
+              lat: 23.001,
+              lng: 120.251,
+            }),
+            land_registry: { data: { lot_number: "0456-0000" } },
+            building_registry: { data: { building_number: "建號 778-2" } },
+          }),
+        }),
+      );
+    });
+  });
+
   it("shows persisted registry preview with auto-fill targets before PDF export", () => {
     render(
       <CaseWizardStep2

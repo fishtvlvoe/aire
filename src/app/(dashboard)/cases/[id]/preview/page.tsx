@@ -30,6 +30,14 @@ function bytesToObjectUrl(bytes: number[], mime: string): string {
   return URL.createObjectURL(blob);
 }
 
+function bytesToDataUrl(bytes: number[], mime: string): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return `data:${mime};base64,${btoa(binary)}`;
+}
+
 export default function CasePreviewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -45,6 +53,7 @@ export default function CasePreviewPage() {
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const previewReady = Boolean(previewPdfBlob);
 
   async function renderCurrentPdfBlob(dossier: CaseDossierData, pdfThemeId = themeId) {
     const { initReactPdfEngine } = await import("@/lib/pdf-engine/react-pdf-init");
@@ -129,11 +138,13 @@ export default function CasePreviewPage() {
         );
 
         let resolvedLogoBytes: number[] | undefined;
+        let resolvedLogoDataUrl: string | undefined;
         if (storedLogo?.bytes?.length && storedLogo.mime) {
           createdLogoUrl = bytesToObjectUrl(storedLogo.bytes, storedLogo.mime);
           setLogoUrl(createdLogoUrl);
           setLogoBytes(storedLogo.bytes);
           resolvedLogoBytes = storedLogo.bytes;
+          resolvedLogoDataUrl = bytesToDataUrl(storedLogo.bytes, storedLogo.mime);
         } else {
           setLogoUrl(null);
           setLogoBytes(undefined);
@@ -142,7 +153,7 @@ export default function CasePreviewPage() {
         // 組裝完整 dossier data（含 IPC 呼叫）
         const assembled = await assembleDossierData(row);
         if (!cancelled) {
-          const dossier = { ...assembled, logoBytes: resolvedLogoBytes };
+          const dossier = { ...assembled, logoBytes: resolvedLogoBytes, logo: resolvedLogoDataUrl };
           setCaseDossierData(dossier);
           const blob = await renderCurrentPdfBlob(dossier, resolved.theme.id);
           createdPreviewUrl = URL.createObjectURL(blob);
@@ -216,14 +227,14 @@ export default function CasePreviewPage() {
           </div>
           <Button
             onClick={handleExport}
-            disabled={exporting}
+            disabled={exporting || !previewReady}
           >
             {exporting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Download className="mr-2 h-4 w-4" />
             )}
-            匯出 PDF
+            {previewReady ? "匯出 PDF" : "PDF 產生中"}
           </Button>
         </div>
         <p style={{ color: "#666", fontSize: 13, marginTop: 8 }}>

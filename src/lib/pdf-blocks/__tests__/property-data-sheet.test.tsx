@@ -21,7 +21,44 @@ function collectText(node: unknown): string {
 }
 
 describe("PropertyDataSheetPage", () => {
-  it("renders pre-survey cost and lookup failure reasons for PDF inspection", () => {
+  it("renders the source address or land descriptor on the property sheet", () => {
+    const landData: CaseDossierData = {
+      caseNo: "AIRE-LAND",
+      address: "台南市南化區南化段850-1地號",
+      propertyType: "land",
+      landLotNo: "85010000",
+      ownerName: "",
+      companyName: "",
+      generatedAt: "2026/05/31",
+      propertySheet: {
+        landSection: "南化段",
+        landNumber: "85010000",
+        zoning: "",
+        ownershipRatio: "",
+        buildingCoverage: "",
+        floorAreaRatio: "",
+        owner: "",
+        acquisitionDate: "",
+      },
+    };
+    const buildingData: CaseDossierData = {
+      ...landData,
+      caseNo: "AIRE-BUILDING",
+      address: "台南市東區裕農路288巷17號8樓之1",
+      propertyType: "building",
+      landLotNo: "00700000",
+    };
+
+    const landText = collectText(PropertyDataSheetPage({ propertyType: "land", data: landData }));
+    const buildingText = collectText(PropertyDataSheetPage({ propertyType: "building", data: buildingData }));
+
+    expect(landText).toContain("標的描述");
+    expect(landText).toContain("台南市南化區南化段850-1地號");
+    expect(buildingText).toContain("建物門牌");
+    expect(buildingText).toContain("台南市東區裕農路288巷17號8樓之1");
+  });
+
+  it("keeps pre-survey diagnostics out of the buyer PDF", () => {
     const data: CaseDossierData = {
       caseNo: "AIRE-YUNONG",
       address: "台南市東區裕農路288巷17號8樓之1",
@@ -47,18 +84,18 @@ describe("PropertyDataSheetPage", () => {
 
     const text = collectText(PropertyDataSheetPage({ propertyType: "building", data }));
 
-    expect(text).toContain("物調表資料狀態");
-    expect(text).toContain("資料版本");
-    expect(text).toContain("參考版（免費前查／補件資料）");
-    expect(text).toContain("查詢性質");
-    expect(text).toContain("免費前查：地址候選、附近實價登錄與參考欄位，不產生成本");
-    expect(text).toContain("本次地政費用");
-    expect(text).toContain("0 元");
-    expect(text).toContain("查詢未成功");
-    expect(text).toContain("授權不足，請補授權或改由屋主提供謄本");
+    expect(text).not.toContain("物調表資料狀態");
+    expect(text).not.toContain("資料版本");
+    expect(text).not.toContain("參考版（免費前查／補件資料）");
+    expect(text).not.toContain("查詢性質");
+    expect(text).not.toContain("免費前查：地址候選、附近實價登錄與參考欄位，不產生成本");
+    expect(text).not.toContain("本次地政費用");
+    expect(text).not.toContain("0 元");
+    expect(text).not.toContain("查詢未成功");
+    expect(text).not.toContain("授權不足，請補授權或改由屋主提供謄本");
   });
 
-  it("marks manual supplement sources on property sheet values", () => {
+  it("renders buyer-facing values without internal source labels", () => {
     const data: CaseDossierData = {
       caseNo: "AIRE-YUNONG",
       address: "台南市東區裕農路288巷17號8樓之1",
@@ -92,13 +129,14 @@ describe("PropertyDataSheetPage", () => {
 
     const text = collectText(PropertyDataSheetPage({ propertyType: "building", data }));
 
-    expect(text).toContain("3房2廳2衛（來源：人工輸入）");
-    expect(text).toContain("坐東朝西（來源：屋主提供）");
-    expect(text).toContain("2,500（來源：屋主提供）");
-    expect(text).toContain("現況自住（來源：現場確認）");
+    expect(text).toContain("3房2廳2衛");
+    expect(text).toContain("坐東朝西");
+    expect(text).toContain("2,500");
+    expect(text).toContain("現況自住");
+    expect(text).not.toContain("來源：");
   });
 
-  it("renders candidate comparison, inferred source, and mandatory pre-survey disclaimer", () => {
+  it("renders candidate-derived facts but hides candidate diagnostics", () => {
     const data: CaseDossierData = {
       caseNo: "AIRE-YUNONG",
       address: "台南市東區裕農路288巷17號8樓之1",
@@ -175,14 +213,55 @@ describe("PropertyDataSheetPage", () => {
 
     const text = collectText(PropertyDataSheetPage({ propertyType: "building", data }));
 
-    expect(text).toContain("31.25（來源：候選資料，待屋主/權狀確認）");
-    expect(text).toContain("23.10（來源：推測資料，非登記資料）");
-    expect(text).toContain("地政資料，最終以正式謄本為主；本說明書不代表完整資訊。");
-    expect(text).toContain("候選資料比較");
-    expect(text).toContain("DC-1556-00165000");
-    expect(text).toContain("DC-1556-00167000");
-    expect(text).toContain("COP312");
-    expect(text).toContain("推測資料來源");
-    expect(text).toContain("3樓之1、5樓之1、7樓之1");
+    expect(text).toContain("基地土地總面積（坪）");
+    expect(text).toContain("31.25");
+    expect(text).toContain("23.10");
+    expect(text).toContain("住家用");
+    expect(text).toContain("民國083年10月18日");
+    expect(text).toContain("8樓之1");
+    expect(text).not.toContain("來源：");
+    expect(text).not.toContain("地政資料，最終以正式謄本為主；本說明書不代表完整資訊。");
+    expect(text).not.toContain("候選資料比較");
+    expect(text).not.toContain("DC-1556-00165000");
+    expect(text).not.toContain("DC-1556-00167000");
+    expect(text).not.toContain("COP312");
+    expect(text).not.toContain("candidate_data_available");
+    expect(text).not.toContain("unconfirmed");
+    expect(text).not.toContain("推測資料來源");
+    expect(text).not.toContain("3樓之1、5樓之1、7樓之1");
+  });
+
+  it("leaves missing asking price blank and renders land area as ping", () => {
+    const data: CaseDossierData = {
+      caseNo: "AIRE-LAND",
+      address: "台南市南化區南化段850-1地號",
+      propertyType: "land",
+      landLotNo: "85010000",
+      ownerName: "",
+      companyName: "",
+      generatedAt: "2026/05/31",
+      propertySheet: {
+        landSection: "南化段",
+        landNumber: "85010000",
+        zoning: "",
+        landArea: 1655.78,
+        ownershipRatio: "",
+        buildingCoverage: "",
+        floorAreaRatio: "",
+        owner: "",
+        acquisitionDate: "",
+      },
+      propertySheetSources: {
+        landArea: "PDF 前置審核",
+      },
+    };
+
+    const text = collectText(PropertyDataSheetPage({ propertyType: "land", data }));
+
+    expect(text).toContain("土地面積（坪）");
+    expect(text).toContain("500.87");
+    expect(text).not.toContain("土地面積（㎡）");
+    expect(text).not.toContain("1655.78（來源：PDF 前置審核）");
+    expect(text).not.toContain("來源：");
   });
 });

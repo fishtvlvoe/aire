@@ -6,19 +6,96 @@ export interface NearbyAmenity {
 }
 
 const LIFE_AMENITY_LIMITS: Record<string, number> = {
-  學校: 1,
-  醫療: 1,
-  醫院: 1,
+  學校: 10,
+  醫療: 3,
+  醫院: 3,
   公園: 1,
   捷運: 1,
   市場: 2,
 };
 
+const GOOGLE_PLACE_TYPES: Array<{ category: NearbyAmenity["category"]; type: string }> = [
+  { category: "學校", type: "school" },
+  { category: "醫療", type: "hospital" },
+  { category: "醫療", type: "doctor" },
+  { category: "公園", type: "park" },
+  { category: "捷運", type: "subway_station" },
+  { category: "市場", type: "supermarket" },
+];
+
+const FORMAL_SCHOOL_NAME_PATTERNS = [
+  /國民小學/,
+  /國小/,
+  /小學/,
+  /國民中學/,
+  /國中/,
+  /(?:^|[^\u4e00-\u9fa5])中學/,
+  /高中/,
+  /高級中學/,
+  /高職/,
+  /高級職業/,
+  /高工/,
+  /高商/,
+  /高農/,
+  /專科學校/,
+  /大學/,
+  /科技大學/,
+  /學院/,
+];
+
+const NON_FORMAL_SCHOOL_NAME_PATTERNS = [
+  /幼兒園/,
+  /托嬰/,
+  /補習班/,
+  /文理/,
+  /才藝/,
+  /音樂/,
+  /樂團/,
+  /古箏/,
+  /舞蹈/,
+  /美語/,
+  /語言/,
+  /教室/,
+  /教學/,
+  /展演/,
+  /工作室/,
+];
+
+export function isFormalSchoolName(name: string): boolean {
+  const normalized = name.trim();
+  if (!normalized) return false;
+  if (NON_FORMAL_SCHOOL_NAME_PATTERNS.some((pattern) => pattern.test(normalized))) return false;
+  return FORMAL_SCHOOL_NAME_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function isAllowedAmenity(item: Pick<NearbyAmenity, "category" | "name">): boolean {
+  if (item.category === "學校") return isFormalSchoolName(item.name);
+  if (item.category === "醫療" || item.category === "醫院") return isRelevantMedicalAmenity(item.name);
+  return true;
+}
+
+function isRelevantMedicalAmenity(name: string): boolean {
+  const normalized = name.trim();
+  if (!normalized) return false;
+  if (/牙醫|齒科|牙科|植牙|矯正|醫美|美容|動物醫院|獸醫/.test(normalized)) return false;
+  return /醫院|醫學中心|成大|診所|小兒科|兒科|家醫科|家庭醫學|內科|耳鼻喉科|聯合診所/.test(normalized);
+}
+
+function amenityRank(item: NearbyAmenity): number {
+  if (item.category === "醫療" || item.category === "醫院") {
+    if (/成大|成功大學|醫學中心|醫院/.test(item.name)) return 0;
+    if (/小兒科|兒科|家醫科|家庭醫學|內科|耳鼻喉科|聯合診所/.test(item.name)) return 1;
+    return 2;
+  }
+  return 0;
+}
+
 export function summarizeNearbyAmenities(items: NearbyAmenity[]): NearbyAmenity[] {
   const counts = new Map<string, number>();
   return [...items]
-    .sort((a, b) => a.distanceM - b.distanceM)
+    .sort((a, b) => (amenityRank(a) - amenityRank(b)) || (a.distanceM - b.distanceM))
     .filter((item) => {
+      if (!isAllowedAmenity(item)) return false;
       const limit = LIFE_AMENITY_LIMITS[item.category] ?? 0;
       if (limit === 0) return false;
       const count = counts.get(item.category) ?? 0;
@@ -92,8 +169,18 @@ function buildOverpassQuery(lat: number, lng: number, radiusM: number): string {
 [out:json];
 (
   node["amenity"="school"](around:${radiusM},${lat},${lng});
+  way["amenity"="school"](around:${radiusM},${lat},${lng});
+  relation["amenity"="school"](around:${radiusM},${lat},${lng});
   node["amenity"="university"](around:${radiusM},${lat},${lng});
+  way["amenity"="university"](around:${radiusM},${lat},${lng});
+  relation["amenity"="university"](around:${radiusM},${lat},${lng});
   node["amenity"="hospital"](around:${radiusM},${lat},${lng});
+  way["amenity"="hospital"](around:${radiusM},${lat},${lng});
+  relation["amenity"="hospital"](around:${radiusM},${lat},${lng});
+  node["amenity"="clinic"](around:${radiusM},${lat},${lng});
+  way["amenity"="clinic"](around:${radiusM},${lat},${lng});
+  relation["amenity"="clinic"](around:${radiusM},${lat},${lng});
+  node["amenity"="doctors"](around:${radiusM},${lat},${lng});
   node["leisure"="park"](around:${radiusM},${lat},${lng});
   way["leisure"="park"](around:${radiusM},${lat},${lng});
   node["station"="subway"](around:${radiusM},${lat},${lng});
@@ -152,6 +239,9 @@ export async function queryNearbyAmenities(params: {
       if (!category) {
         continue;
       }
+      if (!isAllowedAmenity({ category, name })) {
+        continue;
+      }
 
       const elLat = element.lat ?? element.center?.lat;
       const elLon = element.lon ?? element.center?.lon;
@@ -178,4 +268,84 @@ export async function queryNearbyAmenities(params: {
   } catch {
     return [];
   }
+}
+
+export async function queryGoogleNearbyAmenities(params: {
+  lat: number;
+  lng: number;
+  radiusM: number;
+  apiKey: string;
+}): Promise<NearbyAmenity[]> {
+  const { lat, lng, radiusM, apiKey } = params;
+  if (!apiKey.trim()) return [];
+
+  try {
+    const rows = await Promise.all(
+      GOOGLE_PLACE_TYPES.map(async ({ category, type }) => {
+        const url = new URL("https://maps.googleapis.com/maps/api/place/nearbysearch/json");
+        url.searchParams.set("location", `${lat},${lng}`);
+        url.searchParams.set("radius", String(radiusM));
+        url.searchParams.set("type", type);
+        url.searchParams.set("language", "zh-TW");
+        url.searchParams.set("key", apiKey);
+
+        const response = await fetch(url.toString());
+        if (!response.ok) return [];
+        const data = await response.json() as {
+          status?: string;
+          results?: Array<{
+            place_id?: string;
+            name?: string;
+            vicinity?: string;
+            formatted_address?: string;
+            geometry?: { location?: { lat?: number; lng?: number } };
+          }>;
+        };
+        if (data.status && !["OK", "ZERO_RESULTS"].includes(data.status)) return [];
+        return (Array.isArray(data.results) ? data.results : [])
+          .map((place): NearbyAmenity | null => {
+            const name = place.name?.trim();
+            const placeLat = place.geometry?.location?.lat;
+            const placeLng = place.geometry?.location?.lng;
+            if (!name || typeof placeLat !== "number" || typeof placeLng !== "number") return null;
+            if (!isAllowedAmenity({ category, name })) return null;
+            return {
+              name,
+              category,
+              distanceM: Math.round(haversine(lat, lng, placeLat, placeLng)),
+              address: place.vicinity?.trim() || place.formatted_address?.trim() || "",
+            };
+          })
+          .filter((item): item is NearbyAmenity => Boolean(item));
+      }),
+    );
+
+    const seen = new Set<string>();
+    return rows
+      .flat()
+      .filter((item) => {
+        const key = `${item.category}:${item.name}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => a.distanceM - b.distanceM);
+  } catch {
+    return [];
+  }
+}
+
+export async function queryNearbyAmenitiesWithGoogleFallback(params: {
+  lat: number;
+  lng: number;
+  radiusM: number;
+  googleApiKey?: string;
+}): Promise<NearbyAmenity[]> {
+  const [googleItems, overpassItems] = await Promise.all([
+    params.googleApiKey
+      ? queryGoogleNearbyAmenities({ ...params, apiKey: params.googleApiKey })
+      : Promise.resolve([]),
+    queryNearbyAmenities(params),
+  ]);
+  return [...googleItems, ...overpassItems];
 }

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const navigationMocks = vi.hoisted(() => ({
@@ -156,6 +156,7 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByLabelText("地址 *")).toBeInTheDocument();
     expect(screen.queryByText("物件類型")).not.toBeInTheDocument();
     expect(screen.getByText("先用免費前查補齊地址候選、附近實價登錄與參考欄位；只有需要正式地政資料時才進入付費查詢。")).toBeInTheDocument();
+    expect(screen.getByText("建議不要留空白或多餘符號；系統會自動判讀全形 / 半形、中文 / 阿拉伯數字。")).toBeInTheDocument();
   });
 
   it("classifies address through registry lookup and keeps property type editable", async () => {
@@ -237,6 +238,28 @@ describe("NewCasePage address-first flow", () => {
           }),
         }),
       );
+    });
+  });
+
+  it("shows query progress instead of creating progress while the first address lookup is still running", async () => {
+    let resolveLookup: (value: []) => void = () => {};
+    mockAddressLookup.mockReturnValueOnce(new Promise((resolve) => {
+      resolveLookup = resolve;
+    }));
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市東區裕農路288巷17號8樓之1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "查詢中..." })).toBeDisabled();
+    });
+    expect(screen.queryByRole("button", { name: "建立中…" })).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveLookup([]);
     });
   });
 
@@ -411,6 +434,11 @@ describe("NewCasePage address-first flow", () => {
               section_name: "富強段",
               land_no: "00700000",
               building_no: "00165000",
+              building_area_sqm: "83.6",
+              floor_label: "8樓之1",
+              completion_date_roc: "0800829",
+              age_years: "34",
+              main_use: "住家用",
               lat: 22.986314,
               lng: 120.22908,
             },
@@ -443,6 +471,24 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByLabelText("地段")).toHaveValue("富強段");
     expect(screen.getByLabelText("地號")).toHaveValue("00700000");
     expect(screen.getByLabelText("建號")).toHaveValue("00165000");
+    fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
+    await waitFor(() => {
+      expect(mockCreateCase).toHaveBeenCalled();
+    });
+    const payload = mockCreateCase.mock.calls.at(-1)?.[0];
+    expect(payload?.land_registry_data?.candidate_options).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          summary_fields: expect.objectContaining({
+            registeredAreaPing: expect.any(Number),
+            legalUse: "住家用",
+            floor: "8樓之1",
+            age: "34年",
+            constructionDate: "0800829",
+          }),
+        }),
+      ]),
+    );
     expectCustomerCopyOnly();
   });
 
@@ -624,7 +670,12 @@ describe("NewCasePage address-first flow", () => {
           }),
           candidate_options: expect.arrayContaining([
             expect.objectContaining({ normalized_parcel_id: "DC-1556-00700000" }),
-            expect.objectContaining({ normalized_parcel_id: "DC-1556-00165000" }),
+            expect.objectContaining({
+              section_code: "1556",
+              land_no: "00700000",
+              building_no: "00165000",
+              normalized_parcel_id: "DC-1556-00165000",
+            }),
             expect.objectContaining({
               normalized_parcel_id: "DC-1556-00167000",
               query_status: "candidate_data_available",

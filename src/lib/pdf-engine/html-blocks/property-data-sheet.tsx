@@ -16,25 +16,29 @@ function val(
   return String(v);
 }
 
-function sourced(value: string, source?: string): string {
-  if (!value || !source) return value;
-  return `${value}（來源：${source}）`;
+function squareMetersToPing(value: string | number | boolean): string {
+  const numeric = typeof value === "number" ? value : Number.parseFloat(String(value).replace(/,/g, ""));
+  if (!Number.isFinite(numeric)) return "";
+  return (Math.round(numeric * 0.3025 * 100) / 100).toFixed(2);
 }
 
-function formatCandidateSummary(fields?: Record<string, unknown>): string {
-  if (!fields) return "";
-  return [
-    typeof fields.registeredAreaPing === "number" ? `登記 ${fields.registeredAreaPing.toFixed(2)}坪` : "",
-    typeof fields.mainBuildingAreaPing === "number" ? `主建 ${fields.mainBuildingAreaPing.toFixed(2)}坪` : "",
-    typeof fields.auxiliaryAreaPing === "number" ? `附屬 ${fields.auxiliaryAreaPing.toFixed(2)}坪` : "",
-    typeof fields.commonAreaPing === "number" ? `共有 ${fields.commonAreaPing.toFixed(2)}坪` : "",
-    typeof fields.parkingAreaPing === "number" ? `車位 ${fields.parkingAreaPing.toFixed(2)}坪` : "",
-    typeof fields.legalUse === "string" ? fields.legalUse : "",
-    typeof fields.material === "string" ? fields.material : "",
-    typeof fields.constructionDate === "string" ? fields.constructionDate : "",
-    typeof fields.floor === "string" ? fields.floor : "",
-    typeof fields.ownershipScope === "string" ? `權利 ${fields.ownershipScope}` : "",
-  ].filter(Boolean).join(" / ");
+function displayAskingPrice(value: string | number | boolean | undefined | null): string {
+  if (value === 0 || value === "0") return BLANK;
+  return val(value, (v) => Number(v).toLocaleString("zh-TW"));
+}
+
+function formatRocDateForBuyer(value: string | number | boolean): string {
+  const raw = String(value).trim();
+  if (!raw) return "";
+  const slash = raw.match(/^(?:民國)?(\d{2,3})[年/-](\d{1,2})[月/-](\d{1,2})日?$/);
+  if (slash) {
+    return `民國${slash[1].padStart(3, "0")}年${slash[2].padStart(2, "0")}月${slash[3].padStart(2, "0")}日`;
+  }
+  const compact = raw.match(/^(\d{3})(\d{2})(\d{2})$/);
+  if (compact) {
+    return `民國${compact[1]}年${compact[2]}月${compact[3]}日`;
+  }
+  return raw;
 }
 
 export interface HtmlPropertyDataSheetProps {
@@ -50,50 +54,51 @@ export function HtmlPropertyDataSheet({
 }: HtmlPropertyDataSheetProps): React.ReactElement {
   const ps = data.propertySheet;
   const display = (
-    key: string,
     value: string | number | boolean | undefined | null,
     formatter?: (v: string | number | boolean) => string,
-  ) => sourced(val(value, formatter), data.propertySheetSources?.[key]);
+  ) => val(value, formatter);
+  const landAreaLabel = propertyType === "building" ? "基地土地總面積（坪）" : "土地面積（坪）";
 
   // 土地與建物共用欄位
   const commonRows: Array<[string, string]> = [
-    ["委託總價（元）", display("askingPrice", ps?.askingPrice, (v) => Number(v).toLocaleString("zh-TW"))],
-    ["地段", display("landSection", ps?.landSection)],
-    ["地號", display("landNumber", ps?.landNumber)],
-    ["使用分區", display("zoning", ps?.zoning)],
-    ["土地面積（㎡）", display("landArea", ps?.landArea, (v) => Number(v).toFixed(2))],
-    ["權利範圍", display("ownershipRatio", ps?.ownershipRatio)],
-    ["持分面積（㎡）", display("shareArea", ps?.shareArea, (v) => Number(v).toFixed(2))],
-    ["建蔽率", display("buildingCoverage", ps?.buildingCoverage)],
-    ["容積率", display("floorAreaRatio", ps?.floorAreaRatio)],
-    ["所有權人", display("owner", ps?.owner)],
-    ["取得日期", display("acquisitionDate", ps?.acquisitionDate)],
+    [propertyType === "land" ? "標的描述" : "建物門牌", val(data.address)],
+    ["委託總價（元）", displayAskingPrice(ps?.askingPrice)],
+    ["地段", display(ps?.landSection)],
+    ["地號", display(ps?.landNumber)],
+    ["使用分區", display(ps?.zoning)],
+    [landAreaLabel, display(ps?.landArea, squareMetersToPing)],
+    ["權利範圍", display(ps?.ownershipRatio)],
+    ["持分面積（坪）", display(ps?.shareArea, squareMetersToPing)],
+    ["建蔽率", display(ps?.buildingCoverage)],
+    ["容積率", display(ps?.floorAreaRatio)],
+    ["所有權人", display(ps?.owner)],
+    [propertyType === "building" ? "建築完成日" : "取得日期", display(propertyType === "building" ? ps?.constructionDate : ps?.acquisitionDate, formatRocDateForBuyer)],
   ];
 
   // 建物面積（坪）欄位，僅 building 顯示
   const areaRows: Array<[string, string]> = [
-    ["登記坪數", display("registeredArea", ps?.registeredArea, (v) => Number(v).toFixed(2))],
-    ["主建坪數", display("mainBuildingArea", ps?.mainBuildingArea, (v) => Number(v).toFixed(2))],
-    ["附屬建物", display("auxiliaryArea", ps?.auxiliaryArea, (v) => Number(v).toFixed(2))],
-    ["公共設施", display("commonArea", ps?.commonArea, (v) => Number(v).toFixed(2))],
-    ["車位坪數", display("parkingArea", ps?.parkingArea, (v) => Number(v).toFixed(2))],
+    ["登記坪數", display(ps?.registeredArea, (v) => Number(v).toFixed(2))],
+    ["主建坪數", display(ps?.mainBuildingArea, (v) => Number(v).toFixed(2))],
+    ["附屬建物", display(ps?.auxiliaryArea, (v) => Number(v).toFixed(2))],
+    ["公共設施", display(ps?.commonArea, (v) => Number(v).toFixed(2))],
+    ["車位坪數", display(ps?.parkingArea, (v) => Number(v).toFixed(2))],
   ];
 
   // 建物現況欄位，僅 building 顯示
   const conditionRows: Array<[string, string]> = [
-    ["法定用途", display("legalUse", ps?.legalUse)],
-    ["主要建材", display("material", ps?.material)],
-    ["建築完成日", display("constructionDate", ps?.constructionDate)],
-    ["屋齡", display("buildingAge", ps?.buildingAge)],
-    ["樓層", display("floor", ps?.floor)],
-    ["權利範圍", display("ownershipScope", ps?.ownershipScope)],
-    ["建物現況", display("buildingStatus", ps?.buildingStatus)],
-    ["格局", display("rooms", ps?.rooms)],
-    ["座向", display("direction", ps?.direction)],
-    ["管理費（元/月）", display("managementFee", ps?.managementFee, (v) => Number(v).toLocaleString("zh-TW"))],
+    ["法定用途", display(ps?.legalUse)],
+    ["主要建材", display(ps?.material)],
+    ["建築完成日", display(ps?.constructionDate, formatRocDateForBuyer)],
+    ["屋齡", display(ps?.buildingAge)],
+    ["樓層", display(ps?.floor)],
+    ["權利範圍", display(ps?.ownershipScope)],
+    ["建物現況", display(ps?.buildingStatus)],
+    ["格局", display(ps?.rooms)],
+    ["座向", display(ps?.direction)],
+    ["管理費（元/月）", display(ps?.managementFee, (v) => Number(v).toLocaleString("zh-TW"))],
     ["電梯", ps?.hasElevator === true ? "有" : ps?.hasElevator === false ? "無" : BLANK],
-    ["建設公司", display("constructionCompany", ps?.constructionCompany)],
-    ["社區名稱", display("communityName", ps?.communityName)],
+    ["建設公司", display(ps?.constructionCompany)],
+    ["社區名稱", display(ps?.communityName)],
   ];
 
   return (
@@ -124,39 +129,6 @@ export function HtmlPropertyDataSheet({
 
       {/* 共用基本資料表格 */}
       <HtmlFieldTable tokens={tokens} rows={commonRows} />
-
-      {data.preSurvey?.candidateDisclaimer ? (
-        <HtmlSection tokens={tokens} title="前期物調聲明">
-          <p>{data.preSurvey.candidateDisclaimer}</p>
-        </HtmlSection>
-      ) : null}
-
-      {data.preSurvey?.inferredReference ? (
-        <HtmlSection tokens={tokens} title="推測資料來源">
-          <p>
-            {data.preSurvey.inferredReference.source_units.join("、")}｜
-            {data.preSurvey.inferredReference.warning}
-          </p>
-        </HtmlSection>
-      ) : null}
-
-      {data.preSurvey?.candidateOptions && data.preSurvey.candidateOptions.length > 0 ? (
-        <HtmlSection tokens={tokens} title="候選資料比較">
-          <HtmlFieldTable
-            tokens={tokens}
-            rows={data.preSurvey.candidateOptions.map((candidate) => [
-              candidate.normalized_parcel_id,
-              [
-                candidate.parcel_type === "building" ? "建物" : "土地",
-                candidate.query_status ?? "pending",
-                candidate.confirmation_state ?? "unconfirmed",
-                candidate.error_code ?? "",
-                formatCandidateSummary(candidate.summary_fields),
-              ].filter(Boolean).join("｜"),
-            ])}
-          />
-        </HtmlSection>
-      ) : null}
 
       {/* 建物專屬區塊 */}
       {propertyType === "building" && (

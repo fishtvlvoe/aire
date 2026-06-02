@@ -21,11 +21,11 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await expect(page.getByRole("navigation", { name: "主要選單" })).toBeVisible();
 
   await page.getByText("宜蘭五結農舍").click();
-  await expect(page).toHaveURL(new RegExp(`/cases/_\\?caseId=${CASE_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/cases/${CASE_ID}$`));
   await expect(page.getByTestId("demo-aligned-workbench")).toBeVisible();
   await expect(page.getByRole("region", { name: "物件摘要" })).toBeVisible();
   await expect(page.getByRole("region", { name: "欄位審核" })).toBeVisible();
-  await page.getByRole("tab", { name: "補件/現場" }).click();
+  await page.getByRole("tab", { name: "補件與現場" }).click();
   await expect(page.getByRole("region", { name: "補件與現場確認" })).toBeVisible();
   await expect(page.getByText("MOI_API_")).toHaveCount(0);
   await expect(page.getByText("COP309")).toHaveCount(0);
@@ -42,20 +42,20 @@ test("admin test account can login and use the aligned frontstage and backoffice
   await expectCustomerFacingTextClean(page);
 
   await page.goto("/settings?section=plans");
-  await expect(page.getByRole("heading", { name: "方案與升級" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "方案設定" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "基本款" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "預留功能" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "帳號與授權管理" })).toBeVisible();
   await expect(page.getByText("測試版已開啟")).toHaveCount(0);
   await expect(page.getByText(/正式版歸在/)).toHaveCount(0);
-  await expect(page.getByRole("switch", { name: "Google 地圖未啟用" })).toBeEnabled();
-  await expect(page.getByRole("switch", { name: "實價登錄未啟用" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "目前使用中" })).toBeDisabled();
 
   await page.goto("/cases/new");
   await expect(page.getByLabel("地址 *")).toBeVisible();
   await expect(page.getByLabel("物件類型")).toHaveCount(0);
   await page.getByLabel("地址 *").fill("宜蘭縣五結鄉協和村親河路二段 1 號");
   await page.getByRole("button", { name: "查詢物件資料", exact: true }).click();
-  await expect(page.getByText("已找到 1 筆土地、1 筆建物")).toBeVisible();
+  const result = await expectDiscoveryResult(page);
+  await expect(result.getByText("資料組成").locator("..")).toContainText(/土地 \d+ 筆 · 建物 \d+ 筆/);
   await expectCustomerFacingTextClean(page);
 
   await page.getByRole("button", { name: "登出" }).click();
@@ -69,13 +69,10 @@ test("non-admin test account can login without receiving admin-only upgrade stat
   await expect(page.getByRole("heading", { name: "個人設定" })).toBeVisible();
   await expect(page.getByText("已啟用（管理員）")).toHaveCount(0);
   await page.goto("/settings?section=plans");
-  await expect(page.getByRole("button", { name: "前往升級" })).toHaveCount(2);
-  const switches = page.getByRole("switch");
-  await expect(switches).toHaveCount(6);
-  for (let index = 0; index < 6; index += 1) {
-    await expect(switches.nth(index)).toBeDisabled();
-    await expect(switches.nth(index)).toHaveAttribute("aria-checked", "false");
-  }
+  await expect(page.getByRole("heading", { name: "方案設定" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "基本款" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "帳號與授權管理" }).getByText("目前方案")).toBeVisible();
+  await expect(page.getByRole("button", { name: "目前使用中" })).toBeDisabled();
 });
 
 test("login errors stay user-readable for invalid and expired test accounts", async ({ page }) => {
@@ -160,4 +157,11 @@ async function expectNoHorizontalOverflow(page: Page) {
 async function expectCustomerFacingTextClean(page: Page) {
   const text = await page.locator("main").last().textContent();
   expect(text ?? "").not.toMatch(/\b(R02|COP|API|Helper|adapter|parser|payload|JSON)\b|便民系統/);
+}
+
+async function expectDiscoveryResult(page: Page) {
+  await expect(page.getByRole("button", { name: "建立案件", exact: true })).toBeEnabled({ timeout: 60_000 });
+  const result = page.locator("section", { hasText: "物件資料補齊" }).filter({ hasText: "資料組成" }).first();
+  await expect(result).toBeVisible();
+  return result;
 }

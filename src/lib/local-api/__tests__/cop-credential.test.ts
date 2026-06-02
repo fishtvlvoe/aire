@@ -16,14 +16,19 @@
  *
  * 設計依據：design.md Decision 7（Windows DPAPI 或加密 JSON，禁止明碼）
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   saveCopCredential,
   readCopCredential,
+  readRawCopCredential,
   reloadStore,
 } from "@/lib/local-api/cop-credential-store";
 
 describe("Wave 1 紅燈 1.4 — COP credential：save → reload → read 非明碼", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("存帳密後重新載入，讀回遮罩形式（非明碼 secret）（現 Node 無 storage → 紅燈）", async () => {
     const TEST_CLIENT_ID = "cop_test_client_abc123";
     const TEST_SECRET = "super-secret-password-9527";
@@ -53,5 +58,23 @@ describe("Wave 1 紅燈 1.4 — COP credential：save → reload → read 非明
       responseStr.includes(TEST_SECRET),
       "credential 回傳包含明碼 secret——禁止（Decision 7）",
     ).toBe(false);
+  });
+
+  it("本機 Web 有 .env COP 帳密時優先使用 .env，避免讀到設定頁舊帳密", async () => {
+    vi.stubEnv("LAND_REGISTRY_CLIENT_ID", "env_client_efd5");
+    vi.stubEnv("LAND_REGISTRY_CLIENT_SECRET", "env-secret");
+
+    await saveCopCredential("stale_client_c123", "stale-secret");
+    await reloadStore();
+
+    await expect(readRawCopCredential()).resolves.toEqual({
+      clientId: "env_client_efd5",
+      secret: "env-secret",
+    });
+    await expect(readCopCredential()).resolves.toMatchObject({
+      clientIdMasked: expect.stringContaining("efd5"),
+      hasSecret: true,
+      savedAt: "env",
+    });
   });
 });

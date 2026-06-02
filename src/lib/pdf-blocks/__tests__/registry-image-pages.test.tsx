@@ -2,6 +2,7 @@ import { describe, expect, it, beforeAll } from "vitest";
 import React from "react";
 import { Document, pdf } from "@react-pdf/renderer";
 import { writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import sharp from "sharp";
 import { initReactPdfEngine } from "@/lib/pdf-engine/react-pdf-init";
 import { ThemeProvider } from "@/lib/pdf-themes/theme-provider";
@@ -52,5 +53,25 @@ describe("registry image PDF pages", () => {
 
     expect(blob.size).toBeGreaterThan(1000);
     writeFileSync("/tmp/aire-registry-image-pages.pdf", buffer);
+  });
+
+  it("renders a buyer-facing pending state instead of exterior placeholder copy when no exterior photo exists", async () => {
+    const element = (
+      <ThemeProvider theme={getTheme("theme-a-minimal")!}>
+        <Document>
+          <ExteriorPhotoPage exteriorPhoto={null} />
+        </Document>
+      </ThemeProvider>
+    );
+
+    const blob = await pdf(element as Parameters<typeof pdf>[0]).toBlob();
+    const buffer = Buffer.from(await blob.arrayBuffer());
+    const outputPath = "/tmp/aire-exterior-pending-state.pdf";
+    writeFileSync(outputPath, buffer);
+    const text = execFileSync("pdftotext", [outputPath, "-"], { encoding: "utf8" });
+
+    expect(blob.size).toBeGreaterThan(1000);
+    expect(text).toContain("待補");
+    expect(text).not.toContain("未取得街景或外觀照");
   });
 });

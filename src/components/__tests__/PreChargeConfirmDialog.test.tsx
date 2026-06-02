@@ -35,7 +35,8 @@ describe("PreChargeConfirmDialog", () => {
     expect(screen.getByText("費用明細")).toBeInTheDocument();
     expect(screen.getAllByText("建物標示資料").length).toBeGreaterThan(0);
     expect(screen.getAllByText("建物所有權資料").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("NT$10").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("NT$1").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("單筆 1 元").length).toBeGreaterThan(0);
     expect(screen.getByText("本次將查詢")).toBeInTheDocument();
     expect(screen.getByText("你將取得")).toBeInTheDocument();
     expect(screen.getByText(/免費前查不收費/)).toBeInTheDocument();

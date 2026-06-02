@@ -24,6 +24,7 @@ describe("LifeAmenitiesPage print data", () => {
 
     expect(result.map((item) => item.name)).toEqual([
       "第一國小",
+      "第二國中",
       "第一市場",
       "第二市場",
       "捷運大安站",
@@ -32,6 +33,7 @@ describe("LifeAmenitiesPage print data", () => {
     ]);
     expect(result.filter((item) => item.category === "市場")).toHaveLength(2);
     expect(result.filter((item) => item.category === "公園")).toHaveLength(1);
+    expect(result.filter((item) => item.category === "學校")).toHaveLength(2);
     expect(result.some((item) => item.category === "商圈")).toBe(false);
   });
 });

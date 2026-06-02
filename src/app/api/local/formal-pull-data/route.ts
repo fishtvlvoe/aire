@@ -19,6 +19,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    if (!payload.clientId?.trim() || !payload.secret?.trim()) {
+      const { readRawCopCredential } = await import("@/lib/local-api/cop-credential-store");
+      const credential = await readRawCopCredential();
+      if (credential) {
+        payload = {
+          ...payload,
+          clientId: credential.clientId,
+          secret: credential.secret,
+        };
+      }
+    }
     const result = await pullFormalRegistryLocally(payload);
     return NextResponse.json(result);
   } catch (error) {

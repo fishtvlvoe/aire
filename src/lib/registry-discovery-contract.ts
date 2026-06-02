@@ -227,7 +227,7 @@ export function classifyDiscoveryInput(input: string): DiscoveryInputClassificat
 
 export function suggestDiscoveryCorrections(input: string): DiscoveryCorrectionSuggestion[] {
   const normalized = normalizeInput(input);
-  if (normalized.includes("高雄市苓雅區苓雅路二段")) {
+  if (normalized.includes("高雄市苓雅區苓雅路二段") || normalized.includes("高雄市苓雅區苓雅路2段")) {
     return [
       {
         from: "苓雅路二段",
@@ -281,10 +281,50 @@ function buildCandidateSelection(
 }
 
 function normalizeInput(input: string): string {
-  return (input ?? "")
+  return convertChineseAddressNumerals((input ?? "")
     .trim()
     .replace(/\s+/g, "")
-    .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xfee0));
+    .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xfee0)));
+}
+
+function convertChineseAddressNumerals(value: string): string {
+  return value
+    .replace(/([零一二兩三四五六七八九十百]+)(?=[段巷弄號樓])/g, (match) => {
+      const parsed = parseChineseInteger(match);
+      return parsed === null ? match : String(parsed);
+    })
+    .replace(/之([零一二兩三四五六七八九十百]+)/g, (_match, digits: string) => {
+      const parsed = parseChineseInteger(digits);
+      return parsed === null ? `之${digits}` : `之${parsed}`;
+    });
+}
+
+function parseChineseInteger(value: string): number | null {
+  const digitMap: Record<string, number> = {
+    零: 0,
+    一: 1,
+    二: 2,
+    兩: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9,
+  };
+  if (value in digitMap) return digitMap[value];
+  const tenIndex = value.indexOf("十");
+  if (tenIndex >= 0) {
+    const before = value.slice(0, tenIndex);
+    const after = value.slice(tenIndex + 1);
+    const tens = before ? digitMap[before] : 1;
+    const ones = after ? digitMap[after] : 0;
+    if (typeof tens === "number" && typeof ones === "number") {
+      return tens * 10 + ones;
+    }
+  }
+  return null;
 }
 
 function emptyParsedInput(): ParsedDiscoveryInput {

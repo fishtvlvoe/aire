@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 /** POST /api/local/cop-credential/test → TestCopCredentialResponse */
 export async function POST() {
   // 動態 import 避免 Edge bundle 掃描到 node:crypto
-  const { readCopCredential } = await import(
+  const { readCopCredential, readRawCopCredential } = await import(
     "@/lib/local-api/cop-credential-store"
   );
 
@@ -29,16 +29,65 @@ export async function POST() {
     );
   }
 
-  // MVP 範疇：回傳「帳密存在」作為測試連線的最小驗證
-  // Wave 4+ 可改為實際呼叫 COP /token endpoint 並量測延遲
   const startMs = Date.now();
+  const raw = await readRawCopCredential();
+  if (!raw) {
+    return NextResponse.json(
+      { error: "not_found", message: "尚未設定 COP 帳密，請先儲存帳密" },
+      { status: 409 },
+    );
+  }
+
+  const tokenEndpoint = process.env.LAND_REGISTRY_TOKEN_ENDPOINT ?? "https://copapi.moi.gov.tw/cp/getToken";
+  const tokenResp = await fetch(tokenEndpoint, {
+    method: "GET",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${raw.clientId}:${raw.secret}`).toString("base64")}`,
+      "Content-Type": "application/json; charset=utf-8",
+    },
+    signal: AbortSignal.timeout(15000),
+  });
   const latencyMs = Date.now() - startMs;
+  const text = await tokenResp.text();
+
+  if (!tokenResp.ok) {
+    return NextResponse.json({
+      success: false,
+      message: `COP token 驗證失敗（HTTP ${tokenResp.status}）`,
+      latencyMs,
+    });
+  }
+
+  const body = parseJson(text) as { access_token?: unknown } | null;
+  if (!body) {
+    const title = text.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim();
+    return NextResponse.json({
+      success: false,
+      message: `COP token 驗證失敗（HTTP ${tokenResp.status}，回應不是 JSON${title ? `：${title}` : ""}）`,
+      latencyMs,
+    });
+  }
+  if (typeof body?.access_token !== "string" || !body.access_token.trim()) {
+    return NextResponse.json({
+      success: false,
+      message: "COP token 回應缺少 access_token",
+      latencyMs,
+    });
+  }
 
   const result: TestCopCredentialResponse = {
     success: true,
-    message: `帳密已設定（clientId: ${credential.clientIdMasked}），MVP 不做真實連線測試`,
+    message: `連線成功（clientId: ${credential.clientIdMasked}）`,
     latencyMs,
   };
 
   return NextResponse.json(result);
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }

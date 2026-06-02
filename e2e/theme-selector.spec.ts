@@ -15,16 +15,16 @@ test.describe("Theme Selector", () => {
     });
   });
 
-  test("顯示兩張主題卡，點選 C 主題後持久化", async ({ page }) => {
+  test("顯示主題卡，點選 C 主題後持久化", async ({ page }) => {
     const appBaseUrl = process.env.E2E_BASE_URL ?? "http://localhost:3000";
     await page.goto(`${appBaseUrl}/settings/branding`);
 
     await expect(
-      page.getByRole("heading", { name: "品牌設定" }),
+      page.getByRole("heading", { name: "品牌與交付資訊" }),
     ).toBeVisible();
 
     const cards = page.locator('[data-testid^="theme-item-"]');
-    await expect(cards).toHaveCount(2);
+    await expect(cards).toHaveCount(5);
 
     const themeA = page.getByTestId("theme-item-theme-a-minimal");
     const themeC = page.getByTestId("theme-item-theme-c-tech-elegant");

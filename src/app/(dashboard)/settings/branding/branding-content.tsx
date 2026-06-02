@@ -117,10 +117,19 @@ export default function BrandingContent() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const detected = await isTauriEnv();
-      if (!mounted) return;
-      setIsTauri(detected);
-      setIsLoadingEnv(false);
+      try {
+        const detected = await Promise.race<boolean>([
+          isTauriEnv(),
+          new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 2000)),
+        ]);
+        if (!mounted) return;
+        setIsTauri(detected);
+      } catch {
+        if (!mounted) return;
+        setIsTauri(false);
+      } finally {
+        if (mounted) setIsLoadingEnv(false);
+      }
     })();
     return () => {
       mounted = false;
