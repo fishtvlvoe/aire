@@ -24,6 +24,9 @@
 !define PRODUCT_VERSION "0.1.3"
 !define PRODUCT_PUBLISHER "核流有限公司"
 !define PRODUCT_URL     "https://aire.opcos.me"
+!ifndef PROJECT_ROOT
+!define PROJECT_ROOT "."
+!endif
 
 ; 安裝目標（currentUser，不需要管理員）
 !define INSTALL_DIR     "$LOCALAPPDATA\Programs\AIRE"
@@ -36,7 +39,7 @@
 
 ; ── NSIS 設定 ────────────────────────────────────────────────────────────────
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "..\out\AIRE-${PRODUCT_VERSION}-Setup.exe"
+OutFile "${PROJECT_ROOT}/out/AIRE-${PRODUCT_VERSION}-Setup.exe"
 Unicode true
 
 ; per-user 安裝，不需要 UAC elevation
@@ -50,12 +53,10 @@ SetCompressorDictSize 32
 ; 現代 UI
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
+!include "nsDialogs.nsh"
 
 ; ── MUI 設定 ──────────────────────────────────────────────────────────────────
 !define MUI_ABORTWARNING
-!define MUI_ICON "..\public\favicon.ico"
-!define MUI_UNICON "..\public\favicon.ico"
-
 ; 安裝頁面
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
@@ -65,7 +66,7 @@ SetCompressorDictSize 32
 ; 解安裝頁面
 !insertmacro MUI_UNPAGE_WELCOME
 ; 自訂確認頁面（詢問是否同時清除資料目錄）
-!insertmacro MUI_UNPAGE_CUSTOM un.ConfirmDataPage un.ConfirmDataLeave
+UninstPage custom un.ConfirmDataPage un.ConfirmDataLeave
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_UNPAGE_FINISH
 
@@ -91,20 +92,46 @@ Section "主程式" SecMain
   SetOutPath "$INSTDIR"
 
   ; ── 1. dist-local-runtime/ — Next.js standalone server ───────────────────
+  ; 注意：macOS makensis glob * 不展開隱藏目錄，改為逐一明確指定
   SetOutPath "$INSTDIR\dist-local-runtime"
-  File /r /x "*.map" "..\dist-local-runtime\*.*"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/server.js"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/package.json"
+
+  SetOutPath "$INSTDIR\dist-local-runtime\public"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/public/*"
+
+  SetOutPath "$INSTDIR\dist-local-runtime\node_modules"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/node_modules/*"
+
+  SetOutPath "$INSTDIR\dist-local-runtime\.next"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/BUILD_ID"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/build-manifest.json"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/prerender-manifest.json"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/routes-manifest.json"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/app-path-routes-manifest.json"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/required-server-files.json"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/package.json"
+
+  SetOutPath "$INSTDIR\dist-local-runtime\.next\server"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/server/*"
+
+  SetOutPath "$INSTDIR\dist-local-runtime\.next\static"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/static/*"
+
+  SetOutPath "$INSTDIR\dist-local-runtime\.next\node_modules"
+  File /r /x "*.map" "${PROJECT_ROOT}/dist-local-runtime/.next/node_modules/*"
 
   ; ── 2. bundled Node.js runtime ────────────────────────────────────────────
   SetOutPath "$INSTDIR\node-runtime"
-  File /r "installer\node-runtime\*.*"
+  File /r "${PROJECT_ROOT}/installer/node-runtime/*"
 
   ; ── 3. launcher 腳本 ──────────────────────────────────────────────────────
   SetOutPath "$INSTDIR\scripts"
-  File "..\scripts\launch-aire.mjs"
+  File "${PROJECT_ROOT}/scripts/launch-aire.mjs"
 
   ; ── 4. 無 terminal 視窗啟動器（VBScript wrapper） ─────────────────────────
   SetOutPath "$INSTDIR"
-  File "launch-aire-win.vbs"
+  File "${PROJECT_ROOT}/installer/launch-aire-win.vbs"
 
   ; ── 5. 寫入資料目錄（確保目錄存在，不強制清除既有資料） ──────────────────────
   CreateDirectory "${DATA_DIR}"

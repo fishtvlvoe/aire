@@ -238,7 +238,10 @@ async function main() {
   };
 
   // 啟動 dist-local-runtime/server.js（Next.js standalone server）
-  const serverProcess = spawn("node", [SERVER_JS], {
+  // 使用 process.execPath（即啟動本 launcher 的 node.exe），
+  // 不依賴系統 PATH 的 node 指令，確保 bundled node-runtime 可獨立運作。
+  const nodeExe = process.execPath;
+  const serverProcess = spawn(nodeExe, [SERVER_JS], {
     env: serverEnv,
     stdio: "inherit",
     cwd: path.join(ROOT, "dist-local-runtime"),
