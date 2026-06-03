@@ -13,9 +13,9 @@
 | 三條交付通道並存（非互斥） | Group 7（獨立 export profile，不動 standalone） |
 | Decision 1：以純瀏覽器 SPA 取代「本機 Node runtime」作為新交付通道 | Group 4（4.1 盤點 + 遷移） |
 | Decision 2：以 Cloudflare Worker 作為 API 代理閘道 | Group 1（license/法條/執照）|
-| ⚠️ §2.1 spike 實測（2026-06-04）：CF Worker 打不到地政 CoP — Decision 2 對地政部分不成立 | Group 1B（台灣機房代理取代 CF Worker 地政路由） |
-| §2.2 地政查詢架構（spike 實錄 + 業務邏輯）：雙軌代理 — 台灣機房代理地政 | **Group 1B（台灣代理部署 + 地政 handler）** |
-| §2.2.3 業務邏輯 — 土地/建物兩類 + 建號收費 | Group 1B.3、Group 4.5 |
+| 2.1 ⚠️ Spike 實測（2026-06-04）：CF Worker 打不到地政 CoP — Decision 2 對地政部分不成立 | Group 1B（台灣機房代理取代 CF Worker 地政路由） |
+| 2.2 地政查詢架構（Spike 實錄 + 業務邏輯）：雙軌代理 — 台灣機房代理地政 | **Group 1B（台灣代理部署 + 地政 handler）** |
+| 2.2.3 業務邏輯：地址查詢後的兩條路徑 | Group 1B.3、Group 4.5 |
 | Decision 3：以 wa-sqlite + OPFS 取代 better-sqlite3 + 本機檔案系統 | Group 2、Group 3 |
 | Decision 4：以瀏覽器指紋 + LocalStorage UUID 取代硬體 Device ID（嚴格版） | Group 6（6.1–6.8） |
 | Decision 5：以 better-auth 取代現有簡易登入機制 | Group 5 全部 |

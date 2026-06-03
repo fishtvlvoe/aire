@@ -363,10 +363,11 @@ better-auth 在純瀏覽器版的調整：
 
 ### 部署步驟
 
-1. **Phase 0：CF Worker 擴充（1-2 天）**
-   - 在 `cloudflare-worker/src/` 新增 `handlers/land-registry.ts`、`handlers/legal-clauses.ts`、`handlers/realtor.ts`
-   - 設定 CF Worker 環境變數（LAND_REGISTRY_CLIENT_ID 等）
-   - 部署至 `aire.opcos.me`，驗證各路由可用
+1. **Phase 0：CF Worker 擴充 與 台灣機房代理建立（1-2 天）**
+   - 在 `cloudflare-worker/src/` 新增 `handlers/legal-clauses.ts`、`handlers/realtor.ts`（不含地政路由）
+   - 設定 CF Worker 環境變數（`OPCOS_API_TOKEN`）並部署至 `aire.opcos.me`
+   - 在 GCP 建立台灣機房代理（`aire-land-proxy`），設定環境變數 `LAND_REGISTRY_CLIENT_ID` 與 `LAND_REGISTRY_CLIENT_SECRET`
+   - 部署至 GCP Cloud Run `asia-east1`（彰化），驗證各代理與 getToken 路由可用
 
 2. **Phase 1：瀏覽器 SQLite 與加密層（3-5 天）**
    - 安裝 `wa-sqlite`，建立 `src/lib/db/browser-sqlite.ts`
@@ -378,7 +379,7 @@ better-auth 在純瀏覽器版的調整：
    - 盤點現有資料存取路徑：本 codebase 僅剩 6 處 `invoke(...)`（Tauri IPC 殘留），以及 browser-local-runtime 的本機 API 呼叫
    - 本地 DB：改呼叫 browser-sqlite 層
    - 本地檔案：改呼叫 OPFS 層
-   - 外部 API：改 `fetch()` 至 `aire.opcos.me`
+   - 外部 API：改 `fetch()` 至台灣機房代理（地政查詢）與 `aire.opcos.me`（其餘 API）
    - 驗證：full Playwright E2E 通過
 
 4. **Phase 3：靜態輸出與部署（1 天）**

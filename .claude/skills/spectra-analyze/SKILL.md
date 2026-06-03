@@ -1,6 +1,6 @@
 ---
 name: spectra-analyze
-description: "Analyze artifact consistency for a change"
+description: "分析功能會檢查變更 artifacts（提案、規格、設計、任務）之間的一致性。"
 context: fork
 agent: Explore
 disallowedTools: [Edit, Write]
@@ -20,7 +20,16 @@ When no change name is provided, run `spectra list --json`. Auto-select only whe
 
 ---
 
-Analyze artifact consistency for a change. Can be invoked directly or triggered automatically when all artifacts are complete.
+分析功能會檢查變更 artifacts（提案、規格、設計、任務）之間的一致性。
+
+它從四個維度進行檢查：
+
+- 覆蓋度 — 所有規格需求是否都有對應的任務？
+- 一致性 — 設計決策是否與任務對齊？
+- 模糊度 — 是否有不明確或模糊的需求？
+- 缺漏 — 是否有缺少的 artifacts 或斷裂的引用？
+
+徽章上的數字代表發現的問題總數。點擊問題可以跳轉到受影響的 artifact。
 
 **Input**: Optionally specify a change name (e.g., `/spectra-analyze add-auth`). If omitted, infer from conversation context or auto-select if only one active change exists.
 

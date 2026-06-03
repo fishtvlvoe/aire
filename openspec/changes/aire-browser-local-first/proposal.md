@@ -26,11 +26,12 @@
 ## What Changes
 
 - **新增** `aire-browser-local-first` 能力規格：定義純瀏覽器版 AIRE 的架構、資料儲存、API 代理與授權模式。
-- **修改** `cloudflare-worker/src/index.ts`：擴充 CF Worker 作為 API 閘道，代理地政系統、法條同步、執照驗證等所有外部 API。
+- **修改** `cloudflare-worker/src/index.ts`：擴充 CF Worker 作為 API 閘道，代理法條同步、執照驗證等外部 API（地政查詢因地理 IP 限制，改由台灣機房代理處理）。
+- **新增** GCP Cloud Run 台灣代理（台灣機房代理）：於 `asia-east1` 部署輕量 HTTP 代理專打地政 CoP API，解決境外 IP 被封問題，並處理憑證快取與建號收費標記。
 - **新增** `src/lib/db/browser-sqlite.ts`：以 `wa-sqlite` + OPFS 取代現況的 `better-sqlite3`（Node 本地 SQLite），在瀏覽器內實現加密 SQLite。
 - **新增** `src/lib/crypto/browser-vault.ts`：以 Web Crypto API（應用層 AES-GCM）取代現況 Node 端加密 + 本機金鑰，實現主密碼加密與金鑰儲存。
 - **新增** 純瀏覽器版的靜態 export build profile，部署至 Cloudflare Pages。**不改動現有 `next.config.ts` 的 `standalone` 設定**（那是 browser-local-runtime 的生命線，改回 `export` 會破壞現有上線版本，見 `src-tauri/PARKED.md`）。
-- **修改** 資料存取層：將殘留的 6 處 Tauri `invoke()` 與 browser-local-runtime 的本機 API 呼叫，改為瀏覽器 DB/OPFS 層或 `fetch()` 呼叫 CF Worker API。
+- **修改** 資料存取層：將殘留的 6 處 Tauri `invoke()` 與 browser-local-runtime 的本機 API 呼叫，改為瀏覽器 DB/OPFS 層或 `fetch()` 呼叫台灣機房代理（地政）或 CF Worker（其餘 API）。
 - **新增** Device ID 瀏覽器指紋機制，取代硬體綁定。
 
 ## Non-Goals
@@ -72,6 +73,6 @@
   - `@sqlite.org/sqlite-wasm`（替代方案備用）
   - `idb-keyval`（IndexedDB 簡化操作）
 - 環境變數新增:
-  - `LAND_REGISTRY_CLIENT_ID`（CF Worker 環境變數）
-  - `LAND_REGISTRY_CLIENT_SECRET`（CF Worker 環境變數）
+  - `LAND_REGISTRY_CLIENT_ID`（台灣機房代理環境變數）
+  - `LAND_REGISTRY_CLIENT_SECRET`（台灣機房代理環境變數）
   - `OPCOS_API_TOKEN`（CF Worker 環境變數）
