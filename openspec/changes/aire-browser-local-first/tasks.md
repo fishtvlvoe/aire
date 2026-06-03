@@ -12,11 +12,14 @@
 | 本 change 的真實目標（純瀏覽器 SPA，零本機 runtime） | Group 2、3、4、7 |
 | 三條交付通道並存（非互斥） | Group 7（獨立 export profile，不動 standalone） |
 | Decision 1：以純瀏覽器 SPA 取代「本機 Node runtime」作為新交付通道 | Group 4（4.1 盤點 + 遷移） |
-| Decision 2：以 Cloudflare Worker 作為 API 代理閘道 | Group 1 全部 |
+| Decision 2：以 Cloudflare Worker 作為 API 代理閘道 | Group 1（license/法條/執照）|
+| ⚠️ §2.1 spike 實測（2026-06-04）：CF Worker 打不到地政 CoP — Decision 2 對地政部分不成立 | Group 1B（台灣機房代理取代 CF Worker 地政路由） |
+| §2.2 地政查詢架構（spike 實錄 + 業務邏輯）：雙軌代理 — 台灣機房代理地政 | **Group 1B（台灣代理部署 + 地政 handler）** |
+| §2.2.3 業務邏輯 — 土地/建物兩類 + 建號收費 | Group 1B.3、Group 4.5 |
 | Decision 3：以 wa-sqlite + OPFS 取代 better-sqlite3 + 本機檔案系統 | Group 2、Group 3 |
 | Decision 4：以瀏覽器指紋 + LocalStorage UUID 取代硬體 Device ID（嚴格版） | Group 6（6.1–6.8） |
 | Decision 5：以 better-auth 取代現有簡易登入機制 | Group 5 全部 |
-| Migration Plan：部署步驟 | Group 1.8、Group 7、Group 10.4 |
+| Migration Plan：部署步驟 | Group 1.8、Group 1B.6、Group 7、Group 10.4 |
 | Migration Plan：回滾策略 | Group 7.1（不動 standalone，可即時切回 Node 本地版） |
 
 ### app-settings-and-license（MODIFIED capability）Requirement ↔ Task 對應
@@ -27,23 +30,52 @@
 | Browser edition license verification SHALL route through the CF Worker gateway | 6.3、6.4 |
 | Browser edition SHALL gate full features behind two-phase authentication and authorization | 6.6 |
 
-## Group 1: CF Worker API Gateway 擴充（design Decision 2）
+## Group 1: CF Worker API Gateway 擴充（design Decision 2 — license/法條/執照，無地理限制）
 
-- [ ] 1.1 建立 `cloudflare-worker/src/handlers/land-registry.ts`，實作地政系統地址查詢代理路由（對應 spec R3-S1）
+> ⚠️ 地政代理已移至 Group 1B（台灣機房代理），本 Group 僅處理無地理限制的 API。
+
+- [ ] 1.1 建立 `cloudflare-worker/src/handlers/legal-clauses.ts`，實作法條同步代理路由（對應 spec R4-S1）
   `[Tool: sonnet]` `[P]`
-- [ ] 1.2 建立 `cloudflare-worker/src/handlers/legal-clauses.ts`，實作法條同步代理路由（對應 spec R4-S1）
+- [ ] 1.2 建立 `cloudflare-worker/src/handlers/realtor.ts`，實作執照驗證代理路由（對應 spec R5-S1）
   `[Tool: sonnet]` `[P]`
-- [ ] 1.3 建立 `cloudflare-worker/src/handlers/realtor.ts`，實作執照驗證代理路由（對應 spec R5-S1）
-  `[Tool: sonnet]` `[P]`
-- [ ] 1.4 更新 `cloudflare-worker/src/index.ts`，註冊上述三組新路由並加上 CORS 標頭（對應 design Decision 2、spec R1-S2）
+- [ ] 1.3 更新 `cloudflare-worker/src/index.ts`，註冊法條 + 執照路由並加上 CORS 標頭（對應 design Decision 2、spec R1-S2）。**不含地政路由**（地政走台灣代理）
   `[Tool: sonnet]`
-- [ ] 1.5 在 `cloudflare-worker/src/handlers/` 新增 rate limit 中介層：每 IP 100 req/min、每 license 1000 req/day，含連續超額 admin 通知（對應 spec R7-S1、R7-S2）
+- [ ] 1.4 在 `cloudflare-worker/src/handlers/` 新增 rate limit 中介層：每 IP 100 req/min、每 license 1000 req/day，含連續超額 admin 通知（對應 spec R7-S1、R7-S2）
   `[Tool: sonnet]`
-- [ ] 1.6 在 `cloudflare-worker/src/handlers/` 新增 error sanitization 中介層：下游錯誤不暴露原始訊息（對應 spec R8）
+- [ ] 1.5 在 `cloudflare-worker/src/handlers/` 新增 error sanitization 中介層：下游錯誤不暴露原始訊息（對應 spec R8）
   `[Tool: sonnet]`
-- [ ] 1.7 撰寫 CF Worker handler 單元測試：驗證 land-registry、legal-clauses、realtor 路由的正確轉發與錯誤處理
+- [ ] 1.6 撰寫 CF Worker handler 單元測試：驗證 legal-clauses、realtor 路由的正確轉發與錯誤處理
   `[Tool: sonnet]` `[P]`
-- [ ] 1.8 部署 CF Worker 至 `aire.opcos.me`，並以 curl 驗證各路由回傳 200/401/429 正確（對應 design Migration Plan Phase 0）
+- [ ] 1.7 部署 CF Worker 至 `aire.opcos.me`，並以 curl 驗證各路由回傳 200/401/429 正確（對應 design Migration Plan Phase 0）
+  `[Tool: sonnet]`
+
+## Group 1B: 台灣機房代理 — 地政 CoP（design Decision 2.2）
+
+> 地政 CoP API 封境外 IP（design §2.1 實測 522），必須從台灣境內代理。GCP asia-east1 已實測 HTTP 200。
+> 業務邏輯：土地/建物兩條路徑 + 建號查詢 = 收費（design §2.2.3）。
+
+- [ ] 1B.1 建立 GCP Cloud Run 專案（`aire-land-proxy`），region 指定 `asia-east1`（彰化）。確認 billing 已綁定、Cloud Build API 已啟用
+  `[Tool: sonnet]`
+  前置條件：GCP project 需綁 billing（R-03 需老魚確認）+ 啟用 `cloudbuild.googleapis.com`
+  SA 權限：`roles/cloudbuild.builds.builder` + `roles/storage.admin`（source-based deploy 需要）
+- [ ] 1B.2 建立台灣代理程式碼（Node.js 輕量 HTTP proxy）：
+  - CoP JWT 管理：getToken + 快取（expires_in=300s，提前 30s 更新）
+  - 認證：驗證瀏覽器帶來的 AIRE session token
+  - 憑證：從 GCP Secret Manager 或 env var 讀取 `LAND_REGISTRY_CLIENT_ID` / `LAND_REGISTRY_CLIENT_SECRET`
+  `[Tool: sonnet]`
+- [ ] 1B.3 實作地政查詢 handler：
+  - 路徑 A（土地）：`/api/land/query` → 打 CoP `LandDescription`、`LandQuerySec`
+  - 路徑 B（建物）：`/api/building/query` → 打 CoP `BuildingDescription`
+  - 參數格式：unit(2碼) + sec(4碼) + no(8碼) + CITY(1碼)（見 `docs/cop-api/api-format-reference.md`）
+  - ⚠️ 建號查詢回應需標記 `billable: true`，前端據此觸發 `pre-charge-confirmation`
+  `[Tool: sonnet]`
+- [ ] 1B.4 實作 rate limit + error sanitization（與 CF Worker 一致邏輯）
+  `[Tool: sonnet]`
+- [ ] 1B.5 撰寫台灣代理單元測試：JWT 快取邏輯、土地/建物路由分流、建號收費標記
+  `[Tool: sonnet]`
+- [ ] 1B.6 部署至 GCP Cloud Run `asia-east1`，以 curl 驗證 getToken + 土地查詢 + 建物查詢回傳正確（對應 design Migration Plan Phase 0）
+  `[Tool: sonnet]`
+- [ ] 1B.7 設定自訂域名（如 `land.aire.tw`）的 DNS + Cloud Run domain mapping
   `[Tool: sonnet]`
 
 ## Group 2: 瀏覽器 SQLite 與加密層（design Decision 3）
@@ -88,8 +120,8 @@
   `[Tool: sonnet]` `[P]`
 - [ ] 4.4 修改 PDF 匯出流程：改為呼叫瀏覽器 PDF 產出 library + `browser-opfs.ts` 儲存（對應 spec R5-S1）
   `[Tool: sonnet]`
-- [ ] 4.5 修改地政查詢流程：改為 `fetch("https://aire.opcos.me/api/land-registry/pull")`（對應 spec R3-S1）
-  `[Tool: sonnet]` `[P]`
+- [ ] 4.5 修改地政查詢 fetch：指向台灣機房代理 URL（如 `https://land.aire.tw/api/land/query` / `/api/building/query`），取代原本的 CF Worker 路由。整合既有 `pre-charge-confirmation`（`PreChargeConfirmDialog.tsx`）— 建號查詢時先觸發收費確認 dialog → 使用者確認後走 `paid-query-consent-and-cost` flow → 才實際打 CoP。（對應 design §2.2.3、spec R3-S1）
+  `[Tool: sonnet]`
 - [ ] 4.6 修改法條同步流程：改為 `fetch("https://aire.opcos.me/api/legal-clauses/sync")`（對應 spec R4-S1）
   `[Tool: sonnet]` `[P]`
 - [ ] 4.7 修改執照驗證流程：改為 `fetch("https://aire.opcos.me/api/realtor/verify")`（對應 spec R5-S1）

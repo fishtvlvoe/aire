@@ -3,6 +3,7 @@
 ## Baseline：本 change 的真實起點是 browser-local-runtime，不是 Tauri
 
 > ⚠️ 修正記錄：本 design 初版誤把現況寫成「Tauri 桌面 App」。實際現況見下。
+> 🟡 2026-06-04 Spike 結論（已實測坐實）：CF Worker（境外）打地政 522 timeout，但**台灣機房（GCP 彰化 asia-east1）與台灣住宅 IP 皆 HTTP 200**。**Decision 2 修正：地政改走台灣機房代理（實測可行），其餘 license/法條/執照 API 仍走 CF Worker** — 詳見 §2.1。
 
 AIRE 自 **2026-05-28** 起已脫離 Tauri，採用 **browser-local-runtime** 模式（見 `src-tauri/PARKED.md` 與既有能力 `browser-local-runtime`）：
 
@@ -115,6 +116,143 @@ CF Worker 的環境變數儲存所有敏感憑證：
 
 - **Alt C：OPCOS 後端直接提供統一 API**
   - 否決原因：地政 API 是「客戶自備 Key」模式，OPCOS 後端不應該儲存或代理客戶的地政憑證。CF Worker 是 AIRE 專屬閘道，與 OPCOS 平台解耦，責任邊界清晰。
+
+### 2.1 ⚠️ Spike 實測（2026-06-04）：CF Worker 打不到地政 CoP — Decision 2 對地政部分不成立
+
+實際部署最小 CF Worker 驗證「Cloudflare 邊緣能否打到 `copapi.moi.gov.tw/cp/getToken`」，結果推翻原假設：
+
+| 來源 | 出口 IP | 結果 |
+|------|------|------|
+| 本機 | 台灣住宅 IP（NAT） | 0.11s → **HTTP 200**，有效 JWT |
+| GCP Cloud Run | **台灣彰化 asia-east1 資料中心 IP** | 0.61s → **HTTP 200**，有效 JWT |
+| CF Worker | 新加坡機房（colo=SIN） | 19.7s → **HTTP 522 timeout**（連續 3 次全失敗） |
+
+**判讀**：522 是 Cloudflare 回報「連不到 origin」，且為 timeout 而非 403/401 → 封包被目標端防火牆**靜默丟棄**，典型地理封鎖特徵。憑證、格式、CORS 都不是問題（本機與台灣機房同憑證皆秒過）。
+
+**根本約束（2026-06-04 實測坐實）**：`copapi.moi.gov.tw` 封「**境外 IP**」，**不封台灣境內 IP（含資料中心）**。台灣住宅 IP 與台灣 GCP 資料中心 IP 皆 200，唯境外 Cloudflare 522。結論：**地政 CoP 查詢必須從台灣境內發出，但台灣機房資料中心 IP 即可，不需住宅 IP** → 台灣雲端代理方案成立。這也解釋 AIRE 現況採 browser-local-runtime（本機 = 台灣 IP）的根本原因。
+
+**CF 為何不行**：境外 Cloudflare IP 被封。免費 Workers 無法指定落點，即使付費綁 TPE 也是賭政府有無封 Cloudflare 整段 ASN。實務結論：**不要用 CF Worker 代理地政 CoP；改用台灣機房代理（已實測可行）**。
+
+**對 Decision 2 的修正**：
+
+| 代理路由 | CF Worker 可行性 | 依據 |
+|---------|----------------|------|
+| `/api/license/*` → opcos.me | ✅ 可行 | opcos 無地理限制 |
+| `/api/legal-clauses/*` → opcos.aiver.me | ✅ 可行 | 同上 |
+| `/api/realtor/*` → opcos.me | ✅ 可行 | 同上 |
+| `/api/land-registry/*` → copapi.moi.gov.tw | ❌ **不可行** | 境外 CF IP 被丟包（實測 522） |
+
+地政查詢需改走「台灣機房代理」，候選方案：
+
+1. ✅ **台灣機房代理（已實測可行）**：GCP asia-east1（彰化）/ 中華電信 hicloud / 是方，跑小代理專打地政；license/法條/執照仍走 CF Worker。失去「純零後端」但保留純瀏覽器前端 + 即時地政。**GCP asia-east1 已實測 CoP 200。**
+2. 維持 browser-local-runtime 作為「需地政查詢」通道，純瀏覽器版定位「檢視 / 輕量 / 不查地政」（雙通道分流）。
+3. 純瀏覽器版改用實價開放資料（`plvr` 檔案下載，無即時 API、無地理限制）+ 手動輸入，放棄即時 CoP。
+4. ~~Cloudflare 付費綁 TPE~~ — 不建議，賭 CF ASN 是否被封。
+
+**建議（實測後確認）**：**方案 1** —— 唯一同時保住「純瀏覽器前端 + 即時地政查詢」的路，已用 GCP asia-east1 實測坐實。架構：
+```
+瀏覽器 ──┬──► CF Worker（AIRE 自有）──► license / 法條 / 執照（無地理限制）
+         └──► 台灣機房代理（AIRE 自有）──► copapi.moi.gov.tw 地政（需台灣 IP）
+```
+此架構與「解綁 opcos」相容：兩個代理都是 AIRE 自有，完全不依賴 opcos。
+
+### 2.2 地政查詢架構（Spike 實錄 + 業務邏輯）
+
+> 本節整合 §2.1 的 spike 結論，加入業務邏輯與架構細節，使實作可直接參照。
+
+#### 2.2.1 雙軌代理架構（確定方案）
+
+```
+瀏覽器
+  │
+  ├─► CF Worker (aire.opcos.me)
+  │     ├── /api/license/*        → opcos.me（授權驗證）
+  │     ├── /api/legal-clauses/*  → opcos.aiver.me（法條同步）
+  │     └── /api/realtor/*        → opcos.me（執照驗證）
+  │
+  └─► 台灣機房代理 (GCP asia-east1 Cloud Run)
+        ├── /api/land/token       → copapi.moi.gov.tw/cp/getToken（JWT 取得）
+        ├── /api/land/query       → copapi.moi.gov.tw/cp/api/*（土地查詢）
+        └── /api/building/query   → copapi.moi.gov.tw/cp/api/*（建物查詢）
+```
+
+**為什麼是雙軌而非單軌**：
+- CF Worker 代理 license/法條/執照 → 這些 API 無地理限制，CF 全球邊緣低延遲
+- 台灣機房代理專打地政 CoP → copapi 封境外 IP（§2.1 實測），必須台灣境內出口
+- 兩個代理都是 AIRE 自有，不依賴 opcos，與「AIRE 解綁 opcos 成獨立 SaaS」相容
+
+#### 2.2.2 台灣機房代理規格
+
+| 項目 | 規格 |
+|------|------|
+| 部署目標 | GCP Cloud Run — `asia-east1`（彰化） |
+| Runtime | Node.js 或 Deno（輕量 HTTP proxy） |
+| 功能 | CoP JWT 管理（getToken + 快取 expires_in=300s）、地政/建物查詢轉發、錯誤轉譯 |
+| 認證 | 瀏覽器帶 AIRE session token → 台灣代理驗證後轉打 CoP（Basic Auth → JWT） |
+| 憑證儲存 | GCP Secret Manager 或 Cloud Run env var（`LAND_REGISTRY_CLIENT_ID`、`LAND_REGISTRY_CLIENT_SECRET`） |
+| 候選替代 | 中華電信 hicloud、是方 — 需台灣境內 IP 即可，GCP asia-east1 已實測通過 |
+
+**CoP JWT 管理邏輯**：
+```
+1. 收到地政查詢請求
+2. 檢查快取的 JWT 是否還有 ≥ 30s 效期
+3. 若過期/無 → GET copapi.moi.gov.tw/cp/getToken，Header: Authorization: Basic base64(client_id:secret)
+4. 快取新 JWT（expires_in=300s）
+5. 帶 Bearer token 打 CoP API
+6. 回傳結果（或錯誤轉譯）
+```
+
+#### 2.2.3 業務邏輯：地址查詢後的兩條路徑
+
+地址查詢（R02 地籍圖台或使用者手動輸入）解析完成後，分兩類處理：
+
+**路徑 A — 土地查詢**：
+1. 取得**地段**（section）
+2. 取得**地號**（parcel number）
+3. 查詢**土地坪數**（面積）
+4. CoP API：`LandDescription`（土地標示部）、`LandQuerySec`（代碼查詢）
+
+**路徑 B — 建物查詢**：
+1. 取得**建號**（building number）
+2. 查詢**建物基本資料**
+3. CoP API：`BuildingDescription`（建物標示部）
+
+**收費規則**：
+- ⚠️ **有建號 = 收費查詢**。查詢建物需打 CoP 付費 API，必須先觸發既有的 `pre-charge-confirmation`（spec: `openspec/specs/pre-charge-confirmation/spec.md`）→ 使用者確認後走 `paid-query-consent-and-cost`（spec: `openspec/specs/paid-query-consent-and-cost/spec.md`）
+- 費用計算使用 **catalog-driven pricing**（非固定金額），缺 catalog price 時阻止查詢、不 fallback
+- 實作串接點：`src/components/PreChargeConfirmDialog.tsx`（已存在）
+
+#### 2.2.4 COP API 端點參考
+
+> 完整規格見 `docs/cop-api/api-format-reference.md`
+
+| API | 用途 | 付費 | 參數格式 |
+|-----|------|------|----------|
+| `LandDescription` | 土地標示部 | 是 | unit(2碼) + sec(4碼) + no(8碼) + CITY(1碼) |
+| `LandOwnership` | 土地所有權部 | 是 | 同上 |
+| `LandOtherRights` | 土地他項權利部 | 是 | 同上 |
+| `BuildingDescription` | 建物標示部 | 是 | 同上 |
+| `BuildingOwnership` | 建物所有權部 | 是 | 同上 |
+| `LandQuerySec` | 地段代碼查詢 | 否 | city + district |
+| `MOI_API_012`（openapi.moi.gov.tw） | 免費代碼查詢 | 否 | 不同 base URL |
+
+#### 2.2.5 便民系統（地籍圖台）與 CoP API 的關係
+
+| 系統 | URL | 用途 | 與 CoP 的關係 |
+|------|-----|------|--------------|
+| R02 舊版 | easymap.land.moi.gov.tw/R02/ | 地籍圖瀏覽（OpenLayers） | 獨立系統，免登入，AIRE 用來做地址 → 地號/建號解析 |
+| Z10Web 新版 | easymap.land.moi.gov.tw/Z10Web/ | 地籍圖瀏覽（Vue.js + Cesium 3D） | 獨立系統，新版圖台 |
+| W10Web 地政司版 | easymap.land.moi.gov.tw/W10Web/ | 同 Z10 功能 + 各縣市地政電傳 | 獨立系統 |
+| CoP 平台 | copapi.moi.gov.tw | 63 支正式 API（土地/建物/所有權…） | 需憑證、有收費 |
+| 便民系統 API | ep.land.nat.gov.tw/api/ | 便民服務系統自有 API | 需帳號、每日 50 次限制 |
+
+> ⚠️ **便民系統（R02/Z10Web/W10Web/ep.land.nat.gov.tw）的境外 IP 限制狀態：推測同樣境內限制，未實測。**
+> 依據：gov-site-analysis/ 與 cop-scrape/ 目錄均無明確 IP 限制記載；CoP API 的 522 在 docs/cop-scrape/error-codes.md 僅標註為 "observed from overseas connections"，無官方政策文件佐證。
+>
+> **待驗證項目**：
+> 1. Z10Web（新版）/ W10Web（地政司版）從境外 IP 存取是否同樣 timeout
+> 2. ep.land.nat.gov.tw/api/ 是否有地理限制
+> 3. R02 舊版目前 AIRE 已在用，本機使用者 = 台灣 IP，故未暴露此問題；純瀏覽器版走台灣機房代理後同樣是台灣 IP，不受影響
 
 ### 3. 以 wa-sqlite + OPFS 取代 better-sqlite3 + 本機檔案系統
 
