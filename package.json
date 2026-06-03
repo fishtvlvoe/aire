@@ -19,6 +19,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "build:local-runtime": "node scripts/build-local-runtime.mjs",
+    "package:win": "bash scripts/build-installer.sh",
     "launch": "node scripts/launch-aire.mjs"
   },
   "dependencies": {
@@ -81,6 +82,11 @@
   "pnpm": {
     "allowedBuildScripts": [
       "better-sqlite3"
+    ],
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild",
+      "sharp"
     ]
   }
 }
