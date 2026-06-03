@@ -1,0 +1,32 @@
+{
+  "version": "PLACEHOLDER",
+  "generated_at": "PLACEHOLDER",
+  "release_status": "enterprise-managed-internal",
+  "_comment": "此檔案由打包腳本自動產生。version / generated_at / files[].sha256 必須在打包時填入。release_status 欄位必須保持 enterprise-managed-internal，不得修改為 customer-release-ready。",
+  "files": [
+    {
+      "path": "AIRE-<version>-Setup.exe",
+      "sha256": "PLACEHOLDER"
+    },
+    {
+      "path": "trust/AIRE-RootCA.cer",
+      "sha256": "PLACEHOLDER"
+    },
+    {
+      "path": "trust/AIRE-Publisher.cer",
+      "sha256": "PLACEHOLDER"
+    },
+    {
+      "path": "scripts/install.ps1",
+      "sha256": "PLACEHOLDER"
+    },
+    {
+      "path": "scripts/install-trust.ps1",
+      "sha256": "PLACEHOLDER"
+    },
+    {
+      "path": "scripts/verify-checksum.ps1",
+      "sha256": "PLACEHOLDER"
+    }
+  ]
+}
