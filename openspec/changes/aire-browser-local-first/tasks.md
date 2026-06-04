@@ -34,17 +34,17 @@
 
 > ⚠️ 地政代理已移至 Group 1B（台灣機房代理），本 Group 僅處理無地理限制的 API。
 
-- [ ] 1.1 建立 `cloudflare-worker/src/handlers/legal-clauses.ts`，實作法條同步代理路由（對應 spec R4-S1）
+- [x] 1.1 建立 `cloudflare-worker/src/handlers/legal-clauses.ts`，實作法條同步代理路由（對應 spec R4-S1）
   `[Tool: sonnet]` `[P]`
-- [ ] 1.2 建立 `cloudflare-worker/src/handlers/realtor.ts`，實作執照驗證代理路由（對應 spec R5-S1）
+- [x] 1.2 建立 `cloudflare-worker/src/handlers/realtor.ts`，實作執照驗證代理路由（對應 spec R5-S1）
   `[Tool: sonnet]` `[P]`
-- [ ] 1.3 更新 `cloudflare-worker/src/index.ts`，註冊法條 + 執照路由並加上 CORS 標頭（對應 design Decision 2、spec R1-S2）。**不含地政路由**（地政走台灣代理）
+- [x] 1.3 更新 `cloudflare-worker/src/index.ts`，註冊法條 + 執照路由並加上 CORS 標頭（對應 design Decision 2、spec R1-S2）。**不含地政路由**（地政走台灣代理）
   `[Tool: sonnet]`
-- [ ] 1.4 在 `cloudflare-worker/src/handlers/` 新增 rate limit 中介層：每 IP 100 req/min、每 license 1000 req/day，含連續超額 admin 通知（對應 spec R7-S1、R7-S2）
+- [x] 1.4 在 `cloudflare-worker/src/handlers/` 新增 rate limit 中介層：每 IP 100 req/min、每 license 1000 req/day，含連續超額 admin 通知（對應 spec R7-S1、R7-S2）
   `[Tool: sonnet]`
-- [ ] 1.5 在 `cloudflare-worker/src/handlers/` 新增 error sanitization 中介層：下游錯誤不暴露原始訊息（對應 spec R8）
+- [x] 1.5 在 `cloudflare-worker/src/handlers/` 新增 error sanitization 中介層：下游錯誤不暴露原始訊息（對應 spec R8）
   `[Tool: sonnet]`
-- [ ] 1.6 撰寫 CF Worker handler 單元測試：驗證 legal-clauses、realtor 路由的正確轉發與錯誤處理
+- [x] 1.6 撰寫 CF Worker handler 單元測試：驗證 legal-clauses、realtor 路由的正確轉發與錯誤處理
   `[Tool: sonnet]` `[P]`
 - [ ] 1.7 部署 CF Worker 至 `aire.opcos.me`，並以 curl 驗證各路由回傳 200/401/429 正確（對應 design Migration Plan Phase 0）
   `[Tool: sonnet]`

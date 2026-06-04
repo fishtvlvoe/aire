@@ -8,7 +8,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}", "docs/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs"],
+    include: ["src/**/*.test.{ts,tsx}", "docs/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs", "cloudflare-worker/src/**/*.test.ts"],
     exclude: ["node_modules/**", ".next/**", "out/**", "src-tauri/**", "legacy/**"],
   },
   resolve: {
