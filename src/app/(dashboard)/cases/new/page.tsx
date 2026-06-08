@@ -1062,9 +1062,32 @@ async function loadExistingAddressParcels(address: string): Promise<ParcelInfo[]
   const runs = await listRegistryQueryRuns(address.trim());
   const matchedRun = runs.find((run) => registryRunMatchesAddress(run, normalizedAddress));
   if (!matchedRun) return [];
+  if (!canReuseExistingAddressRun(matchedRun)) return [];
 
   const candidates = candidatesFromRegistryRun(matchedRun, address.trim());
   return candidates.some(hasUsableCoordinate) ? candidates : [];
+}
+
+function canReuseExistingAddressRun(run: RegistryQueryRun): boolean {
+  const candidateJson = isRecord(run.candidate_json) ? run.candidate_json : null;
+  const status = pickString(candidateJson, "status");
+  if (status === "low_confidence_unresolved" || status === "manual_required" || status === "rejected_by_formal_reverse_check") {
+    return false;
+  }
+  const errors = Array.isArray(candidateJson?.errors) ? candidateJson.errors : [];
+  const hasConflictError = errors.some((entry) => {
+    if (!isRecord(entry)) return false;
+    const code = pickString(entry, "code") ?? "";
+    return /mismatch|conflict|low_confidence|build_detail_unavailable/i.test(code);
+  });
+  if (hasConflictError) return false;
+
+  const candidates = Array.isArray(candidateJson?.candidates) ? candidateJson.candidates : [];
+  return !candidates.some((candidate) => {
+    if (!isRecord(candidate)) return false;
+    const confidence = pickString(candidate, "discovery_confidence") ?? pickString(candidate, "confidence_label") ?? "";
+    return confidence === "low" || confidence === "needs_selection";
+  });
 }
 
 function registryRunMatchesAddress(run: RegistryQueryRun, normalizedAddress: string): boolean {
