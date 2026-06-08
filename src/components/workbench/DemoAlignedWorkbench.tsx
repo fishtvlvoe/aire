@@ -783,6 +783,14 @@ function findFormalImportTarget(
   );
   if (explicitTarget) return explicitTarget;
   if (manualConfirmedTarget) {
+    const matchingCandidate = candidates.find((candidate) =>
+      !isManualConfirmedCandidate(candidate) &&
+      hasCompleteFormalRegistryKey(candidate) &&
+      candidateMatchesManualConfirmation(candidate, manualConfirmedTarget),
+    );
+    if (matchingCandidate && isFormalImportBlockedCandidate(matchingCandidate)) {
+      return null;
+    }
     const matchingFormalCandidate = candidates.find((candidate) =>
       !isManualConfirmedCandidate(candidate) &&
       hasCompleteFormalRegistryKey(candidate) &&

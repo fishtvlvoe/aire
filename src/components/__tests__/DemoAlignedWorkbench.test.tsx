@@ -787,6 +787,56 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(importRegion).getByText("候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。")).toBeInTheDocument();
   });
 
+  it("does not reuse a stale manual confirmed match when the matching candidate is low confidence", () => {
+    const staleConfirmedCase: CaseRow = {
+      ...caseRow,
+      address: "台南市東區東和路47號3樓",
+      land_lot_no: "02210032",
+      building_lot_no: "03045000",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-06-09T00:00:00.000Z",
+        totalCost: 0,
+        entries: {},
+        confirmed_registry_match: {
+          office_code: "DC",
+          section_code: "1514",
+          section_name: "東光段",
+          land_no: "02210032",
+          building_no: "03045000",
+          registry_key: "DC-1514-03045000",
+          status: "confirmed",
+        },
+        candidate_options: [
+          {
+            candidate_id: "building:DC-1514-03045000",
+            parcel_type: "building",
+            office_code: "DC",
+            section_code: "1514",
+            section_name: "東光段",
+            land_no: "02210032",
+            building_no: "03045000",
+            parcel_number: "03045000",
+            normalized_parcel_id: "DC-1514-03045000",
+            source: "public_reference",
+            confidence_label: "low",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            confirmation_state: "confirmed",
+            warnings: ["候選來源衝突，正式查詢前需重新確認地段、地號與建號"],
+          },
+        ],
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={staleConfirmedCase} initialTab="formal-import" />);
+
+    const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
+    expect(within(importRegion).queryByText("正式查詢目標：DC-1514-03045000")).not.toBeInTheDocument();
+    expect(within(importRegion).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
+    expect(within(importRegion).getByText("候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。")).toBeInTheDocument();
+  });
+
   it("blocks paid formal import in Browser mode until AIRE workspace COP credential is configured", async () => {
     mockIsBrowserLocalFirstEnabled.mockReturnValue(true);
     const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
