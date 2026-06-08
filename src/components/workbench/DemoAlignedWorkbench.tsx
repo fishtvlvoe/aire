@@ -775,7 +775,7 @@ function findFormalImportTarget(
   const explicitTarget = candidates.find((candidate) =>
     !isManualConfirmedCandidate(candidate) &&
     hasCompleteFormalRegistryKey(candidate) &&
-    !isFormalImportBlockedCandidate(candidate) &&
+    !isFormalImportHardBlockedCandidate(candidate) &&
       (
         candidate.confirmation_state === "confirmed" ||
         confirmedParcelIds[candidate.parcel_type] === candidate.candidate_id
@@ -788,13 +788,13 @@ function findFormalImportTarget(
       hasCompleteFormalRegistryKey(candidate) &&
       candidateMatchesManualConfirmation(candidate, manualConfirmedTarget),
     );
-    if (matchingCandidate && isFormalImportBlockedCandidate(matchingCandidate)) {
+    if (matchingCandidate && isFormalImportHardBlockedCandidate(matchingCandidate)) {
       return null;
     }
     const matchingFormalCandidate = candidates.find((candidate) =>
       !isManualConfirmedCandidate(candidate) &&
       hasCompleteFormalRegistryKey(candidate) &&
-      !isFormalImportBlockedCandidate(candidate) &&
+      !isFormalImportHardBlockedCandidate(candidate) &&
       candidateMatchesManualConfirmation(candidate, manualConfirmedTarget),
     );
     if (matchingFormalCandidate) return matchingFormalCandidate;
@@ -803,11 +803,18 @@ function findFormalImportTarget(
   return null;
 }
 
-function isFormalImportBlockedCandidate(candidate: CandidateParcelOption): boolean {
+function isFormalImportHardBlockedCandidate(candidate: CandidateParcelOption): boolean {
+  if (candidate.parcel_type !== "building") return false;
+  return (candidate.warnings ?? []).some((warning) =>
+    /正式查詢回傳門牌與案件地址不一致|門牌與案件地址不一致|門牌不一致|已停用/.test(warning),
+  );
+}
+
+function hasFormalImportSoftConflict(candidate: CandidateParcelOption): boolean {
   if (candidate.parcel_type !== "building") return false;
   if (candidate.confidence_label === "low") return true;
   return (candidate.warnings ?? []).some((warning) =>
-    /來源衝突|唯一重疊建號推定|門牌與案件地址不一致|門牌不一致/.test(warning),
+    /來源衝突|唯一重疊建號推定/.test(warning),
   );
 }
 
@@ -2203,7 +2210,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                               <span className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[17px] font-medium text-emerald-800">
                                 已確認，可在下方匯入
                               </span>
-                            ) : isFormalImportBlockedCandidate(candidate) ? (
+                            ) : isFormalImportHardBlockedCandidate(candidate) ? (
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[17px] text-amber-800">
                                 候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。
                               </div>
@@ -2213,6 +2220,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                               </div>
                             ) : (
                               <>
+                                {hasFormalImportSoftConflict(candidate) ? (
+                                  <div className="w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[17px] text-amber-800">
+                                    候選來源有衝突；若你已確認地段、地號、建號正確，仍可手動確認後再正式匯入。
+                                  </div>
+                                ) : null}
                                 <button
                                   className="rounded-md border bg-white px-3 py-2 text-[17px]"
                                   type="button"

@@ -745,7 +745,7 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(importRegion).queryByRole("button", { name: "確認 DK-9125-00084000" })).not.toBeInTheDocument();
   });
 
-  it("blocks paid formal import for a low-confidence conflicting building candidate even when previously confirmed", () => {
+  it("allows a manually confirmed soft-conflict building candidate to proceed to formal import", () => {
     const conflictedCandidateCase: CaseRow = {
       ...caseRow,
       building_lot_no: "03045000",
@@ -783,8 +783,8 @@ describe("DemoAlignedWorkbench", () => {
     render(<DemoAlignedWorkbench caseData={conflictedCandidateCase} initialTab="formal-import" />);
 
     const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
-    expect(within(importRegion).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
-    expect(within(importRegion).getByText("候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。")).toBeInTheDocument();
+    expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
+    expect(within(importRegion).getByText("正式查詢目標：DC-1514-03045000")).toBeInTheDocument();
   });
 
   it("does not reuse a stale manual confirmed match when the matching candidate is low confidence", () => {
@@ -832,9 +832,8 @@ describe("DemoAlignedWorkbench", () => {
     render(<DemoAlignedWorkbench caseData={staleConfirmedCase} initialTab="formal-import" />);
 
     const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
-    expect(within(importRegion).queryByText("正式查詢目標：DC-1514-03045000")).not.toBeInTheDocument();
-    expect(within(importRegion).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
-    expect(within(importRegion).getByText("候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。")).toBeInTheDocument();
+    expect(within(importRegion).getByText("正式查詢目標：DC-1514-03045000")).toBeInTheDocument();
+    expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
   });
 
   it("treats a prior formal address mismatch warning as a blocked candidate even without an explicit low confidence flag", () => {
