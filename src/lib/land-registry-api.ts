@@ -485,6 +485,16 @@ function normalizeCustomerCopFormalResults(results: Record<string, unknown>): Re
     return normalized;
   }
 
+  const upstreamResultMap = Object.entries(results).reduce<Record<string, ApiResult>>((acc, [apiId, payload]) => {
+    const uiApiId = apiId === "land_description" ? "land_registry" : apiId;
+    const normalized = normalizeCustomerCopUpstreamApiResult(uiApiId, payload);
+    if (normalized) acc[uiApiId] = normalized;
+    return acc;
+  }, {});
+  if (Object.keys(upstreamResultMap).length > 0) {
+    return upstreamResultMap;
+  }
+
   return {
     land_registry: {
       success: true,
@@ -500,6 +510,127 @@ function isApiResultMap(results: Record<string, unknown>): results is Record<str
     const record = value as Record<string, unknown>;
     return typeof record.success === "boolean" && typeof record.source === "string";
   });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeCustomerCopUpstreamApiResult(apiId: string, payload: unknown): ApiResult | null {
+  if (!isRecord(payload) || typeof payload.STATUS !== "number") return null;
+  const success = payload.STATUS === 1;
+  return {
+    success,
+    data: normalizeCustomerCopUpstreamData(apiId, payload),
+    error: success ? undefined : String(payload.MESSAGE ?? payload.CODE ?? "cop_query_failed"),
+    source: "api",
+  };
+}
+
+function normalizeCustomerCopUpstreamData(apiId: string, raw: Record<string, unknown>): Record<string, unknown> {
+  const first = Array.isArray(raw.RESPONSE) ? raw.RESPONSE[0] as Record<string, unknown> | undefined : undefined;
+  if (apiId === "building_registry") {
+    const record = readNestedRecord(first, "BLDGREG") ?? {};
+    return { ...normalizeCustomerCopBuildingRegistry(record), ...record, raw };
+  }
+  if (apiId === "building_ownership") {
+    const rows = readNestedArray(first, "BLDGOWNERSHIP") ?? [];
+    const firstRow = rows.find(isRecord) as Record<string, unknown> | undefined;
+    return { ...normalizeCustomerCopBuildingOwnership(firstRow), rows, raw };
+  }
+  if (apiId === "land_registry") {
+    const record = readNestedRecord(first, "LANDREG") ?? {};
+    return { ...normalizeCustomerCopLandRegistry(record), ...record, raw };
+  }
+  return { raw };
+}
+
+function normalizeCustomerCopBuildingRegistry(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    area: readNumber(record, ["AREA"]),
+    building_area: readNumber(record, ["AREA"]),
+    main_building_area: readNumber(record, ["MAINAREA"]),
+    auxiliary_area: sumNestedRows(readNestedArray(record, "FLOORACC") ?? [], ["FAREA_ABAREA", "ABAREA"]),
+    common_area: sumNestedRows(readNestedArray(record, "SHAREDAREA") ?? [], ["SAREA"]),
+    parking_area: readNumber(record, ["PARKAREA"]),
+    building_purpose: readText(record, ["PURPOSE"]),
+    purpose: readText(record, ["PURPOSE"]),
+    material: readText(record, ["MATERIAL"]),
+    building_floor: readText(record, ["BUILDINGFLOOR"]),
+    construction_date: readText(record, ["COMPLETEDATE"]),
+    building_number: readText(record, ["NO"]),
+    building_no: readText(record, ["NO"]),
+    building_address: readText(record, ["BNUMBER", "ADDRESS"]),
+    address: readText(record, ["BNUMBER", "ADDRESS"]),
+    land_no: readText(record, ["LANDNO"]),
+  };
+}
+
+function normalizeCustomerCopBuildingOwnership(row: Record<string, unknown> | undefined): Record<string, unknown> {
+  const owner = isRecord(row?.OWNER) ? row.OWNER : {};
+  return {
+    owner_name: readText(owner, ["LNAME"]),
+    certificate_no: readText(row, ["OWRNO"]),
+    ownership_date: readText(row, ["RDATE"]),
+    registration_reason: readText(row, ["REASON"]),
+    reason_date: readText(row, ["REASONDATE"]),
+    right_type: readText(row, ["RIGHT"]),
+    numerator: readText(row, ["NUMERATOR"]),
+    denominator: readText(row, ["DENOMINATOR"]),
+    owner_identity_type: readText(owner, ["LTYPE"]),
+    owner_id: readText(owner, ["LID"]),
+    owner_address: readText(owner, ["LADDR"]),
+  };
+}
+
+function normalizeCustomerCopLandRegistry(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    section: readText(record, ["SECNAME", "SECTION"]),
+    lot_number: readText(record, ["NO", "LOTNO"]),
+    land_no: readText(record, ["NO", "LOTNO"]),
+    area: readNumber(record, ["AREA"]),
+    land_area: readNumber(record, ["AREA"]),
+    announced_value: readNumber(record, ["ALVALUE", "ANNOUNCED_VALUE"]),
+    assessed_value: readNumber(record, ["ALPRICE", "ASSESSED_VALUE"]),
+    registration_date: readText(record, ["RDATE"]),
+    registration_reason: readText(record, ["REASON"]),
+    zoning: readText(record, ["ZONING", "LANDUSE", "PURPOSE"]),
+    purpose: readText(record, ["PURPOSE", "LANDUSE"]),
+    usage_category: readText(record, ["LCLASS"]),
+    building_count: readText(record, ["BUILDINGCOUNT"]),
+  };
+}
+
+function readNestedRecord(source: Record<string, unknown> | undefined, key: string): Record<string, unknown> | null {
+  const value = source?.[key];
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function readNestedArray(source: Record<string, unknown> | undefined, key: string): unknown[] | null {
+  const value = source?.[key];
+  return Array.isArray(value) ? value : null;
+}
+
+function readText(source: unknown, keys: string[]): string | undefined {
+  if (!isRecord(source)) return undefined;
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return undefined;
+}
+
+function readNumber(source: unknown, keys: string[]): number | undefined {
+  const value = readText(source, keys);
+  if (!value) return undefined;
+  const parsed = Number(value.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function sumNestedRows(rows: unknown[], keys: string[]): number | undefined {
+  const total = rows.filter(isRecord).reduce((sum, row) => sum + (readNumber(row, keys) ?? 0), 0);
+  return total > 0 ? Math.round(total * 100) / 100 : undefined;
 }
 
 export async function addressLookup(address: string): Promise<ParcelInfo[]> {

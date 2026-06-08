@@ -88,7 +88,16 @@ describe("land-registry-api addressLookup", () => {
         new Response(JSON.stringify({
           status: "success",
           runId: "aire-cop-001",
-          sanitizedResult: { STATUS: 1, PRICE: 1, QUANTITY: 1 },
+          sanitizedResult: {
+            land_description: {
+              STATUS: 1,
+              RESPONSE: [{ LANDREG: { SECNAME: "公園段", NO: "00020000", AREA: "123.45", ALVALUE: "91000", ALPRICE: "7200" } }],
+            },
+            building_registry: {
+              STATUS: 1,
+              RESPONSE: [{ BLDGREG: { NO: "00030000", PURPOSE: "住家用", AREA: "98.5", COMPLETEDATE: "0831018" } }],
+            },
+          },
           costSummary: { actualCost: 2 },
           cacheHit: false,
           sourceRunId: null,
@@ -104,7 +113,12 @@ describe("land-registry-api addressLookup", () => {
         land_registry: expect.objectContaining({
           success: true,
           source: "api",
-          data: expect.objectContaining({ STATUS: 1, PRICE: 1, QUANTITY: 1 }),
+          data: expect.objectContaining({ section: "公園段", lot_number: "00020000", area: 123.45 }),
+        }),
+        building_registry: expect.objectContaining({
+          success: true,
+          source: "api",
+          data: expect.objectContaining({ building_number: "00030000", purpose: "住家用", area: 98.5 }),
         }),
       },
       total_cost: 2,
@@ -157,7 +171,10 @@ describe("land-registry-api addressLookup", () => {
         status: "success",
         runId: "aire-cop-002",
         results: {
-          land_description: { success: true, data: { STATUS: 1, LMNAM: "公園段" }, source: "api" },
+          land_description: {
+            STATUS: 1,
+            RESPONSE: [{ LANDREG: { SECNAME: "公園段", NO: "00020000", AREA: "88.8" } }],
+          },
         },
         costSummary: { actualCost: 1 },
         cacheHit: false,
@@ -173,7 +190,7 @@ describe("land-registry-api addressLookup", () => {
         land_registry: expect.objectContaining({
           success: true,
           source: "api",
-          data: expect.objectContaining({ LMNAM: "公園段" }),
+          data: expect.objectContaining({ section: "公園段" }),
         }),
       },
     });
