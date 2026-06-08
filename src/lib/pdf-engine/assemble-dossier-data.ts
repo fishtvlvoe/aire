@@ -14,6 +14,8 @@ import {
   type CandidateSummaryFields,
 } from "@/lib/registry-provenance";
 import { extractRealPriceDistrict } from "@/lib/real-price-query";
+import { isBrowserLocalFirstEnabled, syncBrowserLegalClauses } from "@/lib/legal-clauses-api";
+import { buildVisualEvidenceProxyUrl, type VisualEvidenceKind } from "@/lib/free-visual-evidence";
 
 type SketchRow = { id: string; version: number; case_id: string };
 type ConversionRow = { id: string; status: string; approved_at?: string; sketch_id: string };
@@ -585,6 +587,17 @@ function normalizeLegalClauseRecord(clause: unknown): string | null {
 }
 
 async function resolveLegalClauses(): Promise<string[]> {
+  if (isBrowserLocalFirstEnabled()) {
+    try {
+      const normalized = (await syncBrowserLegalClauses())
+        .map(normalizeLegalClauseRecord)
+        .filter((item): item is string => Boolean(item));
+      return normalized;
+    } catch {
+      return [];
+    }
+  }
+
   try {
     const clauses = await safeInvoke<unknown[]>("list_legal_clauses");
     if (Array.isArray(clauses)) {
@@ -657,30 +670,73 @@ type DossierCaseAssetKind =
   | "cadastral_map"
   | "exterior_photo";
 
-async function readCaseAssetImage(caseId: string, kind: DossierCaseAssetKind): Promise<Uint8Array | null> {
+type DossierCaseAssetRecord = {
+  id: string;
+  is_primary?: boolean;
+  review_status?: string;
+  source?: string;
+  file_name?: string;
+  metadata_json?: string;
+};
+
+type DossierCaseAssetImage = {
+  bytes: Uint8Array;
+  source: string | null;
+  fileName: string | null;
+  metadata: Record<string, unknown>;
+};
+
+async function readCaseAsset(caseId: string, kind: DossierCaseAssetKind): Promise<DossierCaseAssetImage | null> {
   try {
-    const assets = await safeInvoke<
-      Array<{ id: string; is_primary?: boolean; review_status?: string }>
-    >("list_case_assets", {
-      case_id: caseId,
-      kind,
-    });
+    const assets = isBrowserLocalFirstEnabled()
+      ? await import("@/lib/browser-case-assets").then((mod) =>
+          mod.listBrowserCaseAssets(caseId, kind),
+        )
+      : await safeInvoke<DossierCaseAssetRecord[]>("list_case_assets", {
+          case_id: caseId,
+          kind,
+        });
     if (!Array.isArray(assets)) return null;
     const asset = assets.find((item) => item.is_primary && item.review_status === "approved")
       ?? assets.find((item) => item.review_status === "approved")
       ?? assets[0];
     if (!asset) return null;
-    const result = await safeInvoke<{ bytes?: number[] | Uint8Array; mime?: string }>(
-      "read_case_asset_bytes",
-      { asset_id: asset.id },
-    );
+    const result = isBrowserLocalFirstEnabled()
+      ? await import("@/lib/browser-case-assets").then((mod) =>
+          mod.readBrowserCaseAssetBytes(asset.id),
+        )
+      : await safeInvoke<{ bytes?: number[] | Uint8Array; mime?: string }>(
+          "read_case_asset_bytes",
+          { asset_id: asset.id },
+        );
     if (result?.bytes && result.bytes.length > 0) {
-      return new Uint8Array(result.bytes);
+      let metadata: Record<string, unknown> = {};
+      if (typeof asset.metadata_json === "string" && asset.metadata_json.trim()) {
+        try {
+          const parsed = JSON.parse(asset.metadata_json);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            metadata = parsed as Record<string, unknown>;
+          }
+        } catch {
+          metadata = {};
+        }
+      }
+      return {
+        bytes: new Uint8Array(result.bytes),
+        source: asset.source ?? null,
+        fileName: asset.file_name ?? null,
+        metadata,
+      };
     }
   } catch {
     // 舊版 IPC 或檔案遺失時交給 legacy fallback。
   }
   return null;
+}
+
+async function readCaseAssetImage(caseId: string, kind: DossierCaseAssetKind): Promise<Uint8Array | null> {
+  const asset = await readCaseAsset(caseId, kind);
+  return asset?.bytes ?? null;
 }
 
 async function readCaseAssetFloorPlan(caseId: string): Promise<Uint8Array | null> {
@@ -869,25 +925,126 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
   // ── 周邊設施（Overpass API）─────────────────────────────────────────────────
 
-  // Web fallback helper：從 Next.js API route（POST）取得圖片 bytes
-  async function fetchWebImage(path: string, body: Record<string, unknown>): Promise<Uint8Array | null> {
+  function readWindowString(key: string): string | null {
+    if (typeof window === "undefined") return null;
+    const value = (window as unknown as Record<string, unknown>)[key];
+    return typeof value === "string" && value.trim() ? value.trim() : null;
+  }
+
+  function resolveVisualEvidenceProxyBase(): string | null {
+    return (
+      readWindowString("__AIRE_LAND_PROXY_URL__") ??
+      process.env.NEXT_PUBLIC_AIRE_LAND_PROXY_URL ??
+      null
+    );
+  }
+
+  const localVisualEvidencePathSegments: Partial<Record<VisualEvidenceKind, [string, string]>> = {
+    location_map: ["api", "location-map"],
+    aerial_photo: ["api", "aerial-photo"],
+  };
+
+  function buildLocalVisualEvidencePath(kind: VisualEvidenceKind): string {
+    const segments = localVisualEvidencePathSegments[kind];
+    if (!segments) throw new Error(`Unsupported local visual evidence kind: ${kind}`);
+    return `/${segments.join("/")}`;
+  }
+
+  const visualEvidence: NonNullable<CaseDossierData["visualEvidence"]> = {};
+
+  function visualEvidenceProviderForKind(kind: VisualEvidenceKind) {
+    if (kind === "location_map") return "osm_static_map";
+    if (kind === "aerial_photo") return "nlsc_aerial";
+    if (kind === "street_view_candidate" || kind === "exterior_photo") return "google_street_view";
+    return "unknown";
+  }
+
+  function recordVisualEvidenceAvailable(kind: VisualEvidenceKind, metadata: Record<string, unknown> = {}) {
+    visualEvidence[kind] = {
+      provider: visualEvidenceProviderForKind(kind),
+      status: "available",
+      unavailableReason: null,
+      metadata,
+    };
+  }
+
+  function recordVisualEvidenceFailure(
+    kind: VisualEvidenceKind,
+    status: "unavailable" | "requires_configuration" | "requires_confirmation",
+    unavailableReason: string,
+    metadata: Record<string, unknown> = {},
+  ) {
+    visualEvidence[kind] = {
+      provider: visualEvidenceProviderForKind(kind),
+      status,
+      unavailableReason,
+      metadata,
+    };
+  }
+
+  async function readVisualEvidenceFailure(
+    response: Response,
+  ): Promise<{ status: "unavailable" | "requires_configuration"; message: string }> {
     try {
-      const base = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-      const resp = await fetch(`${base}${path}`, {
+      const body = await response.json();
+      const bodyStatus = typeof body?.status === "string" ? body.status : "";
+      const status = bodyStatus === "requires_configuration" ? "requires_configuration" : "unavailable";
+      const message = typeof body?.message === "string" && body.message.trim()
+        ? body.message.trim()
+        : `visual evidence provider returned HTTP ${response.status}`;
+      return { status, message };
+    } catch {
+      return {
+        status: "unavailable",
+        message: `visual evidence provider returned HTTP ${response.status}`,
+      };
+    }
+  }
+
+  // Web fallback helper：browser production 走 deployed proxy；本機開發才走 Next.js API route。
+  async function fetchWebImage(kind: VisualEvidenceKind, body: Record<string, unknown>): Promise<Uint8Array | null> {
+    try {
+      const proxyBase = isBrowserLocalFirstEnabled() ? resolveVisualEvidenceProxyBase() : null;
+      const path = buildLocalVisualEvidencePath(kind);
+      const url = proxyBase
+        ? buildVisualEvidenceProxyUrl(proxyBase, kind)
+        : `${typeof window !== "undefined" ? window.location.origin : "http://localhost:3000"}${path}`;
+      const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(20000),
       });
-      if (!resp.ok) return null;
-      return new Uint8Array(await resp.arrayBuffer());
-    } catch {
+      if (!resp.ok) {
+        const failure = await readVisualEvidenceFailure(resp);
+        recordVisualEvidenceFailure(kind, failure.status, failure.message, { httpStatus: resp.status });
+        return null;
+      }
+      const bytes = new Uint8Array(await resp.arrayBuffer());
+      if (bytes.length > 0) {
+        recordVisualEvidenceAvailable(kind, { source: proxyBase ? "visual_proxy" : "local_route" });
+      }
+      return bytes;
+    } catch (error) {
+      const message = error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : "visual evidence request failed";
+      recordVisualEvidenceFailure(kind, "unavailable", message);
       return null;
     }
   }
 
   async function fetchWebJson<T>(path: string, body: Record<string, unknown>): Promise<T | null> {
     try {
+      if (isBrowserLocalFirstEnabled() && path === "/api/geocode") {
+        const address = typeof body.address === "string" ? body.address : "";
+        if (!address.trim()) return null;
+        const { geocodeAddress } = await import("@/lib/map-api");
+        return await geocodeAddress(address) as T;
+      }
+      if (isBrowserLocalFirstEnabled() && path === "/api/nearby-amenities") {
+        return null;
+      }
       const base = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
       const resp = await fetch(`${base}${path}`, {
         method: "POST",
@@ -981,17 +1138,19 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       });
       if (Array.isArray(pngBytes) && pngBytes.length > 0) {
         locationMapImage = new Uint8Array(pngBytes);
+        recordVisualEvidenceAvailable("location_map", { source: "tauri_ipc" });
       } else {
-        locationMapImage = await fetchWebImage("/api/location-map", { lat: geoLat, lng: geoLng });
+        locationMapImage = await fetchWebImage("location_map", { lat: geoLat, lng: geoLng });
       }
     } catch {
       // Tauri IPC 失敗 → web fallback（OSM tiles via Next.js API route）
-      locationMapImage = await fetchWebImage("/api/location-map", { lat: geoLat, lng: geoLng });
+      locationMapImage = await fetchWebImage("location_map", { lat: geoLat, lng: geoLng });
     }
   }
 
   let aerialPhoto: Uint8Array | null = await readCaseAssetImage(caseRow.id, "surrounding_map");
-  const exteriorPhoto: Uint8Array | null = await readCaseAssetImage(caseRow.id, "exterior_photo");
+  const exteriorPhotoAsset = await readCaseAsset(caseRow.id, "exterior_photo");
+  const exteriorPhoto: Uint8Array | null = exteriorPhotoAsset?.bytes ?? null;
   if (geoLat && geoLng) {
     if (!aerialPhoto) {
       try {
@@ -1001,13 +1160,37 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
         });
         if (Array.isArray(aerialBytes) && aerialBytes.length > 0) {
           aerialPhoto = new Uint8Array(aerialBytes);
+          recordVisualEvidenceAvailable("aerial_photo", { source: "tauri_ipc" });
         } else {
-          aerialPhoto = await fetchWebImage("/api/aerial-photo", { lat: geoLat, lng: geoLng });
+          aerialPhoto = await fetchWebImage("aerial_photo", { lat: geoLat, lng: geoLng });
         }
       } catch {
         // Tauri IPC 失敗 → web fallback（NLSC 空拍圖 via Next.js API route）
-        aerialPhoto = await fetchWebImage("/api/aerial-photo", { lat: geoLat, lng: geoLng });
+        aerialPhoto = await fetchWebImage("aerial_photo", { lat: geoLat, lng: geoLng });
       }
+    }
+  }
+  if (!isLand) {
+    if (exteriorPhoto && exteriorPhoto.length > 0) {
+      recordVisualEvidenceAvailable("exterior_photo", {
+        source: exteriorPhotoAsset?.source ?? "case_asset",
+        fileName: exteriorPhotoAsset?.fileName ?? undefined,
+        provider: exteriorPhotoAsset?.metadata.provider ?? (
+          exteriorPhotoAsset?.source === "api_generated" ? "google_street_view" : "manual_upload"
+        ),
+        heading: exteriorPhotoAsset?.metadata.heading,
+        pitch: exteriorPhotoAsset?.metadata.pitch,
+        fov: exteriorPhotoAsset?.metadata.fov,
+        confirmedFront: exteriorPhotoAsset?.metadata.confirmedFront === true ||
+          exteriorPhotoAsset?.metadata.confirmed === true,
+      });
+    } else {
+      recordVisualEvidenceFailure(
+        "exterior_photo",
+        "requires_confirmation",
+        "尚未確認建物正面照片，PDF 先保留待補。",
+        { source: "street_view_candidate" },
+      );
     }
   }
 
@@ -1047,6 +1230,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       : undefined;
 
     base.locationMapImage = locationMapImage;
+    base.visualEvidence = visualEvidence;
     // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
     base.exteriorPhoto = exteriorPhoto;
     base.aerialPhoto = aerialPhoto;
@@ -1170,6 +1354,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       : undefined;
 
     base.locationMapImage = locationMapImage;
+    base.visualEvidence = visualEvidence;
     // Wave 6：外觀圖（由業務從 UI 上傳，assemble 不處理）
     base.exteriorPhoto = exteriorPhoto;
     base.aerialPhoto = aerialPhoto;
@@ -1282,7 +1467,10 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
       calculatedBuildingAge ||
       textFromSummary(buildingCandidateFields, "age") ||
       textFromSummary(inferredFields, "age");
-    const resolvedLandArea = landArea ?? numberFromSummary(landCandidateFields, "landAreaSqm");
+    const candidateLandArea =
+      numberFromSummary(landCandidateFields, "landAreaSqm") ??
+      numberFromSummary(buildingCandidateFields, "landAreaSqm");
+    const resolvedLandArea = landArea ?? candidateLandArea;
     const resolvedAnnouncedLandCurrentValue =
       firstNumber(landReg, ["announced_value", "announced_land_current_value", "ALVALUE"]) ??
       numberFromSummary(landCandidateFields, "announcedLandCurrentValue");
@@ -1312,7 +1500,7 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     setSourceIfValue(propertySheetSources, "landSection", selectedLandCandidate?.section_name, CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "landNumber", selectedLandCandidate?.parcel_number, CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "zoning", textFromSummary(landCandidateFields, "zoning"), CANDIDATE_SOURCE_LABEL);
-    setSourceIfValue(propertySheetSources, "landArea", numberFromSummary(landCandidateFields, "landAreaSqm"), CANDIDATE_SOURCE_LABEL);
+    setSourceIfValue(propertySheetSources, "landArea", candidateLandArea, CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "announcedLandValue", numberFromSummary(landCandidateFields, "announcedLandCurrentValue"), CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "assessedLandValue", numberFromSummary(landCandidateFields, "announcedLandValue"), CANDIDATE_SOURCE_LABEL);
     setSourceIfValue(propertySheetSources, "buildingCoverage", textFromSummary(landCandidateFields, "buildingCoverage"), CANDIDATE_SOURCE_LABEL);
@@ -1410,6 +1598,13 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
 
     return applyDossierEditableSnapshot({
       ...base,
+      buildingLotNo:
+        cleanKnownPlaceholderText(caseRow.building_lot_no ?? undefined) ??
+        cleanKnownPlaceholderText(
+          firstString(buildingReg, ["building_number", "BUILDINGNUMBER", "BUILDING_NO"]),
+        ) ??
+        cleanKnownPlaceholderText(selectedBuildingCandidate?.building_no) ??
+        "",
       buildingArea:
         firstNumber(buildingReg, ["area", "building_area", "AREA"]) ??
         pingToSquareMeters(resolvedRegisteredArea),
@@ -1451,6 +1646,13 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
           firstString(landReg, ["lot_number", "land_lot_no", "NO", "LOTNO"]) ??
           selectedLandCandidate?.parcel_number ??
           caseRow.land_lot_no ??
+          "",
+        buildingNumber:
+          cleanKnownPlaceholderText(caseRow.building_lot_no ?? undefined) ??
+          cleanKnownPlaceholderText(
+            firstString(buildingReg, ["building_number", "BUILDINGNUMBER", "BUILDING_NO"]),
+          ) ??
+          cleanKnownPlaceholderText(selectedBuildingCandidate?.building_no) ??
           "",
         zoning:
           firstString(landReg, ["zoning", "ZONING", "purpose", "land_purpose"]) ??

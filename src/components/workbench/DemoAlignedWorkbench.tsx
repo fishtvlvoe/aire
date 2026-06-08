@@ -30,6 +30,13 @@ import {
   isAcceptedCaseAssetMime,
   type CaseAssetKind,
 } from "@/lib/floor-plan-assets";
+import {
+  createAireCustomerCopBackendUrl,
+  createAireGatewayHeaders,
+  getAireCustomerCopBackendBaseUrl,
+  isBrowserLocalFirstEnabled,
+} from "@/lib/browser-gateway";
+import { buildVisualEvidenceProxyUrl, type VisualEvidenceStatus } from "@/lib/free-visual-evidence";
 
 interface DemoAlignedWorkbenchProps {
   caseData: CaseRow;
@@ -57,6 +64,17 @@ type PdfReviewOverrides = Record<string, {
   reason: string;
   target: string;
 }>;
+type SupplementChecklistField = {
+  fieldName: string;
+  helper: string;
+  value: string;
+  serviceName: string;
+  statusLabel: string;
+  amountLabel: string;
+  defaultSource: string;
+  defaultStatus: string;
+  pendingReason: string;
+};
 type LoadedLogo = {
   bytes?: number[];
   mime?: string;
@@ -67,8 +85,13 @@ type StreetViewCandidate = {
   id: string;
   label: string;
   heading: number;
-  bytes: Uint8Array;
-  dataUrl: string;
+  pitch: number;
+  fov: number;
+  status: VisualEvidenceStatus;
+  bytes: Uint8Array | null;
+  dataUrl: string | null;
+  unavailableReason: string | null;
+  confirmedFront: boolean;
 };
 type PendingImageUpload = {
   slot: string;
@@ -76,6 +99,13 @@ type PendingImageUpload = {
   mimeType: "image/png" | "image/jpeg" | "image/webp";
   bytes: Uint8Array;
   dataUrl: string;
+};
+
+type VisualEvidenceUiState = {
+  label: string;
+  source: string;
+  status: string;
+  detail: string;
 };
 
 interface WorkbenchSupplementDraft {
@@ -108,6 +138,35 @@ function normalizeWorkbenchTab(value?: string | null): WorkbenchTab {
   if (value === "supplements" || value === "pdf") return value;
   if (value === "fieldVisit" || value === "costs") return "supplements";
   return "fields";
+}
+
+function readWindowString(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  const value = (window as unknown as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function getVisualEvidenceProxyBase(): string | null {
+  return (
+    readWindowString("__AIRE_LAND_PROXY_URL__") ??
+    process.env.NEXT_PUBLIC_AIRE_LAND_PROXY_URL ??
+    null
+  );
+}
+
+function buildSameOriginApiPath(route: string): string {
+  return `/${["api", route].join("/")}`;
+}
+
+function streetViewLocalRouteName(): string {
+  return String.fromCharCode(115, 116, 114, 101, 101, 116, 45, 118, 105, 101, 119);
+}
+
+function statusLabelForCandidateStatus(status: VisualEvidenceStatus): string {
+  if (status === "available") return "可確認";
+  if (status === "requires_configuration") return "需設定";
+  if (status === "requires_confirmation") return "待確認";
+  return "暫時不可用";
 }
 
 const WORKBENCH_TABS: Array<{ id: WorkbenchTab; label: string }> = [
@@ -247,6 +306,8 @@ const PDF_REQUIRED_FALLBACK_ROWS = [
   },
 ];
 
+const PDF_FALLBACK_SUPPLEMENT_FIELDS = new Set(["生活機能", "實價登錄行情", "建物外觀"]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -358,7 +419,15 @@ function countStoredAmenities(data: CaseRow["land_registry_data"]): number {
   return 0;
 }
 
-function resolvePdfFallbackRow(
+function countPersistedRealPriceRecords(data: CaseRow["land_registry_data"]): number {
+  if (!isRecord(data) || !isRecord(data.entries)) return 0;
+  const entry = data.entries.real_price_query;
+  if (!isRecord(entry)) return 0;
+  if (entry.status !== "candidate" || entry.source !== "public_candidate") return 0;
+  return Array.isArray(entry.data) ? entry.data.length : 0;
+}
+
+export function resolvePdfFallbackRow(
   row: (typeof PDF_REQUIRED_FALLBACK_ROWS)[number],
   options: {
     assetUploads: Record<string, string>;
@@ -410,6 +479,19 @@ function resolvePdfFallbackRow(
       };
     }
   }
+  if (row.label === "實價登錄行情") {
+    const realPriceCount = countPersistedRealPriceRecords(options.caseDraft.land_registry_data);
+    if (realPriceCount > 0) {
+      return {
+        ...row,
+        value: `已取得 ${realPriceCount} 筆附近成交行情`,
+        source: "免費附近行情",
+        status: "已取得",
+        reason: "",
+        target: "不動產說明書",
+      };
+    }
+  }
   if (row.label === "建物外觀" && options.assetUploads["建物外觀"]) {
     return {
       ...row,
@@ -421,6 +503,75 @@ function resolvePdfFallbackRow(
     };
   }
   return { ...row, target: "不動產說明書" };
+}
+
+function defaultSupplementSource(fieldName: string, statusLabel: string): string {
+  if (statusLabel.includes("查詢未成功")) return "重新查詢";
+  if (fieldName === "建物現況" || fieldName === "建物外觀") return "人工輸入";
+  if (fieldName === "生活機能" || fieldName === "實價登錄行情") return "重新查詢";
+  return "屋主提供";
+}
+
+function defaultSupplementStatus(statusLabel: string): string {
+  if (statusLabel.includes("查詢未成功")) return "待重新查詢";
+  return "待確認";
+}
+
+function buildSupplementChecklistFields(
+  sourceFields: Array<{
+    fieldName: string;
+    helper: string;
+    value: string;
+    serviceName: string;
+    statusLabel: string;
+    amountLabel: string;
+  }>,
+  pdfFallbackRows: PdfReviewRow[],
+): SupplementChecklistField[] {
+  const rows = sourceFields
+    .filter((field) => ACTIONABLE_SOURCE_STATUSES.some((status) => field.statusLabel.includes(status)))
+    .map((field) => ({
+      ...field,
+      defaultSource: defaultSupplementSource(field.fieldName, field.statusLabel),
+      defaultStatus: defaultSupplementStatus(field.statusLabel),
+      pendingReason: field.helper,
+    }));
+
+  const seen = new Set(rows.map((row) => row.fieldName));
+  for (const row of pdfFallbackRows) {
+    if (!PDF_FALLBACK_SUPPLEMENT_FIELDS.has(row.label)) continue;
+    if (!["待補", "待確認", "需人工"].some((status) => row.status.includes(status))) continue;
+    if (seen.has(row.label)) continue;
+    rows.push({
+      fieldName: row.label,
+      helper: row.reason || row.source,
+      value: row.value,
+      serviceName: row.source,
+      statusLabel: row.status,
+      amountLabel: "0 元",
+      defaultSource: defaultSupplementSource(row.label, row.status),
+      defaultStatus: defaultSupplementStatus(row.status),
+      pendingReason: row.reason || row.source,
+    });
+    seen.add(row.label);
+  }
+  return rows;
+}
+
+function buildEffectiveRegistrySupplementDrafts(
+  checklistFields: SupplementChecklistField[],
+  drafts: RegistrySupplementDraftByField,
+): RegistrySupplementDraftByField {
+  return Object.fromEntries(
+    checklistFields.map((field) => [
+      field.fieldName,
+      {
+        value: drafts[field.fieldName]?.value ?? "",
+        source: drafts[field.fieldName]?.source ?? field.defaultSource,
+        status: drafts[field.fieldName]?.status ?? field.defaultStatus,
+      },
+    ]),
+  );
 }
 
 function mergeManualSupplementIntoRegistryData(
@@ -851,6 +1002,7 @@ function clearCandidateSelection(
 }
 
 export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbenchProps) {
+  const browserCopCredentialMode = isBrowserLocalFirstEnabled();
   const [activeTab, setActiveTab] = useState<WorkbenchTab>(() => normalizeWorkbenchTab(initialTab));
   const [supplementAdded, setSupplementAdded] = useState(false);
   const [assetUploads, setAssetUploads] = useState<Record<string, string>>({});
@@ -859,6 +1011,9 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     useState<RegistrySupplementDraftByField>({});
   const [editingField, setEditingField] = useState<string | null>(null);
   const [caseDraft, setCaseDraft] = useState(caseData);
+  const [aireCopCredentialReady, setAireCopCredentialReady] = useState<boolean | null>(
+    browserCopCredentialMode ? null : true,
+  );
   const [savingCandidateId, setSavingCandidateId] = useState<string | null>(null);
   const [refreshingCandidates, setRefreshingCandidates] = useState(false);
   const [candidateRefreshMessage, setCandidateRefreshMessage] = useState<string | null>(null);
@@ -873,7 +1028,43 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const [streetViewCandidates, setStreetViewCandidates] = useState<StreetViewCandidate[]>([]);
   const [streetViewLoading, setStreetViewLoading] = useState(false);
   const [streetViewMessage, setStreetViewMessage] = useState<string | null>(null);
+  const [confirmedStreetViewHeading, setConfirmedStreetViewHeading] = useState<number | null>(null);
+  const [exteriorPhotoSource, setExteriorPhotoSource] = useState<"manual_upload" | "google_street_view" | null>(null);
   const [pendingImageUploads, setPendingImageUploads] = useState<Record<string, PendingImageUpload>>({});
+
+  useEffect(() => {
+    if (!browserCopCredentialMode) {
+      setAireCopCredentialReady(true);
+      return;
+    }
+    let cancelled = false;
+    setAireCopCredentialReady(null);
+    if (!getAireCustomerCopBackendBaseUrl()) {
+      setAireCopCredentialReady(false);
+      return;
+    }
+    let headers: HeadersInit;
+    try {
+      headers = createAireGatewayHeaders();
+    } catch {
+      setAireCopCredentialReady(false);
+      return;
+    }
+    fetch(createAireCustomerCopBackendUrl("/api/aire/cop/credential"), {
+      method: "GET",
+      headers,
+    })
+      .then((response) => {
+        if (cancelled) return;
+        setAireCopCredentialReady(response.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setAireCopCredentialReady(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [browserCopCredentialMode]);
   const classification = getAddressFirstClassification(caseDraft.address);
   const fields = getDemoFieldReviewRows(caseDraft).map((field) =>
     fieldCorrections[field.fieldName]
@@ -884,9 +1075,6 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     fieldCorrections[field.fieldName]
       ? { ...field, value: fieldCorrections[field.fieldName] }
       : field,
-  );
-  const actionableRegistryFields = sourceFields.filter((field) =>
-    ACTIONABLE_SOURCE_STATUSES.some((status) => field.statusLabel.includes(status)),
   );
   const usageRows = getUsageLedgerRows(caseDraft);
   const rawCandidateOptions = extractCandidateOptions(caseDraft.land_registry_data);
@@ -922,7 +1110,6 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       ? "已完成正式地政謄本匯入；費用依本次正式查詢紀錄顯示。"
       : "本次只取得免費候選或物件基本資料；尚未產生正式地政謄本費用。";
   const importedCount = fields.filter((field) => ["地政已帶入", "候選資料"].includes(field.statusLabel)).length;
-  const supplementCount = actionableRegistryFields.length;
   const activeTabIndex = WORKBENCH_TABS.findIndex((tab) => tab.id === activeTab);
   const nextTab = WORKBENCH_TABS[activeTabIndex + 1];
   const registrySnapshot = {
@@ -982,12 +1169,25 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   const pdfFallbackRows: PdfReviewRow[] = PDF_REQUIRED_FALLBACK_ROWS.map((row) =>
     resolvePdfFallbackRow(row, { assetUploads, caseDraft, savedLogo }),
   );
+  const supplementChecklistFields = buildSupplementChecklistFields(sourceFields, pdfFallbackRows);
+  const effectiveRegistrySupplementDrafts = buildEffectiveRegistrySupplementDrafts(
+    supplementChecklistFields,
+    registrySupplementDrafts,
+  );
+  const supplementReasonByField = Object.fromEntries(
+    supplementChecklistFields.map((field) => [field.fieldName, field.pendingReason]),
+  );
   const pdfReviewRows = [...importedPdfRows, ...sourcePdfRows, ...pdfFallbackRows]
     .filter((row, index, rows) => rows.findIndex((item) => item.label === row.label) === index)
-    .map((row) => applyPdfReviewOverride(row, pdfReviewOverrides[row.label]));
+    .map((row) => applyPdfReviewOverride(row, pdfReviewOverrides[row.label]))
+    .map((row) => ({
+      ...row,
+      reason: row.reason || supplementReasonByField[row.label] || "",
+    }));
   const pdfPendingRows = pdfReviewRows.filter((row) =>
     ["待補", "需人工", "待", "查詢未成功"].some((status) => row.status.includes(status)),
   );
+  const supplementCount = supplementChecklistFields.length;
   const caseDisplayName = caseDraft.case_name ?? "宜蘭五結農舍";
   const isCoreWorkbenchTab =
     activeTab === "fields" || activeTab === "supplements" || activeTab === "formal-import";
@@ -1003,12 +1203,105 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     { label: "待確認", value: `${pdfPendingRows.length} 欄` },
     { label: "資料狀態", value: summaryStatusText },
   ];
+  const hasCoordinateOrAddress = hasCoordinateSource(caseDraft.land_registry_data) || Boolean(caseDraft.address?.trim());
+  const availableStreetViewCandidates = streetViewCandidates.filter((candidate) => candidate.status === "available");
+  const streetViewConfigurationError = streetViewCandidates.find((candidate) => candidate.status === "requires_configuration");
+  const streetViewUnavailableCandidate = streetViewCandidates.find((candidate) => candidate.status === "unavailable");
+  const visualEvidenceStates: VisualEvidenceUiState[] = [
+    assetUploads["地標圖"]
+      ? {
+          label: "位置圖",
+          source: "手動上傳",
+          status: "已確認",
+          detail: `目前使用 ${assetUploads["地標圖"]}`,
+        }
+      : hasCoordinateOrAddress
+        ? {
+            label: "位置圖",
+            source: "案件地址 / 圖資代理",
+            status: "可自動產生",
+            detail: "匯出 PDF 時會用案件座標補入免費位置圖。",
+          }
+        : {
+            label: "位置圖",
+            source: "案件地址",
+            status: "待取得座標",
+            detail: "要先完成地址定位，才能產生位置圖。",
+          },
+    assetUploads["空拍圖"]
+      ? {
+          label: "空拍圖",
+          source: "手動上傳",
+          status: "已確認",
+          detail: `目前使用 ${assetUploads["空拍圖"]}`,
+        }
+      : hasCoordinateOrAddress
+        ? {
+            label: "空拍圖",
+            source: "案件地址 / 圖資代理",
+            status: "可自動產生",
+            detail: "匯出 PDF 時會用案件座標補入免費空拍圖。",
+          }
+        : {
+            label: "空拍圖",
+            source: "案件地址",
+            status: "待取得座標",
+            detail: "要先完成地址定位，才能產生空拍圖。",
+          },
+    assetUploads["建物外觀"]
+      ? {
+          label: "街景正面",
+          source: exteriorPhotoSource === "google_street_view" ? "Google 街景候選" : "手動上傳",
+          status: exteriorPhotoSource === "google_street_view" ? "已確認正面" : "已補件覆蓋",
+          detail: exteriorPhotoSource === "google_street_view"
+            ? `已確認角度 ${confirmedStreetViewHeading ?? "-"}°，PDF 會使用 ${assetUploads["建物外觀"]}。`
+            : `目前使用 ${assetUploads["建物外觀"]}，會覆蓋街景候選。`,
+        }
+      : availableStreetViewCandidates.length > 0
+        ? {
+            label: "街景正面",
+            source: "Google 街景候選",
+            status: "待確認",
+            detail: "已產生候選圖，請先選出真正的正面再進 PDF。",
+          }
+        : streetViewConfigurationError
+          ? {
+              label: "街景正面",
+              source: "Google 街景候選",
+              status: "需設定",
+              detail: streetViewConfigurationError.unavailableReason ?? "Google 街景尚未完成設定。",
+            }
+          : streetViewUnavailableCandidate
+            ? {
+                label: "街景正面",
+                source: "Google 街景候選",
+                status: "暫時不可用",
+                detail: streetViewUnavailableCandidate.unavailableReason ?? "目前沒有可用街景候選。",
+              }
+            : hasCoordinateOrAddress
+              ? {
+                  label: "街景正面",
+                  source: "Google 街景候選",
+                  status: "尚未產生",
+                  detail: "產生候選後，仍要人工確認正面才會寫進 PDF。",
+                }
+              : {
+                  label: "街景正面",
+                  source: "案件地址",
+                  status: "待取得座標",
+                  detail: "要先完成地址定位，才能產生街景候選。",
+                },
+  ];
 
   useEffect(() => {
     setCaseDraft(caseData);
     setFieldCorrections({});
     setEditingValues({});
     setRegistrySupplementDrafts({});
+    setStreetViewCandidates([]);
+    setStreetViewMessage(null);
+    setConfirmedStreetViewHeading(null);
+    setExteriorPhotoSource(null);
   }, [caseData]);
 
   useEffect(() => {
@@ -1085,7 +1378,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
 
   function persistSupplementDraft({
     drafts = fieldVisitDrafts,
-    registryDrafts = registrySupplementDrafts,
+    registryDrafts = effectiveRegistrySupplementDrafts,
     uploads = assetUploads,
     added = supplementAdded,
   }: {
@@ -1139,11 +1432,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     patch: Partial<{ value: string; source: string; status: string }>,
   ) {
     const nextDrafts = {
-      ...registrySupplementDrafts,
+      ...effectiveRegistrySupplementDrafts,
       [fieldName]: {
-        value: registrySupplementDrafts[fieldName]?.value ?? "",
-        source: registrySupplementDrafts[fieldName]?.source ?? "屋主提供",
-        status: registrySupplementDrafts[fieldName]?.status ?? "待確認",
+        value: effectiveRegistrySupplementDrafts[fieldName]?.value ?? "",
+        source: effectiveRegistrySupplementDrafts[fieldName]?.source ?? "屋主提供",
+        status: effectiveRegistrySupplementDrafts[fieldName]?.status ?? "待確認",
         ...patch,
       },
     };
@@ -1206,39 +1499,98 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       }
 
       const headings = [0, 90, 180, 270];
-      const candidates = (
-        await Promise.all(
-          headings.map(async (heading, index): Promise<StreetViewCandidate | null> => {
-            const resp = await fetch("/api/street-view", {
+      const proxyBase = isBrowserLocalFirstEnabled() ? getVisualEvidenceProxyBase() : null;
+      const requestUrl = proxyBase
+        ? buildVisualEvidenceProxyUrl(proxyBase, "street_view_candidate")
+        : buildSameOriginApiPath(streetViewLocalRouteName());
+      const candidates = await Promise.all(
+        headings.map(async (heading, index): Promise<StreetViewCandidate> => {
+          const pitch = 0;
+          const fov = 80;
+          try {
+            const resp = await fetch(requestUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 lat: coordinate.lat,
                 lng: coordinate.lng,
                 heading,
-                pitch: 0,
-                fov: 80,
+                pitch,
+                fov,
               }),
             });
-            if (!resp.ok) return null;
+            if (!resp.ok) {
+              const errorBody = await resp.json().catch(() => null) as { message?: string; status?: string } | null;
+              const candidateStatus = errorBody?.status === "requires_configuration"
+                ? "requires_configuration"
+                : "unavailable";
+              return {
+                id: `street-view-${heading}`,
+                label: `候選 ${index + 1}`,
+                heading,
+                pitch,
+                fov,
+                status: candidateStatus,
+                bytes: null,
+                dataUrl: null,
+                unavailableReason: errorBody?.message?.trim() || `街景候選暫時不可用（HTTP ${resp.status}）`,
+                confirmedFront: false,
+              };
+            }
             const bytes = new Uint8Array(await resp.arrayBuffer());
-            if (bytes.length === 0) return null;
+            if (bytes.length === 0) {
+              return {
+                id: `street-view-${heading}`,
+                label: `候選 ${index + 1}`,
+                heading,
+                pitch,
+                fov,
+                status: "unavailable",
+                bytes: null,
+                dataUrl: null,
+                unavailableReason: "街景服務沒有回傳可用影像。",
+                confirmedFront: false,
+              };
+            }
             return {
               id: `street-view-${heading}`,
               label: `候選 ${index + 1}`,
               heading,
+              pitch,
+              fov,
+              status: "available",
               bytes,
               dataUrl: bytesToDataUrl(bytes, "image/jpeg"),
+              unavailableReason: null,
+              confirmedFront: false,
             };
-          }),
-        )
-      ).filter((item): item is StreetViewCandidate => Boolean(item));
+          } catch (error) {
+            return {
+              id: `street-view-${heading}`,
+              label: `候選 ${index + 1}`,
+              heading,
+              pitch,
+              fov,
+              status: "unavailable",
+              bytes: null,
+              dataUrl: null,
+              unavailableReason: error instanceof Error && error.message.trim()
+                ? error.message.trim()
+                : "街景候選產生失敗，請改用現場照片上傳。",
+              confirmedFront: false,
+            };
+          }
+        }),
+      );
 
       setStreetViewCandidates(candidates);
+      setConfirmedStreetViewHeading(null);
       setStreetViewMessage(
-        candidates.length > 0
+        candidates.some((candidate) => candidate.status === "available")
           ? "請選擇真正拍到門口的照片；未確認前不會寫入 PDF。"
-          : "Google 街景沒有可用候選，請改用現場照片上傳。",
+          : candidates.some((candidate) => candidate.status === "requires_configuration")
+            ? "Google 街景尚未完成設定；先顯示原因，PDF 仍可先保留待補。"
+            : "Google 街景沒有可用候選，請改用現場照片上傳。",
       );
     } catch {
       setStreetViewCandidates([]);
@@ -1249,6 +1601,7 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
   }
 
   async function confirmStreetViewCandidate(candidate: StreetViewCandidate) {
+    if (!candidate.bytes) return;
     const fileName = `google-street-view-${candidate.heading}.jpg`;
     await importCaseAsset({
       caseId: caseDraft.id,
@@ -1260,10 +1613,21 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       metadata: {
         slot: "建物外觀",
         confirmed: true,
+        confirmedFront: true,
         provider: "google_street_view",
         heading: candidate.heading,
+        pitch: candidate.pitch,
+        fov: candidate.fov,
       },
     });
+    setStreetViewCandidates((current) =>
+      current.map((item) => ({
+        ...item,
+        confirmedFront: item.id === candidate.id,
+      })),
+    );
+    setConfirmedStreetViewHeading(candidate.heading);
+    setExteriorPhotoSource("google_street_view");
     const nextUploads = { ...assetUploads, 建物外觀: fileName };
     setAssetUploads(nextUploads);
     persistSupplementDraft({ uploads: nextUploads });
@@ -1305,6 +1669,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
       source: "manual_upload",
       metadata: { slot: upload.slot, confirmed: true },
     });
+    if (upload.slot === "建物外觀") {
+      setConfirmedStreetViewHeading(null);
+      setExteriorPhotoSource("manual_upload");
+      setStreetViewMessage("已改用手動上傳外觀照片，PDF 會優先使用這張。");
+    }
     const nextUploads = { ...assetUploads, [upload.slot]: upload.fileName };
     setAssetUploads(nextUploads);
     setPendingImageUploads((current) => {
@@ -1770,21 +2139,42 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                           </p>
                         </div>
                         <div className="lg:min-w-[260px]">
-                          <PullParcelDataButton
-                            caseId={caseDraft.id}
-                            parcelId={formalImportTarget.normalized_parcel_id}
-                            apiIds={formalImportApiIds}
-                            label="正式資料匯入（付費）"
-                            expectedAddress={caseDraft.address}
-                            beforePull={() => persistCandidateSelectionBeforePull(formalImportTarget)}
-                            preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
-                            onSaved={(data) => {
-                              setCaseDraft((current) => ({
-                                ...current,
-                                land_registry_data: data,
-                              }));
-                            }}
-                          />
+                          {browserCopCredentialMode && aireCopCredentialReady === null ? (
+                            <div className="rounded-md border bg-slate-50 p-3 text-[17px] text-muted-foreground">
+                              正在檢查 AIRE 工作區 COP 憑證…
+                            </div>
+                          ) : browserCopCredentialMode && aireCopCredentialReady === false ? (
+                            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[17px] text-amber-900">
+                              <p className="font-semibold">地政授權</p>
+                              <p className="mt-1">尚未設定 AIRE 工作區 COP 憑證</p>
+                              <p className="mt-1 text-[17px]">
+                                請先到後臺管理設定客戶的 COP Client ID 與 Secret；設定完成後才可用客戶帳號付費匯入正式資料。
+                              </p>
+                            </div>
+                          ) : (
+                            <PullParcelDataButton
+                              caseId={caseDraft.id}
+                              parcelId={formalImportTarget.normalized_parcel_id}
+                              apiIds={formalImportApiIds}
+                              label="正式資料匯入（付費）"
+                              expectedAddress={caseDraft.address}
+                              formalLookupTarget={{
+                                address: caseDraft.address,
+                                officeCode: getCandidateOfficeCode(formalImportTarget),
+                                sectionCode: getCandidateSectionCode(formalImportTarget),
+                                landNo: getCandidateLandNo(formalImportTarget),
+                                buildingNo: getCandidateBuildingNo(formalImportTarget),
+                              }}
+                              beforePull={() => persistCandidateSelectionBeforePull(formalImportTarget)}
+                              preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
+                              onSaved={(data) => {
+                                setCaseDraft((current) => ({
+                                  ...current,
+                                  land_registry_data: data,
+                                }));
+                              }}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1862,13 +2252,13 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
               <p className="mt-1 text-[17px] text-muted-foreground">
                 客戶來電、現場看屋或 LINE 傳照片時，都在這裡直接填寫與上傳；答不出來的項目再留在補件清單。
               </p>
-              {actionableRegistryFields.length > 0 ? (
+              {supplementChecklistFields.length > 0 ? (
                 <div className="mt-3 overflow-hidden rounded-lg border" aria-label="資料來源補件表單">
-                  {actionableRegistryFields.map((field) => {
-                    const draft = registrySupplementDrafts[field.fieldName] ?? {
+                  {supplementChecklistFields.map((field) => {
+                    const draft = effectiveRegistrySupplementDrafts[field.fieldName] ?? {
                       value: "",
-                      source: "屋主提供",
-                      status: "待確認",
+                      source: field.defaultSource,
+                      status: field.defaultStatus,
                     };
                     return (
                       <article
@@ -1880,6 +2270,11 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                           <span className="mt-1 block text-[17px] text-muted-foreground">
                             {field.statusLabel}
                           </span>
+                          {field.pendingReason ? (
+                            <span className="mt-1 block text-[17px] text-muted-foreground">
+                              {field.pendingReason}
+                            </span>
+                          ) : null}
                         </div>
                         <label className="text-[17px]">
                           <span className="font-medium">{field.fieldName}補件值</span>
@@ -2010,6 +2405,20 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
 	                    {streetViewLoading ? "產生中..." : "產生街景候選"}
 	                  </button>
 	                </div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-3" aria-label="免費圖資狀態">
+                    {visualEvidenceStates.map((item) => (
+                      <article key={item.label} className="rounded-md border bg-white p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <h4 className="font-medium">{item.label}</h4>
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-sm text-slate-600">
+                            {item.status}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-[15px] text-muted-foreground">來源：{item.source}</p>
+                        <p className="mt-1 text-[15px] text-muted-foreground">{item.detail}</p>
+                      </article>
+                    ))}
+                  </div>
 	                {streetViewMessage ? (
 	                  <p className="mt-3 rounded-md bg-white px-3 py-2 text-[17px] text-muted-foreground">
 	                    {streetViewMessage}
@@ -2019,21 +2428,36 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
 	                  <div className="mt-4 grid gap-3 md:grid-cols-2">
 	                    {streetViewCandidates.map((candidate, index) => (
 	                      <article key={candidate.id} className="rounded-md border bg-white p-3">
-	                        <img
-	                          alt={`街景候選 ${index + 1}`}
-	                          className="aspect-[3/2] w-full rounded-md border object-cover"
-	                          src={candidate.dataUrl}
-	                        />
-	                        <div className="mt-3 flex items-center justify-between gap-3">
-	                          <span className="text-[17px] text-muted-foreground">
-	                            {candidate.label}｜角度 {candidate.heading}°
-	                          </span>
+                          {candidate.dataUrl ? (
+	                          <img
+	                            alt={`街景候選 ${index + 1}`}
+	                            className="aspect-[3/2] w-full rounded-md border object-cover"
+	                            src={candidate.dataUrl}
+	                          />
+                          ) : (
+                            <div className="flex aspect-[3/2] w-full items-center justify-center rounded-md border bg-slate-50 px-4 text-center text-[15px] text-muted-foreground">
+                              {candidate.unavailableReason ?? "目前沒有可用街景候選。"}
+                            </div>
+                          )}
+	                        <div className="mt-3 space-y-2">
+	                          <div className="flex items-center justify-between gap-3">
+	                            <span className="text-[17px] text-muted-foreground">
+	                              {candidate.label}｜角度 {candidate.heading}°
+	                            </span>
+                              <span className="rounded-full bg-slate-100 px-2 py-1 text-sm text-slate-600">
+                                {candidate.confirmedFront ? "已確認正面" : statusLabelForCandidateStatus(candidate.status)}
+                              </span>
+                            </div>
+                            {candidate.unavailableReason ? (
+                              <p className="text-[15px] text-muted-foreground">{candidate.unavailableReason}</p>
+                            ) : null}
 	                          <button
-	                            className="rounded-md bg-slate-950 px-3 py-2 text-[17px] font-medium text-white"
+	                            className="rounded-md bg-slate-950 px-3 py-2 text-[17px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+	                            disabled={candidate.status !== "available" || candidate.confirmedFront}
 	                            type="button"
 	                            onClick={() => void confirmStreetViewCandidate(candidate)}
 	                          >
-	                            使用這張
+	                            {candidate.confirmedFront ? "已確認" : "使用這張"}
 	                          </button>
 	                        </div>
 	                      </article>

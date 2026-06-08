@@ -14,6 +14,11 @@ vi.mock("@/lib/tauri-bridge", () => ({
   safeInvoke: vi.fn(),
 }));
 
+vi.mock("@/lib/browser-case-assets", () => ({
+  listBrowserCaseAssets: vi.fn(),
+  readBrowserCaseAssetBytes: vi.fn(),
+}));
+
 vi.mock("@/lib/real-price-query", async () => {
   const actual = await vi.importActual<typeof import("@/lib/real-price-query")>("@/lib/real-price-query");
   return {
@@ -24,8 +29,14 @@ vi.mock("@/lib/real-price-query", async () => {
 
 import { safeInvoke } from "@/lib/tauri-bridge";
 import { queryRealPrice } from "@/lib/real-price-query";
+import {
+  listBrowserCaseAssets,
+  readBrowserCaseAssetBytes,
+} from "@/lib/browser-case-assets";
 const mockInvoke = vi.mocked(safeInvoke);
 const mockQueryRealPrice = vi.mocked(queryRealPrice);
+const mockListBrowserCaseAssets = vi.mocked(listBrowserCaseAssets);
+const mockReadBrowserCaseAssetBytes = vi.mocked(readBrowserCaseAssetBytes);
 
 function ensureLocalStorage(): Storage {
   if (window.localStorage) return window.localStorage;
@@ -82,7 +93,8 @@ const buildingCaseRow: CaseRow = {
   case_no: "AIRE-2026-BLDG",
   property_type: "residential",
   land_lot_no: "板橋段100-2",
-    land_lots: ["板橋段100-2"],
+  land_lots: ["板橋段100-2"],
+  building_lot_no: "03045000",
   address: "新北市板橋區中山路一段50號",
   owner_name: "王建國",
   status: "draft",
@@ -245,6 +257,7 @@ function candidateRegistryPayload() {
         official_status: "candidate_unconfirmed",
         query_status: "candidate_data_available",
         summary_fields: {
+          landAreaSqm: 60.89,
           registeredAreaPing: 31.25,
           mainBuildingAreaPing: 23.1,
           auxiliaryAreaPing: 2.1,
@@ -296,6 +309,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   ensureLocalStorage().removeItem("aire-mock-store");
   mockQueryRealPrice.mockResolvedValue([]);
+  mockListBrowserCaseAssets.mockResolvedValue([]);
+  mockReadBrowserCaseAssetBytes.mockResolvedValue({ bytes: [], mime: "image/jpeg" });
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => {
@@ -604,6 +619,8 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.cover?.propertyName).toBe("東和路47");
     expect(result.propertySheet?.owner).toBe("蔡國卿");
     expect(result.propertySheet?.registeredArea).toBeCloseTo(38.78, 2);
+    expect(result.buildingLotNo).toBe("03045000");
+    expect(result.propertySheet?.buildingNumber).toBe("03045000");
     expect(result.propertySheet?.mainBuildingArea).toBeCloseTo(27.65, 2);
     expect(result.propertySheet?.auxiliaryArea).toBeCloseTo(2.51, 2);
     expect(result.propertySheet?.commonArea).toBeCloseTo(8.62, 2);
@@ -1239,11 +1256,13 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
         ...payload,
         selected_candidate_ids: undefined,
         candidate_options: payload.candidate_options?.filter(
-          (candidate) => candidate.parcel_type === "land" || candidate.normalized_parcel_id === "DC-1556-00165000",
+          (candidate) => candidate.normalized_parcel_id === "DC-1556-00165000",
         ),
       },
     });
 
+    expect(result.propertySheet?.landSection).toBe("富強段");
+    expect(result.propertySheet?.landArea).toBe(60.89);
     expect(result.propertySheet?.registeredArea).toBe(31.25);
     expect(result.propertySheet?.mainBuildingArea).toBe(23.1);
     expect(result.propertySheet?.legalUse).toBe("住家用");
@@ -1255,6 +1274,7 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.preSurvey?.isPaid).toBe(false);
     expect(result.preSurvey?.pricingNote).toBe("免費前查：地址候選、附近實價登錄與參考欄位，不產生成本");
     expect(result.propertySheetSources).toMatchObject({
+      landArea: "候選資料，待屋主/權狀確認",
       registeredArea: "候選資料，待屋主/權狀確認",
       legalUse: "候選資料，待屋主/權狀確認",
       constructionDate: "候選資料，待屋主/權狀確認",
@@ -1262,7 +1282,10 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     });
   });
 
-  it("uses web map and aerial image routes but does not auto-fill building exterior from street view", async () => {
+  it("uses browser visual evidence proxy routes but does not auto-fill building exterior from street view", async () => {
+    (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__ = "https://aire-land.opcos.me";
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__ = "test-browser-session";
     mockInvoke.mockImplementation(async (cmd: string) => {
       if (cmd === "get_brand_text_settings") return {};
       if (cmd === "get_legal_clause") return [];
@@ -1282,13 +1305,16 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
       if (url.includes("overpass-api.de")) {
         return Response.json({ elements: [] });
       }
-      if (url.includes("/api/location-map")) {
+      if (url.includes("/api/legal-clauses/sync")) {
+        return Response.json({ clauses: [] });
+      }
+      if (url.includes("/api/visual-evidence/location-map")) {
         return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer, { status: 200 });
       }
-      if (url.includes("/api/aerial-photo")) {
+      if (url.includes("/api/visual-evidence/aerial-photo")) {
         return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1]).buffer, { status: 200 });
       }
-      if (url.includes("/api/street-view")) throw new Error("street view route must not be used as final exterior photo");
+      if (url.includes("/api/visual-evidence/street-view")) throw new Error("street view route must not be used as final exterior photo");
       return new Response("not found", { status: 404 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1302,9 +1328,255 @@ describe("assembleDossierData — 建物謄本自動帶入", () => {
     expect(result.locationMapImage?.length).toBeGreaterThan(0);
     expect(result.aerialPhoto?.length).toBeGreaterThan(0);
     expect(result.exteriorPhoto).toBeNull();
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/location-map"), expect.any(Object));
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/aerial-photo"), expect.any(Object));
-    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/street-view"), expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("https://aire-land.opcos.me/api/visual-evidence/location-map"), expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("https://aire-land.opcos.me/api/visual-evidence/aerial-photo"), expect.any(Object));
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/visual-evidence/street-view"), expect.any(Object));
+    delete (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__;
+  });
+
+  it("continues PDF assembly when browser legal clause sync is unauthorized", async () => {
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__ = "test-browser-session";
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "fetch_location_map" || cmd === "fetch_aerial_photo") return [];
+      if (cmd === "land_registry_pull_data") {
+        throw new Error("PDF assembly must not run formal COP for R02 candidate data");
+      }
+      return {};
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/legal-clauses/sync")) {
+          return Response.json({ error: "unauthorized" }, { status: 401 });
+        }
+        if (url.includes("overpass-api.de")) {
+          return Response.json({ elements: [] });
+        }
+        return new Response("not found", { status: 404 });
+      }),
+    );
+
+    await expect(
+      assembleDossierData({
+        ...buildingCaseRow,
+        address: "台南市東區裕農路288巷17號8樓之1",
+        land_registry_data: candidateRegistryPayload(),
+      }),
+    ).resolves.toMatchObject({
+      address: "台南市東區裕農路288巷17號8樓之1",
+      legalClauses: [],
+    });
+
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__;
+  });
+
+  it("does not call Pages same-origin geocode or nearby-amenities routes in browser local-first mode", async () => {
+    (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__ = "https://aire-land.opcos.me";
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__ = "test-browser-session";
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "fetch_location_map" || cmd === "fetch_aerial_photo") return [];
+      if (cmd === "land_registry_pull_data") {
+        throw new Error("PDF assembly must not run formal COP for R02 candidate data");
+      }
+      return {};
+    });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/legal-clauses/sync")) return Response.json({ clauses: [] });
+      if (url.includes("/api/visual-evidence/location-map")) {
+        return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer, { status: 200 });
+      }
+      if (url.includes("/api/visual-evidence/aerial-photo")) {
+        return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1]).buffer, { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await assembleDossierData({
+      ...buildingCaseRow,
+      address: "台南市東區東和路47號3樓",
+      land_registry_data: candidateRegistryPayload(),
+    });
+
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/geocode"), expect.any(Object));
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/nearby-amenities"), expect.any(Object));
+    delete (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__;
+  });
+
+  it("browser local-first geocodes land-only addresses without calling Pages same-origin geocode", async () => {
+    (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__ = "https://aire-land.opcos.me";
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__ = "test-browser-session";
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "fetch_location_map" || cmd === "fetch_aerial_photo") return [];
+      return {};
+    });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("nominatim.openstreetmap.org/search")) {
+        return Response.json([{ lat: "23.075", lon: "120.299" }]);
+      }
+      if (url.includes("/api/legal-clauses/sync")) return Response.json({ clauses: [] });
+      if (url.includes("/api/visual-evidence/location-map")) {
+        return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer, { status: 200 });
+      }
+      if (url.includes("/api/visual-evidence/aerial-photo")) {
+        return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]).buffer, { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const payload = candidateRegistryPayload();
+    delete (payload as Record<string, unknown>).coordinate_source;
+
+    const result = await assembleDossierData({
+      ...landCaseRow,
+      address: "台南市新市區港子前段1090地號",
+      land_registry_data: payload,
+    });
+
+    expect(result.locationMapImage?.length).toBeGreaterThan(0);
+    expect(result.aerialPhoto?.length).toBeGreaterThan(0);
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/geocode"), expect.any(Object));
+    delete (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__;
+  });
+
+  it("records readable visual evidence failures without fake image bytes", async () => {
+    (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__ = "https://aire-land.opcos.me";
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__ = "test-browser-session";
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "fetch_location_map" || cmd === "fetch_aerial_photo") return [];
+      if (cmd === "land_registry_pull_data") {
+        throw new Error("PDF assembly must not run formal COP for R02 candidate data");
+      }
+      return {};
+    });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("overpass-api.de")) {
+        return Response.json({ elements: [] });
+      }
+      if (url.includes("/api/legal-clauses/sync")) {
+        return Response.json({ clauses: [] });
+      }
+      if (url.includes("/api/visual-evidence/location-map")) {
+        return Response.json(
+          {
+            error: "provider_fetch_failed",
+            status: "unavailable",
+            message: "visual evidence provider returned HTTP 404",
+          },
+          { status: 502 },
+        );
+      }
+      if (url.includes("/api/visual-evidence/aerial-photo")) {
+        return Response.json(
+          {
+            error: "aerial_not_configured",
+            status: "requires_configuration",
+            message: "NLSC aerial provider is not configured",
+          },
+          { status: 503 },
+        );
+      }
+      return new Response("not found", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      address: "台南市東區東和路47號3樓",
+      land_registry_data: candidateRegistryPayload(),
+    });
+
+    expect(result.locationMapImage).toBeNull();
+    expect(result.aerialPhoto).toBeNull();
+    expect(result.visualEvidence?.location_map).toMatchObject({
+      status: "unavailable",
+      unavailableReason: "visual evidence provider returned HTTP 404",
+    });
+    expect(result.visualEvidence?.aerial_photo).toMatchObject({
+      status: "requires_configuration",
+      unavailableReason: "NLSC aerial provider is not configured",
+    });
+    delete (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__;
+  });
+
+  it("normalizes visual evidence network errors as unavailable", async () => {
+    (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__ = "https://aire-land.opcos.me";
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__ = "test-browser-session";
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      if (cmd === "query_real_price") return [];
+      if (cmd === "fetch_location_map" || cmd === "fetch_aerial_photo") return [];
+      if (cmd === "land_registry_pull_data") {
+        throw new Error("PDF assembly must not run formal COP for R02 candidate data");
+      }
+      return {};
+    });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("overpass-api.de")) return Response.json({ elements: [] });
+      if (url.includes("/api/legal-clauses/sync")) return Response.json({ clauses: [] });
+      if (url.includes("/api/visual-evidence/location-map")) throw new Error("network timeout");
+      if (url.includes("/api/visual-evidence/aerial-photo")) {
+        return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer, { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      address: "台南市東區東和路47號3樓",
+      land_registry_data: candidateRegistryPayload(),
+    });
+
+    expect(result.locationMapImage).toBeNull();
+    expect(result.visualEvidence?.location_map).toMatchObject({
+      status: "unavailable",
+      unavailableReason: "network timeout",
+    });
+    expect(result.visualEvidence?.aerial_photo).toMatchObject({
+      status: "available",
+      unavailableReason: null,
+    });
+    delete (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__;
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__;
   });
 
   it("trusted registry data overrides selected candidate values", async () => {
@@ -1856,7 +2128,20 @@ describe("assembleDossierData — floorPlanPhoto", () => {
       calls.push({ cmd, args });
       if (cmd === "list_case_assets") {
         if (args?.kind === "exterior_photo") {
-          return [{ id: "asset-exterior", is_primary: true, review_status: "approved" }];
+          return [{
+            id: "asset-exterior",
+            is_primary: true,
+            review_status: "approved",
+            source: "api_generated",
+            file_name: "google-street-view-180.jpg",
+            metadata_json: JSON.stringify({
+              provider: "google_street_view",
+              heading: 180,
+              pitch: 0,
+              fov: 80,
+              confirmedFront: true,
+            }),
+          }];
         }
         return [];
       }
@@ -1882,12 +2167,98 @@ describe("assembleDossierData — floorPlanPhoto", () => {
     });
 
     expect(result.exteriorPhoto).toEqual(new Uint8Array([7, 7, 7]));
+    expect(result.visualEvidence?.exterior_photo).toMatchObject({
+      status: "available",
+      metadata: expect.objectContaining({
+        provider: "google_street_view",
+        heading: 180,
+        confirmedFront: true,
+      }),
+    });
     expect(calls).toEqual(
       expect.arrayContaining([
         { cmd: "list_case_assets", args: { case_id: buildingCaseRow.id, kind: "exterior_photo" } },
       ]),
     );
     expect(calls.map((call) => call.cmd)).not.toContain("fetch_street_view");
+  });
+
+  it("browser mode 直接讀 OPFS case asset，不再依賴未對接的 safeInvoke asset commands", async () => {
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    mockListBrowserCaseAssets.mockResolvedValue([
+      {
+        id: "browser-exterior",
+        case_id: buildingCaseRow.id,
+        kind: "exterior_photo",
+        source: "api_generated",
+        trust_tier: "assistant_uploaded",
+        review_status: "approved",
+        is_primary: true,
+        file_name: "google-street-view-180.jpg",
+        mime_type: "image/jpeg",
+        size_bytes: 3,
+        storage_path: "/cases/test/assets/google-street-view-180.jpg",
+        metadata_json: JSON.stringify({
+          provider: "google_street_view",
+          heading: 180,
+          confirmedFront: true,
+        }),
+        created_at: "2026-06-08T00:00:00.000Z",
+        updated_at: "2026-06-08T00:00:00.000Z",
+      },
+    ]);
+    mockReadBrowserCaseAssetBytes.mockResolvedValue({
+      bytes: [9, 9, 9],
+      mime: "image/jpeg",
+    });
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_case_assets" || cmd === "read_case_asset_bytes") {
+        throw new Error("browser mode should not call safeInvoke asset commands");
+      }
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: trustedRegistryPayload({
+        building_registry: { lat: 25.01, lng: 121.46 },
+      }),
+    });
+
+    expect(result.exteriorPhoto).toEqual(new Uint8Array([9, 9, 9]));
+    expect(mockListBrowserCaseAssets).toHaveBeenCalledWith(buildingCaseRow.id, "exterior_photo");
+    expect(mockReadBrowserCaseAssetBytes).toHaveBeenCalledWith("browser-exterior");
+    delete (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__;
+  });
+
+  it("建物 PDF 沒有已確認正面照時保留待補原因，不自動挑街景候選", async () => {
+    mockInvoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "list_case_assets") return [];
+      if (cmd === "get_brand_text_settings") return {};
+      if (cmd === "land_registry_pull_data") return { results: {}, total_cost: 0 };
+      if (cmd === "get_legal_clause") return [];
+      if (cmd === "query_real_price") return [];
+      if (cmd === "list_floor_plan_conversion_history") return { sketches: [], conversions: [] };
+      return {};
+    });
+
+    const result = await assembleDossierData({
+      ...buildingCaseRow,
+      land_registry_data: trustedRegistryPayload({
+        building_registry: { lat: 25.01, lng: 121.46 },
+      }),
+    });
+
+    expect(result.exteriorPhoto).toBeNull();
+    expect(result.visualEvidence?.exterior_photo).toMatchObject({
+      status: "requires_confirmation",
+      unavailableReason: "尚未確認建物正面照片，PDF 先保留待補。",
+    });
   });
 
   it("土地 PDF 優先使用目前案件的補件圖資，不改打地政或地圖 API", async () => {
