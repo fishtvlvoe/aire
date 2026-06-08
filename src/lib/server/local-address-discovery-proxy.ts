@@ -10,6 +10,10 @@ import {
   type DiscoverySelectionState,
   type ParsedDiscoveryInput,
 } from "@/lib/registry-discovery-contract";
+import {
+  readAddressDiscoveryCache,
+  writeAddressDiscoveryCache,
+} from "@/lib/server/free-presurvey-cache";
 
 const EASYMAP_R02_BASE_URL = "https://easymap.moi.gov.tw/R02";
 const EASYMAP_Z10WEB_BASE_URL = "https://easymap.moi.gov.tw/Z10Web";
@@ -96,6 +100,8 @@ interface EasyMapLandCandidate {
   sectionCode: string;
   sectionName: string;
   landNo: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface EasyMapLandDescription {
@@ -484,7 +490,12 @@ class EasyMapClient {
           },
         });
         descriptions[buildingNumber] = parseEasyMapBuildingDescriptionHtml(html);
-      } catch {
+      } catch (error) {
+        errors.push({
+          source: "easymap_z10web",
+          code: "easymap_z10web_build_detail_unavailable",
+          message: `建號 ${buildingNumber} 明細暫時無法取得：${error instanceof Error ? error.message : "unknown_error"}`,
+        });
       }
     }
     return { descriptions, errors };
@@ -561,7 +572,7 @@ class EasyMapClient {
       headers["x-requested-with"] = "XMLHttpRequest";
     }
 
-    return await new Promise<string>((resolve, reject) => {
+    return await withEasyMapRetry(async () => await new Promise<string>((resolve, reject) => {
       const request = https.request(
         url,
         {
@@ -596,7 +607,7 @@ class EasyMapClient {
         request.write(bodyText);
       }
       request.end();
-    });
+    }));
   }
 
   private z10CookieHeader(): string {
@@ -754,6 +765,7 @@ class EasyMapClient {
     }
 
     let locatedLand = { ...section, landNo };
+    let locatedCoordinate: EasyMapDoorCoordinate | null = null;
     try {
       const locatePayload = await this.z10RequestText("/Land_json_locate", {
         method: "POST",
@@ -765,13 +777,14 @@ class EasyMapClient {
         },
       });
       locatedLand = parseEasyMapLandByCoordinatePayload(locatePayload) ?? locatedLand;
+      locatedCoordinate = parseEasyMapCoordinatePayload(locatePayload);
     } catch {
       // Z10Web 地號定位偶爾失敗，但 LandDesc_ajax_detail 仍可能可查。
     }
 
     const landDescription = await this.z10LoadLandDescription(locatedLand);
     return {
-      candidates: buildZ10WebLandParcels(address, locatedLand, landDescription.description),
+      candidates: buildZ10WebLandParcels(address, locatedLand, landDescription.description, locatedCoordinate),
       errors: landDescription.errors,
     };
   }
@@ -807,6 +820,7 @@ class EasyMapClient {
     }
 
     let locatedLand = { ...section, landNo };
+    let locatedCoordinate: EasyMapDoorCoordinate | null = null;
     try {
       const locatePayload = await this.r02RequestText("/Land_json_locate", {
         method: "POST",
@@ -822,13 +836,14 @@ class EasyMapClient {
         },
       });
       locatedLand = parseEasyMapLandByCoordinatePayload(locatePayload) ?? locatedLand;
+      locatedCoordinate = parseEasyMapCoordinatePayload(locatePayload);
     } catch {
       // R02 有時地圖定位回 500，但 LandDesc_ajax_detail 仍可查到地段屬性。
     }
 
     const landDescription = await this.loadLandDescription(locatedLand);
     return {
-      candidates: buildEasyMapLandParcels(address, locatedLand, landDescription.description),
+      candidates: buildEasyMapLandParcels(address, locatedLand, landDescription.description, locatedCoordinate),
       errors: landDescription.errors,
     };
   }
@@ -969,7 +984,7 @@ class EasyMapClient {
       headers["x-requested-with"] = "XMLHttpRequest";
     }
 
-    return await new Promise<string>((resolve, reject) => {
+    return await withEasyMapRetry(async () => await new Promise<string>((resolve, reject) => {
       const request = https.request(
         url,
         {
@@ -1011,7 +1026,7 @@ class EasyMapClient {
         request.write(bodyText);
       }
       request.end();
-    });
+    }));
   }
 
   private r02CookieHeader(): string {
@@ -1107,6 +1122,26 @@ function normalizeEasyMapUpstreamError(error: unknown, source = "easymap_r02"): 
   };
 }
 
+function shouldRetryEasyMapRequest(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /timed out|timeout|ECONNRESET|socket hang up|http_status=50\d|http_50\d/i.test(message);
+}
+
+async function withEasyMapRetry<T>(work: () => Promise<T>, attempts = 2): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await work();
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts || !shouldRetryEasyMapRequest(error)) {
+        throw error;
+      }
+    }
+  }
+  throw lastError;
+}
+
 function buildR02CrossCheckDiagnostics(
   z10Candidates: ParcelInfo[],
   r02Result: EasyMapDiscoveryPayload,
@@ -1136,12 +1171,78 @@ function filterZ10CandidatesWithR02UnitMatch(
   r02Result: EasyMapDiscoveryPayload,
 ): ParcelInfo[] {
   const parts = parseTaiwanAddress(address);
-  if (!parts?.floorNumber || r02Result.candidates.length === 0) {
+  if (!parts?.floorNumber) {
     return z10Candidates;
   }
-  const r02Keys = new Set(r02Result.candidates.map(registryCandidateKey).filter(Boolean));
-  const matched = z10Candidates.filter((candidate) => r02Keys.has(registryCandidateKey(candidate)));
-  return matched.length > 0 ? normalizeParcelCandidateMetadata(matched) : z10Candidates;
+  const matchedByR02 = filterCandidatesByR02Keys(z10Candidates, r02Result.candidates);
+  const uniqueR02Match = maybeMarkUniqueFloorUnitMatch(matchedByR02);
+  if (uniqueR02Match) {
+    return uniqueR02Match;
+  }
+
+  const matchedByBuildingNo = filterCandidatesByR02BuildingNo(z10Candidates, r02Result.candidates);
+  if (
+    matchedByBuildingNo.length === 1 &&
+    r02Result.candidates.length === 1 &&
+    z10Candidates.every((candidate) => candidate.source === "easymap_z10web")
+  ) {
+    return normalizeParcelCandidateMetadata([{
+      ...matchedByBuildingNo[0],
+      discovery_confidence: "low",
+      confirmation_state: "unconfirmed",
+    }]).map((candidate) => ({
+      ...candidate,
+      discovery_confidence: "low",
+    }));
+  }
+
+  const floorLabelCandidates = matchedByR02.length > 0 ? matchedByR02 : z10Candidates;
+  const matchedByFloorLabel = filterCandidatesByFloorLabel(address, floorLabelCandidates);
+  const uniqueFloorLabelMatch = maybeMarkUniqueFloorUnitMatch(matchedByFloorLabel);
+  if (uniqueFloorLabelMatch) {
+    return uniqueFloorLabelMatch;
+  }
+
+  return matchedByR02.length > 1 ? normalizeParcelCandidateMetadata(matchedByR02) : z10Candidates;
+}
+
+function filterCandidatesByR02Keys(
+  z10Candidates: ParcelInfo[],
+  r02Candidates: ParcelInfo[],
+): ParcelInfo[] {
+  if (r02Candidates.length === 0) return [];
+  const r02Keys = new Set(r02Candidates.map(registryCandidateKey).filter(Boolean));
+  return z10Candidates.filter((candidate) => r02Keys.has(registryCandidateKey(candidate)));
+}
+
+function filterCandidatesByR02BuildingNo(
+  z10Candidates: ParcelInfo[],
+  r02Candidates: ParcelInfo[],
+): ParcelInfo[] {
+  const r02BuildingNumbers = new Set(
+    r02Candidates
+      .map((candidate) => String(candidate.building_number ?? "").trim())
+      .filter(Boolean),
+  );
+  if (r02BuildingNumbers.size === 0) return [];
+  return z10Candidates.filter((candidate) => r02BuildingNumbers.has(String(candidate.building_number ?? "").trim()));
+}
+
+function filterCandidatesByFloorLabel(address: string, candidates: ParcelInfo[]): ParcelInfo[] {
+  const targetFloorKey = extractFloorKey(address);
+  if (!targetFloorKey) return candidates;
+  const matched = candidates.filter((candidate) => extractFloorLabelKey(candidate.floor_label) === targetFloorKey);
+  return matched.length > 0 ? matched : candidates;
+}
+
+function maybeMarkUniqueFloorUnitMatch(candidates: ParcelInfo[]): ParcelInfo[] | null {
+  if (candidates.length !== 1) return null;
+  return normalizeParcelCandidateMetadata([
+    {
+      ...candidates[0],
+      selection_reason: "floor_unit_unique_match",
+    },
+  ]);
 }
 
 function registryCandidateKey(candidate: ParcelInfo): string {
@@ -1300,18 +1401,24 @@ async function getLatestDiscoveryRun(address: string): Promise<RegistryQueryRun 
   return runs.find((run) => normalizeAddress(String(run.source_input ?? "")) === normalized) ?? runs[0] ?? null;
 }
 
-export async function discoverAddressLocally(address: string): Promise<AddressDiscoveryResult> {
+export async function discoverAddressLocally(
+  address: string,
+  options: { cache?: boolean } = {},
+): Promise<AddressDiscoveryResult> {
   const normalized = normalizeAddress(address);
   if (!normalized) {
     return fallbackManualResult(normalized);
   }
+
+  const useCache = options.cache !== false;
+  const cachedResult = useCache ? await readAddressDiscoveryCache(normalized) : null;
 
   try {
     const discovery = await new EasyMapClient().discover(normalized);
     const candidates = discovery.candidates;
     if (candidates.length > 0) {
       const classification = classifyDiscoveryInput(normalized);
-      return {
+      const result: AddressDiscoveryResult = {
         status: "candidate_found",
         source: "local_discovery",
         normalizedAddress: normalized,
@@ -1332,8 +1439,27 @@ export async function discoverAddressLocally(address: string): Promise<AddressDi
         },
         suggestedCorrections: suggestDiscoveryCorrections(normalized),
       };
+      if (useCache) {
+        await writeAddressDiscoveryCache(normalized, result);
+      }
+      return result;
     }
   } catch (error) {
+    if (cachedResult?.candidates?.length) {
+      return {
+        ...cachedResult,
+        normalizedAddress: normalized,
+        cacheHit: true,
+        errors: [
+          {
+            source: "local_discovery_cache",
+            code: "local_discovery_cache_reused_after_upstream_error",
+            message: `便民系統暫時異常，已改用前次成功結果：${error instanceof Error ? error.message : "地址資料需要人工確認"}`,
+          },
+          ...cachedResult.errors,
+        ],
+      };
+    }
     const fallbackRun = await getLatestDiscoveryRun(normalized);
     const runError = fallbackRun?.candidate_json?.errors?.[0];
     return fallbackManualResult(normalized, runError ?? {
@@ -1341,6 +1467,22 @@ export async function discoverAddressLocally(address: string): Promise<AddressDi
       code: "easymap_r02_unavailable",
       message: error instanceof Error ? error.message : "地址資料需要人工確認",
     });
+  }
+
+  if (cachedResult?.candidates?.length) {
+    return {
+      ...cachedResult,
+      normalizedAddress: normalized,
+      cacheHit: true,
+      errors: [
+        {
+          source: "local_discovery_cache",
+          code: "local_discovery_cache_reused_after_empty_result",
+          message: "本次便民系統未回候選，已改用前次成功結果",
+        },
+        ...cachedResult.errors,
+      ],
+    };
   }
 
   const run = await getLatestDiscoveryRun(normalized);
@@ -1375,7 +1517,23 @@ export function parseEasyMapLandByCoordinatePayload(payload: string): EasyMapLan
   if (!cityName || !townName || !cityCode || !townCode || !office || !sectionCode || !sectionName || !landNo) {
     return null;
   }
-  return { cityName, townName, cityCode, townCode, office, sectionCode, sectionName, landNo };
+  const coordinate = parseEasyMapCoordinatePayload(payload);
+  return { cityName, townName, cityCode, townCode, office, sectionCode, sectionName, landNo, ...coordinate };
+}
+
+function parseEasyMapCoordinatePayload(payload: string): EasyMapDoorCoordinate | null {
+  let json: Record<string, unknown>;
+  try {
+    json = JSON.parse(payload) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const lng = pickNumber(json, ["X", "x", "lng", "lon", "longitude"]);
+  const lat = pickNumber(json, ["Y", "y", "lat", "latitude"]);
+  if (lng === undefined || lat === undefined) {
+    return null;
+  }
+  return { lat, lng };
 }
 
 export function parseEasyMapSectionListPayload(
@@ -1703,6 +1861,7 @@ function buildEasyMapLandParcels(
   inputAddress: string,
   land: EasyMapLandCandidate,
   description: EasyMapLandDescription,
+  coordinate: EasyMapDoorCoordinate | null = null,
 ): ParcelInfo[] {
   const base = {
     address: inputAddress,
@@ -1716,12 +1875,26 @@ function buildEasyMapLandParcels(
     zoning: description.zoning ?? undefined,
     announced_land_current_value: description.announcedLandCurrentValue ?? undefined,
     announced_land_value: description.announcedLandValue ?? undefined,
+    lat: coordinate?.lat ?? land.lat,
+    lng: coordinate?.lng ?? land.lng,
   };
   return normalizeParcelCandidateMetadata([{
     ...base,
     parcel_id: `${land.office}-${land.sectionCode}-${land.landNo}`,
     building_number: "",
   }]);
+}
+
+function pickNumber(input: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = input[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return undefined;
 }
 
 function normalizeParcelCandidateMetadata(candidates: ParcelInfo[]): ParcelInfo[] {
@@ -1894,6 +2067,16 @@ function parseFloorSuffix(value: string): { floorNumber: string; floorUnit: stri
 function extractFloorKey(value: string): string | null {
   const normalized = normalizeDiscoveryAddressText(value);
   const match = normalized.match(/號(?<floor>\d+|[一二三四五六七八九十百]+)樓(?:之(?<unit>\d+|[一二三四五六七八九十]+))?/);
+  if (!match?.groups) return null;
+  const floor = normalizeChineseNumber(match.groups.floor);
+  const unit = normalizeChineseNumber(match.groups.unit ?? "");
+  return floor ? `${floor}:${unit}` : null;
+}
+
+function extractFloorLabelKey(value: string | undefined): string | null {
+  if (!value) return null;
+  const normalized = normalizeDiscoveryAddressText(value);
+  const match = normalized.match(/(?<floor>\d+|[一二三四五六七八九十百]+)樓(?:之(?<unit>\d+|[一二三四五六七八九十]+))?/);
   if (!match?.groups) return null;
   const floor = normalizeChineseNumber(match.groups.floor);
   const unit = normalizeChineseNumber(match.groups.unit ?? "");

@@ -8,6 +8,11 @@
 "use client";
 
 import { NotInTauriError, safeInvoke } from "@/lib/tauri-bridge";
+import {
+  listBrowserOperationLogs,
+  shouldUseBrowserOperationLogStore,
+  writeBrowserOperationLog,
+} from "@/lib/browser-operation-log-store";
 
 export type LogAction =
   | "license_activate"
@@ -16,6 +21,8 @@ export type LogAction =
   | "case_update"
   | "case_delete"
   | "case_status_change"
+  | "address_discovery_query"
+  | "real_price_query"
   | "draft_save"
   | "pdf_export"
   | "setting_change";
@@ -55,6 +62,11 @@ export async function writeLog(
   payload?: LogPayload,
 ): Promise<void> {
   try {
+    if (shouldUseBrowserOperationLogStore()) {
+      await writeBrowserOperationLog(action, result, payload);
+      return;
+    }
+
     // 前端先過濾白名單，雙保險
     const sanitized: LogPayload = {};
     if (payload) {
@@ -80,6 +92,17 @@ export async function writeLog(
  */
 export async function listRecentLogs(limit = 100): Promise<LogEntry[]> {
   try {
+    if (shouldUseBrowserOperationLogStore()) {
+      const entries = await listBrowserOperationLogs(limit);
+      return entries.map((entry, index) => ({
+        id: index + 1,
+        ts: Math.floor(new Date(entry.timestamp).getTime() / 1000),
+        action: entry.action,
+        payload: entry.payload ? JSON.stringify(entry.payload) : null,
+        result: entry.result,
+      }));
+    }
+
     const entries = await safeInvoke<LogEntry[]>("list_recent_logs", { limit });
     return entries;
   } catch (err) {
@@ -119,6 +142,8 @@ export const LOG_ACTION_LABELS: Record<LogAction, string> = {
   case_update: "編輯案件",
   case_delete: "刪除案件",
   case_status_change: "案件狀態變更",
+  address_discovery_query: "地址補齊查詢",
+  real_price_query: "實價登錄查詢",
   draft_save: "草稿儲存",
   pdf_export: "匯出 PDF",
   setting_change: "設定變更",
