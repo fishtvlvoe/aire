@@ -4,6 +4,7 @@ import { getMoiServiceCatalogEntry } from "./moi-service-catalog";
 export const FORMAL_COP_PRICING_SOURCE = "moi-service-catalog";
 
 export const BUILDING_FORMAL_COP_API_SET = [
+  "land_registry",
   "building_registry",
   "building_ownership",
 ] as const;

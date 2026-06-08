@@ -52,7 +52,7 @@ interface RealtorLicenseDraftSlice {
   realtor_license_verification_status?: RealtorLicenseVerificationStatus;
 }
 
-/** 成屋有建號時只走最小建物正式查詢 API set，避免不必要扣款。 */
+/** 成屋有建號時仍要帶土地標示部，讓正式匯入明細、補件與 PDF 有完整欄位來源。 */
 const RESIDENTIAL_API_IDS = selectFormalCopApiSet({ buildingNo: "confirmed-building" });
 
 export interface DisclosureFormResidentialProps {
