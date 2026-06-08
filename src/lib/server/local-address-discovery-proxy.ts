@@ -180,6 +180,52 @@ class EasyMapClient {
   }
 
   private async discoverDoorplate(address: string): Promise<EasyMapDiscoveryPayload> {
+    const parts = parseTaiwanAddress(address);
+    const prefersR02BuildingCandidate = Boolean(parts?.floorNumber);
+
+    if (prefersR02BuildingCandidate) {
+      const r02Primary = await this.tryDiscoverDoorplateViaR02(address);
+      let z10Verification: EasyMapDiscoveryPayload = { candidates: [], errors: [] };
+      try {
+        z10Verification = await this.discoverDoorplateViaZ10Web(address);
+      } catch (error) {
+        z10Verification = {
+          candidates: [],
+          errors: [normalizeEasyMapUpstreamError(error, "easymap_z10web")],
+        };
+      }
+
+      if (r02Primary.candidates.length > 0) {
+        const candidates = selectDoorplateCandidates(address, z10Verification.candidates, r02Primary);
+        return {
+          candidates,
+          errors: [
+            ...z10Verification.errors,
+            ...buildR02CrossCheckDiagnostics(z10Verification.candidates, r02Primary),
+          ],
+        };
+      }
+
+      if (z10Verification.candidates.length > 0) {
+        const candidates = filterZ10CandidatesWithR02UnitMatch(address, z10Verification.candidates, r02Primary);
+        return {
+          candidates,
+          errors: [
+            ...z10Verification.errors,
+            ...r02Primary.errors,
+          ],
+        };
+      }
+
+      return {
+        candidates: [],
+        errors: [
+          ...z10Verification.errors,
+          ...r02Primary.errors,
+        ],
+      };
+    }
+
     let z10Result: EasyMapDiscoveryPayload | null = null;
     try {
       z10Result = await this.discoverDoorplateViaZ10Web(address);
@@ -227,7 +273,7 @@ class EasyMapClient {
   }
 
   /**
-   * Z10Web 門牌→地號查詢序列（R02 Door_json_getDoorList 已故障）
+   * Z10Web 門牌→地號查詢序列（作為土地鏈或建物輔助證據）
    * 1. GET /Z10Web/Normal → 建立 session cookie
    * 2. POST layout/setToken.jsp → token
    * 3. POST HouseholdDoorPlate_ajax_list → 門牌候選 HTML (data-road 屬性)
@@ -406,7 +452,7 @@ class EasyMapClient {
         cityCode: candidate.cityCode || parts.cityCode,
         townCode: candidate.townCode || resolvedTownCode,
         office: candidate.office,
-        sectionCode: candidate.sectionCode,
+        sectionCode: candidate.buildingSectionCode || candidate.sectionCode,
         sectionName: candidate.sectionName || "",
         landNo: normalizedLandNo,
       };
@@ -1154,6 +1200,9 @@ function buildR02CrossCheckDiagnostics(
   if (r02Result.candidates.length === 0) {
     return r02Result.errors;
   }
+  if (z10Candidates.length === 0) {
+    return r02Result.errors;
+  }
   const z10Keys = new Set(z10Candidates.map(registryCandidateKey).filter(Boolean));
   const r02Keys = r02Result.candidates.map(registryCandidateKey).filter(Boolean);
   const matched = r02Keys.some((key) => z10Keys.has(key));
@@ -1168,6 +1217,65 @@ function buildR02CrossCheckDiagnostics(
     },
     ...r02Result.errors,
   ];
+}
+
+function selectDoorplateCandidates(
+  address: string,
+  z10Candidates: ParcelInfo[],
+  r02Result: EasyMapDiscoveryPayload,
+): ParcelInfo[] {
+  const exactMatches = filterCandidatesByR02Keys(z10Candidates, r02Result.candidates);
+  if (exactMatches.length === 1 && r02Result.candidates.length === 1) {
+    return normalizeParcelCandidateMetadata([
+      mergeDoorplateCandidateEvidence(r02Result.candidates[0], exactMatches[0]),
+    ]);
+  }
+
+  if (r02Result.candidates.length > 0) {
+    const filtered = filterZ10CandidatesWithR02UnitMatch(address, z10Candidates, r02Result);
+    if (filtered.length === 1 && filtered[0]?.source === "easymap_r02") {
+      return filtered;
+    }
+  }
+
+  if (r02Result.candidates.length > 0 && z10Candidates.length === 0) {
+    return normalizeParcelCandidateMetadata(r02Result.candidates);
+  }
+
+  if (r02Result.candidates.length > 0) {
+    return normalizeParcelCandidateMetadata(
+      r02Result.candidates.map((candidate) => ({
+        ...candidate,
+        discovery_confidence: "low",
+        confirmation_state: "unconfirmed",
+      })),
+    );
+  }
+
+  return z10Candidates;
+}
+
+function mergeDoorplateCandidateEvidence(primary: ParcelInfo, supporting: ParcelInfo): ParcelInfo {
+  return {
+    ...supporting,
+    ...primary,
+    source: "easymap_r02",
+    lot_number: primary.lot_number || supporting.lot_number,
+    section_code: primary.section_code || supporting.section_code,
+    section_name: primary.section_name || supporting.section_name,
+    land_office: primary.land_office || supporting.land_office,
+    building_number: primary.building_number || supporting.building_number,
+    building_area_sqm: primary.building_area_sqm || supporting.building_area_sqm,
+    total_floor_count: primary.total_floor_count || supporting.total_floor_count,
+    floor_label: primary.floor_label || supporting.floor_label,
+    completion_date_roc: primary.completion_date_roc || supporting.completion_date_roc,
+    age_years: primary.age_years || supporting.age_years,
+    main_use: primary.main_use || supporting.main_use,
+    lat: primary.lat ?? supporting.lat,
+    lng: primary.lng ?? supporting.lng,
+    discovery_confidence: primary.discovery_confidence ?? supporting.discovery_confidence,
+    confirmation_state: primary.confirmation_state ?? supporting.confirmation_state,
+  };
 }
 
 function filterZ10CandidatesWithR02UnitMatch(
@@ -1192,7 +1300,7 @@ function filterZ10CandidatesWithR02UnitMatch(
     z10Candidates.every((candidate) => candidate.source === "easymap_z10web")
   ) {
     return normalizeParcelCandidateMetadata([{
-      ...matchedByBuildingNo[0],
+      ...r02Result.candidates[0],
       discovery_confidence: "low",
       confirmation_state: "unconfirmed",
     }]);

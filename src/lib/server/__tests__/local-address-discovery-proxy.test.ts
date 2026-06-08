@@ -542,7 +542,7 @@ describe("local-address-discovery-proxy", () => {
 
     const result = await discoverAddressLocally("台南市東區裕農路288巷17號");
 
-    expect(result.status).toBe("candidate_found");
+    expect(result.status).toBe("low_confidence_unresolved");
     expect(result.requiresCandidateSelection).toBe(true);
     expect(result.candidateSelection).toEqual({
       state: "required",
@@ -667,7 +667,7 @@ describe("local-address-discovery-proxy", () => {
     expect(result.requiresCandidateSelection).toBe(false);
     expect(result.candidates).toEqual([
       expect.objectContaining({
-        source: "easymap_z10web",
+        source: "easymap_r02",
         parcel_id: "DC-1556-00204000",
         lot_number: "00700000",
         building_number: "00204000",
@@ -676,7 +676,6 @@ describe("local-address-discovery-proxy", () => {
         age_years: "31",
         main_use: "住家用",
         floor_label: "8樓之1",
-        selection_reason: "floor_unit_unique_match",
       }),
     ]);
   });
@@ -764,7 +763,7 @@ describe("local-address-discovery-proxy", () => {
     expect(result.totalCostCents).toBe(0);
   });
 
-  it("falls back to a single overlapping building number when R02 mismatches section-land but only one building number overlaps", async () => {
+  it("prefers the R02 building candidate when overlap exists but Z10 land section conflicts", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith("/Z10Web/Normal") || url.endsWith("/Z10Web/")) {
@@ -801,6 +800,22 @@ describe("local-address-discovery-proxy", () => {
         `, { status: 200 });
       }
       if (url.endsWith("/Z10Web/BuildDesc_ajax_detail")) {
+        const params = new URLSearchParams(String(init?.body ?? ""));
+        if (params.get("sectNo") === "1511" && params.get("buildNo") === "03045000") {
+          return new Response(`
+            <table>
+              <tr><th>行政區</th><td>臺南市 東區</td></tr>
+              <tr><th>地政事務所</th><td>東南地政事務所</td></tr>
+              <tr><th>地段</th><td>1511 光明段</td></tr>
+              <tr><th>建號</th><td>03045000</td></tr>
+              <tr><th>建物面積</th><td>98.44 平方公尺</td></tr>
+              <tr><th>樓層數</th><td>008</td></tr>
+              <tr><th>樓層別</th><td>三層</td></tr>
+              <tr><th>建物完成日期</th><td>0810914 (屋齡:約 33年)</td></tr>
+              <tr><th>主要用途</th><td>住家用</td></tr>
+            </table>
+          `, { status: 200 });
+        }
         return new Response("<html>temporary failure</html>", { status: 500 });
       }
       if (url.endsWith("/R02/Index")) {
@@ -835,12 +850,16 @@ describe("local-address-discovery-proxy", () => {
 
     const result = await discoverAddressLocally("台南市東區東和路47號3樓");
 
-    expect(result.status).toBe("candidate_found");
+    expect(result.status).toBe("low_confidence_unresolved");
     expect(result.candidates).toEqual([
       expect.objectContaining({
         building_number: "03045000",
-        section_code: "1514",
-        lot_number: "02210032",
+        section_code: "1511",
+        section_name: "光明段",
+        lot_number: "00770000",
+        building_area_sqm: "98.44",
+        floor_label: "三層",
+        source: "easymap_r02",
         discovery_confidence: "low",
       }),
     ]);
@@ -940,7 +959,7 @@ describe("local-address-discovery-proxy", () => {
     expect(result.requiresCandidateSelection).toBe(false);
     expect(result.candidates).toEqual([
       expect.objectContaining({
-        source: "easymap_z10web",
+        source: "easymap_r02",
         section_name: "竹篙厝段",
         lot_number: "14690000",
         building_number: "06850000",
