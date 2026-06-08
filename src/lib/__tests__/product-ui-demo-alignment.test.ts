@@ -461,4 +461,50 @@ describe("product-ui-demo-alignment contract", () => {
     );
     expect(rows.map((row) => `${row.helper}${row.serviceName}`).join(" ")).not.toMatch(/R02|便民系統/);
   });
+
+  it("does not surface a blocked building candidate after a formal address mismatch", () => {
+    const rows = getDemoFieldReviewRows({
+      id: "donghe-conflict-case",
+      case_no: "003",
+      case_name: "東和路衝突",
+      property_type: "residential",
+      land_lot_no: null,
+      land_lots: [],
+      building_lot_no: null,
+      address: "台南市東區東和路47號3樓",
+      owner_name: null,
+      status: "draft",
+      created_at: 1763200000,
+      updated_at: 1763200000,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-06-09T00:00:00.000Z",
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "building:DC-1514-03045000",
+            parcel_type: "building",
+            office_code: "DC",
+            section_code: "1514",
+            section_name: "東光段",
+            land_no: "02210032",
+            building_no: "03045000",
+            parcel_number: "03045000",
+            normalized_parcel_id: "DC-1514-03045000",
+            source: "public_reference",
+            query_status: "candidate_data_available",
+            confirmation_state: "unconfirmed",
+            summary_fields: {
+              registeredAreaPing: 11.46,
+              constructionDate: "093/07/12",
+              floor: "3樓",
+            },
+            warnings: ["正式查詢回傳門牌與案件地址不一致，這筆候選已停用"],
+          },
+        ],
+      },
+    });
+
+    expect(rows.find((row) => row.fieldName === "門牌查詢建號")?.value).not.toContain("03045000");
+  });
 });

@@ -837,6 +837,44 @@ describe("DemoAlignedWorkbench", () => {
     expect(within(importRegion).getByText("候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。")).toBeInTheDocument();
   });
 
+  it("treats a prior formal address mismatch warning as a blocked candidate even without an explicit low confidence flag", () => {
+    const mismatchBlockedCase: CaseRow = {
+      ...caseRow,
+      address: "台南市東區東和路47號3樓",
+      land_lot_no: null,
+      building_lot_no: null,
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-06-09T00:00:00.000Z",
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "building:DC-1514-03045000",
+            parcel_type: "building",
+            office_code: "DC",
+            section_code: "1514",
+            section_name: "東光段",
+            land_no: "02210032",
+            building_no: "03045000",
+            parcel_number: "03045000",
+            normalized_parcel_id: "DC-1514-03045000",
+            source: "public_reference",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            confirmation_state: "unconfirmed",
+            warnings: ["正式查詢回傳門牌與案件地址不一致，這筆候選已停用"],
+          },
+        ],
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={mismatchBlockedCase} initialTab="formal-import" />);
+
+    const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
+    expect(within(importRegion).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
+    expect(within(importRegion).getByText("候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。")).toBeInTheDocument();
+  });
+
   it("blocks paid formal import in Browser mode until AIRE workspace COP credential is configured", async () => {
     mockIsBrowserLocalFirstEnabled.mockReturnValue(true);
     const fetchMock = vi.fn(async (url: RequestInfo | URL) => {

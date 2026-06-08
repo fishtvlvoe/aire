@@ -218,6 +218,7 @@ describe("PullParcelDataButton", () => {
   });
 
   it("blocks saving formal data when the returned building address does not match the case address", async () => {
+    const onAddressMismatch = vi.fn().mockResolvedValue(undefined);
     mocks.formalPullData.mockResolvedValueOnce({
       run_id: "run-mismatch",
       cache_hit: false,
@@ -254,6 +255,7 @@ describe("PullParcelDataButton", () => {
         caseId="case-001"
         expectedAddress="台南市永康區勝利街58巷4號"
         parcelId="DK-9125-00296000"
+        onAddressMismatch={onAddressMismatch}
       />,
     );
 
@@ -267,6 +269,7 @@ describe("PullParcelDataButton", () => {
     expect(screen.getAllByText(/正式資料門牌與案件地址不一致/).length).toBeGreaterThan(0);
     expect(document.body.textContent).toContain("58巷4號");
     expect(document.body.textContent).toContain("５８巷１６號");
+    expect(onAddressMismatch).toHaveBeenCalledWith(expect.stringContaining("正式資料門牌與案件地址不一致"));
     expect(mocks.updateCase).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog", { name: "地政資料匯入明細" })).not.toBeInTheDocument();
   });

@@ -2,6 +2,7 @@ import type { CasePropertyType, CaseRow } from "@/lib/cases-api";
 import { getPrimaryNavigation, getSecondaryNavigation } from "@/lib/product-navigation-ia";
 import {
   extractCandidateOptions,
+  extractRegistryFailureActions,
   extractPreSurveyRegistryData,
   extractRegistryFailureReasons,
   isRegistryProvenancePayload,
@@ -588,6 +589,9 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
   const failures = isRegistryProvenancePayload(registry)
     ? extractRegistryFailureReasons(registry)
     : [];
+  const failureActions = isRegistryProvenancePayload(registry)
+    ? extractRegistryFailureActions(registry)
+    : [];
   const hasProvenance = isRegistryProvenancePayload(registry);
   const landCandidate = findDisplayCandidate(registry, "land");
   const landCandidateFields = landCandidate?.summary_fields;
@@ -630,8 +634,10 @@ export function getDemoFieldReviewRows(caseData?: CaseRow): DemoFieldReviewRow[]
   }
 
   const ownershipFailure = failures.find((failure) => failure.apiId === "building_ownership");
+  const ownershipFailureAction = failureActions.find((failure) => failure.apiId === "building_ownership");
   if (ownershipFailure) {
     updateFieldRow(rows, "建物權利範圍", {
+      helper: ownershipFailureAction?.action ?? "請確認資料來源後重試，或改由人工補件",
       value: ownershipFailure.reason,
       serviceName: "建物所有權資料",
       statusLabel: "查詢未成功",
@@ -861,13 +867,24 @@ function isFormalRegistryEntry(entry: RegistryProvenanceEntry | undefined, hasPr
   );
 }
 
+function isBlockedCandidate(candidate: CandidateParcelOption): boolean {
+  if (candidate.parcel_type !== "building") return false;
+  if (candidate.confidence_label === "low") return true;
+  return (candidate.warnings ?? []).some((warning) =>
+    /來源衝突|唯一重疊建號推定|門牌與案件地址不一致|門牌不一致/.test(warning),
+  );
+}
+
 function findDisplayCandidate(
   registry: unknown,
   parcelType: "land" | "building",
 ): CandidateParcelOption | undefined {
   if (!isRegistryProvenancePayload(registry)) return undefined;
   const options = extractCandidateOptions(registry).filter(
-    (candidate) => candidate.parcel_type === parcelType && candidate.query_status !== "failed",
+    (candidate) =>
+      candidate.parcel_type === parcelType &&
+      candidate.query_status !== "failed" &&
+      !isBlockedCandidate(candidate),
   );
   const selectedId = registry.confirmed_parcel_ids?.[parcelType] ?? registry.selected_candidate_ids?.[parcelType];
   if (selectedId) {

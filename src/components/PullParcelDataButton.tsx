@@ -13,7 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import { OwnerAuthorizationDialog } from "@/components/OwnerAuthorizationDialog";
 import { PreChargeConfirmDialog } from "@/components/PreChargeConfirmDialog";
-import { formalPullData, mapErrorToMessage, type ApiResult } from "@/lib/land-registry-api";
+import {
+  formalPullData,
+  mapErrorToMessage,
+  type ApiResult,
+  type FormalLookupTargetInput,
+} from "@/lib/land-registry-api";
 import { casesApi } from "@/lib/cases-api";
 import {
   buildRegistryPreviewSections,
@@ -37,7 +42,9 @@ interface PullParcelDataButtonProps {
   apiIds: string[];
   label?: string;
   expectedAddress?: string;
+  formalLookupTarget?: FormalLookupTargetInput;
   beforePull?: () => Promise<void>;
+  onAddressMismatch?: (message: string) => Promise<void>;
   preparePayload?: (data: Record<string, unknown>) => Record<string, unknown>;
   onPreview?: (data: Record<string, unknown> | null) => void;
   onSaved?: (data: Record<string, unknown>) => void;
@@ -56,7 +63,9 @@ export function PullParcelDataButton({
   apiIds,
   label = "正式查詢",
   expectedAddress,
+  formalLookupTarget,
   beforePull,
+  onAddressMismatch,
   preparePayload,
   onPreview,
   onSaved,
@@ -105,7 +114,7 @@ export function PullParcelDataButton({
     setStep("pulling");
     try {
       await beforePull?.();
-      const result = await formalPullData(caseId, apiIds);
+      const result = await formalPullData(caseId, apiIds, formalLookupTarget);
       const normalizedResults = result.results as Record<string, ApiResult>;
       setResults(normalizedResults);
       setTotalCost(result.total_cost);
@@ -118,9 +127,15 @@ export function PullParcelDataButton({
         .map(([apiId]) => ({ apiId, data: null }));
       setManualEntries(failed);
       setFailureDialogOpen(failed.length > 0);
-      const preview = buildPreviewData(normalizedResults, failed, result.total_cost);
+      const preview = buildPreviewData(
+        normalizedResults,
+        failed,
+        result.total_cost,
+        result.source_run_id ?? result.run_id,
+      );
       const mismatchError = validateFormalPreviewAddress(preview, expectedAddress);
       if (mismatchError) {
+        await onAddressMismatch?.(mismatchError);
         setPullError(mismatchError);
         setFailureDialogOpen(true);
         onPreview?.(null);
@@ -158,6 +173,7 @@ export function PullParcelDataButton({
     sourceResults: Record<string, ApiResult> | null,
     sourceManualEntries: ManualEntry[],
     sourceTotalCost = totalCost,
+    formalSourceRunId = sourceRunId ?? undefined,
   ) {
     if (!sourceResults) return null;
     const payload = createRegistryProvenancePayload({
@@ -165,6 +181,7 @@ export function PullParcelDataButton({
       totalCost: sourceTotalCost,
       isPaid: true,
       pricingNote: "付費正式查詢：已於執行前確認費用與授權，結果可作為正式地政資料來源",
+      sourceRunId: formalSourceRunId,
       results: sourceResults,
       manualEntries: sourceManualEntries,
     });

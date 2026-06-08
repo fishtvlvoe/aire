@@ -807,7 +807,7 @@ function isFormalImportBlockedCandidate(candidate: CandidateParcelOption): boole
   if (candidate.parcel_type !== "building") return false;
   if (candidate.confidence_label === "low") return true;
   return (candidate.warnings ?? []).some((warning) =>
-    /來源衝突|唯一重疊建號推定/.test(warning),
+    /來源衝突|唯一重疊建號推定|門牌與案件地址不一致|門牌不一致/.test(warning),
   );
 }
 
@@ -1019,6 +1019,42 @@ function clearCandidateSelection(
       if (item.candidate_id !== candidate.candidate_id) return item;
       const { confirmation_state: _confirmationState, ...rest } = item;
       return rest;
+    }),
+  };
+}
+
+function invalidateCandidateAfterAddressMismatch(
+  existing: CaseRow["land_registry_data"],
+  candidate: CandidateParcelOption,
+  mismatchMessage: string,
+): RegistryProvenancePayload {
+  const base = isRegistryProvenancePayload(existing)
+    ? existing
+    : createRegistryProvenancePayload({});
+  const selected_candidate_ids = { ...(base.selected_candidate_ids ?? {}) };
+  const confirmed_parcel_ids = { ...(base.confirmed_parcel_ids ?? {}) };
+  delete selected_candidate_ids[candidate.parcel_type];
+  delete confirmed_parcel_ids[candidate.parcel_type];
+  const mismatchWarning = "正式查詢回傳門牌與案件地址不一致，這筆候選已停用";
+  const conflictWarning = "候選來源衝突，正式查詢前需重新確認地段、地號與建號";
+  return {
+    ...base,
+    selected_candidate_ids,
+    confirmed_parcel_ids,
+    confirmed_registry_match: null,
+    candidate_options: (base.candidate_options ?? []).map((item) => {
+      if (item.candidate_id !== candidate.candidate_id) return item;
+      return {
+        ...item,
+        confidence_label: "low",
+        confirmation_state: "unconfirmed",
+        warnings: Array.from(new Set([
+          ...(item.warnings ?? []),
+          mismatchWarning,
+          conflictWarning,
+          mismatchMessage,
+        ])),
+      };
     }),
   };
 }
@@ -1743,6 +1779,31 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
     await casesApi.update(caseDraft.id, input);
   }
 
+  async function invalidateFormalImportTargetAfterMismatch(
+    candidate: CandidateParcelOption,
+    mismatchMessage: string,
+  ) {
+    const nextLandRegistryData = invalidateCandidateAfterAddressMismatch(
+      caseDraft.land_registry_data,
+      candidate,
+      mismatchMessage,
+    );
+    const updateInput: UpdateCaseInput = {
+      land_registry_data: nextLandRegistryData,
+      building_lot_no: "",
+      land_lot_no: undefined,
+      land_lots: [],
+    };
+    await casesApi.update(caseDraft.id, updateInput);
+    setCaseDraft((current) => ({
+      ...current,
+      building_lot_no: "",
+      land_lot_no: "",
+      land_lots: [],
+      land_registry_data: nextLandRegistryData,
+    }));
+  }
+
   async function refreshAddressCandidates() {
     const address = caseDraft.address.trim();
     if (!address) {
@@ -2192,6 +2253,9 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                                 buildingNo: getCandidateBuildingNo(formalImportTarget),
                               }}
                               beforePull={() => persistCandidateSelectionBeforePull(formalImportTarget)}
+                              onAddressMismatch={(message) =>
+                                invalidateFormalImportTargetAfterMismatch(formalImportTarget, message)
+                              }
                               preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
                               onSaved={(data) => {
                                 setCaseDraft((current) => ({
