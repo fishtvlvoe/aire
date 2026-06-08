@@ -844,6 +844,11 @@ describe("local-address-discovery-proxy", () => {
         discovery_confidence: "low",
       }),
     ]);
+    expect(result.requiresCandidateSelection).toBe(true);
+    expect(result.candidateSelection).toEqual({
+      state: "required",
+      selectedRegistryKey: null,
+    });
     expect(result.errors).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "easymap_r02_z10web_mismatch" }),
       expect.objectContaining({ code: "easymap_z10web_build_detail_unavailable" }),

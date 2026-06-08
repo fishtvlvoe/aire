@@ -1190,10 +1190,7 @@ function filterZ10CandidatesWithR02UnitMatch(
       ...matchedByBuildingNo[0],
       discovery_confidence: "low",
       confirmation_state: "unconfirmed",
-    }]).map((candidate) => ({
-      ...candidate,
-      discovery_confidence: "low",
-    }));
+    }]);
   }
 
   const floorLabelCandidates = matchedByR02.length > 0 ? matchedByR02 : z10Candidates;
@@ -1256,6 +1253,13 @@ function registryCandidateKey(candidate: ParcelInfo): string {
 function formatCandidateKeys(candidates: ParcelInfo[]): string {
   const keys = candidates.map(registryCandidateKey).filter(Boolean);
   return keys.length > 0 ? keys.join(", ") : "無候選";
+}
+
+function requiresCandidateSelectionForCandidates(candidates: ParcelInfo[]): boolean {
+  if (candidates.length > 1) return true;
+  if (candidates.length !== 1) return false;
+  const [candidate] = candidates;
+  return candidate.discovery_confidence === "low";
 }
 
 function formatR02DoorNumber(parts: EasyMapAddressParts): string {
@@ -1432,9 +1436,9 @@ export async function discoverAddressLocally(
         inputKind: classification.inputKind,
         intendedObjectType: classification.intendedObjectType,
         parsedInput: classification.parsedInput,
-        requiresCandidateSelection: candidates.length > 1,
+        requiresCandidateSelection: requiresCandidateSelectionForCandidates(candidates),
         candidateSelection: {
-          state: candidates.length > 1 ? "required" : "not_required",
+          state: requiresCandidateSelectionForCandidates(candidates) ? "required" : "not_required",
           selectedRegistryKey: null,
         },
         suggestedCorrections: suggestDiscoveryCorrections(normalized),
@@ -1901,9 +1905,9 @@ function normalizeParcelCandidateMetadata(candidates: ParcelInfo[]): ParcelInfo[
   const confidence = candidates.length > 1 ? "needs_selection" : "high";
   return candidates.map((candidate) => ({
     ...candidate,
-    discovery_confidence: confidence,
+    discovery_confidence: candidate.discovery_confidence ?? confidence,
     object_type: candidate.building_number ? "building" : "land",
-    confirmation_state: "unconfirmed",
+    confirmation_state: candidate.confirmation_state ?? "unconfirmed",
   }));
 }
 
