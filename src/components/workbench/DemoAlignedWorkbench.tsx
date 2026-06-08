@@ -690,6 +690,12 @@ function squareMetersToPing(value?: string): number | undefined {
 function candidateOptionFromParcel(parcel: ParcelInfo): CandidateParcelOption {
   const hasBuilding = Boolean(parcel.building_number?.trim());
   const normalizedParcelId = parcel.parcel_id;
+  const confidenceLabel = parcel.discovery_confidence ?? "same_address_candidate";
+  const warnings = [
+    ...(parcel.discovery_confidence === "low" ? ["候選來源衝突，正式查詢前需重新確認地段、地號與建號"] : []),
+    ...(parcel.selection_reason === "floor_unit_unique_match" ? ["本筆是依唯一重疊建號推定，正式查詢前請再確認"] : []),
+    ...(hasBuilding ? ["待屋主或權狀確認是否為目標戶別"] : ["待屋主或權狀確認"]),
+  ];
   return {
     candidate_id: `${hasBuilding ? "building" : "land"}:${normalizedParcelId}`,
     parcel_type: hasBuilding ? "building" : "land",
@@ -701,7 +707,7 @@ function candidateOptionFromParcel(parcel: ParcelInfo): CandidateParcelOption {
     parcel_number: hasBuilding ? parcel.building_number : parcel.lot_number,
     normalized_parcel_id: normalizedParcelId,
     source: parcel.source === "mock" ? "mock" : "public_reference",
-    confidence_label: "same_address_candidate",
+    confidence_label: confidenceLabel,
     official_status: "candidate_unconfirmed",
     query_status: hasBuilding || parcel.lot_number ? "candidate_data_available" : "pending",
     summary_fields: {
@@ -718,9 +724,7 @@ function candidateOptionFromParcel(parcel: ParcelInfo): CandidateParcelOption {
       lat: parcel.lat,
       lng: parcel.lng,
     },
-    warnings: hasBuilding
-      ? ["待屋主或權狀確認是否為目標戶別"]
-      : ["待屋主或權狀確認"],
+    warnings,
   };
 }
 
@@ -771,6 +775,7 @@ function findFormalImportTarget(
   const explicitTarget = candidates.find((candidate) =>
     !isManualConfirmedCandidate(candidate) &&
     hasCompleteFormalRegistryKey(candidate) &&
+    !isFormalImportBlockedCandidate(candidate) &&
       (
         candidate.confirmation_state === "confirmed" ||
         confirmedParcelIds[candidate.parcel_type] === candidate.candidate_id
@@ -781,12 +786,21 @@ function findFormalImportTarget(
     const matchingFormalCandidate = candidates.find((candidate) =>
       !isManualConfirmedCandidate(candidate) &&
       hasCompleteFormalRegistryKey(candidate) &&
+      !isFormalImportBlockedCandidate(candidate) &&
       candidateMatchesManualConfirmation(candidate, manualConfirmedTarget),
     );
     if (matchingFormalCandidate) return matchingFormalCandidate;
   }
   if (manualConfirmedTarget && hasCompleteFormalRegistryKey(manualConfirmedTarget)) return manualConfirmedTarget;
   return null;
+}
+
+function isFormalImportBlockedCandidate(candidate: CandidateParcelOption): boolean {
+  if (candidate.parcel_type !== "building") return false;
+  if (candidate.confidence_label === "low") return true;
+  return (candidate.warnings ?? []).some((warning) =>
+    /來源衝突|唯一重疊建號推定/.test(warning),
+  );
 }
 
 function isManualConfirmedCandidate(candidate: CandidateParcelOption): boolean {
@@ -2100,6 +2114,10 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                               <span className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[17px] font-medium text-emerald-800">
                                 已確認，可在下方匯入
                               </span>
+                            ) : isFormalImportBlockedCandidate(candidate) ? (
+                              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[17px] text-amber-800">
+                                候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。
+                              </div>
                             ) : confirmedButIncomplete ? (
                               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[17px] text-amber-800">
                                 前次確認缺正式查詢代碼，請確認下方完整候選後再匯入。

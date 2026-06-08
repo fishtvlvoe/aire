@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockUpdateCase = vi.hoisted(() => vi.fn());
 const mockImportCaseAsset = vi.hoisted(() => vi.fn());
 const mockSafeInvoke = vi.hoisted(() => vi.fn());
+const mockIsBrowserLocalFirstEnabled = vi.hoisted(() => vi.fn(() => false));
 
 vi.mock("@/lib/cases-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/cases-api")>();
@@ -30,9 +31,23 @@ vi.mock("@/lib/safe-invoke", () => ({
   safeInvoke: mockSafeInvoke,
 }));
 
+vi.mock("@/lib/browser-gateway", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/browser-gateway")>();
+  return {
+    ...actual,
+    isBrowserLocalFirstEnabled: mockIsBrowserLocalFirstEnabled,
+    createAireGatewayHeaders: vi.fn(() => ({
+      "Content-Type": "application/json",
+      Authorization: "Bearer aire_session_workspace_abc_agent_device_001",
+      "x-aire-workspace-id": "workspace-abc",
+      "x-aire-user-email": "agent@example.com",
+    })),
+  };
+});
+
 import { DemoAlignedWorkbench } from "../workbench/DemoAlignedWorkbench";
 import type { CaseRow } from "@/lib/cases-api";
-import { __resetMockStoreForTests } from "@/lib/mock-backend";
+import { __resetMockStoreForTests, mockInvoke } from "@/lib/mock-backend";
 
 const caseRow: CaseRow = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -60,6 +75,7 @@ describe("DemoAlignedWorkbench", () => {
     mockImportCaseAsset.mockResolvedValue({ id: "asset-1" });
     mockSafeInvoke.mockReset();
     mockSafeInvoke.mockResolvedValue(null);
+    mockIsBrowserLocalFirstEnabled.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -218,6 +234,122 @@ describe("DemoAlignedWorkbench", () => {
       expect(screen.getAllByText(/勝利段 58 建號/).length).toBeGreaterThan(0);
     });
     expect(screen.getByText(/manual/)).toBeInTheDocument();
+  });
+
+  it("shows formal COP supplement checklist rows without manual bootstrap and surfaces retry guidance", async () => {
+    render(
+      <DemoAlignedWorkbench
+        caseData={{
+          ...caseRow,
+          owner_name: "王小明",
+          land_registry_data: {
+            schema: "aire.registry-provenance.v1",
+            generatedAt: "2026-06-03T00:00:00.000Z",
+            entries: {
+              building_registry: {
+                apiId: "building_registry",
+                source: "moi_api",
+                status: "success",
+                trustedForPdf: true,
+                data: { construction_date: "083/10/18" },
+              },
+              building_ownership: {
+                apiId: "building_ownership",
+                source: "moi_api",
+                status: "unauthorized",
+                trustedForPdf: false,
+                error: "缺少屋主授權或授權不足",
+              },
+            },
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "補件與現場" }));
+    const supplementRegion = screen.getByRole("region", { name: "補件與現場確認" });
+
+    await waitFor(() => {
+      expect(within(supplementRegion).getByLabelText("建物權利範圍補件值")).toBeInTheDocument();
+    });
+    expect(within(supplementRegion).getByLabelText("建物現況補件值")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("格局補件值")).toBeInTheDocument();
+    expect(within(supplementRegion).getByText("請補屋主授權或改由屋主提供正式文件")).toBeInTheDocument();
+    expect(within(supplementRegion).getByLabelText("建物權利範圍補件狀態")).toHaveValue("待重新查詢");
+  });
+
+  it("preserves existing manual supplement values instead of replacing them with formal checklist defaults", async () => {
+    await mockInvoke("save_workbench_supplement", {
+      caseId: caseRow.id,
+      registrySupplements: [
+        {
+          fieldName: "格局",
+          value: "3房2廳2衛",
+          source: "人工輸入",
+          status: "已補",
+        },
+      ],
+      fieldVisitAnswers: [],
+      uploads: [],
+      supplementAdded: true,
+    });
+
+    render(
+      <DemoAlignedWorkbench
+        caseData={{
+          ...caseRow,
+          land_registry_data: {
+            schema: "aire.registry-provenance.v1",
+            generatedAt: "2026-06-03T00:00:00.000Z",
+            entries: {
+              building_registry: {
+                apiId: "building_registry",
+                source: "moi_api",
+                status: "success",
+                trustedForPdf: true,
+                data: { construction_date: "083/10/18" },
+              },
+            },
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "補件與現場" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("格局補件值")).toHaveValue("3房2廳2衛");
+    });
+    expect(screen.getByLabelText("格局補件來源")).toHaveValue("人工輸入");
+    expect(screen.getByLabelText("格局補件狀態")).toHaveValue("已補");
+  });
+
+  it("shows supplement-derived readable reasons in PDF review without hard-blocking preview", async () => {
+    render(
+      <DemoAlignedWorkbench
+        caseData={{
+          ...caseRow,
+          owner_name: "王小明",
+          land_registry_data: {
+            schema: "aire.registry-provenance.v1",
+            generatedAt: "2026-06-03T00:00:00.000Z",
+            entries: {
+              building_ownership: {
+                apiId: "building_ownership",
+                source: "moi_api",
+                status: "unauthorized",
+                trustedForPdf: false,
+                error: "缺少屋主授權或授權不足",
+              },
+            },
+          },
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "PDF 檢查" }));
+    const pdfRegion = screen.getByRole("region", { name: "PDF 檢查內容" });
+    expect(within(pdfRegion).getByText("請補屋主授權或改由屋主提供正式文件")).toBeInTheDocument();
+    expect(within(pdfRegion).getByRole("button", { name: "儲存 PDF 審核內容" })).toBeInTheDocument();
   });
 
   it("uses case provenance cost instead of demo billing when available", () => {
@@ -611,6 +743,103 @@ describe("DemoAlignedWorkbench", () => {
     const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
     expect(within(importRegion).getByRole("button", { name: "正式資料匯入（付費）" })).toBeInTheDocument();
     expect(within(importRegion).queryByRole("button", { name: "確認 DK-9125-00084000" })).not.toBeInTheDocument();
+  });
+
+  it("blocks paid formal import for a low-confidence conflicting building candidate even when previously confirmed", () => {
+    const conflictedCandidateCase: CaseRow = {
+      ...caseRow,
+      building_lot_no: "03045000",
+      land_lot_no: "02210032",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-06-09T00:00:00.000Z",
+        totalCost: 0,
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "building:DC-1514-03045000",
+            parcel_type: "building",
+            office_code: "DC",
+            section_code: "1514",
+            section_name: "東光段",
+            land_no: "02210032",
+            building_no: "03045000",
+            parcel_number: "03045000",
+            normalized_parcel_id: "DC-1514-03045000",
+            source: "public_reference",
+            confidence_label: "low",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            confirmation_state: "confirmed",
+            warnings: ["候選來源衝突，正式查詢前需重新確認地段、地號與建號"],
+          },
+        ],
+        confirmed_parcel_ids: {
+          building: "building:DC-1514-03045000",
+        },
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={conflictedCandidateCase} initialTab="formal-import" />);
+
+    const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
+    expect(within(importRegion).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
+    expect(within(importRegion).getByText("候選來源衝突，請重新查詢或人工確認正確地段、地號、建號後再正式匯入。")).toBeInTheDocument();
+  });
+
+  it("blocks paid formal import in Browser mode until AIRE workspace COP credential is configured", async () => {
+    mockIsBrowserLocalFirstEnabled.mockReturnValue(true);
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => {
+      if (String(url).includes("/api/aire/cop/credential")) {
+        return new Response(JSON.stringify({ error: "credential_not_configured" }), { status: 404 });
+      }
+      return new Response(JSON.stringify({ error: "unexpected_request" }), { status: 500 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const confirmedCandidateCase: CaseRow = {
+      ...caseRow,
+      building_lot_no: "DK-9125-00084000",
+      land_registry_data: {
+        schema: "aire.registry-provenance.v1",
+        generatedAt: "2026-05-26T00:00:00.000Z",
+        totalCost: 0,
+        entries: {},
+        candidate_options: [
+          {
+            candidate_id: "building:DK-9125-00084000",
+            parcel_type: "building",
+            section_code: "9125",
+            section_name: "東和段",
+            land_no: "00083000",
+            building_no: "00084000",
+            parcel_number: "00084000",
+            normalized_parcel_id: "DK-9125-00084000",
+            source: "public_reference",
+            confidence_label: "same_address_candidate",
+            official_status: "candidate_unconfirmed",
+            query_status: "candidate_data_available",
+            confirmation_state: "confirmed",
+            summary_fields: {
+              registeredAreaPing: 38.78,
+              legalUse: "住商用",
+            },
+            warnings: [],
+          },
+        ],
+        confirmed_parcel_ids: {
+          building: "building:DK-9125-00084000",
+        },
+      },
+    };
+
+    render(<DemoAlignedWorkbench caseData={confirmedCandidateCase} initialTab="formal-import" />);
+
+    const importRegion = screen.getByRole("region", { name: "正式資料匯入" });
+    await waitFor(() => {
+      expect(within(importRegion).getByText("尚未設定 AIRE 工作區 COP 憑證")).toBeInTheDocument();
+    });
+    expect(within(importRegion).getByText("地政授權")).toBeInTheDocument();
+    expect(within(importRegion).queryByRole("button", { name: "正式資料匯入（付費）" })).not.toBeInTheDocument();
   });
 
   it("uses a matching complete candidate when the prior manual confirmation lacks the formal COP key", async () => {
@@ -1058,9 +1287,12 @@ describe("DemoAlignedWorkbench", () => {
   });
 
   it("requires confirming a Google street-view candidate before using it as the exterior photo", async () => {
+    mockIsBrowserLocalFirstEnabled.mockReturnValue(true);
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__ = "https://aire-land.opcos.me";
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-      if (url.includes("/api/street-view")) {
+      if (url.includes("/api/visual-evidence/street-view")) {
         return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]).buffer, {
           status: 200,
           headers: { "Content-Type": "image/jpeg" },
@@ -1088,7 +1320,13 @@ describe("DemoAlignedWorkbench", () => {
     await waitFor(() => {
       expect(within(supplementRegion).getAllByRole("img", { name: /街景候選/ })).toHaveLength(4);
     });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("https://aire-land.opcos.me/api/visual-evidence/street-view"),
+      expect.any(Object),
+    );
     expect(mockImportCaseAsset).not.toHaveBeenCalled();
+    expect(within(supplementRegion).getByText("街景正面")).toBeInTheDocument();
+    expect(within(supplementRegion).getByText("已產生候選圖，請先選出真正的正面再進 PDF。")).toBeInTheDocument();
 
     fireEvent.click(within(supplementRegion).getAllByRole("button", { name: "使用這張" })[0]);
 
@@ -1103,11 +1341,57 @@ describe("DemoAlignedWorkbench", () => {
         metadata: {
           slot: "建物外觀",
           confirmed: true,
+          confirmedFront: true,
           provider: "google_street_view",
           heading: 0,
+          pitch: 0,
+          fov: 80,
         },
       });
     });
     expect(within(supplementRegion).getByText("已選擇：google-street-view-0.jpg")).toBeInTheDocument();
+    expect(within(supplementRegion).getAllByText("已確認正面").length).toBeGreaterThan(0);
+  });
+
+  it("shows provider configuration errors for street-view candidates without importing a fake exterior photo", async () => {
+    mockIsBrowserLocalFirstEnabled.mockReturnValue(true);
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__ = "https://aire-land.opcos.me";
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/visual-evidence/street-view")) {
+        return Response.json(
+          {
+            error: "street_view_not_configured",
+            status: "requires_configuration",
+            message: "Google Maps API key is not configured",
+          },
+          { status: 503 },
+        );
+      }
+      return Response.json({ lat: 22.986, lng: 120.229 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <DemoAlignedWorkbench
+        caseData={{
+          ...caseRow,
+          land_registry_data: {
+            coordinate_source: { lat: 22.986, lng: 120.229 },
+          },
+        }}
+        initialTab="supplements"
+      />,
+    );
+
+    const supplementRegion = await screen.findByRole("region", { name: "補件與現場確認" });
+    fireEvent.click(within(supplementRegion).getByRole("button", { name: "產生街景候選" }));
+
+    await waitFor(() => {
+      expect(within(supplementRegion).getAllByText("需設定").length).toBeGreaterThan(0);
+    });
+    expect(within(supplementRegion).getAllByText("Google Maps API key is not configured").length).toBeGreaterThan(0);
+    expect(mockImportCaseAsset).not.toHaveBeenCalled();
   });
 });
