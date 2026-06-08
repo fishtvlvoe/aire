@@ -976,6 +976,8 @@ function mergeCandidateSelection(
 function mergeFormalRegistryImport(
   existing: CaseRow["land_registry_data"],
   imported: Record<string, unknown>,
+  verifiedTarget?: CandidateParcelOption | null,
+  expectedAddress?: string,
 ): RegistryProvenancePayload {
   const base = isRegistryProvenancePayload(existing)
     ? existing
@@ -997,6 +999,18 @@ function mergeFormalRegistryImport(
     confirmed_parcel_ids: base.confirmed_parcel_ids ?? formal.confirmed_parcel_ids,
     coordinate_source: base.coordinate_source ?? formal.coordinate_source,
     inferred_reference: base.inferred_reference ?? formal.inferred_reference,
+    resolver_status: verifiedTarget ? "verified_by_formal_reverse_check" : base.resolver_status ?? formal.resolver_status,
+    resolver_evidence: verifiedTarget
+      ? {
+          ...(isRecord(base.resolver_evidence) ? base.resolver_evidence : {}),
+          expected_address: expectedAddress ?? null,
+          verified_registry_key: verifiedTarget.normalized_parcel_id,
+          verified_office_code: getCandidateOfficeCode(verifiedTarget),
+          verified_section_code: getCandidateSectionCode(verifiedTarget),
+          verified_land_no: getCandidateLandNo(verifiedTarget),
+          verified_building_no: getCandidateBuildingNo(verifiedTarget),
+        }
+      : base.resolver_evidence ?? formal.resolver_evidence,
   };
 }
 
@@ -1042,6 +1056,12 @@ function invalidateCandidateAfterAddressMismatch(
     selected_candidate_ids,
     confirmed_parcel_ids,
     confirmed_registry_match: null,
+    resolver_status: "rejected_by_formal_reverse_check",
+    resolver_evidence: {
+      ...(isRecord(base.resolver_evidence) ? base.resolver_evidence : {}),
+      rejected_registry_key: candidate.normalized_parcel_id,
+      rejected_reason: mismatchMessage,
+    },
     candidate_options: (base.candidate_options ?? []).map((item) => {
       if (item.candidate_id !== candidate.candidate_id) return item;
       return {
@@ -2256,7 +2276,14 @@ export function DemoAlignedWorkbench({ caseData, initialTab }: DemoAlignedWorkbe
                               onAddressMismatch={(message) =>
                                 invalidateFormalImportTargetAfterMismatch(formalImportTarget, message)
                               }
-                              preparePayload={(data) => mergeFormalRegistryImport(caseDraft.land_registry_data, data)}
+                              preparePayload={(data) =>
+                                mergeFormalRegistryImport(
+                                  caseDraft.land_registry_data,
+                                  data,
+                                  formalImportTarget,
+                                  caseDraft.address,
+                                )
+                              }
                               onSaved={(data) => {
                                 setCaseDraft((current) => ({
                                   ...current,

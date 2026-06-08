@@ -91,12 +91,20 @@ export interface RegistryProvenancePayload extends Record<string, unknown> {
   totalCost?: number;
   isPaid?: boolean;
   pricingNote?: string;
+  sourceRunId?: string | null;
   entries: Record<string, RegistryProvenanceEntry>;
   candidate_options?: CandidateParcelOption[];
   selected_candidate_ids?: Partial<Record<CandidateParcelType, string>>;
   confirmed_parcel_ids?: Partial<Record<CandidateParcelType, string>>;
   coordinate_source?: RegistryCoordinateSource;
   inferred_reference?: InferredRegistryReference;
+  resolver_status?:
+    | "candidate_found"
+    | "low_confidence_unresolved"
+    | "verified_by_formal_reverse_check"
+    | "rejected_by_formal_reverse_check"
+    | "manual_required";
+  resolver_evidence?: Record<string, unknown>;
 }
 
 type ApiLikeResult = {
@@ -156,11 +164,20 @@ function classifyRegistryFailure(error?: unknown): {
       action: "請到設定頁設定地政 API 金鑰後重試",
     };
   }
-  if (/AuthenticationFailed|認證失敗/i.test(message)) {
+  if (/missing_cop_credential|credential_not_configured|尚未設定.*COP/i.test(message)) {
+    return {
+      status: "failed",
+      reason: "尚未設定 AIRE 工作區 COP 憑證",
+      action: "請到後臺管理設定客戶 COP Client ID 與 Secret 後重試",
+    };
+  }
+  if (/credential_invalid|客戶 COP 憑證驗證失敗|AuthenticationFailed|認證失敗/i.test(message)) {
     return {
       status: "unauthorized",
-      reason: "API 認證失敗",
-      action: "請確認地政 API 金鑰或授權設定",
+      reason: /credential_invalid|客戶 COP 憑證驗證失敗/i.test(message) ? "客戶 COP 憑證驗證失敗" : "API 認證失敗",
+      action: /credential_invalid|客戶 COP 憑證驗證失敗/i.test(message)
+        ? "請請客戶重新確認 COP 帳號授權，或更新 Client ID 與 Secret"
+        : "請確認地政 API 金鑰或授權設定",
     };
   }
   if (/ConsentRequired|授權不足|屋主授權/i.test(message)) {
@@ -191,6 +208,13 @@ function classifyRegistryFailure(error?: unknown): {
       action: "請確認地號/建號後重試，或由屋主提供謄本補件",
     };
   }
+  if (/upstream_unavailable|ServiceUnavailable|上游暫時不可用/i.test(message)) {
+    return {
+      status: "failed",
+      reason: "地政上游暫時不可用",
+      action: "請稍後重試；若交付時間已到，改走人工補件並保留查詢紀錄",
+    };
+  }
   return {
     status: "failed",
     reason: message.trim() || "查詢未成功",
@@ -203,6 +227,7 @@ export function createRegistryProvenancePayload(input: {
   totalCost?: number;
   isPaid?: boolean;
   pricingNote?: string;
+  sourceRunId?: string | null;
   results?: Record<string, ApiLikeResult>;
   manualEntries?: Array<{ apiId: string; data: Record<string, unknown> | null }>;
   candidateOptions?: CandidateParcelOption[];
@@ -210,6 +235,13 @@ export function createRegistryProvenancePayload(input: {
   confirmedParcelIds?: Partial<Record<CandidateParcelType, string>>;
   coordinateSource?: RegistryCoordinateSource;
   inferredReference?: InferredRegistryReference;
+  resolverStatus?:
+    | "candidate_found"
+    | "low_confidence_unresolved"
+    | "verified_by_formal_reverse_check"
+    | "rejected_by_formal_reverse_check"
+    | "manual_required";
+  resolverEvidence?: Record<string, unknown>;
   generatedAt?: string;
 }): RegistryProvenancePayload {
   const entries: Record<string, RegistryProvenanceEntry> = {};
@@ -280,6 +312,7 @@ export function createRegistryProvenancePayload(input: {
     totalCost: input.totalCost,
     isPaid: input.isPaid,
     pricingNote: input.pricingNote,
+    sourceRunId: input.sourceRunId,
     entries,
   };
   if (input.candidateOptions && input.candidateOptions.length > 0) {
@@ -296,6 +329,12 @@ export function createRegistryProvenancePayload(input: {
   }
   if (input.inferredReference) {
     payload.inferred_reference = input.inferredReference;
+  }
+  if (input.resolverStatus) {
+    payload.resolver_status = input.resolverStatus;
+  }
+  if (input.resolverEvidence && Object.keys(input.resolverEvidence).length > 0) {
+    payload.resolver_evidence = input.resolverEvidence;
   }
   return payload;
 }
@@ -358,6 +397,27 @@ export function extractRegistryFailureReasons(payload: unknown): Array<{
       status: entry.status as Extract<RegistryStatus, "failed" | "unauthorized">,
       reason: entry.error?.trim() || "查詢未成功，請補件或人工確認",
     }));
+}
+
+export function extractRegistryFailureActions(payload: unknown): Array<{
+  apiId: string;
+  status: Extract<RegistryStatus, "failed" | "unauthorized">;
+  reason: string;
+  action: string;
+}> {
+  if (!isRegistryProvenancePayload(payload)) return [];
+
+  return Object.values(payload.entries)
+    .filter((entry) => entry.status === "failed" || entry.status === "unauthorized")
+    .map((entry) => {
+      const failure = classifyRegistryFailure(entry.error);
+      return {
+        apiId: entry.apiId,
+        status: entry.status as Extract<RegistryStatus, "failed" | "unauthorized">,
+        reason: entry.error?.trim() || failure.reason,
+        action: failure.action,
+      };
+    });
 }
 
 export function normalizeRegistryPayloadForPreview(payload: unknown): Record<string, unknown> | null {

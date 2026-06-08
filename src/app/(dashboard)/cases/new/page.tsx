@@ -936,7 +936,12 @@ function buildAddressLookupProvenance(
       parcel_number: hasBuilding ? parcel.building_number : parcel.lot_number,
       normalized_parcel_id: normalizedId,
       source: parcel.source === "mock" ? "mock" : "public_reference",
-      confidence_label: "same_address_candidate",
+      confidence_label:
+        parcel.discovery_confidence === "low"
+          ? "low"
+          : parcel.discovery_confidence === "needs_selection"
+            ? "needs_selection"
+            : "same_address_candidate",
       official_status: "candidate_unconfirmed",
       query_status: failedProbe?.query_status ?? (hasBuilding || parcel.lot_number ? "candidate_data_available" as const : "pending" as const),
       error_code: failedProbe?.error_code,
@@ -949,9 +954,11 @@ function buildAddressLookupProvenance(
             announcedLandCurrentValue: toNumber(parcel.announced_land_current_value),
             announcedLandValue: toNumber(parcel.announced_land_value),
           },
-      warnings: hasBuilding
-        ? ["待屋主或權狀確認是否為目標戶別"]
-        : ["待屋主或權狀確認"],
+      warnings: [
+        ...(parcel.discovery_confidence === "low" ? ["候選來源衝突，正式查詢前需重新確認地段、地號與建號"] : []),
+        ...(parcel.selection_reason === "floor_unit_unique_match" ? ["本筆是依唯一重疊建號推定，正式查詢前請再確認"] : []),
+        ...(hasBuilding ? ["待屋主或權狀確認是否為目標戶別"] : ["待屋主或權狀確認"]),
+      ],
     };
   });
   const coordinateParcel = parcels.find((parcel) =>
@@ -1021,6 +1028,12 @@ function buildAddressLookupProvenance(
 
   if (Object.keys(results).length === 0) return null;
   const inferredReference = buildInferredReferenceFromCandidates(primaryParcel?.address ?? "", candidateOptions);
+  const resolverStatus =
+    classification.status === "low_confidence_unresolved"
+      ? "low_confidence_unresolved"
+      : classification.status === "manual_required"
+        ? "manual_required"
+        : "candidate_found";
 
   return createRegistryProvenancePayload({
     parcelId: primaryParcel?.parcel_id,
@@ -1031,6 +1044,14 @@ function buildAddressLookupProvenance(
     candidateOptions,
     coordinateSource,
     inferredReference,
+    resolverStatus,
+    resolverEvidence: {
+      input_address: primaryParcel?.address ?? "",
+      candidate_keys: candidateOptions.map((candidate) => candidate.normalized_parcel_id),
+      low_confidence_candidate_keys: candidateOptions
+        .filter((candidate) => candidate.confidence_label === "low")
+        .map((candidate) => candidate.normalized_parcel_id),
+    },
   });
 }
 
