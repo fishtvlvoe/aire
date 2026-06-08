@@ -213,10 +213,41 @@ describe("land-registry-api addressLookup", () => {
     const body = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body));
     expect(body).toMatchObject({
       caseLocalId: "case-browser",
+      caseId: "case-browser",
       address: "臺北市中正區測試路1號",
       registryKey: "BA-0001-00020000",
       apiIds: ["land_description"],
     });
+  });
+
+  it("surfaces backend 409 errorCode instead of only aire_cop_formal_lookup_http_409", async () => {
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__ = "browser-session";
+    (window as unknown as Record<string, unknown>).__AIRE_WORKSPACE_ID__ = "workspace-abc";
+    (window as unknown as Record<string, unknown>).__AIRE_CUSTOMER_COP_BACKEND_URL__ =
+      "https://customer-cop.aire.opcos.me";
+    mocks.safeInvoke.mockResolvedValueOnce({
+      id: "case-browser",
+      address: "台中市測試地址",
+      land_registry_data: {
+        confirmed_registry_match: {
+          office_code: "BA",
+          section_code: "0001",
+          land_no: "00020000",
+          building_no: "00030000",
+        },
+      },
+    });
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        errorCode: "missing_cop_credential",
+      }), {
+        status: 409,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    await expect(formalPullData("case-browser", ["land_registry"])).rejects.toThrow("missing_cop_credential");
   });
 
   it("uses the local backend in development browser mode instead of blocking local E2E", async () => {

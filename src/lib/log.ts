@@ -23,6 +23,7 @@ export type LogAction =
   | "case_status_change"
   | "address_discovery_query"
   | "real_price_query"
+  | "formal_lookup_query"
   | "draft_save"
   | "pdf_export"
   | "setting_change";
@@ -144,6 +145,7 @@ export const LOG_ACTION_LABELS: Record<LogAction, string> = {
   case_status_change: "案件狀態變更",
   address_discovery_query: "地址補齊查詢",
   real_price_query: "實價登錄查詢",
+  formal_lookup_query: "正式地政查詢",
   draft_save: "草稿儲存",
   pdf_export: "匯出 PDF",
   setting_change: "設定變更",

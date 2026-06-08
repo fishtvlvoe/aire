@@ -406,14 +406,16 @@ async function formalPullDataFromTaiwanProxy(caseId: string, apiIds: string[], f
   }
 
   const backendApiIds = mapFormalApiIdsForCustomerCopBackend(apiIds);
+  const requestRegistryKey = [target.office_code, target.section_code, target.land_no, target.building_no].filter(Boolean).join("-");
   const response = await fetch(createAireCustomerCopBackendUrl("/api/aire/cop/formal-lookup"), {
     method: "POST",
     headers: createAireGatewayHeaders(),
     body: JSON.stringify({
+      caseId,
       caseLocalId: caseId,
       apiIds: backendApiIds,
       address: caseRow.address,
-      registryKey: [target.office_code, target.section_code, target.land_no, target.building_no].filter(Boolean).join("-"),
+      registryKey: requestRegistryKey,
       ownerAuthorizationId: `owner-auth-${caseId}-${Date.now()}`,
       consentId: `paid-consent-${caseId}-${Date.now()}`,
     }),
@@ -428,13 +430,24 @@ async function formalPullDataFromTaiwanProxy(caseId: string, apiIds: string[], f
         cacheHit?: boolean;
         sourceRunId?: string | null;
         blocker?: string;
+        errorCode?: string;
         error?: string;
+        message?: string;
       }
     | null;
   const results = payload?.results ?? payload?.sanitizedResult;
   if (!response.ok || !payload?.runId || !results) {
-    throw new Error(payload?.blocker || payload?.error || `aire_cop_formal_lookup_http_${response.status}`);
+    const detail = payload?.blocker || payload?.errorCode || payload?.error || payload?.message || `aire_cop_formal_lookup_http_${response.status}`;
+    void writeLog("formal_lookup_query", "error", {
+      case_id: caseId,
+      reason: `${detail} | http=${response.status} | registry=${requestRegistryKey}`,
+    });
+    throw new Error(detail);
   }
+  void writeLog("formal_lookup_query", "ok", {
+    case_id: caseId,
+    reason: `run_id=${payload.runId} | cost=${payload.costSummary?.actualCost ?? payload.costSummary?.actualPrice ?? 0} | registry=${requestRegistryKey}`,
+  });
   return {
     run_id: payload.runId,
     results: normalizeCustomerCopFormalResults(results),
@@ -746,6 +759,11 @@ export function mapErrorToMessage(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
   if (msg.includes("registry_match_required")) return "請先確認地段、地號與建號後再查詢";
   if (msg.includes("cop_credential_required")) return "請先在設定頁完成地政查詢帳號設定";
+  if (msg.includes("missing_cop_credential")) return "此工作區尚未保存 COP 正式查詢帳號，請先到設定完成帳密設定與連線測試";
+  if (msg.includes("missing_paid_consent")) return "正式查詢缺少付費同意紀錄，請重新走一次正式查詢確認流程";
+  if (msg.includes("missing_owner_authorization")) return "正式查詢缺少所有權人授權同意，請重新確認授權後再送出";
+  if (msg.includes("unsupported_api_set")) return "這次正式查詢送出的 API 組合不支援，需至少包含土地標示資料";
+  if (msg.includes("missing_catalog_price")) return "正式查詢價目表未設定完成，請聯繫平台檢查 COP 價格設定";
   if (msg.includes("cop_token_invalid_json")) {
     return "地政帳號驗證失敗：COP token endpoint 沒有回 JSON，可能是帳密、權限或 COP 服務異常。請先到設定頁重新測試連線";
   }
