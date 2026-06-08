@@ -172,7 +172,12 @@ export interface PaidAddressResolverResult {
 }
 
 interface LocalAddressDiscoveryResponse {
-  status: "candidate_found" | "manual_required";
+  status:
+    | "candidate_found"
+    | "low_confidence_unresolved"
+    | "verified_by_formal_reverse_check"
+    | "rejected_by_formal_reverse_check"
+    | "manual_required";
   source?: string;
   normalizedAddress?: string;
   candidates: ParcelInfo[];
@@ -273,7 +278,7 @@ async function fetchAddressDiscoveryFromLocalBackend(address: string): Promise<P
 
   const result = (await response.json()) as LocalAddressDiscoveryResponse;
   await recordLocalAddressDiscovery(address, result);
-  if (result.status === "candidate_found") {
+  if (result.status === "candidate_found" || result.status === "low_confidence_unresolved") {
     return result.candidates ?? [];
   }
   return [];
@@ -336,7 +341,7 @@ async function fetchAddressDiscoveryFromTaiwanProxy(address: string): Promise<Pa
   void writeLog("address_discovery_query", "ok", {
     reason: `request_id=${response.headers.get("x-aire-request-id") || requestId} status=${result.status} candidates=${result.candidates?.length ?? 0}`,
   });
-  if (result.status === "candidate_found") {
+  if (result.status === "candidate_found" || result.status === "low_confidence_unresolved") {
     return result.candidates ?? [];
   }
   return [];

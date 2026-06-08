@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
   casesApi,
@@ -21,6 +21,7 @@ import {
 } from "@/lib/product-ui-demo-alignment";
 import {
   addressLookup,
+  BrowserAddressDiscoveryUnavailableError,
   confirmCaseRegistryMatch,
   listRegistryQueryRuns,
   paidAddressResolver,
@@ -30,7 +31,13 @@ import {
 import { safeInvoke } from "@/lib/safe-invoke";
 import { createRegistryProvenancePayload } from "@/lib/registry-provenance";
 import { caseDetailHref } from "@/lib/case-routes";
-import { extractRealPriceDistrict, extractRealPriceKeyword, queryRealPrice, type RealPriceRecord } from "@/lib/real-price-query";
+import {
+  BrowserRealPriceUnavailableError,
+  extractRealPriceDistrict,
+  extractRealPriceKeyword,
+  queryRealPrice,
+  type RealPriceRecord,
+} from "@/lib/real-price-query";
 
 const schema = z.object({
   property_type: z.string()
@@ -58,6 +65,16 @@ type RegistryMatchDraft = {
 };
 
 type DuplicateCaseWarning = Pick<CaseRow, "id" | "case_no" | "case_name" | "address">;
+type LookupState =
+  | "idle"
+  | "running"
+  | "slow_source"
+  | "source_error"
+  | "no_data"
+  | "manual_required"
+  | "low_confidence_unresolved"
+  | "resolved"
+  | "snapshot";
 
 export default function NewCasePage() {
   const router = useRouter();
@@ -87,6 +104,10 @@ export default function NewCasePage() {
   const [realPriceLoading, setRealPriceLoading] = useState(false);
   const [realPriceQueried, setRealPriceQueried] = useState(false);
   const [realPriceError, setRealPriceError] = useState<string | null>(null);
+  const [lookupDebugDetail, setLookupDebugDetail] = useState<string | null>(null);
+  const [realPriceDebugDetail, setRealPriceDebugDetail] = useState<string | null>(null);
+  const [lookupState, setLookupState] = useState<LookupState>("idle");
+  const [lookupStartedAt, setLookupStartedAt] = useState<number | null>(null);
   const [registryMatch, setRegistryMatch] = useState<RegistryMatchDraft>({
     officeCode: "",
     sectionCode: "",
@@ -99,6 +120,14 @@ export default function NewCasePage() {
     announcedLandValue: "",
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!detectingRegistry || lookupStartedAt === null) return;
+    const timer = window.setTimeout(() => {
+      setLookupState((current) => (current === "running" ? "slow_source" : current));
+    }, 60_000);
+    return () => window.clearTimeout(timer);
+  }, [detectingRegistry, lookupStartedAt]);
 
   function update<K extends keyof FormValues>(k: K, v: FormValues[K]) {
     setValues((s) => ({ ...s, [k]: v }));
@@ -118,6 +147,8 @@ export default function NewCasePage() {
   async function detectRegistry(): Promise<AddressFirstClassification | null> {
     setSubmitError(null);
     setDetectingRegistry(true);
+    setLookupState("running");
+    setLookupStartedAt(Date.now());
     setRegistryDetectMessage(null);
     setUsedExistingRegistryData(false);
     setDuplicateCase(null);
@@ -126,6 +157,8 @@ export default function NewCasePage() {
     setPaidResolverError(null);
     setRealPriceRecords([]);
     setRealPriceError(null);
+    setLookupDebugDetail(null);
+    setRealPriceDebugDetail(null);
     setRealPriceQueried(false);
     setRealPriceLoading(false);
     try {
@@ -147,14 +180,41 @@ export default function NewCasePage() {
       setClassification(result);
       setUsedExistingRegistryData(usedExisting);
       const needsCandidateSelection = isCandidateSelectionRequired(trustedParcels, result);
-      if (!result.manualSelectionRequired && !needsCandidateSelection) {
-        update("property_type", result.propertyType);
-        const primaryLot = trustedParcels[0]?.lot_number?.trim();
+      const hasLowConfidenceCandidate = trustedParcels.some((parcel) => parcel.discovery_confidence === "low");
+      const autoSelectedCandidate = hasLowConfidenceCandidate
+        ? null
+        : needsCandidateSelection
+          ? findAutoSelectedCandidate(values.address, trustedParcels)
+          : null;
+      const effectiveClassification = autoSelectedCandidate
+        ? classifyAddressLookupResult(values.address, [autoSelectedCandidate])
+        : result;
+      if (usedExisting) {
+        setLookupState("snapshot");
+      } else if (hasLowConfidenceCandidate || result.status === "low_confidence_unresolved") {
+        setLookupState("low_confidence_unresolved");
+      } else if (trustedParcels.length > 0 && (!needsCandidateSelection || Boolean(autoSelectedCandidate))) {
+        setLookupState("resolved");
+      } else if (trustedParcels.length > 0) {
+        setLookupState("manual_required");
+      } else {
+        setLookupState("no_data");
+      }
+      if ((!result.manualSelectionRequired && !needsCandidateSelection) || autoSelectedCandidate) {
+        update("property_type", effectiveClassification.propertyType);
+        const primaryLot = (autoSelectedCandidate ?? trustedParcels[0])?.lot_number?.trim();
         if (primaryLot) setLandLots([primaryLot]);
       }
-      const nextRegistryMatch = needsCandidateSelection
+      if (autoSelectedCandidate) {
+        setSelectedCandidateId(getCandidateId(autoSelectedCandidate));
+      }
+      const nextRegistryMatch = hasLowConfidenceCandidate
         ? emptyRegistryMatch()
-        : buildRegistryMatchDraft(trustedParcels);
+        : autoSelectedCandidate
+        ? buildRegistryMatchDraft([autoSelectedCandidate])
+        : needsCandidateSelection
+          ? emptyRegistryMatch()
+          : buildRegistryMatchDraft(trustedParcels);
       setRegistryMatch(nextRegistryMatch);
       setDuplicateCase(await findDuplicateCaseByRegistryMatch(nextRegistryMatch));
       return result;
@@ -162,10 +222,15 @@ export default function NewCasePage() {
       const result = buildManualRegistryClassification(values.address);
       setDetectedParcels([]);
       setClassification(result);
+      setLookupState("source_error");
+      const isBrowserProviderUnavailable = error instanceof BrowserAddressDiscoveryUnavailableError;
+      setLookupDebugDetail(buildLookupDebugDetail(error));
       setRegistryDetectMessage(
-        error instanceof Error
-          ? `請使用 AIRE 桌面版完成資料補齊，或先人工填寫地段、地號、建號。${error.message ? `（${error.message}）` : ""}`
-          : "請使用 AIRE 桌面版完成資料補齊，或先人工填寫地段、地號、建號。",
+        isBrowserProviderUnavailable
+          ? error.message
+          : error instanceof Error
+            ? `這次地址補齊沒有成功，請先人工填寫地段、地號、建號。${error.message ? `（${error.message}）` : ""}`
+            : "這次地址補齊沒有成功，請先人工填寫地段、地號、建號。",
       );
       setRegistryMatch(emptyRegistryMatch());
       setDuplicateCase(null);
@@ -174,7 +239,13 @@ export default function NewCasePage() {
       return result;
     } finally {
       setDetectingRegistry(false);
+      setLookupStartedAt(null);
     }
+  }
+
+  async function retryLookup() {
+    if (!values.address.trim() || detectingRegistry || loading) return;
+    await detectRegistry();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -320,6 +391,7 @@ export default function NewCasePage() {
     setRealPriceLoading(true);
     setRealPriceQueried(true);
     setRealPriceError(null);
+    setRealPriceDebugDetail(null);
     setRealPriceRecords([]);
     try {
       const district = extractDistrictForRealPrice(address);
@@ -327,12 +399,13 @@ export default function NewCasePage() {
         setRealPriceRecords([]);
         return [];
       }
-      const records = await queryRealPrice(district, extractRealPriceKeyword(address, district), 20, address);
-      const nextRecords = Array.isArray(records) ? records.slice(0, 20) : [];
+      const records = await queryRealPrice(district, extractRealPriceKeyword(address, district), 5, address);
+      const nextRecords = Array.isArray(records) ? records.slice(0, 5) : [];
       setRealPriceRecords(nextRecords);
       return nextRecords;
-    } catch {
-      setRealPriceError("目前無法取得成交行情");
+    } catch (error) {
+      setRealPriceError(getRealPriceErrorMessage(error));
+      setRealPriceDebugDetail(buildRealPriceDebugDetail(error, address));
       return [];
     } finally {
       setRealPriceLoading(false);
@@ -366,8 +439,12 @@ export default function NewCasePage() {
                 setSubmitError(null);
                 setRealPriceRecords([]);
                 setRealPriceError(null);
+                setLookupDebugDetail(null);
+                setRealPriceDebugDetail(null);
                 setRealPriceQueried(false);
                 setRealPriceLoading(false);
+                setLookupState("idle");
+                setLookupStartedAt(null);
                 setRegistryMatch(emptyRegistryMatch());
               }}
               className="min-h-11 w-full rounded-md border px-3 py-2 text-sm"
@@ -382,6 +459,46 @@ export default function NewCasePage() {
           ) : null}
           {registryDetectMessage ? (
             <span className="mt-2 block text-xs text-muted-foreground">{registryDetectMessage}</span>
+          ) : null}
+          {lookupState !== "idle" ? (
+            <div className="mt-3 rounded-md border bg-slate-50 p-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="font-medium">{getLookupStateTitle(lookupState, usedExistingRegistryData)}</p>
+                  <p className="text-muted-foreground">
+                    {getLookupStateDescription(lookupState, {
+                      realPriceError,
+                      realPriceQueried,
+                      realPriceRecordsCount: realPriceRecords.length,
+                    })}
+                  </p>
+                </div>
+                {lookupState === "running" || lookupState === "slow_source" ? (
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-slate-300 border-t-slate-800"
+                  />
+                ) : null}
+              </div>
+              {canRetryLookup(lookupState, realPriceError, realPriceQueried, realPriceRecords.length) ? (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => void retryLookup()}
+                    disabled={detectingRegistry || loading}
+                    className="rounded-md border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    重新查詢
+                  </button>
+                </div>
+              ) : null}
+              {lookupDebugDetail ? (
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                  <p className="font-medium">除錯資訊</p>
+                  <p className="mt-1 break-all">{lookupDebugDetail}</p>
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </section>
 
@@ -405,6 +522,9 @@ export default function NewCasePage() {
               </div>
             </dl>
             <p className="mt-3 text-sm text-muted-foreground">{classification.note}</p>
+            {getUniqueAutoSelectionMessage(detectedParcels) ? (
+              <p className="mt-1 text-sm font-medium text-emerald-900">{getUniqueAutoSelectionMessage(detectedParcels)}</p>
+            ) : null}
             <p className="mt-1 text-sm text-muted-foreground">
               目前這一段屬於免費前查，不會進行付費正式查詢，也不會產生成本。
             </p>
@@ -452,9 +572,27 @@ export default function NewCasePage() {
               這裡顯示的是免費附近行情，供前期比對與說明書參考，不會產生成本。
             </p>
             {realPriceLoading ? (
-              <p className="mt-2 text-sm text-muted-foreground">查詢中...</p>
+              <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-800"
+                />
+                <span>
+                  {lookupState === "slow_source"
+                    ? "外部資料來源回應較慢，系統仍在等待成交資料"
+                    : "查詢中，正在向外部資料來源取得成交資料"}
+                </span>
+              </div>
             ) : realPriceError ? (
-              <p className="mt-2 text-sm text-destructive">查詢失敗：{realPriceError}</p>
+              <div className="mt-2 space-y-2">
+                <p className="text-sm text-destructive">查詢失敗：{realPriceError}</p>
+                {realPriceDebugDetail ? (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                    <p className="font-medium">除錯資訊</p>
+                    <p className="mt-1 break-all">{realPriceDebugDetail}</p>
+                  </div>
+                ) : null}
+              </div>
             ) : realPriceQueried && realPriceRecords.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">查無符合條件的成交資料</p>
             ) : realPriceRecords.length > 0 ? (
@@ -979,6 +1117,11 @@ function candidateFromRegistryJson(candidate: unknown, address: string): ParcelI
       undefined,
     lat: pickNumber(candidate, "lat"),
     lng: pickNumber(candidate, "lng"),
+    selection_reason:
+      pickString(candidate, "selection_reason") === "floor_unit_unique_match" ||
+      pickString(candidate, "selectionReason") === "floor_unit_unique_match"
+        ? "floor_unit_unique_match"
+        : undefined,
   };
 }
 
@@ -1040,6 +1183,17 @@ function isCandidateSelectionRequired(
   classification: AddressFirstClassification,
 ): boolean {
   return parcels.length > 1 && classification.manualSelectionRequired;
+}
+
+function looksLikeBuildingAddress(address: string): boolean {
+  return /(\d+號|\d+樓(?:之\d+)?|巷|弄|公寓|大樓|華廈|透天|別墅|套房|農舍)/.test(address) &&
+    !/(地號|土地|農地)/.test(address);
+}
+
+function findAutoSelectedCandidate(address: string, parcels: ParcelInfo[]): ParcelInfo | null {
+  if (!looksLikeBuildingAddress(address)) return null;
+  const buildingCandidates = parcels.filter((parcel) => Boolean(parcel.building_number?.trim()));
+  return buildingCandidates.length === 1 ? buildingCandidates[0] ?? null : null;
 }
 
 function shouldOfferPaidResolver(
@@ -1165,6 +1319,122 @@ function getRegistryStatusMessage(
   if (parcels.length > 1) return "請選擇正確資料";
   if (classification.manualSelectionRequired || parcels.length === 0) return "需要人工補填資料";
   return "已自動補齊，請確認資料";
+}
+
+function canRetryLookup(
+  lookupState: LookupState,
+  realPriceError: string | null,
+  realPriceQueried: boolean,
+  realPriceRecordsCount: number,
+): boolean {
+  if (lookupState === "running") return false;
+  if (lookupState === "source_error" || lookupState === "slow_source" || lookupState === "no_data") return true;
+  if (realPriceError) return true;
+  if (realPriceQueried && realPriceRecordsCount === 0) return true;
+  return false;
+}
+
+function getLookupStateTitle(lookupState: LookupState, usedExistingRegistryData: boolean): string {
+  if (usedExistingRegistryData || lookupState === "snapshot") return "已帶入既有固定資料";
+  switch (lookupState) {
+    case "running":
+      return "查詢中";
+    case "slow_source":
+      return "外部來源回應較慢";
+    case "source_error":
+      return "這次查詢沒有成功";
+    case "no_data":
+      return "本次沒有取得可用資料";
+    case "manual_required":
+      return "需要第一次人工確認";
+    case "low_confidence_unresolved":
+      return "已取得候選，但尚未驗證";
+    case "resolved":
+      return "已取得可用資料";
+    default:
+      return "等待查詢";
+  }
+}
+
+function getLookupStateDescription(
+  lookupState: LookupState,
+  input: {
+    realPriceError: string | null;
+    realPriceQueried: boolean;
+    realPriceRecordsCount: number;
+  },
+): string {
+  if (lookupState === "snapshot") {
+    return "同地址已經有固定結果，這次優先帶入既有資料，不再重新依賴外部來源。";
+  }
+  switch (lookupState) {
+    case "running":
+      return "系統正在向外部資料來源取得地段、地號、建號、坪數與附近成交資料。";
+    case "slow_source":
+      return "查詢已超過 60 秒，可能是網路或外部來源延遲。你可以繼續等待，或按重新查詢再試一次。";
+    case "source_error":
+      return "這次查詢可能是網路或外部來源問題，不一定代表真的沒有資料。你可以重新查詢一次。";
+    case "no_data":
+      return "本次沒有取得可用資料。可能是真的沒有資料，也可能是外部來源暫時沒有回應，你可以重新查詢一次。";
+    case "manual_required":
+      return "目前資料不足以唯一判定標的，請先完成第一次人工確認，確認後後續同地址會固定使用。";
+    case "low_confidence_unresolved":
+      return "目前已取得候選地段、地號、建號，但來源彼此衝突；需完成正式門牌回查驗證後，才能作為正式查詢目標。";
+    case "resolved":
+      if (input.realPriceError) {
+        return "地址補齊已成功，但附近成交資料這次沒有成功取得；你可以重新查詢補抓行情。";
+      }
+      if (input.realPriceQueried && input.realPriceRecordsCount === 0) {
+        return "地址補齊已成功，但這次沒有取得附近成交樣本；你可以重新查詢再確認一次。";
+      }
+      return "已取得本次可用資料；建立案件後，後續會優先帶入既有結果。";
+    default:
+      return "";
+  }
+}
+
+function buildLookupDebugDetail(error: unknown): string {
+  if (error instanceof BrowserAddressDiscoveryUnavailableError) {
+    return error.detail
+      ? `地址補齊代理失敗：${error.detail}`
+      : "地址補齊代理失敗：browser_address_discovery_provider_unavailable";
+  }
+  if (error instanceof Error) {
+    return `地址補齊失敗：${error.message}`;
+  }
+  return `地址補齊失敗：${String(error ?? "unknown_error")}`;
+}
+
+function buildRealPriceDebugDetail(error: unknown, address: string): string {
+  if (error instanceof BrowserRealPriceUnavailableError) {
+    return [
+      "實價登錄服務失敗",
+      error.detail ?? error.code,
+      `address=${address}`,
+    ].join(" | ");
+  }
+  if (error instanceof Error) {
+    return `實價登錄服務失敗：${error.message} | address=${address}`;
+  }
+  return `實價登錄服務失敗：${String(error ?? "unknown_error")} | address=${address}`;
+}
+
+function getUniqueAutoSelectionMessage(parcels: ParcelInfo[]): string | null {
+  if (parcels.length !== 1) return null;
+  return parcels[0]?.selection_reason === "floor_unit_unique_match"
+    ? "已依樓層資訊自動確認建號"
+    : null;
+}
+
+function getRealPriceErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  if (message.includes("地址無法定位")) {
+    return "地址無法定位，無法查附近成交";
+  }
+  if (message.includes("官方成交資料暫時無法取得") || message.includes("timed out") || message.includes("fetch failed")) {
+    return "官方成交資料暫時無法取得";
+  }
+  return "成交行情查詢失敗";
 }
 
 function getMissingRegistryFields(

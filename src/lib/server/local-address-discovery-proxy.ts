@@ -18,7 +18,12 @@ import {
 const EASYMAP_R02_BASE_URL = "https://easymap.moi.gov.tw/R02";
 const EASYMAP_Z10WEB_BASE_URL = "https://easymap.moi.gov.tw/Z10Web";
 
-export type AddressDiscoveryStatus = "candidate_found" | "manual_required";
+export type AddressDiscoveryStatus =
+  | "candidate_found"
+  | "low_confidence_unresolved"
+  | "verified_by_formal_reverse_check"
+  | "rejected_by_formal_reverse_check"
+  | "manual_required";
 
 export interface DiscoveryError {
   source: string;
@@ -1422,8 +1427,12 @@ export async function discoverAddressLocally(
     const candidates = discovery.candidates;
     if (candidates.length > 0) {
       const classification = classifyDiscoveryInput(normalized);
+      const requiresCandidateSelection = requiresCandidateSelectionForCandidates(candidates);
+      const hasLowConfidenceCandidate = candidates.some((candidate) => candidate.discovery_confidence === "low");
       const result: AddressDiscoveryResult = {
-        status: "candidate_found",
+        status: hasLowConfidenceCandidate || requiresCandidateSelection
+          ? "low_confidence_unresolved"
+          : "candidate_found",
         source: "local_discovery",
         normalizedAddress: normalized,
         candidates,
@@ -1436,9 +1445,9 @@ export async function discoverAddressLocally(
         inputKind: classification.inputKind,
         intendedObjectType: classification.intendedObjectType,
         parsedInput: classification.parsedInput,
-        requiresCandidateSelection: requiresCandidateSelectionForCandidates(candidates),
+        requiresCandidateSelection,
         candidateSelection: {
-          state: requiresCandidateSelectionForCandidates(candidates) ? "required" : "not_required",
+          state: requiresCandidateSelection ? "required" : "not_required",
           selectedRegistryKey: null,
         },
         suggestedCorrections: suggestDiscoveryCorrections(normalized),

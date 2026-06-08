@@ -40,7 +40,7 @@ export interface SettingsCategory {
 }
 
 export interface AddressFirstClassification {
-  status: "classified" | "manual_required";
+  status: "classified" | "manual_required" | "low_confidence_unresolved";
   propertyType: CasePropertyType;
   displayType: string;
   summary: string;
@@ -61,6 +61,8 @@ export interface AddressLookupParcel {
   total_floor_count?: string | number;
   zoning?: string;
   land_use?: string;
+  discovery_confidence?: "high" | "needs_selection" | "low";
+  selection_reason?: "floor_unit_unique_match";
 }
 
 export interface CustomerPropertyTypeOption {
@@ -485,6 +487,8 @@ export function classifyAddressLookupResult(
   }
 
   const [parcel] = parcels;
+  const lowConfidenceCandidate =
+    parcel.discovery_confidence === "low" || parcel.selection_reason === "floor_unit_unique_match";
   const hasBuilding = Boolean(parcel.building_number?.trim());
   const addressLooksLikeBuilding = /(\d+樓(?:之\d+)?|公寓|大樓|華廈|透天|別墅|套房)/.test(address);
   const isFarmhouse = /農舍/.test(parcel.address ?? address);
@@ -508,6 +512,18 @@ export function classifyAddressLookupResult(
       landCount: 1,
       buildingCount: 1,
       note: "門牌已定位到土地，但尚未取得建號；請人工確認建號後再建立正式案件。",
+    };
+  }
+  if (lowConfidenceCandidate) {
+    return {
+      status: "low_confidence_unresolved",
+      propertyType,
+      displayType: hasBuilding ? "候選待驗證" : "土地待驗證",
+      summary: hasBuilding ? "已取得 1 筆候選建物，但仍需驗證" : "已取得 1 筆候選土地，但仍需驗證",
+      manualSelectionRequired: true,
+      landCount: 1,
+      buildingCount: hasBuilding ? 1 : 0,
+      note: "候選來源彼此衝突，需經正式門牌回查驗證後才能作為正式查詢目標。",
     };
   }
   return {

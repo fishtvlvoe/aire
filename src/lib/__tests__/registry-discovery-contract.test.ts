@@ -233,6 +233,32 @@ describe("registry discovery contract", () => {
     });
   });
 
+  it("marks low-confidence candidates as unresolved even when only one candidate remains", () => {
+    const result = normalizeDiscoveryResult({
+      status: "low_confidence_unresolved",
+      source: "local_discovery",
+      normalizedAddress: "台南市東區東和路47號3樓",
+      candidates: [
+        {
+          registryKey: "dc:1514:02210032:03045000",
+          sectionName: "東光段",
+          landNumber: "02210032",
+          buildingNumber: "03045000",
+          source: "local_discovery",
+          confidence: "low",
+          objectType: "building",
+        },
+      ],
+    });
+
+    expect(result.status).toBe("low_confidence_unresolved");
+    expect(result.requiresCandidateSelection).toBe(true);
+    expect(result.candidateSelection).toEqual({
+      state: "required",
+      selectedRegistryKey: null,
+    });
+  });
+
   it("preserves selected target state when the user picks a candidate", () => {
     const result = normalizeDiscoveryResult({
       status: "candidate_found",

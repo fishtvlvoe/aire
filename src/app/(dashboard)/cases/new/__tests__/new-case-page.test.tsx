@@ -52,32 +52,42 @@ vi.mock("@/lib/cases-api", () => ({
   },
 }));
 
-vi.mock("@/lib/land-registry-api", () => ({
-  addressLookup: vi.fn(),
-  confirmCaseRegistryMatch: vi.fn().mockResolvedValue({ success: true }),
-  listRegistryQueryRuns: vi.fn().mockResolvedValue([]),
-  paidAddressResolver: vi.fn(),
-}));
+vi.mock("@/lib/land-registry-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/land-registry-api")>();
+
+  return {
+    ...actual,
+    addressLookup: vi.fn(),
+    confirmCaseRegistryMatch: vi.fn().mockResolvedValue({ success: true }),
+    listRegistryQueryRuns: vi.fn().mockResolvedValue([]),
+    paidAddressResolver: vi.fn(),
+  };
+});
 
 vi.mock("@/lib/safe-invoke", () => ({
   safeInvoke: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("@/lib/real-price-query", () => ({
-  extractRealPriceDistrict: vi.fn((address: string) => {
-    if (address.includes("永康區")) return "永康區";
-    if (address.includes("東區")) return "東區";
-    if (address.includes("萬華區")) return "萬華區";
-    return "";
-  }),
-  extractRealPriceKeyword: vi.fn((address: string) => {
-    if (address.includes("勝利街")) return "勝利街";
-    if (address.includes("東和路")) return "東和路";
-    if (address.includes("漢中街")) return "漢中街";
-    return "";
-  }),
-  queryRealPrice: vi.fn().mockResolvedValue([]),
-}));
+vi.mock("@/lib/real-price-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/real-price-query")>();
+
+  return {
+    ...actual,
+    extractRealPriceDistrict: vi.fn((address: string) => {
+      if (address.includes("永康區")) return "永康區";
+      if (address.includes("東區")) return "東區";
+      if (address.includes("萬華區")) return "萬華區";
+      return "";
+    }),
+    extractRealPriceKeyword: vi.fn((address: string) => {
+      if (address.includes("勝利街")) return "勝利街";
+      if (address.includes("東和路")) return "東和路";
+      if (address.includes("漢中街")) return "漢中街";
+      return "";
+    }),
+    queryRealPrice: vi.fn().mockResolvedValue([]),
+  };
+});
 
 import NewCasePage from "../page";
 import { casesApi } from "@/lib/cases-api";
@@ -263,6 +273,71 @@ describe("NewCasePage address-first flow", () => {
     });
   });
 
+  it("shows a retry action after source failure and reruns the lookup", async () => {
+    mockAddressLookup
+      .mockRejectedValueOnce(new Error("fetch failed"))
+      .mockResolvedValueOnce([
+        {
+          parcel_id: "DK-9125-00084000",
+          address: "台南市永康區勝利街58巷4號",
+          section_name: "兵南段",
+          section_code: "9125",
+          land_office: "DK",
+          lot_number: "04140000",
+          building_number: "00084000",
+          source: "easymap_r02",
+          trusted_for_pdf: false,
+        },
+      ]);
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("這次查詢沒有成功")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "重新查詢" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "重新查詢" }));
+
+    await waitFor(() => {
+      expect(mockAddressLookup).toHaveBeenCalledTimes(2);
+      expect(screen.getByText("已取得可用資料")).toBeInTheDocument();
+    });
+  });
+
+  it("warns that the external source may be delayed after 60 seconds", async () => {
+    vi.useFakeTimers();
+    try {
+      let resolveLookup: (value: []) => void = () => {};
+      mockAddressLookup.mockReturnValueOnce(new Promise((resolve) => {
+        resolveLookup = resolve;
+      }));
+      render(<NewCasePage />);
+
+      fireEvent.change(screen.getByLabelText("地址 *"), {
+        target: { value: "台南市東區裕農路288巷17號8樓之1" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+      await act(async () => {
+        vi.advanceTimersByTime(60_000);
+      });
+
+      expect(screen.getByText("外部來源回應較慢")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "重新查詢" })).toBeInTheDocument();
+
+      await act(async () => {
+        resolveLookup([]);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shows the IPC error message instead of object text when case creation fails", async () => {
     mockCreateCase.mockRejectedValueOnce({
       code: "invalid_property_type",
@@ -398,7 +473,7 @@ describe("NewCasePage address-first flow", () => {
     });
     expect(screen.getByText("住宅大樓")).toBeInTheDocument();
     expect(screen.getByText("NT$11,800,000")).toBeInTheDocument();
-    expect(mockQueryRealPrice).toHaveBeenCalledWith("永康區", "勝利街", 20, "台南市永康區勝利街58巷4號");
+    expect(mockQueryRealPrice).toHaveBeenCalledWith("永康區", "勝利街", 5, "台南市永康區勝利街58巷4號");
     expect(screen.queryByRole("button", { name: "我同意付費查詢建號" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
@@ -415,6 +490,64 @@ describe("NewCasePage address-first flow", () => {
         }),
       );
     });
+  });
+
+  it("shows floor-unit auto-confirmation copy when a unique building is narrowed before manual selection", async () => {
+    mockAddressLookup.mockResolvedValue([
+      {
+        parcel_id: "DC-1556-00204000",
+        address: "台南市東區裕農路288巷17號8樓之1",
+        section_name: "富強段",
+        section_code: "1556",
+        land_office: "DC",
+        lot_number: "00700000",
+        building_number: "00204000",
+        source: "easymap_z10web",
+        trusted_for_pdf: false,
+        floor_label: "8樓之1",
+        selection_reason: "floor_unit_unique_match",
+      },
+    ]);
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市東區裕農路288巷17號8樓之1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("建號")).toHaveValue("00204000");
+    });
+    expect(screen.getByText("已依樓層資訊自動確認建號")).toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "候選物件資料" })).not.toBeInTheDocument();
+  });
+
+  it("distinguishes real-price service misconfiguration from no-trade results", async () => {
+    mockAddressLookup.mockResolvedValue([
+      {
+        parcel_id: "DK-9125-00084000",
+        address: "台南市永康區勝利街58巷4號",
+        section_name: "兵南段",
+        section_code: "9125",
+        land_office: "DK",
+        lot_number: "04140000",
+        building_number: "00084000",
+        source: "easymap_r02",
+        trusted_for_pdf: false,
+      },
+    ]);
+    mockQueryRealPrice.mockRejectedValue(new Error("官方成交資料暫時無法取得：台南市 HTTP 503"));
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("查詢失敗：官方成交資料暫時無法取得")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("查無符合條件的成交資料")).not.toBeInTheDocument();
   });
 
   it("loads existing normalized-address candidates before running discovery", async () => {
@@ -780,6 +913,39 @@ describe("NewCasePage address-first flow", () => {
     expect(mockConfirmCaseRegistryMatch).not.toHaveBeenCalled();
   });
 
+  it("does not auto-fill registry match when the only candidate is low confidence", async () => {
+    mockAddressLookup.mockResolvedValueOnce([
+      {
+        parcel_id: "DC-1514-03045000",
+        address: "台南市東區東和路47號3樓",
+        lot_number: "02210032",
+        building_number: "03045000",
+        section_name: "東光段",
+        section_code: "1514",
+        office_code: "DC",
+        source: "easymap_z10web",
+        trusted_for_pdf: false,
+        discovery_confidence: "low",
+        selection_reason: "floor_unit_unique_match",
+      },
+    ]);
+
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市東區東和路47號3樓" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("已取得候選，但尚未驗證")).toBeInTheDocument();
+    });
+    expect(screen.getByText("目前已取得候選地段、地號、建號，但來源彼此衝突；需完成正式門牌回查驗證後，才能作為正式查詢目標。")).toBeInTheDocument();
+    expect(screen.getByLabelText("地段")).toHaveValue("");
+    expect(screen.getByLabelText("地號")).toHaveValue("");
+    expect(screen.getByLabelText("建號")).toHaveValue("");
+  });
+
   it("confirms only the selected candidate from a multiple-candidate list", async () => {
     mockAddressLookup.mockResolvedValue([
       {
@@ -846,6 +1012,70 @@ describe("NewCasePage address-first flow", () => {
       buildingNo: "00167000",
       registryKey: "DC-1556-00167000",
     }));
+  });
+
+  it("auto-selects the unique building candidate for a building-style address while preserving candidate options", async () => {
+    mockAddressLookup.mockResolvedValue([
+      {
+        parcel_id: "DK-9125-04140000",
+        address: "台南市永康區勝利街58巷4號",
+        section_name: "兵南段",
+        section_code: "9125",
+        land_office: "DK",
+        lot_number: "04140000",
+        building_number: "",
+        source: "easymap_z10web",
+        trusted_for_pdf: true,
+      },
+      {
+        parcel_id: "DK-9125-00084000",
+        address: "台南市永康區勝利街58巷4號",
+        section_name: "兵南段",
+        section_code: "9125",
+        land_office: "DK",
+        lot_number: "04140000",
+        building_number: "00084000",
+        source: "easymap_z10web",
+        trusted_for_pdf: true,
+      },
+    ]);
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("radio", { name: "建號 00084000 / 地號 04140000" })).toBeChecked();
+    });
+    expect(screen.getByLabelText("地段")).toHaveValue("兵南段");
+    expect(screen.getByLabelText("地號")).toHaveValue("04140000");
+    expect(screen.getByLabelText("建號")).toHaveValue("00084000");
+
+    fireEvent.click(screen.getByRole("button", { name: "建立案件" }));
+
+    await waitFor(() => {
+      expect(mockCreateCase).toHaveBeenCalledWith(
+        expect.objectContaining({
+          property_type: "residential",
+          land_lot_no: "04140000",
+          building_lot_no: "00084000",
+          land_registry_data: expect.objectContaining({
+            confirmed_registry_match: expect.objectContaining({
+              section_name: "兵南段",
+              land_no: "04140000",
+              building_no: "00084000",
+              status: "confirmed",
+            }),
+            candidate_options: expect.arrayContaining([
+              expect.objectContaining({ normalized_parcel_id: "DK-9125-04140000" }),
+              expect.objectContaining({ normalized_parcel_id: "DK-9125-00084000" }),
+            ]),
+          }),
+        }),
+      );
+    });
   });
 
   it("shows manual fallback when registry returns multiple candidates", async () => {
@@ -1013,8 +1243,8 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByLabelText("建號")).toHaveValue("");
   });
 
-  it("keeps registry fields blank when desktop lookup is unavailable", async () => {
-    mockAddressLookup.mockRejectedValue(new Error("此功能需在 AIRE 桌面 App 中使用"));
+  it("keeps registry fields blank when registry lookup is unavailable", async () => {
+    mockAddressLookup.mockRejectedValue(new Error("地址補齊代理暫時無法取得資料"));
     render(<NewCasePage />);
 
     fireEvent.change(screen.getByLabelText("地址 *"), {
@@ -1025,10 +1255,27 @@ describe("NewCasePage address-first flow", () => {
     await waitFor(() => {
       expect(screen.getByText("需要人工補填資料")).toBeInTheDocument();
     });
-    expect(screen.getByText(/請使用 AIRE 桌面版/)).toBeInTheDocument();
+    expect(screen.getByText(/這次地址補齊沒有成功/)).toBeInTheDocument();
     expect(screen.queryByText("已自動補齊，請確認資料")).not.toBeInTheDocument();
     expect(screen.getByLabelText("地段")).toHaveValue("");
     expect(screen.getByLabelText("地號")).toHaveValue("");
     expect(screen.getByLabelText("建號")).toHaveValue("");
+  });
+
+  it("shows debug detail for lookup and real-price failures", async () => {
+    mockAddressLookup.mockRejectedValue(new Error("Failed to fetch"));
+    mockQueryRealPrice.mockRejectedValue(new Error("官方成交資料暫時無法取得：台南市 HTTP 503"));
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區勝利街58巷4號" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("除錯資訊").length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText(/地址補齊失敗：Failed to fetch/)).toBeInTheDocument();
+    expect(screen.getByText(/實價登錄服務失敗：官方成交資料暫時無法取得：台南市 HTTP 503 \| address=台南市永康區勝利街58巷4號/)).toBeInTheDocument();
   });
 });

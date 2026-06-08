@@ -1,6 +1,12 @@
 import type { R02DiscoveryRun, R02RecordedDiscoveryRun } from "./land-registry-api";
 
-export type DiscoveryStatus = "candidate_found" | "manual_required" | "error";
+export type DiscoveryStatus =
+  | "candidate_found"
+  | "low_confidence_unresolved"
+  | "verified_by_formal_reverse_check"
+  | "rejected_by_formal_reverse_check"
+  | "manual_required"
+  | "error";
 
 export type DiscoverySource = "easymap_r02" | "local_discovery" | "tauri_desktop";
 
@@ -87,6 +93,7 @@ export function normalizeDiscoveryResult(input: {
   const normalizedAddress = input.normalizedAddress.trim();
   const classification = classifyDiscoveryInput(normalizedAddress);
   const candidateCount = input.candidates?.length ?? 0;
+  const hasLowConfidenceCandidate = (input.candidates ?? []).some((candidate) => candidate.confidence === "low");
   const selectedRegistryKey = input.selectedRegistryKey ?? null;
   return {
     status: input.status,
@@ -101,7 +108,7 @@ export function normalizeDiscoveryResult(input: {
     inputKind: classification.inputKind,
     intendedObjectType: classification.intendedObjectType,
     parsedInput: classification.parsedInput,
-    requiresCandidateSelection: candidateCount > 1 && !selectedRegistryKey,
+    requiresCandidateSelection: (candidateCount > 1 || hasLowConfidenceCandidate) && !selectedRegistryKey,
     candidateSelection: buildCandidateSelection(input.candidates ?? [], selectedRegistryKey),
     suggestedCorrections: suggestDiscoveryCorrections(normalizedAddress),
   };
@@ -262,13 +269,14 @@ function buildCandidateSelection(
   candidates: DiscoveryCandidate[],
   selectedRegistryKey: string | null,
 ): DiscoveryResult["candidateSelection"] {
+  const hasLowConfidenceCandidate = candidates.some((candidate) => candidate.confidence === "low");
   if (selectedRegistryKey) {
     return {
       state: "selected",
       selectedRegistryKey,
     };
   }
-  if (candidates.length > 1) {
+  if (candidates.length > 1 || hasLowConfidenceCandidate) {
     return {
       state: "required",
       selectedRegistryKey: null,
