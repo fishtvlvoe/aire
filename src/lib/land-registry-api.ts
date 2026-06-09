@@ -201,6 +201,17 @@ interface LocalLandApiSettings {
   secret?: string;
 }
 
+function applyDiscoveryStatusToCandidates(result: LocalAddressDiscoveryResponse): ParcelInfo[] {
+  const candidates = Array.isArray(result.candidates) ? result.candidates : [];
+  if (result.status !== "low_confidence_unresolved") {
+    return candidates;
+  }
+  return candidates.map((candidate) => ({
+    ...candidate,
+    discovery_confidence: candidate.discovery_confidence ?? "low",
+  }));
+}
+
 interface LocalCaseWithRegistryData {
   id?: string;
   address?: string | null;
@@ -279,7 +290,7 @@ async function fetchAddressDiscoveryFromLocalBackend(address: string): Promise<P
   const result = (await response.json()) as LocalAddressDiscoveryResponse;
   await recordLocalAddressDiscovery(address, result);
   if (result.status === "candidate_found" || result.status === "low_confidence_unresolved") {
-    return result.candidates ?? [];
+    return applyDiscoveryStatusToCandidates(result);
   }
   return [];
 }
@@ -342,7 +353,7 @@ async function fetchAddressDiscoveryFromTaiwanProxy(address: string): Promise<Pa
     reason: `request_id=${response.headers.get("x-aire-request-id") || requestId} status=${result.status} candidates=${result.candidates?.length ?? 0}`,
   });
   if (result.status === "candidate_found" || result.status === "low_confidence_unresolved") {
-    return result.candidates ?? [];
+    return applyDiscoveryStatusToCandidates(result);
   }
   return [];
 }

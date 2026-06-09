@@ -403,6 +403,47 @@ describe("land-registry-api addressLookup", () => {
     fetchSpy.mockRestore();
   });
 
+  it("browser-local-first treats low-confidence proxy results as low even when candidates omit confidence", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    mocks.isTauriEnv.mockResolvedValue(false);
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
+    (window as unknown as Record<string, unknown>).__AIRE_LAND_PROXY_URL__ = "https://land.example.test";
+    (window as unknown as Record<string, unknown>).__AIRE_BROWSER_SESSION_TOKEN__ = "browser-session";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          status: "low_confidence_unresolved",
+          candidates: [
+            {
+              parcel_id: "DC-1511-00770000-03045000",
+              address: "台南市東區東和路47號3樓",
+              lot_number: "00770000",
+              building_number: "03045000",
+              section_name: "光明段",
+              section_code: "1511",
+              office_code: "DC",
+              source: "easymap_r02",
+              trusted_for_pdf: false,
+            },
+          ],
+          totalCostCents: 0,
+          total_cost_cents: 0,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ) as Response,
+    );
+
+    await expect(addressLookup("台南市東區東和路47號3樓")).resolves.toEqual([
+      expect.objectContaining({
+        section_name: "光明段",
+        lot_number: "00770000",
+        building_number: "03045000",
+        discovery_confidence: "low",
+      }),
+    ]);
+    fetchSpy.mockRestore();
+  });
+
   it("browser-local-first stores registry query evidence locally", async () => {
     (window as unknown as Record<string, unknown>).__AIRE_BROWSER_LOCAL_FIRST__ = true;
 
