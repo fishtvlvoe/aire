@@ -3098,17 +3098,18 @@ var EasyMapClient = class {
         }
       });
       const doorCandidates = parseEasyMapDoorCandidateListPayload(listPayload);
-      const selected = pickBestDoorCandidate(doorCandidates, address);
-      if (selected) {
-        const buildingDescription = await this.enrichDoorCandidateBuildingDescription(
-          parts,
-          townCode,
-          selected
-        );
+      const selectedCandidates = selectDoorCandidatesForAddress(doorCandidates, address);
+      if (selectedCandidates.length > 0) {
+        const parcels = await Promise.all(selectedCandidates.map(async (selected) => {
+          const buildingDescription = await this.enrichDoorCandidateBuildingDescription(
+            parts,
+            townCode,
+            selected
+          );
+          return buildDoorParcel(address, selected, buildingDescription);
+        }));
         return {
-          candidates: normalizeParcelCandidateMetadata([
-            buildDoorParcel(address, selected, buildingDescription)
-          ]),
+          candidates: normalizeParcelCandidateMetadata(parcels),
           errors: []
         };
       }
@@ -3804,11 +3805,9 @@ function buildR02CrossCheckDiagnostics(z10Candidates, r02Result) {
   ];
 }
 function selectDoorplateCandidates(address, z10Candidates, r02Result) {
-  const exactMatches = filterCandidatesByR02Keys(z10Candidates, r02Result.candidates);
-  if (exactMatches.length === 1 && r02Result.candidates.length === 1) {
-    return normalizeParcelCandidateMetadata([
-      mergeDoorplateCandidateEvidence(r02Result.candidates[0], exactMatches[0])
-    ]);
+  const exactMerged = mergeR02CandidatesWithExactZ10Support(z10Candidates, r02Result.candidates);
+  if (exactMerged.length === r02Result.candidates.length && exactMerged.length > 0) {
+    return normalizeParcelCandidateMetadata(exactMerged);
   }
   if (r02Result.candidates.length > 0) {
     const filtered = filterZ10CandidatesWithR02UnitMatch(address, z10Candidates, r02Result);
@@ -3829,6 +3828,21 @@ function selectDoorplateCandidates(address, z10Candidates, r02Result) {
     );
   }
   return z10Candidates;
+}
+function mergeR02CandidatesWithExactZ10Support(z10Candidates, r02Candidates) {
+  if (r02Candidates.length === 0 || z10Candidates.length === 0) return [];
+  const z10ByKey = new Map(
+    z10Candidates.map((candidate) => [registryCandidateKey(candidate), candidate]).filter(([key]) => Boolean(key))
+  );
+  const merged = [];
+  for (const r02Candidate of r02Candidates) {
+    const key = registryCandidateKey(r02Candidate);
+    if (!key) return [];
+    const supporting = z10ByKey.get(key);
+    if (!supporting) return [];
+    merged.push(mergeDoorplateCandidateEvidence(r02Candidate, supporting));
+  }
+  return merged;
 }
 function mergeDoorplateCandidateEvidence(primary, supporting) {
   return {
@@ -4344,11 +4358,15 @@ function lookupKnownTownCode(cityCode, townName) {
   const key = `${cityCode}:${normalizeAdministrativeName(townName)}`;
   return KNOWN_R02_TOWN_CODES[key] ?? null;
 }
-function pickBestDoorCandidate(items, address) {
-  if (items.length === 0) return null;
-  if (items.length === 1) return items[0];
+function selectDoorCandidatesForAddress(candidates, address) {
+  if (candidates.length <= 1) return candidates;
   const normalizedTarget = normalizeDoorCandidateMatch(address);
-  return items.find((item) => normalizeDoorCandidateMatch(item.doorplate) === normalizedTarget) ?? items.find((item) => normalizedTarget.endsWith(normalizeDoorCandidateMatch(item.doorplate))) ?? null;
+  const exactDoorMatches = candidates.filter((candidate) => normalizeDoorCandidateMatch(candidate.doorplate) === normalizedTarget);
+  const narrowedByDoorplate = exactDoorMatches.length > 0 ? exactDoorMatches : candidates;
+  const floorKey = extractFloorKey(address);
+  if (!floorKey) return narrowedByDoorplate;
+  const matched = narrowedByDoorplate.filter((candidate) => extractFloorKey(candidate.doorplate) === floorKey);
+  return matched.length > 0 ? matched : narrowedByDoorplate;
 }
 function buildDoorParcel(inputAddress, candidate, description, coordinate = null) {
   const sectionCode = description.sectionCode ?? candidate.buildingSectionCode ?? candidate.sectionCode;

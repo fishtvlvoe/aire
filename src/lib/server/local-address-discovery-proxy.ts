@@ -410,17 +410,18 @@ class EasyMapClient {
         },
       });
       const doorCandidates = parseEasyMapDoorCandidateListPayload(listPayload);
-      const selected = pickBestDoorCandidate(doorCandidates, address);
-      if (selected) {
-        const buildingDescription = await this.enrichDoorCandidateBuildingDescription(
-          parts,
-          townCode,
-          selected,
-        );
+      const selectedCandidates = selectDoorCandidatesForAddress(doorCandidates, address);
+      if (selectedCandidates.length > 0) {
+        const parcels = await Promise.all(selectedCandidates.map(async (selected) => {
+          const buildingDescription = await this.enrichDoorCandidateBuildingDescription(
+            parts,
+            townCode,
+            selected,
+          );
+          return buildDoorParcel(address, selected, buildingDescription);
+        }));
         return {
-          candidates: normalizeParcelCandidateMetadata([
-            buildDoorParcel(address, selected, buildingDescription),
-          ]),
+          candidates: normalizeParcelCandidateMetadata(parcels),
           errors: [],
         };
       }
@@ -1224,11 +1225,9 @@ function selectDoorplateCandidates(
   z10Candidates: ParcelInfo[],
   r02Result: EasyMapDiscoveryPayload,
 ): ParcelInfo[] {
-  const exactMatches = filterCandidatesByR02Keys(z10Candidates, r02Result.candidates);
-  if (exactMatches.length === 1 && r02Result.candidates.length === 1) {
-    return normalizeParcelCandidateMetadata([
-      mergeDoorplateCandidateEvidence(r02Result.candidates[0], exactMatches[0]),
-    ]);
+  const exactMerged = mergeR02CandidatesWithExactZ10Support(z10Candidates, r02Result.candidates);
+  if (exactMerged.length === r02Result.candidates.length && exactMerged.length > 0) {
+    return normalizeParcelCandidateMetadata(exactMerged);
   }
 
   if (r02Result.candidates.length > 0) {
@@ -1253,6 +1252,27 @@ function selectDoorplateCandidates(
   }
 
   return z10Candidates;
+}
+
+function mergeR02CandidatesWithExactZ10Support(
+  z10Candidates: ParcelInfo[],
+  r02Candidates: ParcelInfo[],
+): ParcelInfo[] {
+  if (r02Candidates.length === 0 || z10Candidates.length === 0) return [];
+  const z10ByKey = new Map(
+    z10Candidates
+      .map((candidate) => [registryCandidateKey(candidate), candidate] as const)
+      .filter(([key]) => Boolean(key)),
+  );
+  const merged: ParcelInfo[] = [];
+  for (const r02Candidate of r02Candidates) {
+    const key = registryCandidateKey(r02Candidate);
+    if (!key) return [];
+    const supporting = z10ByKey.get(key);
+    if (!supporting) return [];
+    merged.push(mergeDoorplateCandidateEvidence(r02Candidate, supporting));
+  }
+  return merged;
 }
 
 function mergeDoorplateCandidateEvidence(primary: ParcelInfo, supporting: ParcelInfo): ParcelInfo {
@@ -1929,22 +1949,15 @@ function pickBestDoorplate(items: EasyMapDoorplate[], address: string): EasyMapD
   );
 }
 
-function pickBestDoorCandidate(items: EasyMapDoorCandidate[], address: string): EasyMapDoorCandidate | null {
-  if (items.length === 0) return null;
-  if (items.length === 1) return items[0];
-  const normalizedTarget = normalizeDoorCandidateMatch(address);
-  return (
-    items.find((item) => normalizeDoorCandidateMatch(item.doorplate) === normalizedTarget) ??
-    items.find((item) => normalizedTarget.endsWith(normalizeDoorCandidateMatch(item.doorplate))) ??
-    null
-  );
-}
-
 function selectDoorCandidatesForAddress(candidates: EasyMapDoorCandidate[], address: string): EasyMapDoorCandidate[] {
+  if (candidates.length <= 1) return candidates;
+  const normalizedTarget = normalizeDoorCandidateMatch(address);
+  const exactDoorMatches = candidates.filter((candidate) => normalizeDoorCandidateMatch(candidate.doorplate) === normalizedTarget);
+  const narrowedByDoorplate = exactDoorMatches.length > 0 ? exactDoorMatches : candidates;
   const floorKey = extractFloorKey(address);
-  if (!floorKey) return candidates;
-  const matched = candidates.filter((candidate) => extractFloorKey(candidate.doorplate) === floorKey);
-  return matched.length > 0 ? matched : candidates;
+  if (!floorKey) return narrowedByDoorplate;
+  const matched = narrowedByDoorplate.filter((candidate) => extractFloorKey(candidate.doorplate) === floorKey);
+  return matched.length > 0 ? matched : narrowedByDoorplate;
 }
 
 function buildDoorParcel(

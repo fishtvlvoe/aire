@@ -967,6 +967,136 @@ describe("local-address-discovery-proxy", () => {
     ]);
   });
 
+  it("keeps multiple R02 building candidates for manual selection instead of auto-picking one", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/R02/Index")) {
+        return new Response("<html></html>", { status: 200 });
+      }
+      if (url.endsWith("/R02/pages/setToken.jsp")) {
+        return new Response(`<input type="hidden" name="token" value="token-1" />`, { status: 200 });
+      }
+      if (url.endsWith("/R02/City_json_getTownList")) {
+        return Response.json([{ id: "01", name: "東區" }]);
+      }
+      if (url.endsWith("/R02/City_json_getRoadList")) {
+        return Response.json([{ srcName: "裕農路", name: "裕農路" }]);
+      }
+      if (url.endsWith("/R02/Door_json_getDoorList")) {
+        return Response.json({
+          results: [
+            {
+              City: "D",
+              towncode: "01",
+              Road: "裕農路２８８巷１７號八樓之１",
+              srcRoad: "裕農路２８８巷１７號八樓之１",
+              buildsectno: "1556",
+              buildno: "00204000",
+              sectno: "1556",
+              sectName: "富強段",
+              office: "DC",
+              landno: "70",
+              mergeSameDoorCount: 0,
+            },
+            {
+              City: "D",
+              towncode: "01",
+              Road: "裕農路２８８巷１７號八樓之１",
+              srcRoad: "裕農路２８８巷１７號八樓之１",
+              buildsectno: "1556",
+              buildno: "00205000",
+              sectno: "1556",
+              sectName: "富強段",
+              office: "DC",
+              landno: "70",
+              mergeSameDoorCount: 0,
+            },
+          ],
+          msg: "",
+        });
+      }
+      if (url.endsWith("/Z10Web/Normal") || url.endsWith("/Z10Web/")) {
+        return new Response("<html></html>", { status: 200 });
+      }
+      if (url.endsWith("/Z10Web/layout/setToken.jsp")) {
+        return new Response(`<input type="hidden" name="token" value="token-1" />`, { status: 200 });
+      }
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_ajax_list")) {
+        return new Response(`
+          <a class="list-group-item" role="result"
+             data-road="臺南市東區富強里１３鄰裕農路２８８巷１７號">臺南市東區富強里１３鄰裕農路２８８巷１７號</a>
+        `, { status: 200 });
+      }
+      if (url.endsWith("/Z10Web/HouseholdDoorPlate_json_detail")) {
+        return Response.json({ x: 120.229084, y: 22.986314 });
+      }
+      if (url.endsWith("/Z10Web/Land_json_getMapImageLayersByCoord")) {
+        return Response.json({
+          cityCode: "D",
+          townCode: "01",
+          office: "DC",
+          sectNo: "1556",
+          sectName: "富強段",
+          landNo: "70",
+          cityName: "臺南市",
+          townName: "東區",
+        });
+      }
+      if (url.endsWith("/Z10Web/LandDesc_ajax_detail")) {
+        return new Response(`
+          <button onclick="qtCommon.getBuildDetail('DC','1556','00204000','','b')">00204000建號</button>
+          <button onclick="qtCommon.getBuildDetail('DC','1556','00205000','','b')">00205000建號</button>
+        `, { status: 200 });
+      }
+      if (url.endsWith("/Z10Web/BuildDesc_ajax_detail")) {
+        const params = new URLSearchParams(String(init?.body ?? ""));
+        if (params.get("buildNo") === "00204000") {
+          return new Response(`
+            <table>
+              <tr><th>地段</th><td>1556 富強段</td></tr>
+              <tr><th>建號</th><td>00204000</td></tr>
+              <tr><th>樓層別</th><td>8樓之1</td></tr>
+            </table>
+          `, { status: 200 });
+        }
+        if (params.get("buildNo") === "00205000") {
+          return new Response(`
+            <table>
+              <tr><th>地段</th><td>1556 富強段</td></tr>
+              <tr><th>建號</th><td>00205000</td></tr>
+              <tr><th>樓層別</th><td>8樓之1</td></tr>
+            </table>
+          `, { status: 200 });
+        }
+      }
+      return new Response("not found", { status: 404 });
+    }));
+
+    const result = await discoverAddressLocally("台南市東區裕農路288巷17號8樓之1");
+
+    expect(result.status).toBe("low_confidence_unresolved");
+    expect(result.requiresCandidateSelection).toBe(true);
+    expect(result.candidates).toHaveLength(2);
+    expect(result.candidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: "easymap_r02",
+          section_code: "1556",
+          lot_number: "00700000",
+          building_number: "00204000",
+          discovery_confidence: "needs_selection",
+        }),
+        expect.objectContaining({
+          source: "easymap_r02",
+          section_code: "1556",
+          lot_number: "00700000",
+          building_number: "00205000",
+          discovery_confidence: "needs_selection",
+        }),
+      ]),
+    );
+  });
+
   it("retries R02 door lookup with equivalent road section formats when the first format has no candidates", async () => {
     const r02RoadValues: string[] = [];
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
