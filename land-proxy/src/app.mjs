@@ -172,8 +172,17 @@ async function defaultDiscoverAddress(address) {
 function normalizeAddressDiscoveryResponse(address, discovery) {
   const payload = discovery && typeof discovery === "object" ? discovery : {};
   const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
+  const normalizedStatus = (
+    payload.status === "candidate_found" ||
+    payload.status === "low_confidence_unresolved" ||
+    payload.status === "verified_by_formal_reverse_check" ||
+    payload.status === "rejected_by_formal_reverse_check" ||
+    payload.status === "manual_required"
+  )
+    ? payload.status
+    : "manual_required";
   return {
-    status: payload.status === "candidate_found" ? "candidate_found" : "manual_required",
+    status: normalizedStatus,
     source: "local_discovery",
     normalizedAddress: typeof payload.normalizedAddress === "string" ? payload.normalizedAddress : address,
     candidates,

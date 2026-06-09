@@ -150,6 +150,69 @@ describe("aire land proxy", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("preserves low-confidence discovery status from the generated resolver", async () => {
+    const discoverAddress = vi.fn(async (address) => ({
+      status: "low_confidence_unresolved",
+      source: "local_discovery",
+      normalizedAddress: address,
+      candidates: [
+        {
+          parcel_id: "DC-1511-03045000",
+          address,
+          lot_number: "00770000",
+          building_number: "03045000",
+          section_name: "光明段",
+          section_code: "1511",
+          office_code: "DC",
+          source: "easymap_r02",
+          trusted_for_pdf: false,
+          discovery_confidence: "low",
+          selection_reason: "floor_unit_unique_match",
+        },
+      ],
+      errors: [
+        {
+          source: "easymap_r02",
+          code: "easymap_r02_z10web_mismatch",
+          message: "conflict",
+        },
+      ],
+      trustedForPdf: false,
+      totalCostCents: 0,
+      total_cost_cents: 0,
+      cacheHit: false,
+      sourceRunId: null,
+      inputKind: "doorplate",
+      intendedObjectType: "building",
+      requiresCandidateSelection: true,
+      candidateSelection: { state: "required", selectedRegistryKey: null },
+    }));
+    const app = createLandProxyApp({ env, discoverAddress });
+
+    const response = await app.fetch(request("/api/address-discovery", {
+      body: JSON.stringify({ address: "台南市東區東和路47號3樓", allowMockFallback: false }),
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      status: "low_confidence_unresolved",
+      requiresCandidateSelection: true,
+      candidateSelection: { state: "required", selectedRegistryKey: null },
+      candidates: [
+        expect.objectContaining({
+          section_name: "光明段",
+          lot_number: "00770000",
+          building_number: "03045000",
+          discovery_confidence: "low",
+        }),
+      ],
+      errors: [
+        expect.objectContaining({ code: "easymap_r02_z10web_mismatch" }),
+      ],
+    });
+  });
+
   it("rejects invalid address discovery payloads without touching downstream services", async () => {
     const discoverAddress = vi.fn();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
