@@ -567,6 +567,7 @@ describe("NewCasePage address-first flow", () => {
               section_name: "富強段",
               land_no: "00700000",
               building_no: "00165000",
+              discovery_confidence: "high",
               building_area_sqm: "83.6",
               floor_label: "8樓之1",
               completion_date_roc: "0800829",
@@ -1002,6 +1003,60 @@ describe("NewCasePage address-first flow", () => {
     });
     expect(screen.getByText("光明段")).toBeInTheDocument();
     expect(screen.queryByText("東光段")).not.toBeInTheDocument();
+  });
+
+  it("does not reuse a legacy building run without confidence metadata and keeps registry fields empty", async () => {
+    mockListRegistryQueryRuns.mockResolvedValueOnce([
+      {
+        id: "run-low-confidence-reuse-001",
+        source_input: "台南市東區東和路47號3樓",
+        candidate_json: {
+          status: "candidate_found",
+          candidates: [
+            {
+              address: "台南市東區東和路47號3樓",
+              section_name: "光明段",
+              section_code: "1511",
+              land_no: "00770000",
+              building_no: "03045000",
+              lat: 22.998544,
+              lng: 120.229449,
+            },
+          ],
+          errors: [],
+        },
+      } as never,
+    ]);
+    mockAddressLookup.mockResolvedValueOnce([
+      {
+        parcel_id: "DC-1511-03045000",
+        address: "台南市東區東和路47號3樓",
+        lot_number: "00770000",
+        building_number: "03045000",
+        section_name: "光明段",
+        section_code: "1511",
+        office_code: "DC",
+        source: "easymap_r02",
+        trusted_for_pdf: false,
+        discovery_confidence: "low",
+        selection_reason: "floor_unit_unique_match",
+      },
+    ]);
+
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市東區東和路47號3樓" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("已取得候選，但尚未驗證")).toBeInTheDocument();
+    });
+    expect(mockAddressLookup).toHaveBeenCalledWith("台南市東區東和路47號3樓");
+    expect(screen.getByLabelText("地段")).toHaveValue("");
+    expect(screen.getByLabelText("地號")).toHaveValue("");
+    expect(screen.getByLabelText("建號")).toHaveValue("");
   });
 
   it("confirms only the selected candidate from a multiple-candidate list", async () => {

@@ -1083,6 +1083,14 @@ function canReuseExistingAddressRun(run: RegistryQueryRun): boolean {
   if (hasConflictError) return false;
 
   const candidates = Array.isArray(candidateJson?.candidates) ? candidateJson.candidates : [];
+  const hasLegacyBuildingCandidateWithoutConfidence = candidates.some((candidate) => {
+    if (!isRecord(candidate)) return false;
+    const buildingNo = pickString(candidate, "building_no") ?? pickString(candidate, "buildingNo") ?? "";
+    if (!buildingNo) return false;
+    const confidence = pickString(candidate, "discovery_confidence") ?? pickString(candidate, "confidence_label") ?? "";
+    return !confidence;
+  });
+  if (hasLegacyBuildingCandidateWithoutConfidence) return false;
   return !candidates.some((candidate) => {
     if (!isRecord(candidate)) return false;
     const confidence = pickString(candidate, "discovery_confidence") ?? pickString(candidate, "confidence_label") ?? "";
@@ -1159,6 +1167,16 @@ function candidateFromRegistryJson(candidate: unknown, address: string): ParcelI
       pickString(candidate, "announced_land_value") ??
       pickString(candidate, "announcedLandValue") ??
       undefined,
+    discovery_confidence:
+      pickString(candidate, "discovery_confidence") === "low" ||
+      pickString(candidate, "discovery_confidence") === "needs_selection" ||
+      pickString(candidate, "discovery_confidence") === "high"
+        ? pickString(candidate, "discovery_confidence") as ParcelInfo["discovery_confidence"]
+        : pickString(candidate, "confidence_label") === "low" ||
+            pickString(candidate, "confidence_label") === "needs_selection" ||
+            pickString(candidate, "confidence_label") === "high"
+          ? pickString(candidate, "confidence_label") as ParcelInfo["discovery_confidence"]
+          : undefined,
     lat: pickNumber(candidate, "lat"),
     lng: pickNumber(candidate, "lng"),
     selection_reason:
