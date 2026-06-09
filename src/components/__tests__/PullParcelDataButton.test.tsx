@@ -210,11 +210,85 @@ describe("PullParcelDataButton", () => {
     expect(within(dialog).getByText("建築完成日")).toBeInTheDocument();
     expect(within(dialog).getAllByText("產權調查表—建物標示").length).toBeGreaterThan(0);
     expect(within(dialog).getByText(/未取得欄位/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/verified fallback：/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/COP 上游未回：/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/mapping gap：/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole("button", { name: "關閉明細" }));
     expect(screen.queryByText("正式資料匯入明細")).not.toBeInTheDocument();
     expect(screen.queryByText("登記坪數")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "查看匯入明細" })).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/MOI_API_|COP|JSON|R02/);
+  });
+
+  it("stores preview diagnostics and shows government-code wording in import details", async () => {
+    mocks.formalPullData.mockResolvedValueOnce({
+      run_id: "run-003",
+      cache_hit: false,
+      source_run_id: null,
+      total_cost: 3,
+      results: {
+        land_registry: {
+          success: true,
+          source: "api",
+          data: {
+            data: {
+              REASON: "03",
+              AREA: 1655.78,
+            },
+          },
+        },
+        building_registry: {
+          success: true,
+          source: "api",
+          data: {
+            data: {
+              PURPOSE: "A",
+              MATERIAL: "04",
+              AREA: 83.61,
+            },
+          },
+        },
+      },
+    });
+
+    render(
+      <PullParcelDataButton
+        apiIds={["land_registry", "building_registry"]}
+        caseId="case-001"
+        parcelId="DC-1556-00700000-00204000"
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /正式查詢/ }));
+    await userEvent.click(screen.getByRole("button", { name: "授權確認" }));
+    await userEvent.click(screen.getByRole("button", { name: "扣款確認" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: "地政資料匯入明細" })).toBeInTheDocument();
+    });
+
+    const dialog = screen.getByRole("dialog", { name: "地政資料匯入明細" });
+    expect(within(dialog).getByText("政府代碼 A")).toBeInTheDocument();
+    expect(within(dialog).getByText("政府代碼 04")).toBeInTheDocument();
+    expect(within(dialog).getByText("政府代碼 03")).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mocks.updateCase).toHaveBeenCalledWith(
+        "case-001",
+        expect.objectContaining({
+          land_registry_data: expect.objectContaining({
+            registry_preview_diagnostics: expect.objectContaining({
+              acquiredFields: expect.any(Array),
+              missingFields: expect.any(Array),
+              counts: expect.objectContaining({
+                acquired: expect.any(Number),
+                missing: expect.any(Number),
+              }),
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   it("blocks saving formal data when the returned building address does not match the case address", async () => {

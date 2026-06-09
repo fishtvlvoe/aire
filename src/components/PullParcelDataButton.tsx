@@ -21,6 +21,7 @@ import {
 } from "@/lib/land-registry-api";
 import { casesApi } from "@/lib/cases-api";
 import {
+  buildRegistryPreviewDiagnostics,
   buildRegistryPreviewSections,
   summarizeRegistryPreview,
 } from "@/lib/registry-preview";
@@ -201,6 +202,10 @@ export function PullParcelDataButton({
     () => summarizeRegistryPreview(previewSections),
     [previewSections],
   );
+  const previewDiagnostics = React.useMemo(
+    () => buildRegistryPreviewDiagnostics(previewSections),
+    [previewSections],
+  );
   const acquiredPreviewFields = previewSections.flatMap((section) =>
     section.fields.map((field) => ({
       ...field,
@@ -208,13 +213,12 @@ export function PullParcelDataButton({
       pdfTarget: readablePdfTarget(field.target),
     })),
   );
-  const missingPreviewFields = previewSections.flatMap((section) =>
-    section.missing.map((label) => ({
-      sectionTitle: section.title,
-      label,
-      reason: "上游未回或需補正式資料",
-    })),
-  );
+  const missingPreviewFields = previewDiagnostics.missingFields.map((field) => ({
+    sectionTitle: field.sectionTitle,
+    label: field.label,
+    reason: field.reasonLabel,
+    reasonCode: field.reasonCode,
+  }));
   const failureDetails = React.useMemo(
     () => buildFailureDetails(results, pullError),
     [results, pullError],
@@ -223,7 +227,12 @@ export function PullParcelDataButton({
   async function persistPreviewData(data: Record<string, unknown>) {
     setSavingResult(true);
     setSaveMessage(null);
-    const payload = preparePayload ? preparePayload(data) : data;
+    const basePayload = preparePayload ? preparePayload(data) : data;
+    const payloadSections = buildRegistryPreviewSections(basePayload);
+    const payload = {
+      ...basePayload,
+      registry_preview_diagnostics: buildRegistryPreviewDiagnostics(payloadSections),
+    };
     try {
       await casesApi.update(caseId, { land_registry_data: payload });
       setSaveMessage("已寫入案件，可用於預覽與 PDF");
@@ -296,6 +305,11 @@ export function PullParcelDataButton({
               <p className="mt-1 text-xs text-muted-foreground">
                 {previewSummary.statusText}。完整欄位已同步到資料來源、補件判斷與 PDF。
               </p>
+              {previewDiagnostics.counts.missing > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  缺欄位分類：verified fallback {previewDiagnostics.counts.verifiedTargetFallback}、上游未回 {previewDiagnostics.counts.upstreamMissing}、mapping gap {previewDiagnostics.counts.mappingGap}
+                </p>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"
@@ -402,6 +416,11 @@ export function PullParcelDataButton({
                   <summary className="cursor-pointer font-medium">
                     未取得欄位（{missingPreviewFields.length}）
                   </summary>
+                  <div className="mt-2 grid gap-1 text-[11px] text-amber-900 md:grid-cols-3">
+                    <span>verified fallback：{previewDiagnostics.counts.verifiedTargetFallback}</span>
+                    <span>COP 上游未回：{previewDiagnostics.counts.upstreamMissing}</span>
+                    <span>mapping gap：{previewDiagnostics.counts.mappingGap}</span>
+                  </div>
                   <div className="mt-2 max-h-40 overflow-y-auto">
                     <ul className="space-y-1">
                       {missingPreviewFields.map((field) => (

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildRegistryPreviewDiagnostics,
   buildRegistryPreviewSections,
   calculateBuildingAge,
   summarizeRegistryPreview,
@@ -216,5 +217,75 @@ describe("registry-preview", () => {
     expect(landSection?.missing).not.toContain("地段");
     expect(landSection?.missing).not.toContain("地號");
     expect(buildingSection?.missing).not.toContain("建號");
+  });
+
+  it("classifies missing fields into verified fallback, upstream missing, and formats government codes", () => {
+    const sections = buildRegistryPreviewSections({
+      schema: "aire.registry-provenance.v1",
+      generatedAt: "2026-06-09T00:00:00.000Z",
+      confirmed_registry_match: {
+        office_code: "DC",
+        section_code: "1556",
+        section_name: "富強段",
+        land_no: "00700000",
+        building_no: "00204000",
+      },
+      entries: {
+        land_registry: {
+          apiId: "land_registry",
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data: {
+            data: {
+              REASON: "03",
+              AREA: 1655.78,
+            },
+          },
+        },
+        building_registry: {
+          apiId: "building_registry",
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data: {
+            data: {
+              PURPOSE: "A",
+              MATERIAL: "04",
+              AREA: 83.61,
+            },
+          },
+        },
+      },
+    });
+
+    const diagnostics = buildRegistryPreviewDiagnostics(sections);
+    const landSection = sections.find((section) => section.id === "land_registry");
+    const buildingSection = sections.find((section) => section.id === "building_registry");
+
+    expect(landSection?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "登記原因", value: "政府代碼 03" }),
+      ]),
+    );
+    expect(buildingSection?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "法定用途", value: "政府代碼 A" }),
+        expect.objectContaining({ label: "主要建材", value: "政府代碼 04" }),
+      ]),
+    );
+    expect(landSection?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "地段", value: "富強段" }),
+        expect.objectContaining({ label: "地號", value: "00700000" }),
+      ]),
+    );
+    expect(buildingSection?.missingDetails).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "建設公司", reasonCode: "upstream_missing" }),
+      ]),
+    );
+    expect(diagnostics.counts.verifiedTargetFallback).toBe(0);
+    expect(diagnostics.counts.upstreamMissing).toBeGreaterThanOrEqual(1);
   });
 });

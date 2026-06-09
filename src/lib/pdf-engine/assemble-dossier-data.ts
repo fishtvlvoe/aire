@@ -417,13 +417,6 @@ function resolveBuildingFloor(registryFloor?: string, address?: string): string 
   return floor;
 }
 
-function formatRegistryCodeValue(value?: string): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  if (/^[0-9A-Z]{1,4}$/i.test(trimmed)) return `代碼 ${trimmed}（待代碼表轉換）`;
-  return trimmed;
-}
-
 function parseSupplementNumber(value?: string): number | undefined {
   if (!value?.trim()) return undefined;
   const parsed = Number(value.replace(/,/g, ""));
@@ -1698,3 +1691,4 @@ export async function assembleDossierData(caseRow: CaseRow): Promise<CaseDossier
     }, persisted);
   }
 }
+import { formatRegistryCodeValue } from "@/lib/registry-display";

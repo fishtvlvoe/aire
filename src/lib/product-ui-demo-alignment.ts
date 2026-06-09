@@ -557,6 +557,8 @@ function normalizeUnitFloor(value?: string): string | undefined {
   return undefined;
 }
 
+import { formatRegistryCodeValue } from "@/lib/registry-display";
+
 function resolveDisplayFloor(input: {
   address?: string | null;
   registryFloor?: string;
@@ -573,13 +575,6 @@ function resolveDisplayFloor(input: {
   }
   if (totalFloor) return `本戶樓層待確認 / 總樓層 ${totalFloor}`;
   return undefined;
-}
-
-function formatRegistryCodeValue(value?: string): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  if (/^[0-9A-Z]{1,4}$/i.test(trimmed)) return `代碼 ${trimmed}（待代碼表轉換）`;
-  return trimmed;
 }
 
 function normalizePropertyTypeText(value: string | number | null | undefined): string {

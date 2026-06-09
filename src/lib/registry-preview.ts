@@ -2,11 +2,26 @@ import {
   isRegistryProvenancePayload,
   normalizeRegistryPayloadForPreview,
 } from "@/lib/registry-provenance";
+import { formatRegistryCodeValue } from "@/lib/registry-display";
 
 export interface RegistryPreviewField {
   label: string;
   value: string;
   target: string;
+  internalKeys?: string[];
+  fallbackKey?: "sectionName" | "sectionCode" | "landNo" | "buildingNo";
+}
+
+export type RegistryMissingReasonCode =
+  | "verified_target_fallback"
+  | "upstream_missing"
+  | "mapping_gap";
+
+export interface RegistryPreviewMissingField {
+  label: string;
+  target: string;
+  reasonCode: RegistryMissingReasonCode;
+  reasonLabel: string;
 }
 
 export interface RegistryPreviewSection {
@@ -16,6 +31,7 @@ export interface RegistryPreviewSection {
   internalSource?: string;
   fields: RegistryPreviewField[];
   missing: string[];
+  missingDetails: RegistryPreviewMissingField[];
 }
 
 type RegistryRecord = Record<string, unknown>;
@@ -79,6 +95,18 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
+function hasPath(record: RegistryRecord, key: string): boolean {
+  if (key.includes(".")) {
+    let current: unknown = record;
+    for (const part of key.split(".")) {
+      if (!isRecord(current) || !(part in current)) return false;
+      current = current[part];
+    }
+    return true;
+  }
+  return key in record;
+}
+
 function squareMetersToPing(value: unknown): string {
   const numeric =
     typeof value === "number"
@@ -128,12 +156,18 @@ function field(
   keys: string[],
   target: string,
   transform?: (value: unknown, record: RegistryRecord) => string,
+  options?: {
+    fallbackKey?: "sectionName" | "sectionCode" | "landNo" | "buildingNo";
+    internalKeys?: string[];
+  },
 ): RegistryPreviewField {
   const value = firstValue(record, keys);
   return {
     label,
     value: transform ? transform(value, record) : formatValue(value),
     target,
+    internalKeys: options?.internalKeys ?? keys,
+    fallbackKey: options?.fallbackKey,
   };
 }
 
@@ -143,10 +177,64 @@ function makeSection(
   source: string,
   fields: RegistryPreviewField[],
   internalSource?: string,
+  rawRecord?: RegistryRecord,
+  verifiedTarget?: {
+    sectionName?: string;
+    sectionCode?: string;
+    landNo?: string;
+    buildingNo?: string;
+  } | null,
 ): RegistryPreviewSection {
   const visible = fields.filter((item) => item.value);
-  const missing = fields.filter((item) => !item.value).map((item) => item.label);
-  return { id, title, source, internalSource, fields: visible, missing };
+  const missingDetails = fields
+    .filter((item) => !item.value)
+    .map((item) => ({
+      label: item.label,
+      target: item.target,
+      ...classifyMissingField(item, rawRecord, verifiedTarget),
+    }));
+  const missing = missingDetails.map((item) => item.label);
+  return { id, title, source, internalSource, fields: visible, missing, missingDetails };
+}
+
+function classifyMissingField(
+  field: RegistryPreviewField,
+  rawRecord?: RegistryRecord,
+  verifiedTarget?: {
+    sectionName?: string;
+    sectionCode?: string;
+    landNo?: string;
+    buildingNo?: string;
+  } | null,
+): Pick<RegistryPreviewMissingField, "reasonCode" | "reasonLabel"> {
+  const fallbackKey = field.fallbackKey;
+  if (fallbackKey && verifiedTarget?.[fallbackKey]) {
+    return {
+      reasonCode: "verified_target_fallback",
+      reasonLabel: "案件已驗證到此鍵值，但目前匯入明細 fallback 尚未完整接通",
+    };
+  }
+
+  if (!rawRecord || Object.keys(rawRecord).length === 0) {
+    return {
+      reasonCode: "mapping_gap",
+      reasonLabel: "本地 mapping / fallback 尚未接通",
+    };
+  }
+
+  const keys = field.internalKeys ?? [];
+  const keyExists = keys.some((key) => hasPath(rawRecord, key));
+  if (!keyExists) {
+    return {
+      reasonCode: "upstream_missing",
+      reasonLabel: "COP 上游未回傳此欄位",
+    };
+  }
+
+  return {
+    reasonCode: "mapping_gap",
+    reasonLabel: "本地 mapping / fallback 尚未接通",
+  };
 }
 
 function getVerifiedTargetFallback(payload: RegistryRecord | null | undefined): {
@@ -183,7 +271,7 @@ export function buildRegistryPreviewSections(
     ...unwrapApiData(normalizedPayload, "land_registry"),
     ...(verifiedTarget?.sectionName ? { section: verifiedTarget.sectionName } : {}),
     ...(verifiedTarget?.landNo ? { land_no: verifiedTarget.landNo, lot_number: verifiedTarget.landNo } : {}),
-  };
+  } as RegistryRecord;
   const landOwnership = {
     ...unwrapApiData(normalizedPayload, "land_ownership"),
     ...unwrapApiData(normalizedPayload, "co_owners"),
@@ -197,7 +285,7 @@ export function buildRegistryPreviewSections(
     ...(verifiedTarget?.buildingNo
       ? { building_no: verifiedTarget.buildingNo, building_number: verifiedTarget.buildingNo, NO: verifiedTarget.buildingNo }
       : {}),
-  };
+  } as RegistryRecord;
   const buildingOwnership = unwrapApiData(normalizedPayload, "building_ownership");
   const buildingRights = unwrapApiData(normalizedPayload, "building_other_rights");
 
@@ -213,10 +301,20 @@ export function buildRegistryPreviewSections(
       "土地標示部",
       "土地標示資料",
       [
-        field(land, "地段", ["SECTION", "section", "SUBSECTION", "subsection"], "土地標示/土地坐落"),
-        field(land, "地號", ["NO", "lot_number", "land_no", "lot"], "土地標示/地號"),
+        field(land, "地段", ["SECTION", "section", "SUBSECTION", "subsection"], "土地標示/土地坐落", undefined, {
+          fallbackKey: "sectionName",
+        }),
+        field(land, "地號", ["NO", "lot_number", "land_no", "lot"], "土地標示/地號", undefined, {
+          fallbackKey: "landNo",
+        }),
         field(land, "登記日期", ["RDATE", "registration_date"], "土地標示/登記日期"),
-        field(land, "登記原因", ["REASON", "registration_reason"], "土地標示/土地登記原因"),
+        field(
+          land,
+          "登記原因",
+          ["REASON", "registration_reason"],
+          "土地標示/土地登記原因",
+          (value) => formatRegistryCodeValue(formatValue(value)) ?? "",
+        ),
         field(land, "土地面積", ["AREA", "area", "land_area"], "土地標示/總面積"),
         field(land, "使用分區", ["ZONING", "zoning", "purpose", "land_purpose"], "土地標示/使用分區"),
         field(land, "使用地類別", ["LCLASS", "usage_category"], "土地標示/使用編定"),
@@ -225,6 +323,8 @@ export function buildRegistryPreviewSections(
         field(land, "地上建物建號數量", ["BUILDINGCOUNT", "building_count"], "土地標示/地上建物"),
       ],
       "MOI_API_001 地籍土地標示部",
+      isRecord(land.raw) ? land.raw : land,
+      verifiedTarget,
     ));
   }
 
@@ -241,7 +341,13 @@ export function buildRegistryPreviewSections(
           "土地標示/所有權人",
         ),
         field(landOwnership, "登記日期", ["RDATE", "registration_date"], "土地標示/登記日期"),
-        field(landOwnership, "登記原因", ["REASON", "registration_reason"], "土地標示/登記原因"),
+        field(
+          landOwnership,
+          "登記原因",
+          ["REASON", "registration_reason"],
+          "土地標示/登記原因",
+          (value) => formatRegistryCodeValue(formatValue(value)) ?? "",
+        ),
         field(landOwnership, "原因發生日期", ["REASONDATE", "reason_date"], "土地標示/取得日期"),
         {
           label: "權利範圍",
@@ -258,6 +364,8 @@ export function buildRegistryPreviewSections(
         ),
       ],
       "MOI_API_002 地籍土地所有權部",
+      isRecord(landOwnership.raw) ? landOwnership.raw : landOwnership,
+      verifiedTarget,
     ));
   }
 
@@ -267,11 +375,25 @@ export function buildRegistryPreviewSections(
       "建物標示部",
       "建物標示資料",
       [
-        field(building, "建號", ["NO", "building_number", "building_no"], "建物標示/建號"),
+        field(building, "建號", ["NO", "building_number", "building_no"], "建物標示/建號", undefined, {
+          fallbackKey: "buildingNo",
+        }),
         field(building, "建物門牌", ["BNUMBER", "building_address", "address"], "建物標示/門牌地址"),
         field(building, "坐落地號", ["LANDNO", "land_no", "land_number"], "建物標示/坐落地號"),
-        field(building, "法定用途", ["PURPOSE", "purpose", "building_purpose"], "建物標示/法定用途"),
-        field(building, "主要建材", ["MATERIAL", "material"], "建物標示/主要建材"),
+        field(
+          building,
+          "法定用途",
+          ["PURPOSE", "purpose", "building_purpose"],
+          "建物標示/法定用途",
+          (value) => formatRegistryCodeValue(formatValue(value)) ?? "",
+        ),
+        field(
+          building,
+          "主要建材",
+          ["MATERIAL", "material"],
+          "建物標示/主要建材",
+          (value) => formatRegistryCodeValue(formatValue(value)) ?? "",
+        ),
         field(
           building,
           "建物層數",
@@ -302,6 +424,8 @@ export function buildRegistryPreviewSections(
         field(building, "建設公司", ["CONBUILDNAME", "construction_company"], "基本資料/建設公司"),
       ],
       "MOI_API_004 地籍建物標示部",
+      isRecord(building.raw) ? building.raw : building,
+      verifiedTarget,
     ));
   }
 
@@ -323,7 +447,13 @@ export function buildRegistryPreviewSections(
           ["RDATE", "registration_date", "ownership_date"],
           "建物標示/取得日期",
         ),
-        field(buildingOwnership, "登記原因", ["REASON", "registration_reason"], "建物標示/取得原因"),
+        field(
+          buildingOwnership,
+          "登記原因",
+          ["REASON", "registration_reason"],
+          "建物標示/取得原因",
+          (value) => formatRegistryCodeValue(formatValue(value)) ?? "",
+        ),
         {
           label: "權利範圍",
           value: formatRatio(buildingOwnership),
@@ -332,6 +462,8 @@ export function buildRegistryPreviewSections(
         field(buildingOwnership, "權狀字號", ["CERTIFICATENO", "certificate_no"], "建物標示/權狀字號"),
       ],
       "MOI_API_005 地籍建物所有權部",
+      isRecord(buildingOwnership.raw) ? buildingOwnership.raw : buildingOwnership,
+      verifiedTarget,
     ));
   }
 
@@ -377,6 +509,8 @@ export function buildRegistryPreviewSections(
         ),
       ],
       "MOI_API_003 土地他項權利 / MOI_API_006 建物他項權利",
+      isRecord(landRights.raw) ? landRights.raw : isRecord(buildingRights.raw) ? buildingRights.raw : { ...landRights, ...buildingRights },
+      verifiedTarget,
     ));
   }
 
@@ -390,5 +524,38 @@ export function summarizeRegistryPreview(sections: RegistryPreviewSection[]) {
     fieldCount,
     missingCount,
     statusText: fieldCount > 0 ? `已讀到 ${fieldCount} 個欄位` : EMPTY_MARK,
+  };
+}
+
+export function buildRegistryPreviewDiagnostics(sections: RegistryPreviewSection[]) {
+  const acquiredFields = sections.flatMap((section) =>
+    section.fields.map((field) => ({
+      sectionId: section.id,
+      sectionTitle: section.title,
+      label: field.label,
+      value: field.value,
+      target: field.target,
+    })),
+  );
+  const missingFields = sections.flatMap((section) =>
+    section.missingDetails.map((field) => ({
+      sectionId: section.id,
+      sectionTitle: section.title,
+      label: field.label,
+      target: field.target,
+      reasonCode: field.reasonCode,
+      reasonLabel: field.reasonLabel,
+    })),
+  );
+  return {
+    acquiredFields,
+    missingFields,
+    counts: {
+      acquired: acquiredFields.length,
+      missing: missingFields.length,
+      verifiedTargetFallback: missingFields.filter((field) => field.reasonCode === "verified_target_fallback").length,
+      upstreamMissing: missingFields.filter((field) => field.reasonCode === "upstream_missing").length,
+      mappingGap: missingFields.filter((field) => field.reasonCode === "mapping_gap").length,
+    },
   };
 }
