@@ -1,4 +1,7 @@
-import { normalizeRegistryPayloadForPreview } from "@/lib/registry-provenance";
+import {
+  isRegistryProvenancePayload,
+  normalizeRegistryPayloadForPreview,
+} from "@/lib/registry-provenance";
 
 export interface RegistryPreviewField {
   label: string;
@@ -146,6 +149,28 @@ function makeSection(
   return { id, title, source, internalSource, fields: visible, missing };
 }
 
+function getVerifiedTargetFallback(payload: RegistryRecord | null | undefined): {
+  sectionName?: string;
+  sectionCode?: string;
+  landNo?: string;
+  buildingNo?: string;
+} | null {
+  if (!isRegistryProvenancePayload(payload)) return null;
+  const match = payload.confirmed_registry_match;
+  if (!isRecord(match)) return null;
+  const sectionName = formatValue(match.section_name).trim();
+  const sectionCode = formatValue(match.section_code).trim();
+  const landNo = formatValue(match.land_no).trim();
+  const buildingNo = formatValue(match.building_no).trim();
+  if (!sectionName && !sectionCode && !landNo && !buildingNo) return null;
+  return {
+    sectionName: sectionName || undefined,
+    sectionCode: sectionCode || undefined,
+    landNo: landNo || undefined,
+    buildingNo: buildingNo || undefined,
+  };
+}
+
 export function buildRegistryPreviewSections(
   payload: RegistryRecord | null | undefined,
   now = new Date(),
@@ -153,7 +178,12 @@ export function buildRegistryPreviewSections(
   const normalizedPayload = normalizeRegistryPayloadForPreview(payload);
   if (!normalizedPayload) return [];
 
-  const land = unwrapApiData(normalizedPayload, "land_registry");
+  const verifiedTarget = getVerifiedTargetFallback(payload);
+  const land = {
+    ...unwrapApiData(normalizedPayload, "land_registry"),
+    ...(verifiedTarget?.sectionName ? { section: verifiedTarget.sectionName } : {}),
+    ...(verifiedTarget?.landNo ? { land_no: verifiedTarget.landNo, lot_number: verifiedTarget.landNo } : {}),
+  };
   const landOwnership = {
     ...unwrapApiData(normalizedPayload, "land_ownership"),
     ...unwrapApiData(normalizedPayload, "co_owners"),
@@ -162,7 +192,12 @@ export function buildRegistryPreviewSections(
     ...unwrapApiData(normalizedPayload, "land_other_rights"),
     ...unwrapApiData(normalizedPayload, "mortgages"),
   };
-  const building = unwrapApiData(normalizedPayload, "building_registry");
+  const building = {
+    ...unwrapApiData(normalizedPayload, "building_registry"),
+    ...(verifiedTarget?.buildingNo
+      ? { building_no: verifiedTarget.buildingNo, building_number: verifiedTarget.buildingNo, NO: verifiedTarget.buildingNo }
+      : {}),
+  };
   const buildingOwnership = unwrapApiData(normalizedPayload, "building_ownership");
   const buildingRights = unwrapApiData(normalizedPayload, "building_other_rights");
 

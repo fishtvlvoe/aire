@@ -158,4 +158,63 @@ describe("registry-preview", () => {
     expect(text).not.toContain("土地所有權部");
     expect(text).not.toContain("他項權利/抵押");
   });
+
+  it("falls back to verified target keys for section, land no, and building no when formal payload omits them", () => {
+    const sections = buildRegistryPreviewSections({
+      schema: "aire.registry-provenance.v1",
+      generatedAt: "2026-06-09T00:00:00.000Z",
+      confirmed_registry_match: {
+        office_code: "DC",
+        section_code: "1556",
+        section_name: "富強段",
+        land_no: "00700000",
+        building_no: "00204000",
+      },
+      entries: {
+        land_registry: {
+          apiId: "land_registry",
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data: {
+            data: {
+              registration_date: "1001103",
+              area: 1655.78,
+            },
+          },
+        },
+        building_registry: {
+          apiId: "building_registry",
+          source: "moi_api",
+          status: "success",
+          trustedForPdf: true,
+          data: {
+            data: {
+              building_address: "裕農路２８８巷１７號八樓之１",
+              land_no: "1556 / 00700000",
+              area: 83.61,
+            },
+          },
+        },
+      },
+    });
+
+    const landSection = sections.find((section) => section.id === "land_registry");
+    const buildingSection = sections.find((section) => section.id === "building_registry");
+
+    expect(landSection?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "地段", value: "富強段" }),
+        expect.objectContaining({ label: "地號", value: "00700000" }),
+      ]),
+    );
+    expect(buildingSection?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: "建號", value: "00204000" }),
+      ]),
+    );
+    expect(landSection?.missing).not.toContain("地段");
+    expect(landSection?.missing).not.toContain("地號");
+    expect(buildingSection?.missing).not.toContain("建號");
+  });
 });
