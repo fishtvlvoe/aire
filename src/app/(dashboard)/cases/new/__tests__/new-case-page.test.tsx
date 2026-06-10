@@ -928,6 +928,12 @@ describe("NewCasePage address-first flow", () => {
         trusted_for_pdf: false,
         discovery_confidence: "low",
         selection_reason: "floor_unit_unique_match",
+        building_area_sqm: "98.44",
+        total_floor_count: "008",
+        floor_label: "三層",
+        completion_date_roc: "0810914",
+        age_years: "33",
+        main_use: "住家用",
       },
     ]);
 
@@ -945,6 +951,10 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByLabelText("地段")).toHaveValue("");
     expect(screen.getByLabelText("地號")).toHaveValue("");
     expect(screen.getByLabelText("建號")).toHaveValue("");
+    expect(screen.getByRole("region", { name: "候選物件資料摘要" })).toBeInTheDocument();
+    expect(screen.getByText("98.44 平方公尺（29.78 坪）")).toBeInTheDocument();
+    expect(screen.getByText("三層")).toBeInTheDocument();
+    expect(screen.getByText("住家用")).toBeInTheDocument();
   });
 
   it("does not reuse a prior low-confidence address run as a fixed snapshot", async () => {
@@ -988,6 +998,12 @@ describe("NewCasePage address-first flow", () => {
         source: "easymap_r02",
         trusted_for_pdf: false,
         discovery_confidence: "low",
+        building_area_sqm: "98.44",
+        total_floor_count: "008",
+        floor_label: "三層",
+        completion_date_roc: "0810914",
+        age_years: "33",
+        main_use: "住家用",
       },
     ]);
 
@@ -1003,6 +1019,7 @@ describe("NewCasePage address-first flow", () => {
     });
     expect(screen.getByText("光明段")).toBeInTheDocument();
     expect(screen.queryByText("東光段")).not.toBeInTheDocument();
+    expect(screen.getByText("98.44 平方公尺（29.78 坪）")).toBeInTheDocument();
   });
 
   it("does not reuse a legacy building run without confidence metadata and keeps registry fields empty", async () => {

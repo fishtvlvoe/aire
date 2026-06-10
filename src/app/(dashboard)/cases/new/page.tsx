@@ -531,6 +531,23 @@ export default function NewCasePage() {
           </section>
         ) : null}
 
+        {classification && getCandidateObjectPreviewParcel(detectedParcels, selectedCandidateId) ? (
+          <section className="rounded-lg border border-slate-200 bg-slate-50/60 p-4" aria-label="候選物件資料摘要">
+            <strong className="block">候選物件資料</strong>
+            <p className="mt-1 text-sm text-muted-foreground">
+              已取得建物明細。這些資料可先供判讀，但尚未完成正式驗證。
+            </p>
+            <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {buildCandidateObjectPreviewRows(getCandidateObjectPreviewParcel(detectedParcels, selectedCandidateId)!).map((row) => (
+                <div key={row.label} className="rounded-md bg-white p-3">
+                  <dt className="text-muted-foreground">{row.label}</dt>
+                  <dd className="mt-1 font-medium">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : null}
+
         {classification && detectedParcels.length > 0 ? (
           <section className="rounded-lg border p-4" aria-label="候選資料清單">
             <strong className="block">候選資料清單</strong>
@@ -1486,6 +1503,57 @@ function getUniqueAutoSelectionMessage(parcels: ParcelInfo[]): string | null {
   return parcels[0]?.selection_reason === "floor_unit_unique_match"
     ? "已依樓層資訊自動確認建號"
     : null;
+}
+
+function getCandidateObjectPreviewParcel(
+  parcels: ParcelInfo[],
+  selectedCandidateId: string | null,
+): ParcelInfo | null {
+  const selectedParcel = selectedCandidateId
+    ? parcels.find((parcel) => getCandidateId(parcel) === selectedCandidateId) ?? null
+    : null;
+  const parcelWithDetails = parcels.find(hasCandidateObjectPreview);
+  if (selectedParcel && hasCandidateObjectPreview(selectedParcel)) return selectedParcel;
+  return parcelWithDetails ?? selectedParcel ?? null;
+}
+
+function hasCandidateObjectPreview(parcel: ParcelInfo): boolean {
+  return Boolean(
+    parcel.building_area_sqm?.trim() ||
+    parcel.floor_label?.trim() ||
+    parcel.total_floor_count?.trim() ||
+    parcel.main_use?.trim() ||
+    parcel.completion_date_roc?.trim() ||
+    parcel.age_years?.trim(),
+  );
+}
+
+function buildCandidateObjectPreviewRows(parcel: ParcelInfo): Array<{ label: string; value: string }> {
+  const rows: Array<{ label: string; value: string }> = [];
+  const areaSqm = formatOptionalNumber(parcel.building_area_sqm);
+  const areaPing = m2ToPingNumber(parcel.building_area_sqm);
+  if (areaSqm !== "—") {
+    rows.push({
+      label: "建物面積",
+      value: areaPing ? `${areaSqm} 平方公尺（${areaPing.toFixed(2)} 坪）` : `${areaSqm} 平方公尺`,
+    });
+  }
+  if (parcel.floor_label?.trim()) {
+    rows.push({ label: "樓層", value: parcel.floor_label.trim() });
+  }
+  if (parcel.total_floor_count?.trim()) {
+    rows.push({ label: "總樓層", value: String(parcel.total_floor_count).trim() });
+  }
+  if (parcel.main_use?.trim()) {
+    rows.push({ label: "主要用途", value: parcel.main_use.trim() });
+  }
+  if (parcel.completion_date_roc?.trim()) {
+    rows.push({ label: "建物完成日", value: parcel.completion_date_roc.trim() });
+  }
+  if (parcel.age_years?.trim()) {
+    rows.push({ label: "屋齡", value: `${parcel.age_years.trim()} 年` });
+  }
+  return rows;
 }
 
 function getRealPriceErrorMessage(error: unknown): string {
