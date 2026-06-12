@@ -73,6 +73,17 @@ interface EasyMapAddressParts {
   floorUnit: string;
 }
 
+interface EasyMapAddressPartsWithoutDistrict {
+  cityName: string;
+  cityCode: string;
+  roadName: string;
+  laneName: string;
+  alleyName: string;
+  no: string;
+  floorNumber: string;
+  floorUnit: string;
+}
+
 interface EasyMapDoorplate {
   doorplate: string;
 }
@@ -173,52 +184,51 @@ class EasyMapClient {
     if (classification.inputKind === "land_descriptor") {
       return this.discoverLandDescriptor(address, classification.parsedInput);
     }
-    if (classification.inputKind !== "doorplate") {
+    if (classification.inputKind !== "doorplate" && !parseTaiwanAddressWithoutDistrict(address)) {
       throw new Error("address_parse_failed");
     }
     return this.discoverDoorplate(address);
   }
 
   private async discoverDoorplate(address: string): Promise<EasyMapDiscoveryPayload> {
-    const parts = parseTaiwanAddress(address);
-    const prefersR02BuildingCandidate = Boolean(parts?.floorNumber);
-
-    if (prefersR02BuildingCandidate) {
-      const r02Primary = await this.tryDiscoverDoorplateViaR02(address);
-      let z10Verification: EasyMapDiscoveryPayload = { candidates: [], errors: [] };
-      try {
-        z10Verification = await this.discoverDoorplateViaZ10Web(address);
-      } catch (error) {
-        z10Verification = {
-          candidates: [],
-          errors: [normalizeEasyMapUpstreamError(error, "easymap_z10web")],
-        };
-      }
-
-      if (r02Primary.candidates.length > 0) {
-        const candidates = selectDoorplateCandidates(address, z10Verification.candidates, r02Primary);
-        return {
-          candidates,
-          errors: [
-            ...z10Verification.errors,
-            ...buildR02CrossCheckDiagnostics(z10Verification.candidates, r02Primary),
-          ],
-        };
-      }
-
-      if (z10Verification.candidates.length > 0) {
-        const candidates = filterZ10CandidatesWithR02UnitMatch(address, z10Verification.candidates, r02Primary);
-        return {
-          candidates,
-          errors: [
-            ...z10Verification.errors,
-            ...r02Primary.errors,
-          ],
-        };
-      }
-
+    const resolved = await this.resolveDoorplateAddressParts(address);
+    if (!resolved.parts) {
       return {
         candidates: [],
+        errors: [resolved.error ?? {
+          source: "local_discovery",
+          code: "address_parse_failed",
+          message: "地址格式無法判讀，請人工確認地段、地號或建號",
+        }],
+      };
+    }
+    const parts = resolved.parts;
+    const r02Primary = await this.tryDiscoverDoorplateViaR02(address, parts);
+    let z10Verification: EasyMapDiscoveryPayload = { candidates: [], errors: [] };
+    try {
+      z10Verification = await this.discoverDoorplateViaZ10Web(address, parts);
+    } catch (error) {
+      z10Verification = {
+        candidates: [],
+        errors: [normalizeEasyMapUpstreamError(error, "easymap_z10web")],
+      };
+    }
+
+    if (r02Primary.candidates.length > 0) {
+      const candidates = selectDoorplateCandidates(address, z10Verification.candidates, r02Primary);
+      return {
+        candidates,
+        errors: [
+          ...z10Verification.errors,
+          ...buildR02CrossCheckDiagnostics(z10Verification.candidates, r02Primary),
+        ],
+      };
+    }
+
+    if (z10Verification.candidates.length > 0) {
+      const candidates = filterZ10CandidatesWithR02UnitMatch(address, z10Verification.candidates, r02Primary);
+      return {
+        candidates,
         errors: [
           ...z10Verification.errors,
           ...r02Primary.errors,
@@ -226,49 +236,96 @@ class EasyMapClient {
       };
     }
 
-    let z10Result: EasyMapDiscoveryPayload | null = null;
-    try {
-      z10Result = await this.discoverDoorplateViaZ10Web(address);
-      if (z10Result.candidates.length > 0) {
-        const r02Verification = await this.tryDiscoverDoorplateViaR02(address);
-        const candidates = filterZ10CandidatesWithR02UnitMatch(address, z10Result.candidates, r02Verification);
-        return {
-          candidates,
-          errors: [
-            ...z10Result.errors,
-            ...buildR02CrossCheckDiagnostics(candidates, r02Verification),
-          ],
-        };
-      }
-    } catch (error) {
-      z10Result = {
-        candidates: [],
-        errors: [normalizeEasyMapUpstreamError(error, "easymap_z10web")],
+    return {
+      candidates: [],
+      errors: [
+        ...z10Verification.errors,
+        ...r02Primary.errors,
+      ],
+    };
+  }
+
+  private async resolveDoorplateAddressParts(address: string): Promise<{
+    parts: EasyMapAddressParts | null;
+    error?: DiscoveryError;
+  }> {
+    const direct = parseTaiwanAddress(address);
+    if (direct) return { parts: direct };
+
+    const withoutDistrict = parseTaiwanAddressWithoutDistrict(address);
+    if (!withoutDistrict) {
+      return {
+        parts: null,
+        error: {
+          source: "local_discovery",
+          code: "address_parse_failed",
+          message: "地址格式無法判讀，請人工確認地段、地號或建號",
+        },
       };
     }
 
-    const r02Fallback = await this.tryDiscoverDoorplateViaR02(address);
-    if (r02Fallback.candidates.length > 0) {
+    const districtResolution = await this.resolveUniqueDoorplateDistrict(withoutDistrict);
+    if (!districtResolution.district) {
       return {
-        candidates: r02Fallback.candidates,
-        errors: [
-          ...z10Result.errors,
-          {
-            source: "easymap_z10web",
-            code: "easymap_z10web_fallback_to_r02",
-            message: "Z10Web 未取得候選，已改用 R02 便民系統結果",
-          },
-          ...r02Fallback.errors,
-        ],
+        parts: null,
+        error: districtResolution.error,
       };
     }
 
     return {
-      candidates: [],
-      errors: [
-        ...z10Result.errors,
-        ...r02Fallback.errors,
-      ],
+      parts: {
+        ...withoutDistrict,
+        townName: districtResolution.district,
+      },
+    };
+  }
+
+  private async resolveUniqueDoorplateDistrict(
+    parts: EasyMapAddressPartsWithoutDistrict,
+  ): Promise<{
+    district: string | null;
+    error: DiscoveryError;
+  }> {
+    await this.r02RequestText("/Index", { method: "GET", withToken: false });
+    const towns = await this.listR02TownOptions(parts.cityCode);
+    const matchedDistricts: string[] = [];
+
+    for (const town of towns) {
+      const road = await this.resolveR02Road(parts.cityCode, town.id, parts.roadName);
+      if (road) {
+        matchedDistricts.push(town.name);
+      }
+    }
+
+    if (matchedDistricts.length === 1) {
+      return {
+        district: matchedDistricts[0] ?? null,
+        error: {
+          source: "local_discovery",
+          code: "address_incomplete_missing_district",
+          message: "地址缺少行政區，請補上區、鄉、鎮或市後再查詢",
+        },
+      };
+    }
+
+    if (matchedDistricts.length > 1) {
+      return {
+        district: null,
+        error: {
+          source: "local_discovery",
+          code: "address_incomplete_ambiguous_district",
+          message: `地址缺少行政區，可能是：${matchedDistricts.join("、")}，請補上正確行政區後再查詢`,
+        },
+      };
+    }
+
+    return {
+      district: null,
+      error: {
+        source: "local_discovery",
+        code: "address_incomplete_missing_district",
+        message: "地址缺少行政區，請補上區、鄉、鎮或市後再查詢",
+      },
     };
   }
 
@@ -281,8 +338,11 @@ class EasyMapClient {
    * 5. POST Land_json_getMapImageLayersByCoord → cityCode/townCode/office/sectNo/sectName/landNo
    * 6. POST LandDesc_ajax_detail → HTML 詳情（面積/公告現值/公告地價/建號）
    */
-  private async discoverDoorplateViaZ10Web(address: string): Promise<EasyMapDiscoveryPayload> {
-    const parts = parseTaiwanAddress(address);
+  private async discoverDoorplateViaZ10Web(
+    address: string,
+    resolvedParts?: EasyMapAddressParts,
+  ): Promise<EasyMapDiscoveryPayload> {
+    const parts = resolvedParts ?? parseTaiwanAddress(address);
     if (!parts) {
       throw new Error("address_parse_failed");
     }
@@ -375,9 +435,12 @@ class EasyMapClient {
     };
   }
 
-  private async tryDiscoverDoorplateViaR02(address: string): Promise<EasyMapDiscoveryPayload> {
+  private async tryDiscoverDoorplateViaR02(
+    address: string,
+    parts?: EasyMapAddressParts,
+  ): Promise<EasyMapDiscoveryPayload> {
     try {
-      return await this.discoverDoorplateViaR02(address);
+      return await this.discoverDoorplateViaR02(address, parts);
     } catch (error) {
       return {
         candidates: [],
@@ -386,8 +449,11 @@ class EasyMapClient {
     }
   }
 
-  private async discoverDoorplateViaR02(address: string): Promise<EasyMapDiscoveryPayload> {
-    const parts = parseTaiwanAddress(address);
+  private async discoverDoorplateViaR02(
+    address: string,
+    resolvedParts?: EasyMapAddressParts,
+  ): Promise<EasyMapDiscoveryPayload> {
+    const parts = resolvedParts ?? parseTaiwanAddress(address);
     if (!parts) {
       throw new Error("address_parse_failed");
     }
@@ -923,21 +989,24 @@ class EasyMapClient {
     throw new Error("easymap_z10web_town_not_found");
   }
 
+  private async listR02TownOptions(cityCode: string): Promise<EasyMapTownOption[]> {
+    const cityName = Object.entries(CITY_CODE_BY_NAME).find(([, code]) => code === cityCode)?.[0] ?? "";
+    const payload = await this.r02RequestText("/City_json_getTownList", {
+      method: "POST",
+      token: await this.r02LoadToken(),
+      body: {
+        cityCode,
+        cityName,
+        doorPlateType: "A",
+      },
+    });
+    return parseEasyMapTownListPayload(payload);
+  }
+
   private async resolveTownCode(cityCode: string, townName: string): Promise<string> {
     const fallbackCode = lookupKnownTownCode(cityCode, townName);
-    // 取 cityName 做反查（R02 的 getTownList 需要 cityName + doorPlateType 才會回傳完整鄉鎮清單）
-    const cityName = Object.entries(CITY_CODE_BY_NAME).find(([, code]) => code === cityCode)?.[0] ?? "";
     try {
-      const payload = await this.r02RequestText("/City_json_getTownList", {
-        method: "POST",
-        token: await this.r02LoadToken(),
-        body: {
-          cityCode,
-          cityName,
-          doorPlateType: "A", // A = 地政門牌（預設）
-        },
-      });
-      const towns = parseEasyMapTownListPayload(payload);
+      const towns = await this.listR02TownOptions(cityCode);
       const normalizedTarget = normalizeAdministrativeName(townName);
       const town = towns.find((item) => normalizeAdministrativeName(item.name) === normalizedTarget);
       if (town) {
@@ -1227,7 +1296,7 @@ function selectDoorplateCandidates(
 ): ParcelInfo[] {
   const exactMerged = mergeR02CandidatesWithExactZ10Support(z10Candidates, r02Result.candidates);
   if (exactMerged.length === r02Result.candidates.length && exactMerged.length > 0) {
-    return normalizeParcelCandidateMetadata(exactMerged);
+    return normalizeParcelCandidateMetadata(downgradeCandidatesWithoutFloorUnitEvidence(address, exactMerged));
   }
 
   if (r02Result.candidates.length > 0) {
@@ -1238,20 +1307,21 @@ function selectDoorplateCandidates(
   }
 
   if (r02Result.candidates.length > 0 && z10Candidates.length === 0) {
-    return normalizeParcelCandidateMetadata(r02Result.candidates);
+    return normalizeParcelCandidateMetadata(downgradeCandidatesWithoutFloorUnitEvidence(address, r02Result.candidates));
   }
 
   if (r02Result.candidates.length > 0) {
-    return normalizeParcelCandidateMetadata(
+    return normalizeParcelCandidateMetadata(downgradeCandidatesWithoutFloorUnitEvidence(
+      address,
       r02Result.candidates.map((candidate) => ({
         ...candidate,
         discovery_confidence: "low",
         confirmation_state: "unconfirmed",
       })),
-    );
+    ));
   }
 
-  return z10Candidates;
+  return downgradeCandidatesWithoutFloorUnitEvidence(address, z10Candidates);
 }
 
 function mergeR02CandidatesWithExactZ10Support(
@@ -1308,7 +1378,7 @@ function filterZ10CandidatesWithR02UnitMatch(
     return z10Candidates;
   }
   const matchedByR02 = filterCandidatesByR02Keys(z10Candidates, r02Result.candidates);
-  const uniqueR02Match = maybeMarkUniqueFloorUnitMatch(matchedByR02);
+  const uniqueR02Match = maybeMarkUniqueFloorUnitMatch(address, matchedByR02);
   if (uniqueR02Match) {
     return uniqueR02Match;
   }
@@ -1328,12 +1398,14 @@ function filterZ10CandidatesWithR02UnitMatch(
 
   const floorLabelCandidates = matchedByR02.length > 0 ? matchedByR02 : z10Candidates;
   const matchedByFloorLabel = filterCandidatesByFloorLabel(address, floorLabelCandidates);
-  const uniqueFloorLabelMatch = maybeMarkUniqueFloorUnitMatch(matchedByFloorLabel);
+  const uniqueFloorLabelMatch = maybeMarkUniqueFloorUnitMatch(address, matchedByFloorLabel);
   if (uniqueFloorLabelMatch) {
     return uniqueFloorLabelMatch;
   }
 
-  return matchedByR02.length > 1 ? normalizeParcelCandidateMetadata(matchedByR02) : z10Candidates;
+  return matchedByR02.length > 1
+    ? normalizeParcelCandidateMetadata(downgradeCandidatesWithoutFloorUnitEvidence(address, matchedByR02))
+    : downgradeCandidatesWithoutFloorUnitEvidence(address, z10Candidates);
 }
 
 function filterCandidatesByR02Keys(
@@ -1365,14 +1437,39 @@ function filterCandidatesByFloorLabel(address: string, candidates: ParcelInfo[])
   return matched.length > 0 ? matched : candidates;
 }
 
-function maybeMarkUniqueFloorUnitMatch(candidates: ParcelInfo[]): ParcelInfo[] | null {
+function maybeMarkUniqueFloorUnitMatch(address: string, candidates: ParcelInfo[]): ParcelInfo[] | null {
   if (candidates.length !== 1) return null;
+  if (!candidateHasMatchingFloorUnitEvidence(address, candidates[0])) return null;
   return normalizeParcelCandidateMetadata([
     {
       ...candidates[0],
       selection_reason: "floor_unit_unique_match",
     },
   ]);
+}
+
+function downgradeCandidatesWithoutFloorUnitEvidence(address: string, candidates: ParcelInfo[]): ParcelInfo[] {
+  const targetFloorKey = extractFloorKey(address);
+  if (!targetFloorKey) return candidates;
+  return candidates.map((candidate) => {
+    if (candidateHasMatchingFloorUnitEvidence(address, candidate)) {
+      return candidate;
+    }
+    return {
+      ...candidate,
+      discovery_confidence: "low",
+      confirmation_state: "unconfirmed",
+    };
+  });
+}
+
+function candidateHasMatchingFloorUnitEvidence(address: string, candidate: ParcelInfo): boolean {
+  const targetFloorKey = extractFloorKey(address);
+  if (!targetFloorKey) return true;
+  return (
+    extractFloorKey(candidate.address) === targetFloorKey
+    || extractFloorLabelKey(candidate.floor_label) === targetFloorKey
+  );
 }
 
 function registryCandidateKey(candidate: ParcelInfo): string {
@@ -1549,9 +1646,11 @@ export async function discoverAddressLocally(
 
   const useCache = options.cache !== false;
   const cachedResult = useCache ? await readAddressDiscoveryCache(normalized) : null;
+  let latestDiscoveryErrors: DiscoveryError[] = [];
 
   try {
     const discovery = await new EasyMapClient().discover(normalized);
+    latestDiscoveryErrors = discovery.errors;
     const candidates = discovery.candidates;
     if (candidates.length > 0) {
       const classification = classifyDiscoveryInput(normalized);
@@ -1629,6 +1728,7 @@ export async function discoverAddressLocally(
   const run = await getLatestDiscoveryRun(normalized);
   const runErrors = run?.candidate_json?.errors ?? [];
   const statusError =
+    latestDiscoveryErrors[0] ??
     runErrors[0] ??
     {
       source: "easymap_r02",
@@ -2065,6 +2165,39 @@ function parseTaiwanAddress(address: string): EasyMapAddressParts | null {
     cityName,
     cityCode,
     townName: match.groups.town,
+    roadName,
+    laneName,
+    alleyName,
+    no: noMatch.groups.no,
+    floorNumber: floor.floorNumber,
+    floorUnit: floor.floorUnit,
+  };
+}
+
+function parseTaiwanAddressWithoutDistrict(address: string): EasyMapAddressPartsWithoutDistrict | null {
+  const normalized = normalizeDiscoveryAddressText(address);
+  const match = normalized.match(/^(?<city>[^縣市]+[縣市])(?<rest>.+)$/);
+  if (!match?.groups) return null;
+  if (/^[^區鄉鎮市]+[區鄉鎮市]/.test(match.groups.rest)) return null;
+  const cityName = match.groups.city.replace(/^台/, "臺");
+  const cityCode = CITY_CODE_BY_NAME[cityName] ?? CITY_CODE_BY_NAME[cityName.replace(/^臺/, "台")];
+  if (!cityCode) return null;
+  const rest = match.groups.rest.replace(/^\S+?里\d*鄰/, "").replace(/^\S+?里/, "");
+  const noMatch = rest.match(/(?<no>\d+(?:-\d+)?)號/);
+  if (!noMatch?.groups) return null;
+  const afterNo = rest.slice((noMatch.index ?? 0) + noMatch[0].length);
+  const floor = parseFloorSuffix(afterNo);
+  const beforeNo = rest.slice(0, noMatch.index);
+  const alleyMatch = beforeNo.match(/(\d+)弄$/);
+  const beforeAlley = alleyMatch ? beforeNo.slice(0, alleyMatch.index) : beforeNo;
+  const laneMatch = beforeAlley.match(/(\d+)巷$/);
+  const roadName = laneMatch ? beforeAlley.slice(0, laneMatch.index) : beforeAlley;
+  const laneName = laneMatch?.[1] ?? "";
+  const alleyName = alleyMatch?.[1] ?? "";
+  if (!roadName) return null;
+  return {
+    cityName,
+    cityCode,
     roadName,
     laneName,
     alleyName,

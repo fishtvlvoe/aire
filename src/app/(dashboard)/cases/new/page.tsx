@@ -69,6 +69,7 @@ type LookupState =
   | "idle"
   | "running"
   | "slow_source"
+  | "incomplete_address"
   | "source_error"
   | "no_data"
   | "manual_required"
@@ -219,14 +220,22 @@ export default function NewCasePage() {
       setDuplicateCase(await findDuplicateCaseByRegistryMatch(nextRegistryMatch));
       return result;
     } catch (error) {
-      const result = buildManualRegistryClassification(values.address);
+      const incompleteAddressMessage = getIncompleteAddressLookupMessage(error);
+      const result = buildManualRegistryClassification(
+        values.address,
+        incompleteAddressMessage
+          ? incompleteAddressMessage
+          : undefined,
+      );
       setDetectedParcels([]);
       setClassification(result);
-      setLookupState("source_error");
+      setLookupState(incompleteAddressMessage ? "incomplete_address" : "source_error");
       const isBrowserProviderUnavailable = error instanceof BrowserAddressDiscoveryUnavailableError;
       setLookupDebugDetail(buildLookupDebugDetail(error));
       setRegistryDetectMessage(
-        isBrowserProviderUnavailable
+        incompleteAddressMessage
+          ? incompleteAddressMessage
+          : isBrowserProviderUnavailable
           ? error.message
           : error instanceof Error
             ? `這次地址補齊沒有成功，請先人工填寫地段、地號、建號。${error.message ? `（${error.message}）` : ""}`
@@ -494,7 +503,7 @@ export default function NewCasePage() {
               ) : null}
               {lookupDebugDetail ? (
                 <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
-                  <p className="font-medium">除錯資訊</p>
+                  <p className="font-medium">支援追查編號</p>
                   <p className="mt-1 break-all">{lookupDebugDetail}</p>
                 </div>
               ) : null}
@@ -1245,14 +1254,18 @@ function buildManualRegistryClassification(
   summary = "地政查無可判斷資料，請人工確認土地或建物",
 ): AddressFirstClassification {
   const fallback = getAddressFirstClassification(address);
+  const preserveBuildingHint = looksLikeBuildingAddress(address);
   return {
-    ...fallback,
+    ...(preserveBuildingHint ? fallback : {
+      ...fallback,
+      displayType: "需要人工確認",
+      landCount: 0,
+      buildingCount: 0,
+    }),
     status: "manual_required",
-    displayType: "需要人工確認",
+    displayType: preserveBuildingHint && fallback.buildingCount > 0 ? "建物需確認" : preserveBuildingHint ? fallback.displayType : "需要人工確認",
     summary,
     manualSelectionRequired: true,
-    landCount: 0,
-    buildingCount: 0,
     note: "查不到可信候選資料時，請先人工確認後再建立案件。",
   };
 }
@@ -1407,6 +1420,7 @@ function canRetryLookup(
   realPriceRecordsCount: number,
 ): boolean {
   if (lookupState === "running") return false;
+  if (lookupState === "incomplete_address") return false;
   if (lookupState === "source_error" || lookupState === "slow_source" || lookupState === "no_data") return true;
   if (realPriceError) return true;
   if (realPriceQueried && realPriceRecordsCount === 0) return true;
@@ -1420,6 +1434,8 @@ function getLookupStateTitle(lookupState: LookupState, usedExistingRegistryData:
       return "查詢中";
     case "slow_source":
       return "外部來源回應較慢";
+    case "incomplete_address":
+      return "地址需要補完整";
     case "source_error":
       return "這次查詢沒有成功";
     case "no_data":
@@ -1451,6 +1467,8 @@ function getLookupStateDescription(
       return "系統正在向外部資料來源取得地段、地號、建號、坪數與附近成交資料。";
     case "slow_source":
       return "查詢已超過 60 秒，可能是網路或外部來源延遲。你可以繼續等待，或按重新查詢再試一次。";
+    case "incomplete_address":
+      return "目前地址缺少行政區資訊，請先補上區、鄉、鎮或市後再重新查詢。";
     case "source_error":
       return "這次查詢可能是網路或外部來源問題，不一定代表真的沒有資料。你可以重新查詢一次。";
     case "no_data":
@@ -1474,14 +1492,20 @@ function getLookupStateDescription(
 
 function buildLookupDebugDetail(error: unknown): string {
   if (error instanceof BrowserAddressDiscoveryUnavailableError) {
-    return error.detail
-      ? `地址補齊代理失敗：${error.detail}`
-      : "地址補齊代理失敗：browser_address_discovery_provider_unavailable";
+    return error.requestId ? `查詢編號：${error.requestId}` : "";
   }
-  if (error instanceof Error) {
-    return `地址補齊失敗：${error.message}`;
+  return "";
+}
+
+function getIncompleteAddressLookupMessage(error: unknown): string | null {
+  if (!(error instanceof Error)) return null;
+  if (error.message.startsWith("address_incomplete_missing_district:")) {
+    return error.message.slice("address_incomplete_missing_district:".length).trim();
   }
-  return `地址補齊失敗：${String(error ?? "unknown_error")}`;
+  if (error.message.startsWith("address_incomplete_ambiguous_district:")) {
+    return error.message.slice("address_incomplete_ambiguous_district:".length).trim();
+  }
+  return null;
 }
 
 function buildRealPriceDebugDetail(error: unknown, address: string): string {
@@ -1501,7 +1525,7 @@ function buildRealPriceDebugDetail(error: unknown, address: string): string {
 function getUniqueAutoSelectionMessage(parcels: ParcelInfo[]): string | null {
   if (parcels.length !== 1) return null;
   return parcels[0]?.selection_reason === "floor_unit_unique_match"
-    ? "已依樓層資訊自動確認建號"
+    ? "已依樓層資訊縮小到單一建號，仍需正式驗證"
     : null;
 }
 

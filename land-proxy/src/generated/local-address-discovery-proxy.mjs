@@ -3807,7 +3807,7 @@ function buildR02CrossCheckDiagnostics(z10Candidates, r02Result) {
 function selectDoorplateCandidates(address, z10Candidates, r02Result) {
   const exactMerged = mergeR02CandidatesWithExactZ10Support(z10Candidates, r02Result.candidates);
   if (exactMerged.length === r02Result.candidates.length && exactMerged.length > 0) {
-    return normalizeParcelCandidateMetadata(exactMerged);
+    return normalizeParcelCandidateMetadata(downgradeCandidatesWithoutFloorUnitEvidence(address, exactMerged));
   }
   if (r02Result.candidates.length > 0) {
     const filtered = filterZ10CandidatesWithR02UnitMatch(address, z10Candidates, r02Result);
@@ -3816,18 +3816,19 @@ function selectDoorplateCandidates(address, z10Candidates, r02Result) {
     }
   }
   if (r02Result.candidates.length > 0 && z10Candidates.length === 0) {
-    return normalizeParcelCandidateMetadata(r02Result.candidates);
+    return normalizeParcelCandidateMetadata(downgradeCandidatesWithoutFloorUnitEvidence(address, r02Result.candidates));
   }
   if (r02Result.candidates.length > 0) {
-    return normalizeParcelCandidateMetadata(
+    return normalizeParcelCandidateMetadata(downgradeCandidatesWithoutFloorUnitEvidence(
+      address,
       r02Result.candidates.map((candidate) => ({
         ...candidate,
         discovery_confidence: "low",
         confirmation_state: "unconfirmed"
       }))
-    );
+    ));
   }
-  return z10Candidates;
+  return downgradeCandidatesWithoutFloorUnitEvidence(address, z10Candidates);
 }
 function mergeR02CandidatesWithExactZ10Support(z10Candidates, r02Candidates) {
   if (r02Candidates.length === 0 || z10Candidates.length === 0) return [];
@@ -3872,7 +3873,7 @@ function filterZ10CandidatesWithR02UnitMatch(address, z10Candidates, r02Result) 
     return z10Candidates;
   }
   const matchedByR02 = filterCandidatesByR02Keys(z10Candidates, r02Result.candidates);
-  const uniqueR02Match = maybeMarkUniqueFloorUnitMatch(matchedByR02);
+  const uniqueR02Match = maybeMarkUniqueFloorUnitMatch(address, matchedByR02);
   if (uniqueR02Match) {
     return uniqueR02Match;
   }
@@ -3886,11 +3887,11 @@ function filterZ10CandidatesWithR02UnitMatch(address, z10Candidates, r02Result) 
   }
   const floorLabelCandidates = matchedByR02.length > 0 ? matchedByR02 : z10Candidates;
   const matchedByFloorLabel = filterCandidatesByFloorLabel(address, floorLabelCandidates);
-  const uniqueFloorLabelMatch = maybeMarkUniqueFloorUnitMatch(matchedByFloorLabel);
+  const uniqueFloorLabelMatch = maybeMarkUniqueFloorUnitMatch(address, matchedByFloorLabel);
   if (uniqueFloorLabelMatch) {
     return uniqueFloorLabelMatch;
   }
-  return matchedByR02.length > 1 ? normalizeParcelCandidateMetadata(matchedByR02) : z10Candidates;
+  return matchedByR02.length > 1 ? normalizeParcelCandidateMetadata(downgradeCandidatesWithoutFloorUnitEvidence(address, matchedByR02)) : downgradeCandidatesWithoutFloorUnitEvidence(address, z10Candidates);
 }
 function filterCandidatesByR02Keys(z10Candidates, r02Candidates) {
   if (r02Candidates.length === 0) return [];
@@ -3910,14 +3911,34 @@ function filterCandidatesByFloorLabel(address, candidates) {
   const matched = candidates.filter((candidate) => extractFloorLabelKey(candidate.floor_label) === targetFloorKey);
   return matched.length > 0 ? matched : candidates;
 }
-function maybeMarkUniqueFloorUnitMatch(candidates) {
+function maybeMarkUniqueFloorUnitMatch(address, candidates) {
   if (candidates.length !== 1) return null;
+  if (!candidateHasMatchingFloorUnitEvidence(address, candidates[0])) return null;
   return normalizeParcelCandidateMetadata([
     {
       ...candidates[0],
       selection_reason: "floor_unit_unique_match"
     }
   ]);
+}
+function downgradeCandidatesWithoutFloorUnitEvidence(address, candidates) {
+  const targetFloorKey = extractFloorKey(address);
+  if (!targetFloorKey) return candidates;
+  return candidates.map((candidate) => {
+    if (candidateHasMatchingFloorUnitEvidence(address, candidate)) {
+      return candidate;
+    }
+    return {
+      ...candidate,
+      discovery_confidence: "low",
+      confirmation_state: "unconfirmed"
+    };
+  });
+}
+function candidateHasMatchingFloorUnitEvidence(address, candidate) {
+  const targetFloorKey = extractFloorKey(address);
+  if (!targetFloorKey) return true;
+  return extractFloorKey(candidate.address) === targetFloorKey || extractFloorLabelKey(candidate.floor_label) === targetFloorKey;
 }
 function registryCandidateKey(candidate) {
   const office = String(candidate.land_office ?? "").trim();

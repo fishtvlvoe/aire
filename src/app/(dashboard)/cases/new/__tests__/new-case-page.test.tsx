@@ -91,7 +91,13 @@ vi.mock("@/lib/real-price-query", async (importOriginal) => {
 
 import NewCasePage from "../page";
 import { casesApi } from "@/lib/cases-api";
-import { addressLookup, confirmCaseRegistryMatch, listRegistryQueryRuns, paidAddressResolver } from "@/lib/land-registry-api";
+import {
+  addressLookup,
+  BrowserAddressDiscoveryUnavailableError,
+  confirmCaseRegistryMatch,
+  listRegistryQueryRuns,
+  paidAddressResolver,
+} from "@/lib/land-registry-api";
 import { safeInvoke } from "@/lib/safe-invoke";
 import { queryRealPrice } from "@/lib/real-price-query";
 
@@ -518,7 +524,7 @@ describe("NewCasePage address-first flow", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("建號")).toHaveValue("00204000");
     });
-    expect(screen.getByText("已依樓層資訊自動確認建號")).toBeInTheDocument();
+    expect(screen.getByText("已依樓層資訊縮小到單一建號，仍需正式驗證")).toBeInTheDocument();
     expect(screen.queryByRole("radiogroup", { name: "候選物件資料" })).not.toBeInTheDocument();
   });
 
@@ -1392,8 +1398,13 @@ describe("NewCasePage address-first flow", () => {
     expect(screen.getByLabelText("建號")).toHaveValue("");
   });
 
-  it("shows debug detail for lookup and real-price failures", async () => {
-    mockAddressLookup.mockRejectedValue(new Error("Failed to fetch"));
+  it("shows only request id for address discovery failure while keeping real-price debug detail", async () => {
+    mockAddressLookup.mockRejectedValue(
+      new BrowserAddressDiscoveryUnavailableError(
+        "browser_fetch_failed request_id=req-timeout-123 | url=https://aire-land.opcos.me/api/address-discovery | origin=https://aire-browser.opcos.me | headers=Content-Type,Authorization,x-aire-client-request-id | error=signal timed out",
+        { requestId: "req-timeout-123" },
+      ),
+    );
     mockQueryRealPrice.mockRejectedValue(new Error("官方成交資料暫時無法取得：台南市 HTTP 503"));
     render(<NewCasePage />);
 
@@ -1403,9 +1414,49 @@ describe("NewCasePage address-first flow", () => {
     fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
 
     await waitFor(() => {
-      expect(screen.getAllByText("除錯資訊").length).toBeGreaterThan(0);
+      expect(screen.getByText("支援追查編號")).toBeInTheDocument();
     });
-    expect(screen.getByText(/地址補齊失敗：Failed to fetch/)).toBeInTheDocument();
+    expect(screen.getByText("查詢編號：req-timeout-123")).toBeInTheDocument();
+    expect(screen.queryByText(/url=https:\/\/aire-land\.opcos\.me\/api\/address-discovery/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/signal timed out/)).not.toBeInTheDocument();
     expect(screen.getByText(/實價登錄服務失敗：官方成交資料暫時無法取得：台南市 HTTP 503 \| address=台南市永康區勝利街58巷4號/)).toBeInTheDocument();
+  });
+
+  it("keeps building-first fallback when a doorplate address lookup fails", async () => {
+    mockAddressLookup.mockRejectedValue(
+      new BrowserAddressDiscoveryUnavailableError(
+        "browser_fetch_failed request_id=req-timeout-580 | error=signal timed out",
+        { requestId: "req-timeout-580" },
+      ),
+    );
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永康區永華路580號5樓之3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("建物需確認").length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText("土地 2 筆 · 建物 1 筆")).toBeInTheDocument();
+    expect(screen.getByText("查詢編號：req-timeout-580")).toBeInTheDocument();
+  });
+
+  it("shows an incomplete-address message instead of generic no-data when district information is missing", async () => {
+    mockAddressLookup.mockRejectedValue(
+      new Error("address_incomplete_missing_district:地址缺少行政區，請補上完整行政區後再重新查詢。"),
+    );
+    render(<NewCasePage />);
+
+    fireEvent.change(screen.getByLabelText("地址 *"), {
+      target: { value: "台南市永華路580號5樓之3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "查詢物件資料" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/行政區/).length).toBeGreaterThan(0);
+    });
+    expect(screen.queryByText("本次沒有取得可用資料。可能是真的沒有資料，也可能是外部來源暫時沒有回應，你可以重新查詢一次。")).not.toBeInTheDocument();
   });
 });

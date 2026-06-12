@@ -490,7 +490,7 @@ export function classifyAddressLookupResult(
   const lowConfidenceCandidate =
     parcel.discovery_confidence === "low" || parcel.selection_reason === "floor_unit_unique_match";
   const hasBuilding = Boolean(parcel.building_number?.trim());
-  const addressLooksLikeBuilding = /(\d+樓(?:之\d+)?|公寓|大樓|華廈|透天|別墅|套房)/.test(address);
+  const addressLooksLikeBuilding = /(號|樓|公寓|大樓|華廈|透天|別墅|套房)/.test(address) && !/地號|土地|農地/.test(address);
   const isFarmhouse = /農舍/.test(parcel.address ?? address);
   const propertyType = inferPropertyTypeFromRegistryFields({
     hasBuilding,

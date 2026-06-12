@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-02T13:35:15.925Z",
+  "generatedAt": "2026-06-03T12:53:22.787Z",
   "matrix": [
     {
       "id": "tainan-doorplate",
@@ -25,13 +25,14 @@
         "building_number": "",
         "discovery_confidence": "high",
         "object_type": "land",
-        "confirmation_state": "unconfirmed"
+        "confirmation_state": "unconfirmed",
+        "selection_reason": "floor_unit_unique_match"
       },
       "errors": [
         {
           "source": "easymap_r02",
-          "code": "easymap_http_500",
-          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+          "code": "easymap_r02_z10web_mismatch",
+          "message": "R02 舊便民系統與 Z10Web 候選不一致：Z10Web=DC/1514/02210032/；R02=DC/1511/00770000/03045000。請人工確認地段、地號、建號後再付費匯入。"
         }
       ]
     },
@@ -64,8 +65,8 @@
       "errors": [
         {
           "source": "easymap_r02",
-          "code": "easymap_http_500",
-          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+          "code": "easymap_r02_z10web_mismatch",
+          "message": "R02 舊便民系統與 Z10Web 候選不一致：Z10Web=EB/0903/04900000/；R02=EB/0903/04920000/02750000。請人工確認地段、地號、建號後再付費匯入。"
         }
       ]
     },
@@ -106,19 +107,16 @@
         "land_office": "DC",
         "source": "easymap_z10web",
         "trusted_for_pdf": false,
+        "land_area_sqm": "1655.78",
+        "announced_land_current_value": "45500",
+        "announced_land_value": "9100",
         "parcel_id": "DC-1556-00700000",
         "building_number": "",
         "discovery_confidence": "high",
         "object_type": "land",
         "confirmation_state": "unconfirmed"
       },
-      "errors": [
-        {
-          "source": "easymap_r02",
-          "code": "easymap_http_500",
-          "message": "EasyMap R02 /LandDesc_ajax_detail returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
-        }
-      ]
+      "errors": []
     },
     {
       "id": "not-found",
@@ -168,8 +166,8 @@
       "errors": [
         {
           "source": "easymap_r02",
-          "code": "easymap_http_500",
-          "message": "EasyMap R02 /Door_json_getDoorList returned http_status=500: 系統發生錯誤.. ....系統發生錯誤,請洽系統管理人員..... &nbsp;"
+          "code": "easymap_r02_z10web_mismatch",
+          "message": "R02 舊便民系統與 Z10Web 候選不一致：Z10Web=DC/1514/02210032/；R02=DC/1511/00770000/03033000。請人工確認地段、地號、建號後再付費匯入。"
         }
       ]
     }

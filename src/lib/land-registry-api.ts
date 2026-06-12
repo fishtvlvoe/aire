@@ -201,6 +201,23 @@ interface LocalLandApiSettings {
   secret?: string;
 }
 
+function extractDiscoveryErrorCode(result: LocalAddressDiscoveryResponse | null): string | null {
+  const firstError = Array.isArray(result?.errors) ? result.errors[0] : null;
+  return typeof firstError?.code === "string" && firstError.code.trim() ? firstError.code.trim() : null;
+}
+
+function normalizeDiscoveryFailure(result: LocalAddressDiscoveryResponse | null): Error | null {
+  const firstError = Array.isArray(result?.errors) ? result.errors[0] : null;
+  const code = extractDiscoveryErrorCode(result);
+  if (code === "address_incomplete_missing_district" || code === "address_incomplete_ambiguous_district") {
+    const message = typeof firstError?.message === "string" && firstError.message.trim()
+      ? firstError.message.trim()
+      : code;
+    return new Error(`${code}:${message}`);
+  }
+  return null;
+}
+
 function applyDiscoveryStatusToCandidates(result: LocalAddressDiscoveryResponse): ParcelInfo[] {
   const candidates = Array.isArray(result.candidates) ? result.candidates : [];
   if (result.status !== "low_confidence_unresolved") {
@@ -240,11 +257,18 @@ const BROWSER_REGISTRY_QUERY_RUNS_KEY = "aire_browser_registry_query_runs";
 export class BrowserAddressDiscoveryUnavailableError extends Error {
   readonly code = "browser_address_discovery_provider_unavailable";
   readonly detail: string | null;
+  readonly requestId: string | null;
 
-  constructor(detail?: string | null) {
-    super("瀏覽器版地址前查代理暫時無法取得資料，請先人工填寫地段、地號、建號，或稍後重新查詢。");
+  constructor(detail?: string | null, options?: { requestId?: string | null }) {
+    const requestId = options?.requestId?.trim() ? options.requestId.trim() : null;
+    super(
+      requestId
+        ? `瀏覽器版地址前查代理暫時無法取得資料，請先人工填寫地段、地號、建號，或稍後重新查詢。查詢編號：${requestId}`
+        : "瀏覽器版地址前查代理暫時無法取得資料，請先人工填寫地段、地號、建號，或稍後重新查詢。",
+    );
     this.name = "BrowserAddressDiscoveryUnavailableError";
     this.detail = detail?.trim() ? detail.trim() : null;
+    this.requestId = requestId;
   }
 }
 
@@ -289,6 +313,10 @@ async function fetchAddressDiscoveryFromLocalBackend(address: string): Promise<P
 
   const result = (await response.json()) as LocalAddressDiscoveryResponse;
   await recordLocalAddressDiscovery(address, result);
+  const normalizedFailure = normalizeDiscoveryFailure(result);
+  if (normalizedFailure) {
+    throw normalizedFailure;
+  }
   if (result.status === "candidate_found" || result.status === "low_confidence_unresolved") {
     return applyDiscoveryStatusToCandidates(result);
   }
@@ -330,7 +358,7 @@ async function fetchAddressDiscoveryFromTaiwanProxy(address: string): Promise<Pa
       `address=${address}`,
     ].filter(Boolean).join(" | ");
     void writeLog("address_discovery_query", "error", { reason: summary });
-    throw new BrowserAddressDiscoveryUnavailableError(summary);
+    throw new BrowserAddressDiscoveryUnavailableError(summary, { requestId });
   }
 
   const result = await response.json().catch(() => null) as LocalAddressDiscoveryResponse | null;
@@ -346,9 +374,15 @@ async function fetchAddressDiscoveryFromTaiwanProxy(address: string): Promise<Pa
       `address=${address}`,
     ].filter(Boolean).join(" | ");
     void writeLog("address_discovery_query", "error", { reason: summary });
-    throw new BrowserAddressDiscoveryUnavailableError(summary);
+    throw new BrowserAddressDiscoveryUnavailableError(summary, {
+      requestId: response.headers.get("x-aire-request-id") || requestId,
+    });
   }
   await recordLocalAddressDiscovery(address, result);
+  const normalizedFailure = normalizeDiscoveryFailure(result);
+  if (normalizedFailure) {
+    throw normalizedFailure;
+  }
   void writeLog("address_discovery_query", "ok", {
     reason: `request_id=${response.headers.get("x-aire-request-id") || requestId} status=${result.status} candidates=${result.candidates?.length ?? 0}`,
   });

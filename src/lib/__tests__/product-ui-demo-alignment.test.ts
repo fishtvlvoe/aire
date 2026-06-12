@@ -194,6 +194,24 @@ describe("product-ui-demo-alignment contract", () => {
     expect(classified.buildingCount).toBe(1);
   });
 
+  it("treats any doorplate address with 號 as building-first even when only land is found", () => {
+    const classified = classifyAddressLookupResult("台中市太平區環中東路3段333號六樓之一", [
+      {
+        parcel_id: "DC-1514-00022132",
+        address: "台中市太平區環中東路3段333號",
+        lot_number: "02020000",
+        building_number: "",
+      },
+    ]);
+
+    expect(classified.status).toBe("manual_required");
+    expect(classified.propertyType).toBe("residential");
+    expect(classified.displayType).toBe("建物需確認");
+    expect(classified.summary).toBe("已找到 1 筆土地，建號需人工確認");
+    expect(classified.landCount).toBe(1);
+    expect(classified.buildingCount).toBe(1);
+  });
+
   it("counts Yunong candidate land and buildings separately", () => {
     const classified = classifyAddressLookupResult("台南市東區裕農路288巷17號8樓之1", [
       { parcel_id: "DC-1556-00700000", address: "A", lot_number: "00700000", building_number: "" },
